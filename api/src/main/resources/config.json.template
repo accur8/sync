@@ -1,0 +1,20 @@
+{
+	"sourceDatabase": {
+		"url":"jdbc:postgresql://localhost/qubes",
+		"user":"qubes",
+		"password":""
+	},
+	"targetDatabase": {
+		"url":"jdbc:postgresql://localhost/qubes",
+		"user":"qubes",
+		"password":""
+	},
+	"tableSyncs": [
+		{
+			"start": 1,
+			"sourceTable": "usergroup_log",
+			"targetTable": "usergroupplay",
+			"primaryKey": "uid"
+		}
+	]
+}

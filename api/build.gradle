@@ -1,0 +1,41 @@
+
+
+plugins {
+    id 'scala'
+    id 'java-library'
+}
+
+configurations {
+    provided
+}
+
+
+sourceSets {
+  main {
+    compileClasspath += configurations.provided
+    java {
+      srcDirs = []
+    }
+    scala {
+      srcDirs = ['src/main/scala','src/main/java','shared/src//main/scala','jvm/src/main/scala']
+    }
+  }
+  test {
+    java {
+      srcDirs = []
+    }
+    scala {
+      srcDirs = ['src/test/scala','src/test/java','shared/src/test/scala','jvm/src/test/scala']
+    }
+  }
+}
+
+
+dependencies {
+  api 'co.fs2:fs2-io_2.12:3.2.4'
+  api 'net.sf.jt400:jt400:10.7'
+  api 'com.zaxxer:HikariCP:4.0.3'
+  testImplementation 'org.scalatest:scalatest_2.12:3.2.10'
+  api project(':shared')
+}
+
