@@ -23,11 +23,11 @@ val scalaLibVersion = "2.13.6"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
-resolvers in Global += "a8-repo" at Common.readRepoUrl()
+// resolvers in Global += "a8-repo" at Common.readRepoUrl()
 
-publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
-//publishTo in Global := sonatypePublishToBundle.value
-//credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+// publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
+publishTo in Global := sonatypePublishToBundle.value
+credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 scalaVersion in Global := scalaLibVersion
 
