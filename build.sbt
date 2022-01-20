@@ -17,7 +17,9 @@
 //        project_name : a8-versions
 //        build_os : Linux
 // 
-//      
+//
+
+val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "2.13.6"
 
@@ -30,7 +32,7 @@ scalaVersion in Global := scalaLibVersion
 
 organization in Global := "io.accur8"
 
-version in Global := a8.sbt_a8.versionStamp(file("."))
+version in Global := appVersion
 
 versionScheme in Global := Some("strict")
 
@@ -93,12 +95,9 @@ lazy val sharedJS = shared.js
 
 
 lazy val root =
-  Common.jvmProject("root", file("target/root"), id = "root")
+  Common.jvmProject("root", file("."), id = "root")
     .settings( publish := {} )
+    .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
     .aggregate(api)
     .aggregate(sharedJS)
     .aggregate(sharedJVM)
-
-
-
-   

@@ -28,6 +28,8 @@ import sbtcrossproject.CrossType
 
 object Common extends a8.sbt_a8.SharedSettings with a8.sbt_a8.HaxeSettings with a8.sbt_a8.SassSettings with a8.sbt_a8.dobby.DobbySettings {
 
+  override def settings: Seq[Def.Setting[_]] = Seq()
+
   def crossProject(artifactName: String, dir: java.io.File, id: String) =
     sbtcrossproject.CrossProject(id, dir)(JSPlatform, JVMPlatform)
       .crossType(CrossType.Full)
