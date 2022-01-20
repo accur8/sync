@@ -27,61 +27,9 @@ addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0")
 //addSbtPlugin("io.get-coursier" % "sbt-coursier" % "2.0.0-RC6")
 //addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.0")
 
-resolvers += "a8-sbt-plugins" at readRepoUrl()
-credentials += readRepoCredentials()
-
 //libraryDependencies += "org.slf4j" % "slf4j-nop" % "1.7.21"
 //addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
 
 // use this one if you need dobby
 //addSbtPlugin("a8" % "sbt-a8" % "1.1.0-20210702_1452")
-addSbtPlugin("a8" % "sbt-a8" % "1.1.0-20210930_1248")
-
-// This plugin can be removed when using Scala 2.13.0 or above
-addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.2")
-
-
-
-
-  def readRepoUrl() = readRepoProperty("repo_url")
-
-  lazy val repoConfigFile = new java.io.File(System.getProperty("user.home") + "/.a8/repo.properties")
-
-  lazy val repoProperties = {
-    import scala.jdk.CollectionConverters._
-    val props = new java.util.Properties()
-    if ( repoConfigFile.exists() ) {
-      val input = new java.io.FileInputStream(repoConfigFile)
-      try {
-        props.load(input)
-      } finally {
-        input.close()
-      }
-      props.asScala
-    } else {
-      sys.error("config file " + repoConfigFile + " does not exist")
-    }
-  }
-
-  def readRepoProperty(propertyName: String): String = {
-    repoProperties.get(propertyName) match {
-      case Some(s) =>
-        s
-      case None =>
-        sys.error("could not find property " + propertyName + " in " + repoConfigFile)
-    }
-  }
-
-  def readRepoCredentials(): Credentials = {
-    val repoUrl = new java.net.URL(readRepoUrl())
-    Credentials(
-      readRepoProperty("repo_realm"),
-      repoUrl.getHost,
-      readRepoProperty("repo_user"),
-      readRepoProperty("repo_password"),
-    )
-  }
-
-
-  
-
+addSbtPlugin("io.accur8" % "sbt-a8" % "1.2.0-20220113_1040")
