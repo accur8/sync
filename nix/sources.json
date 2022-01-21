@@ -1,0 +1,26 @@
+{
+    "a8-scripts": {
+        "branch": "master",
+        "description": null,
+        "homepage": null,
+        "owner": "fizzy33",
+        "repo": "a8-scripts",
+        "rev": "e8f87edd213ce1dc1544f590e81a477f17a374c8",
+        "sha256": "172waafkb3y4ygl608xws8hxmw3z1fbxycmlihnn2jwl6dzh3b0s",
+        "type": "tarball",
+        "url": "https://github.com/fizzy33/a8-scripts/archive/e8f87edd213ce1dc1544f590e81a477f17a374c8.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nixpkgs": {
+        "branch": "nixos-unstable",
+        "description": "Nix Packages collection",
+        "homepage": "",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "6d8215281b2f87a5af9ed7425a26ac575da0438f",
+        "sha256": "00wy4zapg955yzpfnyx9lxm7jskmwyjzmdwr7d0mrwx3gl1wz9mx",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/6d8215281b2f87a5af9ed7425a26ac575da0438f.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    }
+}

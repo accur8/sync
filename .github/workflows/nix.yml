@@ -1,0 +1,23 @@
+name: Nix
+on:
+  # Run after merges or pushes to master
+  push:
+    branches:
+      - master
+  # Run on pull-requests
+  pull_request:
+  # Allow to trigger the run manually
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          # - macos-latest
+          - ubuntu-20.04
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v16
+        # Test that the nix-shell is working
+      - run: nix-shell --run "echo OK"
