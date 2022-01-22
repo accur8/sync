@@ -20,6 +20,7 @@ nixpkgs.mkShell {
     my-java
     my-sbt
     my-scala
+    nixpkgs.python3
     nixpkgs.exa
     nixpkgs.niv
   ];
