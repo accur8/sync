@@ -4,26 +4,21 @@
 // 
 // This file is generated from modules.conf using `a8-versions build_dot_sbt`
 // 
-// It was generated at 2022-01-12 11:25:34.467 -0600 by raph on ENNS-PC
+// It was generated at 2022-01-31T17:26:05.981685900 by glen on fullfillment
 // 
 // a8-versions build/versioning info follows
 // 
-//        build_date : Thu Sep 30 12:56:07 CDT 2021
-//        build_machine : ENNS-PC
-//        build_machine_ip : 127.0.1.1
-//        build_java_version : 11.0.11
-//        build_user : raph
-//        version_number : 1.0.0-20210930_1255_master
-//        project_name : a8-versions
-//        build_os : Linux
 // 
-//
+// 
+//      
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "2.13.6"
+val sbtA8Version = "1.2.0-20220113_1040"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
+
 
 publishTo in Global := sonatypePublishToBundle.value
 credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
@@ -95,9 +90,13 @@ lazy val sharedJS = shared.js
 
 
 lazy val root =
-  Common.jvmProject("root", file("."), id = "root")
+  Common.jvmProject("root", file("target/root"), id = "root")
     .settings( publish := {} )
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
     .aggregate(api)
     .aggregate(sharedJS)
     .aggregate(sharedJVM)
+
+
+
+   
