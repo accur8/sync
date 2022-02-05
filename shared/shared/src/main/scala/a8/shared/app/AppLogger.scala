@@ -15,38 +15,11 @@ trait AppLogger extends LazyLogger { self: BootstrappedIOApp =>
 
       Logger.setDefaultLogLevel(bootstrapConfig.defaultLogLevel)
 
-      def logger(name: String): Logger = Logger(name)
-
-      List(
-        "io.undertow",
-      ) foreach { n =>
-        logger(n).setLogLevel(LogLevel.DEBUG)
-      }
-
-      List(
-        "a8.wsjdbc.client",
-        "sun",
-        "jdk",
-        "org.apache.http",
-        "org.apache.pulsar.client.impl.ProducerImpl",
-        "org.apache.pulsar.client.impl.PersistentAcknowledgmentsGroupingTracker",
-        "org.apache.pulsar",
-        "org.asynchttpclient.netty",
-        "org.apache.log4j",
-        "org.postgresql",
-        "io.netty",
-        "org.xnio",
-        "com.oath.halodb",
-        "org.jboss",
-        "com.sun.mail",
-        "com.zaxxer.hikari",
-        "io.netty",
-        "jakarta",
-        "org.asynchttpclient",
-        "software.amazon.awssdk",
-      ) foreach { n =>
-        logger(n).setLogLevel(LogLevel.INFO)
-      }
+      self
+        .initialLogLevels
+        .foreach { case (name, level) =>
+          Logger(name).setLogLevel(level)
+        }
 
     }
 

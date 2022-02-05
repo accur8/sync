@@ -209,10 +209,7 @@ class QubesApiClient[F[_] : Async](
             .jsonBody(requestBody.toJsVal)
 
 
-        request
-          .exec { responseBodyStr =>
-            json.readF[F, B](responseBodyStr)
-          }
+        request.execWithJsonResponse[F,B]
       }
 
     def execute[A: JsonCodec](subPath: Uri, requestBody: A): F[JsDoc] = {
@@ -222,8 +219,7 @@ class QubesApiClient[F[_] : Async](
           .jsonBody(requestBody.toJsVal)
       logger.trace(s"${request.method.value} ${request.uri}")
 
-      request
-        .exec { responseBodyStr =>
+      request.execAndMap { responseBodyStr =>
           F.defer {
             json.parseF(responseBodyStr)
               .map(jv => JsDoc(jv))

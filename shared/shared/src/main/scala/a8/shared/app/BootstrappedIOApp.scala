@@ -4,12 +4,51 @@ package a8.shared.app
 import a8.shared.SharedImports._
 import a8.shared.app.BootstrapConfig.AppName
 import cats.effect.{ExitCode, IO}
+import wvlet.log.LogLevel
 
 abstract class BootstrappedIOApp(defaultAppName: String = getClass.shortName.toLowerCase)
   extends IOApp
     with AppLogger
     with IOLogger
 {
+
+  def initialLogLevels: Iterable[(String,wvlet.log.LogLevel)] = {
+    val debugs =
+      List(
+        "io.undertow",
+      ) map { n =>
+        n -> LogLevel.DEBUG
+      }
+
+    val infos =
+      List(
+        "a8.wsjdbc.client",
+        "sun",
+        "jdk",
+        "org.apache.http",
+        "org.apache.pulsar.client.impl.ProducerImpl",
+        "org.apache.pulsar.client.impl.PersistentAcknowledgmentsGroupingTracker",
+        "org.apache.pulsar",
+        "org.asynchttpclient.netty",
+        "org.apache.log4j",
+        "org.postgresql",
+        "io.netty",
+        "org.xnio",
+        "com.oath.halodb",
+        "org.jboss",
+        "com.sun.mail",
+        "com.zaxxer.hikari",
+        "io.netty",
+        "jakarta",
+        "org.asynchttpclient",
+        "software.amazon.awssdk",
+      ) map { n =>
+        n -> LogLevel.INFO
+      }
+
+    debugs ++ infos
+
+  }
 
   lazy val resolvedAppName: AppName =
     AppName(System.getProperty("appname", defaultAppName))

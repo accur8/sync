@@ -72,8 +72,14 @@ object http extends LazyLogger {
     def body[A](a: A)(implicit toBodyFn: A => Body): Request
     def method(m: Method): Request
 
-    def exec[F[_], A](fn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execAndMap(this)(fn)
+    def exec[F[_]](implicit processor: RequestProcessor[F]): F[String] =
+      processor.exec(this)
+
+    def execWithJsonResponse[F[_] : Async, A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
+      processor.execAndMap(this)(responseJson => json.readF[F,A](responseJson))
+
+    def execAndMap[F[_],A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execAndMap(this)(validateFn)
 
     def curlCommand: String
 
