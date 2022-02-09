@@ -54,7 +54,7 @@ abstract class BootstrappedIOApp
     getClass.shortName.toLowerCase
 
   lazy val resolvedAppName: AppName =
-    AppName(System.getProperty("appname", defaultAppName)
+    AppName(System.getProperty("appname", defaultAppName))
 
   lazy val bootstrapper = Bootstrapper(resolvedAppName)
   lazy val bootstrapConfig = bootstrapper.bootstrapConfig
