@@ -6,7 +6,7 @@ import a8.shared.app.BootstrapConfig.AppName
 import cats.effect.{ExitCode, IO}
 import wvlet.log.LogLevel
 
-abstract class BootstrappedIOApp(defaultAppName: String = getClass.shortName.toLowerCase)
+abstract class BootstrappedIOApp
   extends IOApp
     with AppLogger
     with IOLogger
@@ -50,8 +50,11 @@ abstract class BootstrappedIOApp(defaultAppName: String = getClass.shortName.toL
 
   }
 
+  lazy val defaultAppName: String =
+    getClass.shortName.toLowerCase
+
   lazy val resolvedAppName: AppName =
-    AppName(System.getProperty("appname", defaultAppName))
+    AppName(System.getProperty("appname", defaultAppName)
 
   lazy val bootstrapper = Bootstrapper(resolvedAppName)
   lazy val bootstrapConfig = bootstrapper.bootstrapConfig
