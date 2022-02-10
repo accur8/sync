@@ -19,7 +19,11 @@ let
 
   my-sbt = nixpkgs.sbt.override { jre = my-java; };
 in
-devshell.mkShell {
+devshell.mkShell ({ extraModulesPath, ... }: {
+  imports = [
+    "${extraModulesPath}/language/go.nix"
+  ];
+
   # Load packages
   packages = [
     a8-scripts.a8-scripts
@@ -44,4 +48,4 @@ devshell.mkShell {
       category = "nix";
     }
   ];
-}
+})
