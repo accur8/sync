@@ -32,9 +32,9 @@ object JsonCodec extends JsonCodecs {
 trait JsonCodec[A] { jsonCodecA =>
 
   def write(a: A): JsVal
-  def read(doc: JsDoc): Either[ReadError,A]
+  def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError,A]
 
-  def read(doc: JsDoc, default: Option[() => A]): Either[ReadError,A] = {
+  def read(doc: JsDoc, default: Option[() => A])(implicit readOptions: JsonReadOptions): Either[ReadError,A] = {
     doc.value match {
       case JsNothing =>
         default match {

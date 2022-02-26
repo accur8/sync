@@ -18,7 +18,7 @@ object EnumCodecBuilder {
       override def write(a: A): ast.JsVal =
         JsStr(a.value)
 
-      override def read(doc: ast.JsDoc): Either[ReadError, A] =
+      override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
         doc.value match {
           case JsStr(s) =>
             enumValuesByName.get(s.toCi) match {
@@ -44,7 +44,7 @@ object EnumCodecBuilder {
       override def write(a: A): ast.JsVal =
         JsStr(a.entryName)
 
-      override def read(doc: ast.JsDoc): Either[ReadError, A] =
+      override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
         doc.value match {
           case JsStr(s) =>
             enumValuesByName.get(s.toCi) match {

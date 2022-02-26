@@ -7,7 +7,7 @@ import a8.shared.SharedImports._
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ast._
 import a8.shared.json.impl.JsonCodecs.IterableJsonCodec
-import a8.shared.json.{JsonCodec, ReadError, ast}
+import a8.shared.json.{JsonCodec, JsonReadOptions, ReadError, ast}
 import sttp.model.Uri
 
 import scala.concurrent.duration.FiniteDuration
@@ -24,7 +24,7 @@ object JsonCodecs {
           .toList
       )
 
-    override def read(doc: JsDoc): Either[ReadError, A[B]] =
+    override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A[B]] =
       doc.value match {
         case JsArr(list) =>
           val result =
@@ -61,7 +61,7 @@ trait JsonCodecs {
             JsonCodec[A].write(a)
         }
 
-      override def read(doc: JsDoc): Either[ReadError, Option[A]] =
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, Option[A]] =
         doc.value match {
           case JsNothing | JsNull =>
             Right(None)
@@ -87,7 +87,7 @@ trait JsonCodecs {
       override def write(t: (A, B)): JsVal =
         ast.JsArr(List(t._1.toJsVal, t._2.toJsVal))
 
-      override def read(doc: JsDoc): Either[ReadError, (A, B)] = {
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, (A, B)] = {
         doc(0)
           .as[A]
           .flatMap { a =>
@@ -106,7 +106,7 @@ trait JsonCodecs {
           map.map(t => t._1 -> codecA.write(t._2))
         )
 
-      override def read(doc: JsDoc): Either[ReadError, Map[String, A]] = {
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, Map[String, A]] = {
         doc.value match {
           case jso: JsObj =>
             try {

@@ -4,7 +4,9 @@ import a8.shared.app.BootstrappedIOApp
 import cats.effect.IO
 import wvlet.log.{LogLevel, Logger}
 
-object MailApiDemo extends BootstrappedIOApp("mailapidemo") {
+object MailApiDemo extends BootstrappedIOApp {
+
+  override lazy val defaultAppName: String = "mailapidemo"
 
   Logger("com.sun.mail").setLogLevel(LogLevel.DEBUG)
   Logger("jakarta").setLogLevel(LogLevel.DEBUG)

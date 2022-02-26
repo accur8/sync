@@ -9,12 +9,12 @@ object JsonTypedCodec extends JsonTypedCodecs
 abstract class JsonTypedCodec[A, B <: JsVal] { outerTypedCodec =>
 
   def write(a: A): B
-  def read(doc: JsDoc): Either[ReadError,A]
+  def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError,A]
 
   def dimap[C](a2c: A=>C, c2a: C=>A): JsonTypedCodec[C,B] =
     new JsonTypedCodec[C,B] {
       override def write(c: C): B = outerTypedCodec.write(c2a(c))
-      override def read(doc: JsDoc): Either[ReadError, C] = outerTypedCodec.read(doc).map(a2c)
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, C] = outerTypedCodec.read(doc).map(a2c)
     }
 
   def to[C](implicit singleArgTypeConstructor: SingleArgConstructor[A,C]): JsonTypedCodec[C,B] =
@@ -23,7 +23,7 @@ abstract class JsonTypedCodec[A, B <: JsVal] { outerTypedCodec =>
   val asJsonCodec: JsonCodec[A] =
     new JsonCodec[A] {
       override def write(a: A): JsVal = outerTypedCodec.write(a)
-      override def read(doc: JsDoc): Either[ReadError, A] = outerTypedCodec.read(doc)
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] = outerTypedCodec.read(doc)
     }
 
 }
