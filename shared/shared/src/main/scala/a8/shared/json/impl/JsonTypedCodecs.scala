@@ -1,7 +1,7 @@
 package a8.shared.json.impl
 
 import a8.shared.json.ReadError.ReadErrorException
-import a8.shared.json.{JsonCodec, JsonTypedCodec, ReadError, ast}
+import a8.shared.json.{JsonCodec, JsonReadOptions, JsonTypedCodec, ReadError, ast}
 import a8.shared.json.ast.{JsArr, JsBool, JsDoc, JsFalse, JsNothing, JsNull, JsNum, JsObj, JsStr, JsTrue, JsVal}
 import a8.shared.json.impl.JsonCodecs.IterableJsonCodec
 import sttp.model.Uri
@@ -28,7 +28,7 @@ trait JsonTypedCodecs {
       val typeInfo = implicitly[JsTypeInfo[B]]
       val shortName = classTag[A].runtimeClass.shortName
 
-      override def read(doc: JsDoc): Either[ReadError, A] =
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
         typeInfo
           .cast(doc.value)
           .map(b => Right(readFn(b)))
@@ -73,7 +73,7 @@ trait JsonTypedCodecs {
       val typeInfo = implicitly[JsTypeInfo[JsNum]]
       val shortName = classTag[Long].runtimeClass.shortName
 
-      override def read(doc: JsDoc): Either[ReadError, BigDecimal] =
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, BigDecimal] =
         doc.value match {
           case JsNum(bd) =>
             Right(bd)
@@ -106,7 +106,7 @@ trait JsonTypedCodecs {
           override def write(a: A): JsNum =
             JsNum(toBigDecimal(a))
 
-          override def read(doc: JsDoc): Either[ReadError, A] =
+          override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
             outer
               .read(doc)
               .flatMap { bd =>
@@ -137,7 +137,7 @@ trait JsonTypedCodecs {
   implicit lazy val jsDoc: JsonTypedCodec[JsDoc,JsDoc] =
     new JsonTypedCodec[JsDoc,JsDoc] {
       override def write(a: JsDoc): JsDoc = a
-      override def read(doc: JsDoc): Either[ReadError, JsDoc] = Right(doc)
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, JsDoc] = Right(doc)
     }
 
   implicit lazy val jobject =

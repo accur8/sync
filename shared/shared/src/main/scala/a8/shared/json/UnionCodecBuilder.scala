@@ -79,7 +79,7 @@ object UnionCodecBuilder {
           }
         }
 
-        override def read(doc: ast.JsDoc): Either[ReadError, A] = {
+        override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] = {
           doc(typeFieldName).value match {
             case JsStr(name) =>
               typesByName.get(name.toCi) match {

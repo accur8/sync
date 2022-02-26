@@ -1,6 +1,6 @@
 package a8.shared
 
-import a8.shared.json.{JsonCodec, ReadError, ast}
+import a8.shared.json.{JsonCodec, JsonReadOptions, ReadError, ast}
 
 object SingleArgConstructor {
 
@@ -15,7 +15,7 @@ object SingleArgConstructor {
         override def write(b: B): ast.JsVal =
           jsonCodecA.write(deconstruct(b))
 
-        override def read(doc: ast.JsDoc): Either[ReadError, B] =
+        override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, B] =
           jsonCodecA.read(doc).map(construct)
 
       }

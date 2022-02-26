@@ -8,6 +8,7 @@ import a8.shared.json.ast.{JsDoc, JsNothing, JsObj}
 import cats.{Eval, Foldable}
 import fs2.Chunk
 import a8.shared.SharedImports._
+import a8.shared.app.Logging
 
 object JsonObjectCodec {
 
@@ -21,7 +22,10 @@ object JsonObjectCodec {
 class JsonObjectCodec[A](
   parms: Vector[Parm[A]],
   constructors: Constructors[A],
-) extends JsonTypedCodec[A,JsObj] {
+)
+  extends JsonTypedCodec[A,JsObj]
+  with Logging
+{
 
   lazy val parmsByName = parms.toMapTransform(_.name)
 
@@ -34,7 +38,7 @@ class JsonObjectCodec[A](
     )
   }
 
-  override def read(doc: JsDoc): Either[ReadError, A] = {
+  override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] = {
     doc.value match {
       case jo: JsObj =>
         try {
@@ -50,10 +54,24 @@ class JsonObjectCodec[A](
                 }
               }
           val unusedFields = jo.values.filter(f => !parmsByName.contains(f._1))
+          lazy val success = Right(constructors.iterRawConstruct(valuesIterator))
           if ( unusedFields.isEmpty ) {
-            Right(constructors.iterRawConstruct(valuesIterator))
+            success
           } else {
-            doc.errorL(s"json object has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")})")
+            import JsonReadOptions.UnusedFieldAction._
+            lazy val message = s"json object has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")}) -- ${jo.compactJson}"
+            readOptions.unusedFieldAction match {
+              case Fail =>
+                doc.errorL(message)
+              case LogWarning =>
+                logger.warn(message)
+                success
+              case LogDebug =>
+                logger.debug(message)
+                success
+              case Ignore =>
+                success
+            }
           }
         } catch {
           case ReadErrorException(re) =>
