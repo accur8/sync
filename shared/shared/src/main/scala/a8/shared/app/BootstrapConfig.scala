@@ -21,6 +21,7 @@ object BootstrapConfig {
     val default =
       BootstrapConfigDto(
         consoleLogging = true.toSome,
+        colorConsole = true.toSome,
         fileLogging = true.toSome,
         logsDir = "logs".toSome,
         cacheDir = "cache".toSome,
@@ -39,6 +40,7 @@ object BootstrapConfig {
     source: Option[String] = None,
     appName: Option[AppName] = None,
     consoleLogging: Option[Boolean] = None,
+    colorConsole: Option[Boolean] = None,
     fileLogging: Option[Boolean] = None,
     logsDir: Option[String] = None,
     tempDir: Option[String] = None,
@@ -50,6 +52,7 @@ object BootstrapConfig {
       BootstrapConfigDto(
         appName = right.appName.orElse(appName),
         consoleLogging = right.consoleLogging.orElse(consoleLogging),
+        colorConsole = right.colorConsole.orElse(colorConsole),
         fileLogging = right.fileLogging.orElse(fileLogging),
         logsDir = right.logsDir.orElse(logsDir),
         tempDir = right.tempDir.orElse(tempDir),
@@ -83,6 +86,7 @@ object BootstrapConfig {
 case class BootstrapConfig(
   appName: AppName,
   consoleLogging: Boolean,
+  colorConsole: Boolean,
   fileLogging: Boolean,
   logsDir: LogsDir,
   tempDir: TempDir,

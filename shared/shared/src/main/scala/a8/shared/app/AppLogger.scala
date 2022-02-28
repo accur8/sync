@@ -23,7 +23,12 @@ trait AppLogger extends LazyLogger { self: BootstrappedIOApp =>
 
     }
 
-    Logger.setDefaultFormatter(A8LogFormatter.Console)
+    if (bootstrapConfig.colorConsole) {
+      Logger.setDefaultFormatter(A8LogFormatter.ColorConsole)
+    } else {
+      Logger.setDefaultFormatter(A8LogFormatter.MonochromeConsole)
+    }
+
     Logger.scheduleLogLevelScan
 
     configureLogLevels()

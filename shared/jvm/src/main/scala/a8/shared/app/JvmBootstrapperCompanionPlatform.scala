@@ -69,6 +69,7 @@ class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
         BootstrapConfig(
           appName = resolvedDto.appName.getOrElse(appName),
           consoleLogging = resolvedDto.consoleLogging.get,
+          colorConsole = resolvedDto.colorConsole.get,
           fileLogging = resolvedDto.fileLogging.get,
           logsDir = LogsDir(FileSystem.dir(resolvedDto.logsDir.get)),
           tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),

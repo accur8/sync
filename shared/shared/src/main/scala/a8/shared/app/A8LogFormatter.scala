@@ -7,13 +7,20 @@ import java.time.{Instant, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 
 object A8LogFormatter {
-  object Console extends A8LogFormatter
+
+  object ColorConsole extends A8LogFormatter
+
+  object MonochromeConsole extends A8LogFormatter {
+    override def withColor(prefix: String, s: String): String = s
+    override def highlightLog(level: LogLevel, message: String): String = message
+  }
 
   object File extends A8LogFormatter {
     override val levelWidth = 5
     override def withColor(prefix: String, s: String): String = s
     override def highlightLog(level: LogLevel, message: String): String = message
   }
+
 }
 
 trait A8LogFormatter extends LogFormatter {
