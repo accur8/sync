@@ -27,12 +27,9 @@ devshell.mkShell ({ extraModulesPath, ... }: {
   # Load packages
   packages = [
     a8-scripts.a8-scripts
-    my-ammonite
     my-java
     my-sbt
-    my-scala
     nixpkgs.python3
-    nixpkgs.exa
   ];
 
   # Set env vars
