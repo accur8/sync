@@ -18,7 +18,6 @@ class AsyncOps[F[_] : Async, A](fa: F[A]) {
     fa.onError(th => loggerF.warn("got an error and logging it and then re-throwing it", th))
 
   def unsafeRunSync(implicit dispatcher: Dispatcher[F]): A =
-    ???
-//    dispatcher.unsafeRunSync(fa)
+    dispatcher.unsafeRunSync(fa)
 
 }
