@@ -59,7 +59,7 @@ abstract class BootstrappedIOApp
   lazy val bootstrapper = Bootstrapper(resolvedAppName)
   lazy val bootstrapConfig = bootstrapper.bootstrapConfig
 
-  lazy val appInit = {
+  def appInit: IO[Unit] = IO.delay {
 
     // make sure bootstrap is complete
     bootstrapInit
@@ -88,10 +88,14 @@ abstract class BootstrappedIOApp
 
   }
 
-  appInit
-
   def run: IO[Unit]
-  def run(args: List[String]): IO[ExitCode] = run.as(ExitCode.Success)
+
+  def run(args: List[String]): IO[ExitCode] = {
+    for {
+      _ <- appInit
+      _ <- this.run
+    } yield ExitCode.Success
+  }
 
 
 }
