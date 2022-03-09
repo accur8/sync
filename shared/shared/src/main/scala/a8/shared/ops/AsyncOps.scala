@@ -21,7 +21,7 @@ class AsyncOps[F[_] : Async, A](fa: F[A]) {
     dispatcher.unsafeRunSync(fa)
 
   def fs2StreamExec: fs2.Stream[F,fs2.INothing] =
-    fs2.Stream.exec[F](fa)
+    fs2.Stream.exec[F](fa.void)
 
   def fs2StreamEval: fs2.Stream[F,A] =
     fs2.Stream.eval[F,A](fa)

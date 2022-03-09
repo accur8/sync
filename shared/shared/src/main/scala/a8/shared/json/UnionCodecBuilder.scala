@@ -58,7 +58,7 @@ object UnionCodecBuilder {
     lazy val typesByName = types.map(t => t.name.toCi -> t).toMap
 
     override def typeFieldName(name: String): UnionCodecBuilder[A] =
-      copy(typeFieldName = typeFieldName)
+      copy(typeFieldName = name)
 
     override def addSingleton[B <: A : ClassTag](name: String, b: B): UnionCodecBuilder[A] =
       copy(types = types :+ UnionCodecBuilderSingleton[A,B](name, b))
