@@ -38,11 +38,13 @@ devshell.mkShell ({ extraModulesPath, ... }: {
     { name = "SDFSDFG"; eval = "$KEY-xxx"; }
   ];
 
-  # Add commands in the menu
-  commands = [
-    {
-      package = nixpkgs.niv;
-      category = "nix";
-    }
-  ];
+    # Add commands in the menu
+  commands =
+    if builtins.currentSystem == "aarch64-darwin" then [] else [
+      {
+        package = nixpkgs.niv;
+        category = "nix";
+      }
+    ];
+
 })
