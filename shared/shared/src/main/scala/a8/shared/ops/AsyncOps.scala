@@ -14,6 +14,10 @@ class AsyncOps[F[_] : Async, A](fa: F[A]) {
       .onError(th => loggerF.warn("got an error and logging it and then swallowing it", th))
       .void
 
+  def logCompletion(implicit loggerF: LoggerF[F]): F[A] =
+    logError
+      .flatTap(a => loggerF.debug(s"completed successfully ${a}"))
+
   def logError(implicit loggerF: LoggerF[F]): F[A] =
     fa.onError(th => loggerF.warn("got an error and logging it and then re-throwing it", th))
 

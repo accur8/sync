@@ -88,6 +88,9 @@ abstract class BootstrappedIOApp
 
   }
 
+  def wrapRun(io: IO[Unit]): IO[Unit] =
+    io.logCompletion
+
   def run: IO[Unit]
 
   def run(args: List[String]): IO[ExitCode] = {

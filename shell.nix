@@ -30,6 +30,7 @@ devshell.mkShell ({ extraModulesPath, ... }: {
     my-java
     my-sbt
     nixpkgs.python3
+    nixpkgs.gnupg
   ];
 
   # Set env vars
