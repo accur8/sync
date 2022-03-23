@@ -7,13 +7,13 @@ import a8.shared.json.{JsonCodec, ast}
 import a8.shared.SharedImports._
 import a8.shared.app.Logging
 import a8.shared.jdbcf.SqlString.SqlStringer
-import a8.sync.http.{Method, RequestProcessor, RetryConfig}
+import a8.sync.http.{Backend, Method, RequestProcessor, RetryConfig}
 import a8.sync.http
 import a8.sync.qubes.MxQubesApiClient._
 import cats.effect.kernel.Deferred
 import org.asynchttpclient.AsyncHttpClient
 import sttp.client3._
-import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
 import wvlet.log.LazyLogger
@@ -134,12 +134,13 @@ object QubesApiClient extends Logging {
     for {
       asyncHttpClient <- asyncHttpClientR
       maxConnectionSemaphore <- Resource.eval(Semaphore[F](config.maximumSimultaneousHttpConnections))
+      dispatcher <- Dispatcher[F]
     } yield {
       import sttp.client3.logging._
-      val sttpBackend = AsyncHttpClientCatsBackend.usingClient[F](asyncHttpClient)
+      val sttpBackend = AsyncHttpClientFs2Backend.usingClient[F](asyncHttpClient, dispatcher)
       val sttpLogger = QubesApiClient.sttpLogger[F]
       val loggingBackend = LoggingBackend(delegate = sttpBackend, logger = sttpLogger, beforeCurlInsteadOfShow = true)
-      new QubesApiClient[F](config, loggingBackend, maxConnectionSemaphore)
+      new QubesApiClient[F](config, Backend(loggingBackend), maxConnectionSemaphore)
     }
   }
 
@@ -187,7 +188,7 @@ object QubesApiClient extends Logging {
 
 class QubesApiClient[F[_] : Async](
   config: QubesApiClient.Config,
-  val sttpBackend: SttpBackend[F, Any],
+  val backend: Backend[F],
   maxConnectionSemaphore: Semaphore[F],
 ) extends LazyLogger {
 
@@ -196,7 +197,7 @@ class QubesApiClient[F[_] : Async](
   object impl {
     val F = Async[F]
 
-    implicit lazy val requestProcessor: RequestProcessor[F] = RequestProcessor(config.retry, sttpBackend, maxConnectionSemaphore)
+    implicit lazy val requestProcessor: RequestProcessor[F] = RequestProcessor(config.retry, backend, maxConnectionSemaphore)
     lazy val baseRequest = http.Request(config.uri).addHeader("X-SESS", config.authToken.value)
 
     def executeA[A: JsonCodec, B: JsonCodec](subPath: Uri, requestBody: A): F[B] =

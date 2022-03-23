@@ -9,14 +9,22 @@ import sttp.model.{StatusCode, Uri}
 import wvlet.log.LazyLogger
 import a8.shared.SharedImports._
 import a8.shared.app.{LoggerF, Logging, LoggingF}
+import a8.sync.http.Body
+import a8.sync.http.Body.StringBody
 import retry.RetryDetails.{GivingUp, WillDelayAndRetry}
 import retry._
-import sttp.client3
-import sttp.client3.{Identity, RequestT, SttpBackend, basicRequest}
+import sttp.capabilities.fs2.Fs2Streams
+import sttp.{capabilities, client3}
+import sttp.client3.{Identity, RequestT, basicRequest}
 
+import java.net.URLEncoder
 import scala.concurrent.duration.FiniteDuration
 
 object http extends LazyLogger {
+
+  case class Backend[F[_] : Async](
+    delegate: sttp.client3.SttpBackend[F, Fs2Streams[F] with capabilities.WebSockets]
+  )
 
   object RetryConfig extends MxRetryConfig {
   }
@@ -72,6 +80,8 @@ object http extends LazyLogger {
     def body[A](a: A)(implicit toBodyFn: A => Body): Request
     def method(m: Method): Request
 
+    def formBody(fields: Iterable[(String,String)]): Request
+
     def exec[F[_]](implicit processor: RequestProcessor[F]): F[String] =
       processor.exec(this)
 
@@ -81,8 +91,19 @@ object http extends LazyLogger {
     def execAndMap[F[_],A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execAndMap(this)(validateFn)
 
+    def execWithStreamResponse[F[_],A](implicit processor: RequestProcessor[F]): fs2.Stream[F,Byte] =
+      processor.execWithStreamResponse(this)
+
     def curlCommand: String
 
+  }
+
+  trait Responder[A] {
+    def exec[F[_] : Async : RequestProcessor](responseMetadata: ResponseMetadata, body: fs2.Stream[F,Byte]): F[A]
+  }
+
+  sealed trait RequestWithResponse[A] {
+    def exec[F[_] : Async]: F[A]
   }
 
   object Method {
@@ -94,16 +115,15 @@ object http extends LazyLogger {
     value: String
   )
 
-  case class Response(
+  case class ResponseMetadata(
     statusCode: StatusCode,
     statusText: String,
     headers: Map[String,String],
-    body: String,
   )
 
   sealed trait RequestProcessor[F[_]] {
 
-    def exec[A](request: Request): F[String]
+    def exec(request: Request): F[String]
 
 
     /**
@@ -117,16 +137,18 @@ object http extends LazyLogger {
      */
     def execAndMap[A](request: Request)(validateFn: String => F[A]): F[A]
 
+    def execWithStreamResponse[A](request: Request): fs2.Stream[F,Byte]
+
   }
 
   object RequestProcessor {
 
-    def apply[F[_] : Async](retry: RetryConfig, backend: SttpBackend[F, Any], maxConnectionSemaphore: Semaphore[F]) =
+    def apply[F[_] : Async](retry: RetryConfig, backend: Backend[F], maxConnectionSemaphore: Semaphore[F]) =
       RequestProcessorImpl(retry, backend, maxConnectionSemaphore)
 
     case class RequestProcessorImpl[F[_] : Async](
       retryConfig: RetryConfig,
-      backend: SttpBackend[F, Any],
+      backend: Backend[F],
       maxConnectionSemaphore: Semaphore[F]
     ) extends LoggingF[F]
       with RequestProcessor[F]
@@ -145,8 +167,11 @@ object http extends LazyLogger {
 
       val F = Async[F]
 
-      override def exec[A](request: Request): F[String] =
+      override def exec(request: Request): F[String] =
         execAndMap(request)(F.pure)
+
+      override def execWithStreamResponse[A](request: Request): fs2.Stream[F, Byte] =
+        streamExecWithRetry(request)
 
       override def execAndMap[A](request: Request)(mapFn: String => F[A]): F[A] =
         execWithRetry(request, mapFn)
@@ -177,7 +202,7 @@ object http extends LazyLogger {
           val startTime = System.currentTimeMillis()
 
           requestWithBody
-            .send(backend)
+            .send(backend.delegate)
             .flatMap { response =>
               logger.trace(s"${request.method.value} ${request.uri} completed in ${System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
               val responseBodyStrF: F[String] =
@@ -200,7 +225,62 @@ object http extends LazyLogger {
 
         }
       }
+
+      def streamExecWithRetry[A](request: Request): fs2.Stream[F,Byte] =
+        applyRetryPolicy(retryPolicy, request.uri.toString(), streamSingleExec(request))
+          .fs2StreamEval
+          .flatten
+
+
+      def streamSingleExec[A](request: Request): F[fs2.Stream[F,Byte]] = {
+        maxConnectionSemaphore.permit
+          .use { _ =>
+
+            val request0: RequestT[Identity, Either[String, fs2.Stream[F, Byte]], Any with Fs2Streams[F]] =
+              basicRequest
+                .method(sttp.model.Method(request.method.value), request.uri)
+                .headers(request.headers)
+                .response(client3.asStreamUnsafe(Fs2Streams[F]))
+
+            val requestWithBody: RequestT[Identity, Either[String, fs2.Stream[F,Byte]], Any with Fs2Streams[F]] =
+              request.body match {
+                case Body.Empty =>
+                  request0
+                case Body.StringBody(content) =>
+                  request0.body(content)
+                case Body.JsonBody(json) =>
+                  request0.body(json.compactJson)
+              }
+
+            logger.trace(s"${request.method.value} ${request.uri}")
+            val startTime = System.currentTimeMillis()
+
+            requestWithBody
+              .send(backend.delegate)
+              .flatMap { response =>
+                logger.trace(s"${request.method.value} ${request.uri} completed in ${System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+                val responseBodyStrF: F[fs2.Stream[F,Byte]] =
+                  if ( response.code.isSuccess ) {
+                    response.body match {
+                      case Left(errorMessage) =>
+                        F.raiseError(new RuntimeException("we should never get a Left here since we are only dealing with 2xx successes"))
+                      case Right(responseBody) =>
+                        F.pure(responseBody)
+                    }
+                  } else {
+                    F.raiseError(new RuntimeException(s"http response code is ${response.code} which is not success -- ${response.body.merge}"))
+                  }
+                responseBodyStrF
+              }
+              .onError { error =>
+                loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
+              }
+
+          }
+      }
+
     }
+
   }
 
   object impl {
@@ -258,7 +338,20 @@ object http extends LazyLogger {
           .mkString(" \\\n")
       }
 
+      override def formBody(fields: Iterable[(String, String)]): Request = {
+        def encode(text: String): String = URLEncoder.encode(text, "UTF-8")
+        val encodedFormBody =
+          fields
+            .map(t => encode(t._1) + "=" + encode(t._2))
+            .mkString("&")
+        copy(
+          body = StringBody(encodedFormBody),
+          headers = headers + ("Content-Type" -> "application/x-www-form-urlencoded"),
+        )
+      }
     }
+
+
 
   }
 

@@ -53,8 +53,7 @@ lazy val shared =
     .crossProject("a8-sync-shared", file("shared"), "shared")
     .settings(
       libraryDependencies ++= Seq(
-        "com.softwaremill.sttp.client3" %% "core" % "3.3.18",
-        "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.3.18",
+        "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2" % "3.5.1",
         "com.github.cb372" %%% "cats-retry" % "3.1.0",
         "com.beachape" %%% "enumeratum" % "1.7.0",
         "com.lihaoyi" %%% "sourcecode" % "0.2.7",
