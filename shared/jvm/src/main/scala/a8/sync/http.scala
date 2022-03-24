@@ -93,7 +93,7 @@ object http extends LazyLogger {
     def execAndMap[F[_],A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execAndMap(this)(validateFn)
 
-    def execWithStreamResponse[F[_],A](implicit processor: RequestProcessor[F]): fs2.Stream[F,Byte] =
+    def execWithStreamResponse[F[_]](implicit processor: RequestProcessor[F]): fs2.Stream[F,Byte] =
       processor.execWithStreamResponse(this)
 
     def curlCommand: String
