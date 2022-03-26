@@ -11,8 +11,11 @@ class AsyncOps[F[_] : Async, A](fa: F[A]) {
 
   def logVoid(implicit loggerF: LoggerF[F]): F[Unit] =
     fa
-      .onError(th => loggerF.warn("got an error and logging it and then swallowing it", th))
       .void
+      .recoverWith {
+        case IsNonFatal(th) =>
+          loggerF.warn("got an error and logging it and then swallowing it", th)
+      }
 
   def logCompletion(implicit loggerF: LoggerF[F]): F[A] =
     logError
