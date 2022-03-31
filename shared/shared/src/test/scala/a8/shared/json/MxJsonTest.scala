@@ -117,4 +117,52 @@ object MxJsonTest {
     lazy val typeName = "Group"
   
   }
+  
+  
+  
+  
+  trait MxA {
+  
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[A,a8.shared.json.ast.JsObj] =
+      a8.shared.json.JsonObjectCodecBuilder(generator)
+        .addField(_.value)
+        .build
+    
+    implicit val catsEq: cats.Eq[A] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[A,parameters.type] =  {
+      val constructors = Constructors[A](1, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val value: CaseClassParm[A,Option[String]] = CaseClassParm[A,Option[String]]("value", _.value, (d,v) => d.copy(value = v), None, 0)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): A = {
+        A(
+          value = values(0).asInstanceOf[Option[String]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): A = {
+        val value =
+          A(
+            value = values.next().asInstanceOf[Option[String]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(value: Option[String]): A =
+        A(value)
+    
+    }
+    
+    
+    lazy val typeName = "A"
+  
+  }
 }

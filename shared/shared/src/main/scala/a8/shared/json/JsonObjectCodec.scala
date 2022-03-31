@@ -22,10 +22,13 @@ object JsonObjectCodec {
 class JsonObjectCodec[A](
   parms: Vector[Parm[A]],
   constructors: Constructors[A],
+  ignoredFields: Vector[String],
 )
   extends JsonTypedCodec[A,JsObj]
   with Logging
 {
+
+  lazy val ignoredFieldsSet = ignoredFields.toSet
 
   lazy val parmsByName = parms.toMapTransform(_.name)
 
@@ -53,7 +56,7 @@ class JsonObjectCodec[A](
                     v
                 }
               }
-          val unusedFields = jo.values.filter(f => !parmsByName.contains(f._1))
+          val unusedFields = jo.values.filter(f => !parmsByName.contains(f._1) && !ignoredFieldsSet(f._1))
           lazy val success = Right(constructors.iterRawConstruct(valuesIterator))
           if ( unusedFields.isEmpty ) {
             success

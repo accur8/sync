@@ -28,13 +28,16 @@ object JsonObjectCodecBuilder {
     JsonObjectCodecBuilderImpl(generator)
 
 
-  case class JsonObjectCodecBuilderImpl[A,B](generator: Generator[A,B], parms: Vector[Parm[A]] = Vector.empty) extends JsonObjectCodecBuilder[A,B] {
+  case class JsonObjectCodecBuilderImpl[A,B](generator: Generator[A,B], parms: Vector[Parm[A]] = Vector.empty, ignoredFields: Vector[String] = Vector.empty) extends JsonObjectCodecBuilder[A,B] {
 
     override def addField[C : JsonCodec](fn: B => CaseClassParm[A, C]): JsonObjectCodecBuilder[A, B] =
       copy(parms = parms :+ CaseClassParmParm(fn(generator.caseClassParameters)))
 
     override def build: JsonObjectCodec[A] =
-      new JsonObjectCodec(parms, generator.constructors)
+      new JsonObjectCodec(parms, generator.constructors, ignoredFields)
+
+    override def addIgnoredField(name: String): JsonObjectCodecBuilder[A, B] =
+      copy(ignoredFields = ignoredFields :+ name)
 
   }
 
@@ -43,5 +46,6 @@ object JsonObjectCodecBuilder {
 
 trait JsonObjectCodecBuilder[A,B] {
   def addField[C : JsonCodec](fn: B => CaseClassParm[A,C]): JsonObjectCodecBuilder[A,B]
+  def addIgnoredField(name: String): JsonObjectCodecBuilder[A,B]
   def build: JsonTypedCodec[A,JsObj]
 }

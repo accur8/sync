@@ -25,6 +25,12 @@ object JsonTest {
     name: String,
   )
 
+  object A extends MxA
+  @CompanionGen
+  case class A(
+    value: Option[String],
+  )
+
 }
 
 class JsonTest extends AnyFunSuite {
@@ -72,6 +78,15 @@ class JsonTest extends AnyFunSuite {
         assert(true)
     }
 
+  }
+
+  test("null turns into none") {
+    val actual =
+      json
+        .unsafeParse("""{"value": null}""")
+        .unsafeAs[JsonTest.A]
+    val expected = JsonTest.A(None)
+    assert(actual == expected)
   }
 
 }
