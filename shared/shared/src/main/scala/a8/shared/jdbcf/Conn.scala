@@ -102,6 +102,9 @@ trait Conn[F[_]] {
   def selectRows[A : Mapper](whereClause: SqlString): F[Iterable[A]]
   def streamingSelectRows[A : Mapper](whereClause: SqlString): fs2.Stream[F,A]
 
+  def selectOne[A : Mapper](whereClause: SqlString): F[A]
+  def selectOpt[A : Mapper](whereClause: SqlString): F[Option[A]]
+
   def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedMapper[A,B]): F[A]
   def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedMapper[A,B]): F[Option[A]]
 

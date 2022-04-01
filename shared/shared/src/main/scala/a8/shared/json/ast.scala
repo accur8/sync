@@ -35,6 +35,20 @@ object ast {
     def addFields(fields: (String,JsVal)*) = copy(values = values ++ fields)
   }
 
+  def resolveAliases(aliases: Iterable[String], jsdoc: JsDoc): JsDoc = {
+    jsdoc.value match {
+      case jso: JsObj =>
+        aliases.find(a => jso.values.contains(a)) match {
+          case Some(a) =>
+            jsdoc(a)
+          case None =>
+            jsdoc(aliases.head)
+        }
+      case _ =>
+        jsdoc(aliases.head)
+    }
+  }
+
   object JsArr {
     val empty = JsArr(Nil)
   }

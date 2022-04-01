@@ -40,6 +40,29 @@ case class ConnInternalImpl[F[_] : Async](
     }
   }
 
+
+  override def selectOne[A: Mapper](whereClause: SqlString): F[A] =
+    selectOpt[A](whereClause)
+      .flatMap {
+        case Some(a) =>
+          F.pure(a)
+        case None =>
+          F.raiseError(new RuntimeException(s"expected a single value and got none with whereClause = ${whereClause}"))
+      }
+
+  override def selectOpt[A: Mapper](whereClause: SqlString): F[Option[A]] =
+    selectRows[A](whereClause)
+      .flatMap {
+        _.toList match {
+          case Nil =>
+            F.pure(None)
+          case List(a) =>
+            F.pure(Some(a))
+          case l =>
+            F.raiseError(new RuntimeException(s"expected 0 or 1 value got ${l.size} with whereClase = ${whereClause} -- ${l}"))
+        }
+      }
+
   def managedStream[A : Managed](thunk: =>A): fs2.Stream[F,A] =
     Managed.stream[F, A](thunk)
 

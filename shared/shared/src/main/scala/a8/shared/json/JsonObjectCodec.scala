@@ -2,9 +2,9 @@ package a8.shared.json
 
 
 import a8.shared.Meta.Constructors
-import a8.shared.json.JsonObjectCodecBuilder.Parm
+import a8.shared.json.JsonObjectCodecBuilder.{IgnoredField, Parm}
 import a8.shared.json.ReadError.ReadErrorException
-import a8.shared.json.ast.{JsDoc, JsNothing, JsObj}
+import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, resolveAliases}
 import cats.{Eval, Foldable}
 import fs2.Chunk
 import a8.shared.SharedImports._
@@ -20,26 +20,48 @@ object JsonObjectCodec {
 }
 
 class JsonObjectCodec[A](
-  parms: Vector[Parm[A]],
+  rawParms: Vector[Parm[A]],
   constructors: Constructors[A],
-  ignoredFields: Vector[String],
+  ignoredFields: Vector[IgnoredField],
+  aliases: Vector[(String,String)],
 )
   extends JsonTypedCodec[A,JsObj]
   with Logging
 {
 
-  lazy val ignoredFieldsSet = ignoredFields.toSet
+  lazy val parms =
+    rawParms
+      .map { p =>
+        p.addAliases(aliases.filter(_._1 === p.name).map(_._2))
+      }
+
+  lazy val ignoredFieldsSet =
+    ignoredFields
+      .collect {
+        case IgnoredField.IgnoreFieldString(v) =>
+          v
+      }
+      .toSet
+
+  lazy val ignoredFieldRegexes =
+    ignoredFields
+      .collect {
+        case ifr: IgnoredField.IgnoreFieldRegex =>
+          ifr
+      }
+
+  def ignoreField(fieldName: String): Boolean =
+    ignoredFieldsSet(fieldName) || ignoredFieldRegexes.exists(_.ignore(fieldName))
 
   lazy val parmsByName = parms.toMapTransform(_.name)
 
-  override def write(a: A): ast.JsObj = {
+  override def write(a: A): ast.JsObj =
     JsObj(
       parms
         .iterator
         .map(p => p.name -> p.write(a))
         .toMap
     )
-  }
 
   override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] = {
     doc.value match {
@@ -49,14 +71,14 @@ class JsonObjectCodec[A](
             parms
               .iterator
               .map { parm =>
-                parm.read(doc(parm.name)) match {
+                parm.read(resolveAliases(parm.resolvedAliases, doc)) match {
                   case Left(re) =>
                     throw re.asException
                   case Right(v) =>
                     v
                 }
               }
-          val unusedFields = jo.values.filter(f => !parmsByName.contains(f._1) && !ignoredFieldsSet(f._1))
+          val unusedFields = jo.values.filter(f => !parmsByName.contains(f._1) && !ignoreField(f._1))
           lazy val success = Right(constructors.iterRawConstruct(valuesIterator))
           if ( unusedFields.isEmpty ) {
             success
