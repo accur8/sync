@@ -1,6 +1,8 @@
 package a8.sync
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+import a8.shared.jdbcf.querydsl
+import a8.shared.jdbcf.querydsl.QueryDsl
 
 /**
 

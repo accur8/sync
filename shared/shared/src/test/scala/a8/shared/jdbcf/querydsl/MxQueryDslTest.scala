@@ -1,6 +1,9 @@
 package a8.shared.jdbcf.querydsl
 
-import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+import a8.shared.Meta.{CaseClassParm, Constructors, Generator}
+import a8.shared.jdbcf.querydsl
+import a8.shared.jdbcf.querydsl.QueryDsl
+import a8.shared.jdbcf.querydsl.QueryDsl.ComponentJoin
 
 /**
 
@@ -11,8 +14,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 */
 
 //====
-import a8.shared.jdbcf.querydsl.QueryDslTest.Widget
-import a8.shared.jdbcf.querydsl.QueryDslTest.Container
+import a8.shared.jdbcf.querydsl.QueryDslTest._
 
 //====
 
@@ -35,20 +37,20 @@ object MxQueryDslTest {
       val name = QueryDsl.field[String]("name", join)
       val containerId = QueryDsl.field[String]("containerId", join)
       
-      lazy val container: TableDsl = {
+      lazy val container: Container.TableDsl = {
         val childJoin = QueryDsl.createJoin(join, "container", queryDsl.tableDsl, ()=>container, Container.jdbcMapper) { (from,to) =>
           from.containerId === to.id
         }
-        new TableDsl(childJoin)
+        new Container.TableDsl(childJoin)
       }
     }
     
     val queryDsl = new QueryDsl[Widget, TableDsl](jdbcMapper, new TableDsl)
     
-    def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): SelectQuery[F, Widget, TableDsl] =
+    def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[F, Widget, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update[F[_]: cats.effect.Async](set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[F, TableDsl] =
+    def update[F[_]: cats.effect.Async](set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[F, TableDsl] =
       queryDsl.update(set)
     
     
@@ -117,7 +119,8 @@ object MxQueryDslTest {
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
         .addField(_.id)
         .addField(_.count)
-        .addField(_.name)    
+        .addField(_.name)
+        .addField(_.address)    
         .singlePrimaryKey(_.id)
         .buildKeyedTableMapper
     
@@ -126,15 +129,17 @@ object MxQueryDslTest {
       val id = QueryDsl.field[String]("id", join)
       val count = QueryDsl.field[Long]("count", join)
       val name = QueryDsl.field[String]("name", join)
-    
+
+      lazy val address = new Address.TableDsl(QueryDsl.ComponentJoin("address", join))
+
     }
     
     val queryDsl = new QueryDsl[Container, TableDsl](jdbcMapper, new TableDsl)
     
-    def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): SelectQuery[F, Container, TableDsl] =
+    def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[F, Container, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update[F[_]: cats.effect.Async](set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[F, TableDsl] =
+    def update[F[_]: cats.effect.Async](set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[F, TableDsl] =
       queryDsl.update(set)
     
     
@@ -147,13 +152,14 @@ object MxQueryDslTest {
           .addField(_.id)
           .addField(_.count)
           .addField(_.name)
+          .addField(_.address)
       )
       .build
     
     implicit val catsEq: cats.Eq[Container] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Container,parameters.type] =  {
-      val constructors = Constructors[Container](3, unsafe.iterRawConstruct)
+      val constructors = Constructors[Container](4, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -161,6 +167,7 @@ object MxQueryDslTest {
       lazy val id: CaseClassParm[Container,String] = CaseClassParm[Container,String]("id", _.id, (d,v) => d.copy(id = v), None, 0)
       lazy val count: CaseClassParm[Container,Long] = CaseClassParm[Container,Long]("count", _.count, (d,v) => d.copy(count = v), None, 1)
       lazy val name: CaseClassParm[Container,String] = CaseClassParm[Container,String]("name", _.name, (d,v) => d.copy(name = v), None, 2)
+      lazy val address: CaseClassParm[Container,Address] = CaseClassParm[Container,Address]("address", _.address, (d,v) => d.copy(address = v), None, 3)
     }
     
     
@@ -171,6 +178,7 @@ object MxQueryDslTest {
           id = values(0).asInstanceOf[String],
           count = values(1).asInstanceOf[Long],
           name = values(2).asInstanceOf[String],
+          address = values(3).asInstanceOf[Address],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Container = {
@@ -179,18 +187,105 @@ object MxQueryDslTest {
             id = values.next().asInstanceOf[String],
             count = values.next().asInstanceOf[Long],
             name = values.next().asInstanceOf[String],
+            address = values.next().asInstanceOf[Address],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(id: String, count: Long, name: String): Container =
-        Container(id, count, name)
+      def typedConstruct(id: String, count: Long, name: String, address: Address): Container =
+        Container(id, count, name, address)
     
     }
     
     
     lazy val typeName = "Container"
+  
+  }
+  
+  
+  
+  
+  trait MxAddress {
+  
+    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.Mapper[Address] =
+      a8.shared.jdbcf.mapper.MapperBuilder(generator)
+        .addField(_.line1)
+        .addField(_.line2)
+        .addField(_.city)
+        .addField(_.state)
+        .addField(_.zip)    
+        .buildMapper
+    
+    
+    class TableDsl(join: QueryDsl.Linker = QueryDsl.RootJoin) extends QueryDsl.Component[Address](join) {
+      val line1 = QueryDsl.field[String]("line1", join)
+      val line2 = QueryDsl.field[String]("line2", join)
+      val city = QueryDsl.field[String]("city", join)
+      val state = QueryDsl.field[String]("state", join)
+      val zip = QueryDsl.field[String]("zip", join)
+    }
+
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Address,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Address,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Address,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.line1)
+          .addField(_.line2)
+          .addField(_.city)
+          .addField(_.state)
+          .addField(_.zip)
+      )
+      .build
+    
+    implicit val catsEq: cats.Eq[Address] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[Address,parameters.type] =  {
+      val constructors = Constructors[Address](5, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val line1: CaseClassParm[Address,String] = CaseClassParm[Address,String]("line1", _.line1, (d,v) => d.copy(line1 = v), None, 0)
+      lazy val line2: CaseClassParm[Address,String] = CaseClassParm[Address,String]("line2", _.line2, (d,v) => d.copy(line2 = v), None, 1)
+      lazy val city: CaseClassParm[Address,String] = CaseClassParm[Address,String]("city", _.city, (d,v) => d.copy(city = v), None, 2)
+      lazy val state: CaseClassParm[Address,String] = CaseClassParm[Address,String]("state", _.state, (d,v) => d.copy(state = v), None, 3)
+      lazy val zip: CaseClassParm[Address,String] = CaseClassParm[Address,String]("zip", _.zip, (d,v) => d.copy(zip = v), None, 4)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): Address = {
+        Address(
+          line1 = values(0).asInstanceOf[String],
+          line2 = values(1).asInstanceOf[String],
+          city = values(2).asInstanceOf[String],
+          state = values(3).asInstanceOf[String],
+          zip = values(4).asInstanceOf[String],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): Address = {
+        val value =
+          Address(
+            line1 = values.next().asInstanceOf[String],
+            line2 = values.next().asInstanceOf[String],
+            city = values.next().asInstanceOf[String],
+            state = values.next().asInstanceOf[String],
+            zip = values.next().asInstanceOf[String],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(line1: String, line2: String, city: String, state: String, zip: String): Address =
+        Address(line1, line2, city, state, zip)
+    
+    }
+    
+    
+    lazy val typeName = "Address"
   
   }
 }

@@ -7,6 +7,8 @@ import a8.shared.jdbcf.SqlString._
 import a8.shared.jdbcf._
 import a8.shared.jdbcf.mapper.CaseClassMapper.And
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
+import a8.shared.jdbcf.querydsl.QueryDsl
+import a8.shared.jdbcf.querydsl.QueryDsl.BooleanOperation
 
 import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
@@ -34,6 +36,7 @@ object MapperBuilder {
     val columnCount: Int
     val ordinal: Int
     def rawRead(row: Row, index: Int): (Any, Int)
+    def booleanOp(linker: QueryDsl.Linker, a: A): QueryDsl.Condition
     def applyParameters(ps: PreparedStatement, a: A, parameterIndexOffset: Int): Unit
 //    def sqlString(a: A): SqlString
   }
@@ -49,6 +52,11 @@ object MapperBuilder {
       rowReader.rawRead(row, index)
     def applyParameters(ps: PreparedStatement, a: A, parameterIndex: Int): Unit =
       rowWriterB.applyParameters(ps, parm.lens(a), parameterIndex)
+
+    override def booleanOp(linker: QueryDsl.Linker, a: A): QueryDsl.Condition = {
+      import QueryDsl._
+      BooleanOperation(Field(name, linker), ops.eq, Constant[B](parm.lens(a)))
+    }
 
   }
 

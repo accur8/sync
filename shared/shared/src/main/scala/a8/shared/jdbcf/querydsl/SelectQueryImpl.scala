@@ -54,8 +54,8 @@ case class SelectQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapp
 
     implicit def joinToAliasMapper(l: Linker): Chord = {
       l match {
-        case c: ComponentJoin => aliasesByJoin (c.baseJoin) ~ "." ~ Chord.str(c.path.mkString("_"))
-        case j: Join => aliasesByJoin (j) ~ "."
+        case c: ComponentJoin => aliasesByJoin(c.baseJoin) ~ "." ~ Chord.str(c.path.mkString)
+        case j: Join => aliasesByJoin(j) ~ "."
       }
     }
 

@@ -44,6 +44,7 @@ object QueryDsl {
     val Space = Chord.str(" ")
     val Underscore = Chord.str("_")
     val LeftParen = Chord.str("(")
+    val RightParen = Chord.str(")")
     val IsNotNull = Chord.str("is not null")
     val IsNull = Chord.str("is null")
     val OneEqOne = Chord.str("1 = 1")
@@ -73,6 +74,11 @@ object QueryDsl {
   }
 
   case class IsNull(left: Expr[_], not: Boolean) extends Condition
+
+  case class StructuralEquality[A: Mapper](linker: Linker, component: Component[A], value: Constant[A]) extends Condition {
+    val mapper = implicitly[Mapper[A]]
+    def applyRowWriters: Chain[ApplyRowWriter] = ???
+  }
 
   case class BooleanOperation[T](left: Expr[T], op: BooleanOperator, right: Expr[T]) extends Condition
 
@@ -109,7 +115,9 @@ object QueryDsl {
 
   case class In[T: RowWriter](left: Expr[T], set: Iterable[Constant[T]]) extends Condition
 
-  case class Field[T: RowWriter](name: String, join: Linker) extends FieldExpr[T]
+  case class Field[T: RowWriter](name: String, join: Linker) extends FieldExpr[T] {
+    val rowWriter = RowWriter[T]
+  }
   case class NumericField[T: RowWriter](name: String, join: Linker) extends NumericExpr[T] with FieldExpr[T]
 
   case class Concat(left: Expr[_], right: Expr[_]) extends Expr[String]
@@ -161,25 +169,41 @@ object QueryDsl {
     object FALSE extends Condition
   }
 
-  def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[_]] = cond match {
-    case Condition.TRUE => IndexedSeq.empty
-    case Condition.FALSE => IndexedSeq.empty
-    case And(l, r) => fieldExprs(l) ++ fieldExprs(r)
-    case Or(l,r) => fieldExprs(l) ++ fieldExprs(r)
-    case IsNull(e, _) => fieldExprs(e)
-    case In(e, _) => fieldExprs(e)
-    case BooleanOperation(l, _, r) => fieldExprs(l) ++ fieldExprs(r)
-  }
+  def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[_]] =
+    cond match {
+      case se@ StructuralEquality(_, _, _) =>
+        fieldExprs(generateStructuralComparison(se)(_ => Chord.empty))
+      case Condition.TRUE =>
+        IndexedSeq.empty
+      case Condition.FALSE =>
+        IndexedSeq.empty
+      case And(l, r) =>
+        fieldExprs(l) ++ fieldExprs(r)
+      case Or(l,r) =>
+        fieldExprs(l) ++ fieldExprs(r)
+      case IsNull(e, _) =>
+        fieldExprs(e)
+      case In(e, _) =>
+        fieldExprs(e)
+      case BooleanOperation(l, _, r) =>
+        fieldExprs(l) ++ fieldExprs(r)
+    }
 
-  def fieldExprs(expr: Expr[_]): IndexedSeq[FieldExpr[_]] = expr match {
-    case fe: FieldExpr[_] => IndexedSeq(fe)
-    case _: Constant[_] => IndexedSeq.empty
-    case _: OptionConstant[_] => IndexedSeq.empty
-    case Concat(l, r) => fieldExprs(l) ++ fieldExprs(r)
-    case UnaryOperation(_, r) => fieldExprs(r)
-    case NumericOperation(l, _, r) => fieldExprs(l) ++ fieldExprs(r)
-
-  }
+  def fieldExprs(expr: Expr[_]): IndexedSeq[FieldExpr[_]] =
+    expr match {
+      case fe: FieldExpr[_] =>
+        IndexedSeq(fe)
+      case _: Constant[_] =>
+        IndexedSeq.empty
+      case _: OptionConstant[_] =>
+        IndexedSeq.empty
+      case Concat(l, r) =>
+        fieldExprs(l) ++ fieldExprs(r)
+      case UnaryOperation(_, r) =>
+        fieldExprs(r)
+      case NumericOperation(l, _, r) =>
+        fieldExprs(l) ++ fieldExprs(r)
+    }
 
   sealed trait Condition {
 
@@ -311,34 +335,49 @@ object QueryDsl {
   }
 
   def parens(cond: Condition)(implicit alias: Linker => Chord = _ => Chord.empty): Chord = {
-    if ( cond.isComposite ) ch.LeftParen ~ asSql(cond) ~ ")"
-    else asSql(cond)
+    if ( cond.isComposite )
+      ch.LeftParen ~ asSql(cond) ~ ch.RightParen
+    else
+      asSql(cond)
   }
 
   def noAliasAliasMapper(j: Linker): Chord = Chord.empty
 
-  def asSql(cond: Condition)(implicit alias: Linker => Chord): Chord = cond match {
-    case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
-      exprAsSql(l) * ch.IsNotNull
-    case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
-      exprAsSql(l) * ch.IsNull
-    case Condition.TRUE =>
-      ch.OneEqOne
-    case Condition.FALSE =>
-      ch.OneNeOne
-    case and: And =>
-      parens(and.left) ~*~ ch.And ~*~ parens(and.right)
-    case or: Or =>
-      parens(or.left) ~*~ ch.Or ~*~ parens(or.right)
-    case op: BooleanOperation[_] =>
-      exprAsSql(op.left) ~*~ op.op.asSql ~*~ exprAsSql(op.right)
-    case is: IsNull =>
-      exprAsSql(is.left) ~*~ (if (is.not) ch.IsNotNull else ch.IsNull)
-    case in: In[_] if in.set.isEmpty =>
-      exprAsSql(in.left) ~*~ ch.In ~*~ "(null)"
-    case in: In[_] =>
-      exprAsSql(in.left) ~*~ ch.In ~*~ ch.LeftParen ~ in.set.map(_ => ch.QuestionMark).mkChord(ch.Comma) ~ ")"
+  trait StructuralProperty[A] {
+    def booleanOp(linker: QueryDsl.Linker, a: A): QueryDsl.Condition
   }
+
+  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: Linker => Chord): Condition = {
+    structuralEquality
+      .mapper
+      .structuralEquality(structuralEquality.linker, structuralEquality.value.value)
+  }
+
+  def asSql(cond: Condition)(implicit alias: Linker => Chord): Chord =
+    cond match {
+      case se@ StructuralEquality(_, _, _) =>
+        asSql(generateStructuralComparison(se))
+      case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
+        exprAsSql(l) * ch.IsNotNull
+      case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
+        exprAsSql(l) * ch.IsNull
+      case Condition.TRUE =>
+        ch.OneEqOne
+      case Condition.FALSE =>
+        ch.OneNeOne
+      case and: And =>
+        asSql(and.left) ~*~ ch.And ~*~ asSql(and.right)
+      case or: Or =>
+        asSql(or.left) ~*~ ch.Or ~*~ asSql(or.right)
+      case op: BooleanOperation[_] =>
+        exprAsSql(op.left) ~*~ op.op.asSql ~*~ exprAsSql(op.right)
+      case is: IsNull =>
+        exprAsSql(is.left) ~*~ (if (is.not) ch.IsNotNull else ch.IsNull)
+      case in: In[_] if in.set.isEmpty =>
+        exprAsSql(in.left) ~*~ ch.In ~*~ "(null)"
+      case in: In[_] =>
+        exprAsSql(in.left) ~*~ ch.In ~*~ ch.LeftParen ~ in.set.map(_ => ch.QuestionMark).mkChord(ch.Comma) ~ ")"
+    }
 
   def exprAsSql[T](expr: Expr[T])(implicit alias: Linker => Chord): Chord = expr match {
     case fe: FieldExpr[T] =>
@@ -369,45 +408,49 @@ object QueryDsl {
   }
   def applyRowWriter[A](a: A, rowWriter: RowWriter[A]): ApplyRowWriter = ???
 
-  def applyRowWriters(cond: Condition): Chain[ApplyRowWriter] = cond match {
-    case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
-      applyRowWriters(l)
-    case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
-      applyRowWriters(l)
-    case Condition.TRUE =>
-      Chain.empty
-    case Condition.FALSE =>
-      Chain.empty
-    case and: And =>
-      applyRowWriters(and.left) ++ applyRowWriters(and.right)
-    case or: Or =>
-      applyRowWriters(or.left) ++ applyRowWriters(or.right)
-    case op: BooleanOperation[_] =>
-      applyRowWriters(op.left) ++ applyRowWriters(op.right)
-    case is: IsNull =>
-      applyRowWriters(is.left)
-    case in: In[_] if in.set.isEmpty =>
-      applyRowWriters(in.left)
-    case in: In[_] =>
-      applyRowWriters(in.left) ++ Chain.fromSeq(in.set.map(_.applyRowWriter).toSeq)
-  }
+  def applyRowWriters(cond: Condition): Chain[ApplyRowWriter] =
+    cond match {
+      case se@ StructuralEquality(_, _, _) =>
+        se.applyRowWriters
+      case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
+        applyRowWriters(l)
+      case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
+        applyRowWriters(l)
+      case Condition.TRUE =>
+        Chain.empty
+      case Condition.FALSE =>
+        Chain.empty
+      case and: And =>
+        applyRowWriters(and.left) ++ applyRowWriters(and.right)
+      case or: Or =>
+        applyRowWriters(or.left) ++ applyRowWriters(or.right)
+      case op: BooleanOperation[_] =>
+        applyRowWriters(op.left) ++ applyRowWriters(op.right)
+      case is: IsNull =>
+        applyRowWriters(is.left)
+      case in: In[_] if in.set.isEmpty =>
+        applyRowWriters(in.left)
+      case in: In[_] =>
+        applyRowWriters(in.left) ++ Chain.fromSeq(in.set.map(_.applyRowWriter).toSeq)
+    }
 
-  def applyRowWriters[T](expr: Expr[T]): Chain[ApplyRowWriter] = expr match {
-    case fe: FieldExpr[T] =>
-      Chain.empty
-    case OptionConstant(Some(c)) =>
-      applyRowWriters(c)
-    case c: Constant[T] =>
-      c.applyRowWriterChain
-    case c: Concat =>
-      applyRowWriters(c.left) ++ applyRowWriters(c.right)
-    case no: NumericOperation[T] =>
-      applyRowWriters(no.left) ++ applyRowWriters(no.right)
-    case OptionConstant(None) =>
-      Chain.empty
-    case UnaryOperation(op, e) =>
-      applyRowWriters(e)
-  }
+  def applyRowWriters[T](expr: Expr[T]): Chain[ApplyRowWriter] =
+    expr match {
+      case fe: FieldExpr[T] =>
+        Chain.empty
+      case OptionConstant(Some(c)) =>
+        applyRowWriters(c)
+      case c: Constant[T] =>
+        c.applyRowWriterChain
+      case c: Concat =>
+        applyRowWriters(c.left) ++ applyRowWriters(c.right)
+      case no: NumericOperation[T] =>
+        applyRowWriters(no.left) ++ applyRowWriters(no.right)
+      case OptionConstant(None) =>
+        Chain.empty
+      case UnaryOperation(op, e) =>
+        applyRowWriters(e)
+    }
 
   object OrderBy {
     implicit def exprToOrderBy[T](f: Expr[T]) = OrderBy(f)
@@ -417,6 +460,11 @@ object QueryDsl {
     def asc = copy(ascending=true)
     def desc = copy(ascending=false)
     def asSql(implicit alias: Linker => Chord) = QueryDsl.exprAsSql(expr) ~*~ (if (ascending) "ASC" else "DESC")
+  }
+
+  abstract class Component[A](join: QueryDsl.Linker) {
+    def ===(right: Constant[A])(implicit mapper: Mapper[A]): Condition =
+      StructuralEquality(join, this, right)
   }
 
 }

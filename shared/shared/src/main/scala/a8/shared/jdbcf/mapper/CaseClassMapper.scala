@@ -6,7 +6,9 @@ import a8.shared.jdbcf.{Conn, Row, RowReader, SqlString, TableName}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.MapperBuilder.{Parm, PrimaryKey}
 import SqlString._
-import a8.shared.jdbcf
+import a8.shared.{Chord, jdbcf}
+import a8.shared.jdbcf.querydsl.QueryDsl
+import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, StructuralProperty}
 
 import java.sql.PreparedStatement
 
@@ -29,6 +31,11 @@ case class CaseClassMapper[A, PK](
 
   override def sqlString(a: A): Option[SqlString] =
     None
+
+  override def structuralEquality(linker: QueryDsl.Linker, a: A)(implicit alias: QueryDsl.Linker => Chord): QueryDsl.Condition =
+    fields
+      .map(_.booleanOp(linker, a))
+      .reduceLeft((l,r) => QueryDsl.And(l,r))
 
   override def rawRead(row: Row, index: Int): (A, Int) = {
     var offset = 0
@@ -89,7 +96,14 @@ case class CaseClassMapper[A, PK](
   override val parameterCount: Int = fields.size
 
   override def columnNames(columnNamePrefix: jdbcf.ColumnName): Iterable[jdbcf.ColumnName] =
-    fields.flatMap(_.columnNames)
+    fields
+      .flatMap(_.columnNames)
+      .map { cn =>
+        if ( columnNamePrefix.value.isEmpty )
+          cn
+        else
+          jdbcf.ColumnName(columnNamePrefix.toString + cn.toString)
+      }
 
   override def applyWhere(ps: PreparedStatement, b: PK, parameterIndex: Int): Unit =
     primaryKey.applyParameters(ps, b, parameterIndex)
