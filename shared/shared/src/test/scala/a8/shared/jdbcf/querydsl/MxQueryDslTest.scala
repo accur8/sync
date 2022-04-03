@@ -1,9 +1,8 @@
 package a8.shared.jdbcf.querydsl
 
-import a8.shared.Meta.{CaseClassParm, Constructors, Generator}
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 import a8.shared.jdbcf.querydsl
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.ComponentJoin
 
 /**
 
@@ -129,9 +128,8 @@ object MxQueryDslTest {
       val id = QueryDsl.field[String]("id", join)
       val count = QueryDsl.field[Long]("count", join)
       val name = QueryDsl.field[String]("name", join)
-
-      lazy val address = new Address.TableDsl(QueryDsl.ComponentJoin("address", join))
-
+      val address = new Address.TableDsl(QueryDsl.ComponentJoin("address", join))
+    
     }
     
     val queryDsl = new QueryDsl[Container, TableDsl](jdbcMapper, new TableDsl)
@@ -218,14 +216,17 @@ object MxQueryDslTest {
         .buildMapper
     
     
-    class TableDsl(join: QueryDsl.Linker = QueryDsl.RootJoin) extends QueryDsl.Component[Address](join) {
+    class TableDsl(join: QueryDsl.Linker) extends QueryDsl.Component[Address](join) {
       val line1 = QueryDsl.field[String]("line1", join)
       val line2 = QueryDsl.field[String]("line2", join)
       val city = QueryDsl.field[String]("city", join)
       val state = QueryDsl.field[String]("state", join)
       val zip = QueryDsl.field[String]("zip", join)
+    
     }
-
+    
+    
+    
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Address,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Address,parameters.type] = builder
     
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Address,a8.shared.json.ast.JsObj] =
