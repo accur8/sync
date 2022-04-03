@@ -36,7 +36,7 @@ object Batcher {
             fs2.Stream.exec {
               stream
                 .map { a =>
-                  writerA.write(ps, 1, a)
+                  writerA.applyParameters(ps, a, 0)
                   ps.addBatch()
                 }
                 .compile

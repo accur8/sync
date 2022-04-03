@@ -19,11 +19,15 @@ object MxJsonTest {
   
   trait MxPerson {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Person,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Person,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Person,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.first)
-        .addField(_.last)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.first)
+          .addField(_.last)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[Person] = cats.Eq.fromUniversalEquals
     
@@ -71,11 +75,15 @@ object MxJsonTest {
   
   trait MxGroup {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Group,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Group,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Group,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.members)
-        .addField(_.name)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.members)
+          .addField(_.name)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[Group] = cats.Eq.fromUniversalEquals
     
@@ -123,10 +131,14 @@ object MxJsonTest {
   
   trait MxA {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[A,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[A,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[A,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.value)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.value)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[A] = cats.Eq.fromUniversalEquals
     

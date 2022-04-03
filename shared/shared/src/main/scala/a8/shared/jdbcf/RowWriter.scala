@@ -1,40 +1,98 @@
 package a8.shared.jdbcf
 
-import java.sql.PreparedStatement
+import a8.shared.jdbcf.SqlString.SqlStringer
 
+
+import java.sql.PreparedStatement
+import a8.shared.SharedImports._
 
 object RowWriter {
 
-  def create[A](fn: java.sql.PreparedStatement=>((Int, A)=>Unit)): RowWriter[A] =
+  def create[A](fn: java.sql.PreparedStatement=>((Int, A)=>Unit))(implicit sqlStringer: SqlStringer[A]): RowWriter[A] = {
+    val sqlStringer0 = sqlStringer.some
     new RowWriter[A] {
       val parameterCount = 1
-      override def write(ps: PreparedStatement, parameterIndex: Int, a: A): Unit = {
+      override def columnNames(columnName: ColumnName): Iterable[ColumnName] = Iterable(columnName)
+      override def applyParameters(ps: PreparedStatement, a: A, parameterIndex: Int): Unit = {
         fn(ps)(parameterIndex, a)
       }
+      override def sqlString(a: A): Option[SqlString] =
+        sqlStringer.toSqlString(a).some
     }
+  }
 
   def createx[A](fn: (java.sql.PreparedStatement, Int, A)=>Unit, parameterCount0: Int = 0): RowWriter[A] =
     new RowWriter[A] {
       val parameterCount = parameterCount0
-      override def write(ps: PreparedStatement, parameterIndex: Int, a: A): Unit = {
+      override def columnNames(columnName: ColumnName): Iterable[ColumnName] = Iterable(columnName)
+      override def applyParameters(ps: PreparedStatement, a: A, parameterIndex: Int): Unit = {
         fn(ps, parameterIndex, a)
       }
+      override def sqlString(a: A): Option[SqlString] =
+        None
     }
 
+  implicit val byteWriter = create[Byte](ps => ps.setByte(_, _))
+  implicit val shortWriter = create[Short](ps => ps.setShort(_, _))
+  implicit val integerWriter = create[Integer](ps => ps.setInt(_, _))
   implicit val intWriter = create[Int](ps => ps.setInt(_, _))
+  implicit val longWriter = create[Long](ps => ps.setLong(_, _))
+  implicit val floatWriter = create[Float](ps => ps.setFloat(_, _))
+  implicit val doubleWriter = create[Double](ps => ps.setDouble(_, _))
+  implicit val javaMathBigDecimal = create[java.math.BigDecimal](ps => ps.setBigDecimal(_, _))
+  implicit val scalaBigDecimal = create[BigDecimal](ps => { (pi, bd) => ps.setBigDecimal(pi, bd.bigDecimal) })
+
   implicit val stringWriter = create[String](ps => ps.setString(_, _))
+
+  def apply[A : RowWriter]: RowWriter[A] = implicitly[RowWriter[A]]
+
+  def mapWriter[A,B](outer: RowWriter[A])(fn: B=>A): RowWriter[B] =
+    new RowWriter[B] {
+      val parameterCount = outer.parameterCount
+      override def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName] = outer.columnNames(columnNamePrefix)
+      override def applyParameters(ps: PreparedStatement, b: B, parameterIndex: Int): Unit =
+        outer.applyParameters(ps, fn(b), parameterIndex)
+
+      override def sqlString(b: B): Option[SqlString] =
+        outer.sqlString(fn(b))
+    }
+
+  implicit def optionRowWriter[A](implicit rowWriterA: RowWriter[A]): RowWriter[Option[A]] =
+    new RowWriter[Option[A]] {
+      val nullSqlStr = SqlString.keyword("null")
+      override val parameterCount: Int = rowWriterA.parameterCount
+      override def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName] = rowWriterA.columnNames(columnNamePrefix)
+      override def applyParameters(ps: PreparedStatement, option: Option[A], parameterIndex: Int): Unit = {
+        option match {
+          case None =>
+            ps.setNull(parameterIndex, java.sql.Types.NULL)
+          case Some(a) =>
+            rowWriterA.applyParameters(ps, a, parameterIndex)
+        }
+      }
+      override def sqlString(opt: Option[A]): Option[SqlString] =
+        opt match {
+          case None =>
+            Some(nullSqlStr)
+          case Some(a) =>
+            rowWriterA.sqlString(a)
+        }
+
+//        : Option[SqlStringer[A]] =
+//        outer.sqlStringer.map { outer =>
+//          new SqlStringer[B] {
+//            override def toSqlString(b: B): SqlString =
+//              outer.toSqlString(fn(b))
+//          }
+//        }
+    }
 
 }
 
 trait RowWriter[A] { outer =>
   val parameterCount: Int
-  def write(ps: java.sql.PreparedStatement, parameterIndex: Int, a: A): Unit
-
-  def map[B](fn: B=>A): RowWriter[B] =
-    new RowWriter[B] {
-      val parameterCount = outer.parameterCount
-      override def write(ps: PreparedStatement, parameterIndex: Int, b: B): Unit =
-        outer.write(ps, parameterIndex, fn(b))
-    }
-
+  def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
+  def applyParameters(ps: java.sql.PreparedStatement, a: A, parameterIndex: Int): Unit
+  def mapWriter[B](fn: B=>A): RowWriter[B] = RowWriter.mapWriter(this)(fn)
+  def sqlString(a: A): Option[SqlString]
 }

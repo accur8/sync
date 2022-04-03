@@ -22,12 +22,16 @@ object Mxhttp {
   
   trait MxRetryConfig {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RetryConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RetryConfig,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[RetryConfig,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.count)
-        .addField(_.initialBackoff)
-        .addField(_.maxBackoff)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.count)
+          .addField(_.initialBackoff)
+          .addField(_.maxBackoff)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[RetryConfig] = cats.Eq.fromUniversalEquals
     

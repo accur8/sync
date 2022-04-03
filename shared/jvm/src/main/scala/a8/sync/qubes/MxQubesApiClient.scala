@@ -26,15 +26,19 @@ object MxQubesApiClient {
   
   trait MxConfig {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Config,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.uri)
-        .addField(_.authToken)
-        .addField(_.maximumSimultaneousHttpConnections)
-        .addField(_.readTimeout)
-        .addField(_.connectTimeout)
-        .addField(_.retry)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.uri)
+          .addField(_.authToken)
+          .addField(_.maximumSimultaneousHttpConnections)
+          .addField(_.readTimeout)
+          .addField(_.connectTimeout)
+          .addField(_.retry)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[Config] = cats.Eq.fromUniversalEquals
     
@@ -94,12 +98,16 @@ object MxQubesApiClient {
   
   trait MxQueryRequest {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[QueryRequest,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[QueryRequest,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[QueryRequest,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.query)
-        .addField(_.dataFormat)
-        .addField(_.appSpace)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.query)
+          .addField(_.dataFormat)
+          .addField(_.appSpace)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[QueryRequest] = cats.Eq.fromUniversalEquals
     
@@ -150,14 +158,18 @@ object MxQubesApiClient {
   
   trait MxUpdateRowRequest {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UpdateRowRequest,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UpdateRowRequest,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[UpdateRowRequest,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.cube)
-        .addField(_.fields)
-        .addField(_.parameters)
-        .addField(_.where)
-        .addField(_.appSpace)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.cube)
+          .addField(_.fields)
+          .addField(_.parameters)
+          .addField(_.where)
+          .addField(_.appSpace)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[UpdateRowRequest] = cats.Eq.fromUniversalEquals
     
@@ -214,15 +226,19 @@ object MxQubesApiClient {
   
   trait MxUpdateRowResponse {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UpdateRowResponse,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UpdateRowResponse,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[UpdateRowResponse,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.success)
-        .addField(_.validationFailures)
-        .addField(_.errorMessage)
-        .addField(_.serverStackTrace)
-        .addField(_.numberOfRowsUpdated)
-        .addField(_.keys)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.success)
+          .addField(_.validationFailures)
+          .addField(_.errorMessage)
+          .addField(_.serverStackTrace)
+          .addField(_.numberOfRowsUpdated)
+          .addField(_.keys)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[UpdateRowResponse] = cats.Eq.fromUniversalEquals
     

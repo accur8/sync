@@ -20,11 +20,15 @@ object MxUnionTest {
   
   trait MxFoo1 {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Foo1,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Foo1,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Foo1,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.f0)
-        .addField(_.f1)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.f0)
+          .addField(_.f1)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[Foo1] = cats.Eq.fromUniversalEquals
     

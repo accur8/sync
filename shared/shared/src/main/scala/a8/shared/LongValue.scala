@@ -1,9 +1,10 @@
 package a8.shared
 
 
-import a8.shared.jdbcf.{RowReader, SqlString}
+import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
 import SqlString._
+
 import language.implicitConversions
 
 object LongValue {
@@ -23,6 +24,7 @@ object LongValue {
       )
 
     implicit lazy val rowReader = RowReader.longReader.map(v => apply(v))
+    implicit lazy val rowWriter = RowWriter.longWriter.mapWriter[LongValue](_.value)
 
     implicit def toSqlString(a: A): SqlString =
       SqlString.number(a.value)

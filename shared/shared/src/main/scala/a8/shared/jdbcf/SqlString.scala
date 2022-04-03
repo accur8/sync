@@ -10,6 +10,7 @@ object SqlString extends SqlStringLowPrio {
   val DoubleQuote = '"'.toString
   val Null: SqlString = keyword("null")
   val Comma = keyword(",")
+  val CommaSpace = keyword(", ")
 
 
   case object Empty extends SqlString

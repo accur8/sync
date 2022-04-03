@@ -8,8 +8,8 @@ import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.PostgresDialect.self
 import a8.shared.jdbcf.SqlString.ResolvedSql
-import a8.shared.jdbcf.mapper.KeyedMapper.UpsertResult
-import a8.shared.jdbcf.mapper.{KeyedMapper, Mapper}
+import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
+import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import cats.effect.kernel.Resource.ExitCase
 import sttp.model.Uri
 import wvlet.log.LazyLogger
@@ -94,19 +94,19 @@ trait Conn[F[_]] {
   def isAutoCommit: F[Boolean]
 
 
-  def insertRow[A : Mapper](row: A): F[Unit]
-  def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedMapper[A,B]): F[UpsertResult]
-  def updateRow[A, B](row: A)(implicit keyedMapper: KeyedMapper[A,B]): F[Unit]
-  def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedMapper[A,B]): F[Unit]
+  def insertRow[A : TableMapper](row: A): F[Unit]
+  def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[UpsertResult]
+  def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[Unit]
+  def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[Unit]
 
-  def selectRows[A : Mapper](whereClause: SqlString): F[Iterable[A]]
-  def streamingSelectRows[A : Mapper](whereClause: SqlString): fs2.Stream[F,A]
+  def selectRows[A : TableMapper](whereClause: SqlString): F[Iterable[A]]
+  def streamingSelectRows[A : TableMapper](whereClause: SqlString): fs2.Stream[F,A]
 
-  def selectOne[A : Mapper](whereClause: SqlString): F[A]
-  def selectOpt[A : Mapper](whereClause: SqlString): F[Option[A]]
+  def selectOne[A : TableMapper](whereClause: SqlString): F[A]
+  def selectOpt[A : TableMapper](whereClause: SqlString): F[Option[A]]
 
-  def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedMapper[A,B]): F[A]
-  def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedMapper[A,B]): F[Option[A]]
+  def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A,B]): F[A]
+  def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A,B]): F[Option[A]]
 
   def asInternal: ConnInternal[F]
 

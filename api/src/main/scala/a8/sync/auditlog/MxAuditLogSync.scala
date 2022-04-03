@@ -22,13 +22,17 @@ object MxAuditLogSync {
   
   trait MxTableSync {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[TableSync,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[TableSync,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[TableSync,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.start)
-        .addField(_.sourceTable)
-        .addField(_.targetTable)
-        .addField(_.primaryKey)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.start)
+          .addField(_.sourceTable)
+          .addField(_.targetTable)
+          .addField(_.primaryKey)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[TableSync] = cats.Eq.fromUniversalEquals
     

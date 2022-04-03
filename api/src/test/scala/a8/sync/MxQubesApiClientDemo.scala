@@ -29,11 +29,15 @@ object MxQubesApiClientDemo {
         .singlePrimaryKey(_.uid)
         .build
     
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UserGroup,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UserGroup,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[UserGroup,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.uid)
-        .addField(_.name)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.uid)
+          .addField(_.name)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[UserGroup] = cats.Eq.fromUniversalEquals
     

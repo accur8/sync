@@ -19,17 +19,21 @@ object MxMailConfig {
   
   trait MxMailConfig {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[MailConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[MailConfig,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[MailConfig,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.host)
-        .addField(_.port)
-        .addField(_.user)
-        .addField(_.password)
-        .addField(_.sslEnabled)
-        .addField(_.startTlsEnabled)
-        .addField(_.certCheckEnabled)
-        .addField(_.debug)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.host)
+          .addField(_.port)
+          .addField(_.user)
+          .addField(_.password)
+          .addField(_.sslEnabled)
+          .addField(_.startTlsEnabled)
+          .addField(_.certCheckEnabled)
+          .addField(_.debug)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[MailConfig] = cats.Eq.fromUniversalEquals
     

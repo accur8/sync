@@ -20,19 +20,23 @@ object MxBootstrapConfig {
   
   trait MxBootstrapConfigDto {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[BootstrapConfigDto,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[BootstrapConfigDto,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[BootstrapConfigDto,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.source)
-        .addField(_.appName)
-        .addField(_.consoleLogging)
-        .addField(_.colorConsole)
-        .addField(_.fileLogging)
-        .addField(_.logsDir)
-        .addField(_.tempDir)
-        .addField(_.cacheDir)
-        .addField(_.dataDir)
-        .addField(_.defaultLogLevel)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.source)
+          .addField(_.appName)
+          .addField(_.consoleLogging)
+          .addField(_.colorConsole)
+          .addField(_.fileLogging)
+          .addField(_.logsDir)
+          .addField(_.tempDir)
+          .addField(_.cacheDir)
+          .addField(_.dataDir)
+          .addField(_.defaultLogLevel)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[BootstrapConfigDto] = cats.Eq.fromUniversalEquals
     

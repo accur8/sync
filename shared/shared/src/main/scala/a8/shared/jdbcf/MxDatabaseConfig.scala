@@ -22,16 +22,20 @@ object MxDatabaseConfig {
   
   trait MxDatabaseConfig {
   
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseConfig,parameters.type] = builder
+    
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[DatabaseConfig,a8.shared.json.ast.JsObj] =
-      a8.shared.json.JsonObjectCodecBuilder(generator)
-        .addField(_.id)
-        .addField(_.url)
-        .addField(_.user)
-        .addField(_.password)
-        .addField(_.minIdle)
-        .addField(_.maxPoolSize)
-        .addField(_.autoCommit)
-        .build
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.id)
+          .addField(_.url)
+          .addField(_.user)
+          .addField(_.password)
+          .addField(_.minIdle)
+          .addField(_.maxPoolSize)
+          .addField(_.autoCommit)
+      )
+      .build
     
     implicit val catsEq: cats.Eq[DatabaseConfig] = cats.Eq.fromUniversalEquals
     

@@ -59,6 +59,10 @@ object Chord {
   implicit class ChordOps(private val ch: Chord) extends AnyVal {
     @inline def ~(r: Chord): Chord = Concat(ch, r)
     @inline def ~(r: String): Chord = Concat(ch, str(r))
+    @inline def *(r: String): Chord = ch ~ " " ~ str(r)
+    @inline def *(r: Chord): Chord = ch ~ " " ~ r
+    @inline def ~*~(r: Chord): Chord = ch * r
+    @inline def ~*~(r: String): Chord = ch * r
   }
 
   @inline def indent(ch: Chord)(implicit indent: Indent): Chord = IndentValue(ch, indent)

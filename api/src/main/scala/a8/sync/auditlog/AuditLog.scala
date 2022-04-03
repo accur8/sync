@@ -209,8 +209,8 @@ object AuditLog {
 
         val updateWriter: RowWriter[AuditLogRow] =
           RowWriter.createx[AuditLogRow] { (ps, parameterIndex, row) =>
-            insertWriter.write(ps, parameterIndex, row)
-            deleteWriter.write(ps, parameterIndex+tableColumns.size, row)
+            insertWriter.applyParameters(ps, row, parameterIndex)
+            deleteWriter.applyParameters(ps, row, parameterIndex+tableColumns.size)
           }
 
 

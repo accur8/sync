@@ -6,8 +6,8 @@ import a8.shared.app.LoggingF
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.JdbcMetadata.JdbcTable
 import a8.shared.jdbcf.SqlString.ResolvedSql
-import a8.shared.jdbcf.mapper.KeyedMapper.UpsertResult
-import a8.shared.jdbcf.mapper.{KeyedMapper, Mapper}
+import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
+import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
@@ -41,7 +41,7 @@ case class ConnInternalImpl[F[_] : Async](
   }
 
 
-  override def selectOne[A: Mapper](whereClause: SqlString): F[A] =
+  override def selectOne[A: TableMapper](whereClause: SqlString): F[A] =
     selectOpt[A](whereClause)
       .flatMap {
         case Some(a) =>
@@ -50,7 +50,7 @@ case class ConnInternalImpl[F[_] : Async](
           F.raiseError(new RuntimeException(s"expected a single value and got none with whereClause = ${whereClause}"))
       }
 
-  override def selectOpt[A: Mapper](whereClause: SqlString): F[Option[A]] =
+  override def selectOpt[A: TableMapper](whereClause: SqlString): F[Option[A]] =
     selectRows[A](whereClause)
       .flatMap {
         _.toList match {
@@ -103,21 +103,33 @@ case class ConnInternalImpl[F[_] : Async](
   override def isAutoCommit: F[Boolean] =
     F.delay(jdbcConn.getAutoCommit)
 
-  def runSingleRowUpdate(sql: SqlString): F[Unit] = {
-    update(sql)
+  def runSingleRowUpdate(updateQuery: SqlString, applyPs: java.sql.PreparedStatement => Unit): F[Unit] = {
+    prepare(updateQuery)
+      .evalMap { ps =>
+        F.blocking {
+          applyPs(ps)
+          logger.debug(s"executing update - ${updateQuery} -- ${ps}")
+          val i = ps.executeUpdate()
+          i
+        }
+      }
+      .compile
+      .lastOrError
       .flatMap {
         case 1 =>
           F.unit
         case i =>
-          F.raiseError[Unit](new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${sql}"))
+          F.raiseError[Unit](new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${updateQuery}"))
       }
   }
 
-  override def insertRow[A: Mapper](row: A): F[Unit] =
-    runSingleRowUpdate(implicitly[Mapper[A]].insertSql(row))
+  override def insertRow[A: TableMapper](row: A): F[Unit] = {
+    val mapper = implicitly[TableMapper[A]]
+    runSingleRowUpdate(mapper.insertSqlPs, mapper.applyInsert(_, row))
+  }
 
-  override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedMapper[A, B]): F[UpsertResult] = {
-    val mapper = implicitly[KeyedMapper[A,B]]
+  override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[UpsertResult] = {
+    val mapper = implicitly[KeyedTableMapper[A,B]]
     fetchRowOpt(mapper.key(row))
       .flatMap {
         case Some(v) =>
@@ -129,33 +141,59 @@ case class ConnInternalImpl[F[_] : Async](
       }
   }
 
-  override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedMapper[A, B]): F[Unit] =
-    runSingleRowUpdate(implicitly[KeyedMapper[A,B]].updateSql(row))
+  override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Unit] = {
+    val mapper = implicitly[KeyedTableMapper[A, B]]
+    runSingleRowUpdate(mapper.updateSqlPs, mapper.applyUpdate(_, row))
+  }
 
-  override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedMapper[A, B]): F[Unit] =
-    runSingleRowUpdate(implicitly[KeyedMapper[A,B]].deleteSql(row))
+  override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Unit] = {
+    val mapper = implicitly[KeyedTableMapper[A,B]]
+    runSingleRowUpdate(mapper.deleteSqlPs, mapper.applyDelete(_, mapper.key(row)))
+  }
 
-  override def selectRows[A: Mapper](whereClause: SqlString): F[Iterable[A]] =
-    query[A](implicitly[Mapper[A]].selectSql(whereClause))
+  override def selectRows[A: TableMapper](whereClause: SqlString): F[Iterable[A]] =
+    query[A](implicitly[TableMapper[A]].selectSql(whereClause))
       .select
 
-  override def streamingSelectRows[A: Mapper](whereClause: SqlString): fs2.Stream[F, A] =
-    streamingQuery[A](implicitly[Mapper[A]].selectSql(whereClause))
+  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): fs2.Stream[F, A] =
+    streamingQuery[A](implicitly[TableMapper[A]].selectSql(whereClause))
       .run
 
-  override def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedMapper[A, B]): F[A] =
+  override def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] =
     fetchRowOpt[A,B](key)
       .flatMap {
         case Some(row) =>
           F.pure(row)
         case None =>
-          F.raiseError[A](new RuntimeException(s"expected a record with key ${key} in ${implicitly[Mapper[A]].tableName}"))
+          F.raiseError[A](new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
       }
 
 
-  override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedMapper[A, B]): F[Option[A]] =
-    selectRows(implicitly[KeyedMapper[A,B]].fetchWhere(key))
-      .map(_.headOption)
+  override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Option[A]] = {
+
+    val effect: fs2.Stream[F, Either[Throwable, Option[A]]] =
+      prepare(keyedMapper.fetchSqlPs)
+        .evalMap { ps =>
+          F.blocking {
+            keyedMapper.applyWhere(ps, key)
+            logger.debug(s"executing fetchRowOpt - ${keyedMapper.fetchSqlPs} -- ${ps}")
+            resultSetToVector(ps.executeQuery()) match {
+              case Vector() =>
+                Right(None)
+              case Vector(row) =>
+                Right(Some(keyedMapper.read(row)))
+              case v =>
+                Left(new RuntimeException(s"too many rows returned expected 0 or 1 -- ${v}"))
+            }
+          }
+        }
+
+    effect
+      .rethrow
+      .compile
+      .lastOrError
+
+  }
 
   override def commit: F[Unit] =
     F.blocking(jdbcConn.commit())
