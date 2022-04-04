@@ -2,7 +2,7 @@ package a8.shared.jdbcf.mapper
 
 
 import a8.shared.SharedImports._
-import a8.shared.jdbcf.{Conn, Row, RowReader, SqlString, TableName}
+import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, SqlString, TableName}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.MapperBuilder.{Parm, PrimaryKey}
 import SqlString._
@@ -14,8 +14,9 @@ import java.sql.PreparedStatement
 
 
 object CaseClassMapper {
-  val QuestionMark = SqlString.keyword("?")
+//  val QuestionMark = SqlString.keyword("?")
   val And = SqlString.keyword(" and ")
+  val RootColumnNamePrefix = ColumnName("")
 }
 
 case class CaseClassMapper[A, PK](
@@ -29,8 +30,12 @@ case class CaseClassMapper[A, PK](
 
   implicit val rowReaderA: RowReader[A] = this
 
-  override def sqlString(a: A): Option[SqlString] =
-    None
+  lazy val columnCount = fields.map(_.columnCount).sum
+
+  override def columnNames(columnNamePrefix: jdbcf.ColumnName): Iterable[jdbcf.ColumnName] =
+    fields
+      .flatMap(_.columnNames)
+      .map(cn => ColumnName(columnNamePrefix.value.toString + cn.value.toString))
 
   override def structuralEquality(linker: QueryDsl.Linker, a: A)(implicit alias: QueryDsl.Linker => Chord): QueryDsl.Condition =
     fields
@@ -59,7 +64,7 @@ case class CaseClassMapper[A, PK](
   }
 
 
-  override def selectFieldsSqlPs(alias: String): SqlString = {
+  override def selectFieldsSql(alias: String): SqlString = {
     val aliasSqlStr = alias.keyword
     val selectFields =
       fields
@@ -71,62 +76,32 @@ case class CaseClassMapper[A, PK](
 
   lazy val selectFromAndWhere = sql"${selectAndFrom} where "
 
-
-  override def applyParameters(ps: PreparedStatement, a: A, parameterIndex: Int): Unit =
-    fields.foldLeft(parameterIndex) { case (index, parm) =>
-      parm.applyParameters(ps, a, index)
-      index + parm.columnCount
-    }
-
-  override def applyInsert(ps: PreparedStatement, a: A): Unit =
-    applyParameters(ps, a, 1)
-
-  override def applyUpdate(ps: PreparedStatement, a: A): Unit = {
-    // apply set
-    val offset =
-      fields.foldLeft(0) { case (offset, parm) =>
-        parm.applyParameters(ps, a, offset)
-        offset + parm.columnCount
-      }
-    // apply where
-    primaryKey.applyParameters(ps, key(a), offset)
-  }
-
-
-  override val parameterCount: Int = fields.size
-
-  override def columnNames(columnNamePrefix: jdbcf.ColumnName): Iterable[jdbcf.ColumnName] =
-    fields
-      .flatMap(_.columnNames)
-      .map { cn =>
-        if ( columnNamePrefix.value.isEmpty )
-          cn
-        else
-          jdbcf.ColumnName(columnNamePrefix.toString + cn.toString)
-      }
-
-  override def applyWhere(ps: PreparedStatement, b: PK, parameterIndex: Int): Unit =
-    primaryKey.applyParameters(ps, b, parameterIndex)
-
   override def key(row: A): PK =
     primaryKey.key(row)
 
   override def selectSql(whereClause: SqlString): SqlString =
     sql"${selectFromAndWhere}${whereClause}"
 
-  override lazy val fetchSqlPs = selectSql(fetchSqlPs)
+  def keyToWhereClause(key: PK): SqlString =
+    primaryKey.whereClause(key)
 
-  override lazy val insertSqlPs =
-    sql"insert into ${tableName} (${fields.flatMap(_.columnNames).mkSqlString(Comma)}) values(${fields.map(_ => QuestionMark).mkSqlString(SqlString.Comma)})"
+  override def updateSql(row: A): SqlString = {
+    val valuePairs = pairs(RootColumnNamePrefix, row)
+    sql"update ${tableName} set ${valuePairs.map(p => sql"${p._1} = ${p._2}").mkSqlString(CommaSpace)} where ${keyToWhereClause(key(row))}"
+  }
 
-  override lazy val deleteSqlPs: SqlString =
-    sql"delete from ${tableName} where ${fetchWherePs}"
+  override def deleteSql(key: PK): SqlString =
+    sql"delete from ${tableName} where ${keyToWhereClause(key)}"
 
-  override lazy val updateSqlPs: SqlString =
-    sql"update ${tableName} set ${fields.map(_ => QuestionMark).mkSqlString(Comma)} where ${fetchWherePs}"
+  override def fetchSql(key: PK): SqlString =
+    selectSql(keyToWhereClause(key))
 
-  override lazy val fetchWherePs: SqlString =
-    primaryKey
-      .whereClausePs
+  override def pairs(columnNamePrefix: ColumnName, row: A): Iterable[(ColumnName, SqlString)] =
+    fields.flatMap(_.pairs(columnNamePrefix, row))
+
+  override def insertSql(row: A): SqlString = {
+    val valuePairs = pairs(RootColumnNamePrefix, row)
+    sql"insert into ${tableName} (${valuePairs.map(_._1).mkSqlString(Comma)}) values(${valuePairs.map(_._2).mkSqlString(SqlString.Comma)})"
+  }
 
 }

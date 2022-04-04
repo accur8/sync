@@ -7,14 +7,12 @@ object TableMapper {
 
 }
 
-trait TableMapper[A] extends Mapper[A] {
+trait TableMapper[A] extends ComponentMapper[A] {
 
   val tableName: TableName
 
-  def insertSqlPs: SqlString
-  def selectFieldsSqlPs(alias: String): SqlString
+  def insertSql(row: A): SqlString
+  def selectFieldsSql(alias: String): SqlString
   def selectSql(whereClause: SqlString): SqlString
-
-  def applyInsert(ps: java.sql.PreparedStatement, a: A): Unit
 
 }

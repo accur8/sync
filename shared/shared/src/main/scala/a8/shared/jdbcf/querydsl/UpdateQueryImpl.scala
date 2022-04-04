@@ -2,11 +2,12 @@ package a8.shared.jdbcf.querydsl
 
 
 import a8.shared.Chord
-import a8.shared.jdbcf.Conn
+import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
 import cats.effect.Async
 import QueryDsl.ch
+
 import scala.language.existentials
 
 case class UpdateQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapper[T], assignments: Iterable[UpdateQuery.Assignment[_]], where: Condition) extends UpdateQuery[F,U] {
@@ -51,5 +52,7 @@ case class UpdateQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapp
     )
   }
 
-  override def execute(implicit conn: Conn[F]): F[Int] = ???
+  override def execute(implicit conn: Conn[F]): F[Int] =
+    conn
+      .update(SqlString.keyword(asSql))
 }

@@ -2,8 +2,7 @@ package a8.shared
 
 
 import java.util.UUID
-
-import a8.shared.jdbcf.SqlString
+import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.{JsonTypedCodec, ReadError, ast}
 import a8.shared.json.ast.JsStr
@@ -11,6 +10,8 @@ import a8.shared.json.ast.JsStr
 import scala.util.Random
 import language.implicitConversions
 import SharedImports._
+
+import java.sql.PreparedStatement
 
 object Tid {
 
@@ -57,6 +58,12 @@ object Tid {
         .toOption(Tid[A](value))
 
   }
+
+  implicit def rowWriter[A]: RowWriter[Tid[A]] =
+    RowWriter.stringWriter.mapWriter[Tid[A]](_.value)
+
+  implicit def rowReader[A]: RowReader[Tid[A]] =
+    RowReader.stringReader.map(v => Tid[A](v))
 
 }
 

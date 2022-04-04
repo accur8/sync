@@ -145,6 +145,8 @@ object SqlString extends SqlStringLowPrio {
         }
       }
 
+    def apply[A : SqlStringer] = implicitly[SqlStringer[A]]
+
   }
 
   trait SqlStringer[A] {

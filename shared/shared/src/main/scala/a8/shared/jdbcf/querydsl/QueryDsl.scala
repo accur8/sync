@@ -2,10 +2,11 @@ package a8.shared.jdbcf.querydsl
 
 import a8.shared.Chord
 import a8.shared.jdbcf.{RowWriter, SqlString}
-import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
+import a8.shared.jdbcf.mapper.{ComponentMapper, Mapper, TableMapper}
 
 import scala.language.{existentials, implicitConversions}
 import Chord._
+import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
 import cats.data.Chain
 import cats.effect.Async
@@ -55,7 +56,7 @@ object QueryDsl {
     val Null = Chord.str("null")
     val Concat = Chord.str("||")
     val NullWithParens = Chord.str("(null)")
-    val QuestionMark = Chord.str("?")
+//    val QuestionMark = Chord.str("?")
     val Comma = Chord.str(",")
     val CommaSpace = Chord.str(", ")
     val Equal = Chord.str("=")
@@ -75,27 +76,26 @@ object QueryDsl {
 
   case class IsNull(left: Expr[_], not: Boolean) extends Condition
 
-  case class StructuralEquality[A: Mapper](linker: Linker, component: Component[A], value: Constant[A]) extends Condition {
-    val mapper = implicitly[Mapper[A]]
-    def applyRowWriters: Chain[ApplyRowWriter] = ???
+  case class StructuralEquality[A: ComponentMapper](linker: Linker, component: Component[A], value: A) extends Condition {
+    val mapper = implicitly[ComponentMapper[A]]
   }
 
   case class BooleanOperation[T](left: Expr[T], op: BooleanOperator, right: Expr[T]) extends Condition
 
-  case class Constant[T: RowWriter](value: T) extends Expr[T] {
-    def sqlString: Option[SqlString] = RowWriter[T].sqlString(value)
-    def applyRowWriter = QueryDsl.applyRowWriter(value, RowWriter[T])
-    def applyRowWriterChain = Chain.one(applyRowWriter)
+  case class Constant[T: SqlStringer](value: T) extends Expr[T] {
+    val sqlStringer = SqlStringer[T]
+//    def applyRowWriter = QueryDsl.applyRowWriter(value, RowWriter[T])
+//    def applyRowWriterChain = Chain.one(applyRowWriter)
   }
 
-  case class OptionConstant[T: RowWriter](value: Option[Constant[T]]) extends Expr[T]
+  case class OptionConstant[T: SqlStringer](value: Option[Constant[T]]) extends Expr[T]
 
-  implicit def optionToConstant[T: RowWriter](value: Option[T]): OptionConstant[T] = {
+  implicit def optionToConstant[T: SqlStringer](value: Option[T]): OptionConstant[T] = {
     val oc = value.map(v => valueToConstant(v))
     OptionConstant(oc)
   }
 
-  implicit def valueToConstant[T: RowWriter](value: T) = Constant(value)
+  implicit def valueToConstant[T: SqlStringer](value: T) = Constant(value)
 
   implicit def byteToConstant(value: Byte): Constant[Byte] = valueToConstant(value)
   implicit def shortToConstant(value: Short): Constant[Short] = valueToConstant(value)
@@ -113,17 +113,15 @@ object QueryDsl {
     def join: Linker
   }
 
-  case class In[T: RowWriter](left: Expr[T], set: Iterable[Constant[T]]) extends Condition
+  case class In[T: SqlStringer](left: Expr[T], set: Iterable[Constant[T]]) extends Condition
 
-  case class Field[T: RowWriter](name: String, join: Linker) extends FieldExpr[T] {
-    val rowWriter = RowWriter[T]
-  }
-  case class NumericField[T: RowWriter](name: String, join: Linker) extends NumericExpr[T] with FieldExpr[T]
+  case class Field[T: SqlStringer](name: String, join: Linker) extends FieldExpr[T]
+  case class NumericField[T: SqlStringer](name: String, join: Linker) extends NumericExpr[T] with FieldExpr[T]
 
   case class Concat(left: Expr[_], right: Expr[_]) extends Expr[String]
 
-  case class UnaryOperation[T: RowWriter](op: UnaryOperator, value: Expr[T]) extends Expr[T]
-  case class NumericOperation[T: RowWriter](left: Expr[T], op: NumericOperator, right: Expr[T]) extends NumericExpr[T]
+  case class UnaryOperation[T: SqlStringer](op: UnaryOperator, value: Expr[T]) extends Expr[T]
+  case class NumericOperation[T: SqlStringer](left: Expr[T], op: NumericOperator, right: Expr[T]) extends NumericExpr[T]
 
   sealed trait BooleanOperator {
     val asSql: Chord
@@ -268,13 +266,13 @@ object QueryDsl {
   }
 
 
-  def field[T: RowWriter](name: String, join: Linker = RootJoin): Field[T] =
+  def field[T: SqlStringer](name: String, join: Linker = RootJoin): Field[T] =
     Field[T](name, join)
 
-  def numericField[T: RowWriter](name: String, join: Linker = RootJoin): NumericField[T] =
+  def numericField[T: SqlStringer](name: String, join: Linker = RootJoin): NumericField[T] =
     NumericField[T](name, join)
 
-  sealed abstract class Expr[T: RowWriter] {
+  sealed abstract class Expr[T: SqlStringer] {
 
     def :=(value: Expr[T]): UpdateQuery.Assignment[T] =
       UpdateQuery.Assignment(this, value)
@@ -283,6 +281,9 @@ object QueryDsl {
       Concat(this, value)
 
     def ===(value: Expr[T]): Condition =
+      BooleanOperation(this, ops.eq, value)
+
+    def eq_(value: Expr[T]): Condition =
       BooleanOperation(this, ops.eq, value)
 
     def <>(value: Expr[T]): Condition =
@@ -315,7 +316,7 @@ object QueryDsl {
   }
 
 
-  sealed abstract class NumericExpr[T: RowWriter] extends Expr[T] {
+  sealed abstract class NumericExpr[T: SqlStringer] extends Expr[T] {
 
     def unary_- : Expr[T] =
       UnaryOperation(ops.negate, this)
@@ -350,7 +351,7 @@ object QueryDsl {
   def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: Linker => Chord): Condition = {
     structuralEquality
       .mapper
-      .structuralEquality(structuralEquality.linker, structuralEquality.value.value)
+      .structuralEquality(structuralEquality.linker, structuralEquality.value)
   }
 
   def asSql(cond: Condition)(implicit alias: Linker => Chord): Chord =
@@ -376,23 +377,18 @@ object QueryDsl {
       case in: In[_] if in.set.isEmpty =>
         exprAsSql(in.left) ~*~ ch.In ~*~ "(null)"
       case in: In[_] =>
-        exprAsSql(in.left) ~*~ ch.In ~*~ ch.LeftParen ~ in.set.map(_ => ch.QuestionMark).mkChord(ch.Comma) ~ ")"
+        exprAsSql(in.left) ~*~ ch.In ~*~ ch.LeftParen ~ in.set.map(exprAsSql).mkChord(ch.Comma) ~ ")"
     }
 
   def exprAsSql[T](expr: Expr[T])(implicit alias: Linker => Chord): Chord = expr match {
     case fe: FieldExpr[T] =>
       val a = alias(fe.join)
-      if ( fe.join.isInstanceOf[ComponentJoin] ) a ~ "_" ~ fe.name
+      if ( fe.join.isInstanceOf[ComponentJoin] ) a ~ fe.name
       else a ~ fe.name
     case OptionConstant(Some(c)) =>
       exprAsSql(c)
     case constant: Constant[T] =>
-      constant.sqlString match {
-        case None =>
-          ch.QuestionMark
-        case Some(ss) =>
-          Chord.str(ss.toString)
-      }
+      Chord.str(constant.sqlStringer.toSqlString(constant.value).toString)
     case c: Concat =>
       exprAsSql(c.left) ~*~ "||" ~*~ exprAsSql(c.right)
     case no: NumericOperation[T] =>
@@ -402,55 +398,6 @@ object QueryDsl {
     case UnaryOperation(op, e) =>
       op.asSql ~ exprAsSql(e)
   }
-
-  sealed trait ApplyRowWriter {
-    def applyParameters(ps: java.sql.PreparedStatement): Int
-  }
-  def applyRowWriter[A](a: A, rowWriter: RowWriter[A]): ApplyRowWriter = ???
-
-  def applyRowWriters(cond: Condition): Chain[ApplyRowWriter] =
-    cond match {
-      case se@ StructuralEquality(_, _, _) =>
-        se.applyRowWriters
-      case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
-        applyRowWriters(l)
-      case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
-        applyRowWriters(l)
-      case Condition.TRUE =>
-        Chain.empty
-      case Condition.FALSE =>
-        Chain.empty
-      case and: And =>
-        applyRowWriters(and.left) ++ applyRowWriters(and.right)
-      case or: Or =>
-        applyRowWriters(or.left) ++ applyRowWriters(or.right)
-      case op: BooleanOperation[_] =>
-        applyRowWriters(op.left) ++ applyRowWriters(op.right)
-      case is: IsNull =>
-        applyRowWriters(is.left)
-      case in: In[_] if in.set.isEmpty =>
-        applyRowWriters(in.left)
-      case in: In[_] =>
-        applyRowWriters(in.left) ++ Chain.fromSeq(in.set.map(_.applyRowWriter).toSeq)
-    }
-
-  def applyRowWriters[T](expr: Expr[T]): Chain[ApplyRowWriter] =
-    expr match {
-      case fe: FieldExpr[T] =>
-        Chain.empty
-      case OptionConstant(Some(c)) =>
-        applyRowWriters(c)
-      case c: Constant[T] =>
-        c.applyRowWriterChain
-      case c: Concat =>
-        applyRowWriters(c.left) ++ applyRowWriters(c.right)
-      case no: NumericOperation[T] =>
-        applyRowWriters(no.left) ++ applyRowWriters(no.right)
-      case OptionConstant(None) =>
-        Chain.empty
-      case UnaryOperation(op, e) =>
-        applyRowWriters(e)
-    }
 
   object OrderBy {
     implicit def exprToOrderBy[T](f: Expr[T]) = OrderBy(f)
@@ -463,7 +410,7 @@ object QueryDsl {
   }
 
   abstract class Component[A](join: QueryDsl.Linker) {
-    def ===(right: Constant[A])(implicit mapper: Mapper[A]): Condition =
+    def ===(right: A)(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, right)
   }
 

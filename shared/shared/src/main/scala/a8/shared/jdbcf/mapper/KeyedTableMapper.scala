@@ -17,15 +17,9 @@ object KeyedTableMapper {
 
 trait KeyedTableMapper[A, B] extends TableMapper[A] {
 
-  val updateSqlPs: SqlString
-  val deleteSqlPs: SqlString
-  val fetchSqlPs: SqlString
-  val fetchWherePs: SqlString
-//  def fetchWhere(whereClause: SqlString): SqlString
+  def updateSql(row: A): SqlString
+  def deleteSql(key: B): SqlString
+  def fetchSql(key: B): SqlString
   def key(row: A): B
-
-  def applyUpdate(ps: java.sql.PreparedStatement, a: A): Unit
-  def applyDelete(ps: java.sql.PreparedStatement, b: B): Unit = applyWhere(ps, b, 0)
-  def applyWhere(ps: java.sql.PreparedStatement, b: B, parameterIndex: Int = 1): Unit
 
 }

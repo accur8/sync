@@ -63,7 +63,7 @@ class QueryDslTest extends AnyFunSuite {
 
     val actual = query.asSql.trim
 
-    assertEquals("select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.address_line1 = 'line1' and aa.address_line2 = 'line2' and aa.address_city = 'city' and aa.address_state = 'state' and aa.address_zip = 'zip'", actual)
+    assertEquals("select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'line1' and aa.addressline2 = 'line2' and aa.addresscity = 'city' and aa.addressstate = 'state' and aa.addresszip = 'zip'", actual)
 
   }
 
@@ -73,7 +73,7 @@ class QueryDslTest extends AnyFunSuite {
 
     val actual = query.asSql.trim
 
-    assertEquals("select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.address_line1 = 'myline1'", actual)
+    assertEquals("select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'myline1'", actual)
 
   }
 

@@ -11,7 +11,10 @@ package object jdbcf {
 
   object ColumnName extends CIStringValueCompanion[ColumnName] {
   }
-  case class ColumnName(value: CIString) extends SqlIdentifierValue
+  case class ColumnName(value: CIString) extends SqlIdentifierValue {
+    def ~(right: ColumnName) =
+      ColumnName(value.toString + right.value.toString)
+  }
 
   object TableLocator {
 

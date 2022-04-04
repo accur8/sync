@@ -14,9 +14,8 @@ trait SelectQuery[F[_], T, U] {
 
   def fetch(implicit conn: Conn[F]): F[T]
   def fetchOpt(implicit conn: Conn[F]): F[Option[T]]
-  def select(implicit conn: Conn[F]): fs2.Stream[F,T]
   def streamingSelect(implicit conn: Conn[F]): fs2.Stream[F,T]
-  def toVector(implicit conn: Conn[F]): F[Vector[T]]
+  def select(implicit conn: Conn[F]): F[Vector[T]]
   def asSql: String
 
 }

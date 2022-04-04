@@ -2,7 +2,7 @@ package a8.shared.jdbcf.querydsl
 
 
 import a8.shared.Chord
-import a8.shared.jdbcf.Conn
+import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
 import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Condition, Join, JoinImpl, Linker, OrderBy}
 import cats.effect.Async
@@ -13,15 +13,12 @@ import a8.shared.SharedImports._
 
 case class SelectQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapper[T], where: Condition, orderBy: List[OrderBy], maxRows: Int = -1) extends SelectQuery[F,T,U] {
 
+  implicit def implicitMapper = outerMapper
+
   def queryResolver =
     new QueryResolver
 
   class QueryResolver {
-
-//    val resolvedMapper: ResolvedMapper[T, _] =
-//      outerMapper.resolve
-//
-//    val mapperInternal = resolvedMapper.asMapperInternal
 
     lazy val orderBySql: Option[Chord] =
       if ( orderBy.isEmpty ) {
@@ -77,19 +74,8 @@ case class SelectQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapp
 
     lazy val whereSql: Chord = QueryDsl.asSql(where)(joinToAliasMapper)
 
-//    def runSelect(maxRows: Int, streamingFetchSize: Option[Int] = None): Iterator[T] =
-//      mapperInternal
-//        .extendedQuery(
-//          Some("aa"),
-//          joinExpr = joinSql,
-//          whereExpr = Some(whereSql),
-//          orderByExpr = orderBySql,
-//          maxRows = maxRows,
-//          streamingFetchSize
-//        )
-//
     lazy val extendedQuerySql = (
-      Chord.str(outerMapper.selectFieldsSqlPs("aa").toString)
+      Chord.str(outerMapper.selectFieldsSql("aa").toString)
         * "from" * outerMapper.tableName.asString * "as" * "aa"
         * joinSql.map(_ ~ " ").getOrElse(Chord.empty)
         ~ "where" * whereSql
@@ -98,18 +84,9 @@ case class SelectQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapp
 
   }
 
-//  override def fetchBox(implicit conn: ManagedConnection): Box[T] = {
-//    val qr = queryResolver
-//    qr.runSelect(1).nextOpt() ?~ s"no records returned from -- ${qr.extendedQuerySql}"
-//  }
-//
-//  override def select(implicit conn: ManagedConnection): Iterator[T] =
-//    queryResolver.runSelect(maxRows = maxRows)
-//
-//  override def streamingSelect(implicit conn: ManagedConnection): Iterator[T] =
-//    queryResolver.runSelect(maxRows = -1, streamingFetchSize = Some(10000))
-//
-  override def asSql =
+  lazy val asSqlString = SqlString.keyword(asSql)
+
+  override lazy val asSql =
     queryResolver.extendedQuerySql.toString
 
   override def orderBy(orderFn: U=>OrderBy): SelectQuery[F,T,U] =
@@ -121,14 +98,35 @@ case class SelectQueryImpl[F[_]: Async, T,U](tableDsl: U, outerMapper: TableMapp
   override def maxRows(count: Int): SelectQuery[F,T, U] =
     copy(maxRows=count)
 
-  override def fetch(implicit conn: Conn[F]): F[T] = ???
+  override def fetch(implicit conn: Conn[F]): F[T] =
+    fetchOpt
+      .flatMap {
+        case None =>
+          Async[F].raiseError(new RuntimeException(s"expected 1 record and got 0 -- ${asSql}"))
+        case Some(t) =>
+          Async[F].pure(t)
+      }
 
-  override def fetchOpt(implicit conn: Conn[F]): F[Option[T]] = ???
+  override def fetchOpt(implicit conn: Conn[F]): F[Option[T]] =
+    select
+      .flatMap {
+        case Vector() =>
+          Async[F].pure(None)
+        case Vector(t) =>
+          Async[F].pure(t.some)
+        case v =>
+          Async[F].raiseError(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${asSql} -- ${v}"))
+      }
 
-  override def select(implicit conn: Conn[F]): fs2.Stream[F, T] = ???
+  override def select(implicit conn: Conn[F]): F[Vector[T]] =
+    conn
+      .query[T](asSqlString)
+      .select
+      .map(_.toVector)
 
-  override def streamingSelect(implicit conn: Conn[F]): fs2.Stream[F, T] = ???
-
-  override def toVector(implicit conn: Conn[F]): F[Vector[T]] = ???
+  override def streamingSelect(implicit conn: Conn[F]): fs2.Stream[F, T] =
+    conn
+      .streamingQuery[T](asSqlString)
+      .run
 
 }

@@ -1,6 +1,6 @@
 package a8.shared
 
-import a8.shared.jdbcf.{RowReader, SqlString}
+import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import org.typelevel.ci.CIString
 import SharedImports._
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
@@ -23,7 +23,8 @@ object StringValue {
         _.value.toString,
       )
 
-    implicit lazy val rowReader = RowReader.stringReader.map(s => apply(s.trim))
+    implicit val rowReader = RowReader.stringReader.map(s => apply(s.trim))
+    implicit val rowWriter = RowWriter.stringWriter.mapWriter[A](_.value)
 
     implicit def toSqlString(a: A): SqlString =
       SqlString.escapedString(a.value)
@@ -52,7 +53,8 @@ object StringValue {
         _.value.toString,
       )
 
-    implicit val rowMapper = RowReader.stringReader.map(s => apply(s.trim))
+    implicit val rowReader = RowReader.stringReader.map(s => apply(s.trim))
+    implicit val rowWriter = RowWriter.stringWriter.mapWriter[A](_.value.toString)
 
     implicit def toSqlString(a: A): SqlString =
       SqlString.escapedString(a.asString)

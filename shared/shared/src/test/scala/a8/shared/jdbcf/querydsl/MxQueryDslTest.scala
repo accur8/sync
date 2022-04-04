@@ -119,7 +119,7 @@ object MxQueryDslTest {
         .addField(_.id)
         .addField(_.count)
         .addField(_.name)
-        .addField(_.address)    
+        .addField(_.address)
         .singlePrimaryKey(_.id)
         .buildKeyedTableMapper
     
@@ -206,7 +206,7 @@ object MxQueryDslTest {
   
   trait MxAddress {
   
-    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.Mapper[Address] =
+    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.ComponentMapper[Address] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
         .addField(_.line1)
         .addField(_.line2)
