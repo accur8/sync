@@ -1,20 +1,16 @@
 package a8.shared.json.impl
 
-import a8.shared.json.ReadError.ReadErrorException
-import a8.shared.json.{JsonCodec, JsonReadOptions, JsonTypedCodec, ReadError, ast}
-import a8.shared.json.ast.{JsArr, JsBool, JsDoc, JsFalse, JsNothing, JsNull, JsNum, JsObj, JsStr, JsTrue, JsVal}
-import a8.shared.json.impl.JsonCodecs.IterableJsonCodec
+import a8.shared.SharedImports._
+import a8.shared.json.ast._
+import a8.shared.json.{JsonReadOptions, JsonTypedCodec, ReadError}
 import sttp.model.Uri
 
-import java.time.{LocalDate, LocalDateTime, LocalTime}
+import java.nio.file.Paths
+import java.time._
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.{ClassTag, classTag}
-import a8.shared.SharedImports._
-
-import java.nio.file.Paths
-import scala.util.Try
 
 trait JsonTypedCodecs {
 
@@ -177,6 +173,30 @@ trait JsonTypedCodecs {
   implicit lazy val localTime =
     string.dimap[LocalTime](
       s => LocalTime.parse(s),
+      _.toString,
+    )
+
+  implicit lazy val offsetDateTime =
+    string.dimap[OffsetDateTime](
+      s => OffsetDateTime.parse(s),
+      _.toString,
+    )
+
+  implicit lazy val offsetTime =
+    string.dimap[OffsetTime](
+      s => OffsetTime.parse(s),
+      _.toString,
+    )
+
+  implicit lazy val zonedDateTime =
+    string.dimap[ZonedDateTime](
+      s => ZonedDateTime.parse(s),
+      _.toString,
+    )
+
+  implicit lazy val instant =
+    string.dimap[Instant](
+      s => Instant.parse(s),
       _.toString,
     )
 
