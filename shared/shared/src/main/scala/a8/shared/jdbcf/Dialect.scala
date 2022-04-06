@@ -44,7 +44,7 @@ trait Dialect {
                 row.opt[CatalogName]("TABLE_CAT"),
                 row.opt[SchemaName]("TABLE_SCHEM"),
                 row.get[TableName]("TABLE_NAME"),
-              )()
+              )
             }
             .toList
             .head

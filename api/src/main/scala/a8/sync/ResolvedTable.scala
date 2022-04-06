@@ -6,6 +6,7 @@ import a8.sync.dsl.{Field, Table, TruncateAction}
 import a8.sync.impl.{NormalizedDataSet, NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedValue, SqlValue, queryService}
 import fs2.Chunk
 import Imports._
+import a8.shared.CompanionGen
 import a8.shared.jdbcf.{Conn, Dialect, Row, SqlString}
 import a8.sync.ResolvedTable.ColumnMapper.{DateMapper, NumberMapper, StringMapper, TimeMapper, TimestampMapper}
 import a8.shared.jdbcf.{SchemaName, TypeName}

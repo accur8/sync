@@ -119,7 +119,7 @@ object MxQueryDslTest {
         .addField(_.id)
         .addField(_.count)
         .addField(_.name)
-        .addField(_.address)
+        .addField(_.address)    
         .singlePrimaryKey(_.id)
         .buildKeyedTableMapper
     

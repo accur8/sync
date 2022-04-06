@@ -45,17 +45,6 @@ UNION
      lower(matviewname) = ${tableName.asLowerCaseStringValue}${schemaPart}
 """
 
-    implicit val resolvedTableNameRowReader: RowReader[ResolvedTableName] =
-      new RowReader[ResolvedTableName] {
-        override def rawRead(row: Row, index: Int): (ResolvedTableName, Int) = {
-          ResolvedTableName(
-            None,
-            row.opt[SchemaName](1),
-            row.get[TableName](0),
-          )() -> 2
-        }
-      }
-
     conn
       .query[ResolvedTableName](sql)
       .unique

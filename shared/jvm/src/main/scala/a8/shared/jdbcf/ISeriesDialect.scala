@@ -171,8 +171,6 @@ object ISeriesDialect extends Dialect {
             None,
             Some(row._2),
             row._1,
-          )(
-            alternativeNames
           ).pure[F]
         }
       }
