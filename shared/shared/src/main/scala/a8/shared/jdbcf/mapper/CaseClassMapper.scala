@@ -39,7 +39,7 @@ case class CaseClassMapper[A, PK](
   primaryKey: PrimaryKey[A,PK],
   tableName: TableName,
   columnNameResolver: ColumnNameResolver = ColumnNameResolver.noop,
-) extends KeyedTableMapper[A, PK] {
+) extends KeyedTableMapper[A, PK] { self =>
 
   import CaseClassMapper._
 
@@ -122,13 +122,6 @@ case class CaseClassMapper[A, PK](
     sql"insert into ${tableName} (${valuePairs.map(_._1).mkSqlString(Comma)}) values(${valuePairs.map(_._2).mkSqlString(SqlString.Comma)})"
   }
 
-  override def materializeTableMapper[F[_] : shared.SharedImports.Async](implicit conn: Conn[F]): F[TableMapper[A]] =
-    materializeKeyedTableMapper[F]
-      .map {
-        case tm: TableMapper[A] =>
-          tm
-      }
-
   override def materializeKeyedTableMapper[F[_] : SharedImports.Async](implicit conn: Conn[F]): F[KeyedTableMapper[A, PK]] = {
     conn
       .resolveTableName(TableLocator(tableName))
@@ -143,7 +136,7 @@ case class CaseClassMapper[A, PK](
                 tableMeta
                   .columns
                   .map { rc =>
-                    rc.name -> ColumnName(st.enquoteLiteral(rc.name.value.toString, false))
+                    rc.name -> ColumnName(st.enquoteIdentifier(rc.name.value.toString, false))
                   }
                   .toMap
 

@@ -220,7 +220,7 @@ class QubesApiClient[F[_] : Async](
           .jsonBody(requestBody.toJsVal)
       logger.trace(s"${request.method.value} ${request.uri}")
 
-      request.execAndMap { responseBodyStr =>
+      request.execWithString { responseBodyStr =>
           F.defer {
             json.parseF(responseBodyStr)
               .map(jv => JsDoc(jv))

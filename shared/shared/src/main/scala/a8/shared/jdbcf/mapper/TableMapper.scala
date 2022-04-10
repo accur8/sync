@@ -24,6 +24,6 @@ trait TableMapper[A] extends ComponentMapper[A] { self =>
    * @tparam F
    * @return
    */
-  def materialize[F[_]: Async](implicit conn: Conn[F]): F[self.type]
+  def materializeTableMapper[F[_]: Async](implicit conn: Conn[F]): F[TableMapper[A]]
 
 }

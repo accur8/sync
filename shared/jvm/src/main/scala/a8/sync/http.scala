@@ -109,10 +109,13 @@ object http extends LazyLogger {
       processor.exec(this)
 
     def execWithJsonResponse[F[_] : Async, A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
-      processor.execAndMap(this)(responseJson => json.readF[F,A](responseJson))
+      processor.execWithStringResponse(this, None, responseJson => json.readF[F,A](responseJson))
 
-    def execAndMap[F[_],A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execAndMap(this)(validateFn)
+    def execWithStreamResponse[F[_] : Async, A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execWithStreamResponse[A](this, None, streamEffect)
+
+    def execWithString[F[_],A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execWithStringResponse(this, None, effect)
 
     def curlCommand: String
 
@@ -132,11 +135,14 @@ object http extends LazyLogger {
     def exec(implicit processor: RequestProcessor[F]): F[String] =
       processor.exec(rawRequest, requestBody)
 
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
-      processor.execAndMap(rawRequest, requestBody)(responseJson => json.readF[F,A](responseJson))
+    def execWithStreamingResponse[A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execWithStreamResponse[A](rawRequest, requestBody, streamEffect)
 
-    def execAndMap[A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execAndMap(rawRequest, requestBody)(validateFn)
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
+      processor.execWithStringResponse(rawRequest, requestBody, responseJson => json.readF[F,A](responseJson))
+
+    def execWithEffect[A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execWithStringResponse(rawRequest, requestBody, effect)
 
     def updateRawRequest(fn: Request => Request): StreamingRequest[F] =
       copy(rawRequest = fn(rawRequest))
@@ -221,7 +227,7 @@ object http extends LazyLogger {
      * may be json but is it the json you actually want).
      *
      */
-    def execAndMap[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None)(validateFn: String => F[A]): F[A]
+    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, effect: String => F[A]): F[A]
 
     def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
 
@@ -231,7 +237,7 @@ object http extends LazyLogger {
      * implementer is responsible for things like checking http status codes, etc, etc
      *
      */
-    def rawExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
+    def execRaw[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
 
   }
 
@@ -281,9 +287,9 @@ object http extends LazyLogger {
       val F = Async[F]
 
       override def exec(request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]]): F[String] =
-        execAndMap(request, streamingRequestBody)(F.pure)
+        execWithStringResponse(request, streamingRequestBody, F.pure)
 
-      override def rawExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
+      override def execRaw[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
         val retryPolicy =
           request
             .retryConfig
@@ -292,23 +298,23 @@ object http extends LazyLogger {
         applyRetryPolicy(retryPolicy, request.uri.toString(), rawSingleExec(request, streamingRequestBody, responseEffect))
       }
 
-      override def execAndMap[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]])(validateFn: String => F[A]): F[A] = {
+
+      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], effect: String => F[A]): F[A] = {
         def responseEffect(response: Response[F]): F[A] = {
           for {
             _ <- raiseResponseErrors(response)
             responseBodyAsString <- response.responseBodyAsString
-            a <- validateFn(responseBodyAsString)
+            a <- effect(responseBodyAsString)
           } yield a
         }
-        rawExec(request, streamingRequestBody, responseEffect)
+        execRaw(request, streamingRequestBody, responseEffect)
       }
-
 
       override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
         def wrappedResponseEffect(response: Response[F]): F[A] = {
           raiseResponseErrors(response) >> responseEffect(response)
         }
-        rawExec(request, streamingRequestBody, wrappedResponseEffect)
+        execRaw(request, streamingRequestBody, wrappedResponseEffect)
       }
 
       def raiseResponseErrors(response: Response[F]): F[Unit] =
