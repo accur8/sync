@@ -102,7 +102,7 @@ object JdbcMetadata {
 //    searchSchema: Option[String]
   ) {
 
-    lazy val columns = {
+    lazy val columns: Seq[ResolvedColumn] = {
       val keysByColumnName = jdbcKeys.map(k => k.columnName -> k).iterator.toMap
       jdbcColumns.zipWithIndex.map { case (column,i) =>
         ResolvedColumn(

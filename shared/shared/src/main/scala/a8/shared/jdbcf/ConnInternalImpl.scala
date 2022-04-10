@@ -85,6 +85,13 @@ case class ConnInternalImpl[F[_] : Async](
       .lastOrError
   }
 
+
+  override def withStatement[A](fn: JStatement => F[A]): F[A] =
+    statement
+      .evalMap(fn)
+      .compile
+      .lastOrError
+
   override def statement: fs2.Stream[F, JStatement] =
     managedStream(jdbcConn.createStatement())
 
@@ -112,32 +119,34 @@ case class ConnInternalImpl[F[_] : Async](
           F.raiseError[Unit](new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${updateQuery}"))
       }
 
-  override def insertRow[A: TableMapper](row: A): F[Unit] = {
+  override def insertRow[A: TableMapper](row: A): F[A] = {
     val mapper = implicitly[TableMapper[A]]
-    runSingleRowUpdate(mapper.insertSql(row))
+    runSingleRowUpdate(mapper.insertSql(row)).as(row)
   }
 
-  override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[UpsertResult] = {
+  override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[(A,UpsertResult)] = {
     val mapper = implicitly[KeyedTableMapper[A,B]]
     fetchRowOpt(mapper.key(row))
       .flatMap {
         case Some(v) =>
           updateRow(row)
-            .as(UpsertResult.Update)
+            .as(row -> UpsertResult.Update)
         case None =>
           insertRow(row)
-            .as(UpsertResult.Insert)
+            .as(row -> UpsertResult.Insert)
       }
   }
 
-  override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Unit] = {
+  override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
     val mapper = implicitly[KeyedTableMapper[A, B]]
     runSingleRowUpdate(mapper.updateSql(row))
+      .as(row)
   }
 
-  override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Unit] = {
+  override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
     val mapper = implicitly[KeyedTableMapper[A,B]]
     runSingleRowUpdate(mapper.deleteSql(mapper.key(row)))
+      .as(row)
   }
 
   override def selectRows[A: TableMapper](whereClause: SqlString): F[Iterable[A]] =

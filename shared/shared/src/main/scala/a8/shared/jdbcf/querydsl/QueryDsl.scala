@@ -1,7 +1,7 @@
 package a8.shared.jdbcf.querydsl
 
 import a8.shared.Chord
-import a8.shared.jdbcf.{RowWriter, SqlString}
+import a8.shared.jdbcf.{ColumnName, RowWriter, SqlString}
 import a8.shared.jdbcf.mapper.{ComponentMapper, Mapper, TableMapper}
 
 import scala.language.{existentials, implicitConversions}
@@ -217,6 +217,7 @@ object QueryDsl {
 
   sealed trait Linker {
     def baseJoin: Join
+    def columnName(suffix: ColumnName): ColumnName
   }
 
   sealed trait Join extends Linker {
@@ -231,15 +232,18 @@ object QueryDsl {
   case object RootJoin extends Join {
     lazy val chain: List[Join] = List(this)
     def depth = 0
+    def columnName(suffix: ColumnName) = suffix
   }
 
   case class JoinImpl(parent: Join, name: String, toTableMapper: TableMapper[_], joinExprFn: ()=>QueryDsl.Condition) extends Join {
     lazy val joinExpr = joinExprFn()
     override def chain = this :: parent.chain
     def depth = parent.depth + 1
+    def columnName(suffix: ColumnName) = suffix
   }
 
   case class ComponentJoin(name: String, parent: Linker) extends Linker {
+    val nameAsColumnName = ColumnName(name)
     def path = name :: parentPath
     def parentPath: List[String] =
       parent match {
@@ -251,6 +255,8 @@ object QueryDsl {
         case pj: ComponentJoin => pj.baseJoin
         case j: Join => j
       }
+    def columnName(suffix: ColumnName) =
+      parent.columnName(nameAsColumnName ~ suffix)
   }
 
   def createJoin[A,B](
@@ -383,8 +389,7 @@ object QueryDsl {
   def exprAsSql[T](expr: Expr[T])(implicit alias: Linker => Chord): Chord = expr match {
     case fe: FieldExpr[T] =>
       val a = alias(fe.join)
-      if ( fe.join.isInstanceOf[ComponentJoin] ) a ~ fe.name
-      else a ~ fe.name
+      a ~ fe.name
     case OptionConstant(Some(c)) =>
       exprAsSql(c)
     case constant: Constant[T] =>

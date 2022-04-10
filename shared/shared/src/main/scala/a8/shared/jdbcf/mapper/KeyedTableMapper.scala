@@ -22,4 +22,6 @@ trait KeyedTableMapper[A, B] extends TableMapper[A] {
   def fetchSql(key: B): SqlString
   def key(row: A): B
 
+  def materialize[F[_]: Async](implicit conn: Conn[F]): F[self.type]
+
 }

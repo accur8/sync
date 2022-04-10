@@ -65,6 +65,8 @@ object Conn extends LazyLogger {
     def statement: fs2.Stream[F, JStatement]
     def prepare(sql: SqlString): fs2.Stream[F, JdbcPreparedStatement]
 
+    def withStatement[A](fn: JStatement=>F[A]): F[A]
+
     override def resolveTableName(tableLocator: TableLocator, useCache: Boolean): F[ResolvedTableName] =
       jdbcMetadata.resolveTableName(tableLocator, this, useCache)
 
@@ -94,10 +96,10 @@ trait Conn[F[_]] {
   def isAutoCommit: F[Boolean]
 
 
-  def insertRow[A : TableMapper](row: A): F[Unit]
-  def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[UpsertResult]
-  def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[Unit]
-  def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[Unit]
+  def insertRow[A : TableMapper](row: A): F[A]
+  def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[(A,UpsertResult)]
+  def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[A]
+  def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[A]
 
   def selectRows[A : TableMapper](whereClause: SqlString): F[Iterable[A]]
   def streamingSelectRows[A : TableMapper](whereClause: SqlString): fs2.Stream[F,A]

@@ -4,9 +4,10 @@ package a8.shared.jdbcf.mapper
 import a8.shared.Chord
 import a8.shared.Meta._
 import a8.shared.SharedImports._
+import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.SqlString._
 import a8.shared.jdbcf._
-import a8.shared.jdbcf.mapper.CaseClassMapper.And
+import a8.shared.jdbcf.mapper.CaseClassMapper.{And, ColumnNameResolver}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.Mapper.FieldHandler
 import a8.shared.jdbcf.querydsl.QueryDsl
@@ -24,7 +25,7 @@ object MapperBuilder {
       new PrimaryKey[A,B] {
         override def key(a: A): B = sys.error("no primary key defined")
         override def columnNames: Iterable[ColumnName] = sys.error("no primary key defined")
-        override def whereClause(key: B): SqlString = sys.error("no primary key defined")
+        override def whereClause(key: B, columnNameResolver: ColumnNameResolver): SqlString = sys.error("no primary key defined")
       }
 
   }
@@ -40,7 +41,7 @@ object MapperBuilder {
     val columnNames: Iterable[ColumnName]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def rawRead(row: Row, index: Int): (Any, Int)
-    def booleanOp(linker: QueryDsl.Linker, a: A)(implicit alias: Linker => Chord): QueryDsl.Condition
+    def booleanOp(linker: QueryDsl.Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition
   }
 
   case class FromCaseClassParm[A,B : FieldHandler](parm: CaseClassParm[A,B], ordinal: Int) extends Parm[A] {
@@ -55,11 +56,12 @@ object MapperBuilder {
     def rawRead(row: Row, index: Int): (Any, Int) =
       fieldHandler.rowReader.rawRead(row, index)
 
-    override def booleanOp(linker: QueryDsl.Linker, a: A)(implicit alias: Linker => Chord): QueryDsl.Condition =
-      fieldHandler.booleanOp(linker, name, parm.lens(a))
 
-    def booleanOpB(linker: QueryDsl.Linker, b: B)(implicit alias: Linker => Chord): QueryDsl.Condition =
-      fieldHandler.booleanOp(linker, name, b)
+    override def booleanOp(linker: Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition =
+      fieldHandler.booleanOp(linker, name, parm.lens(a), columnNameResolver)
+
+    def booleanOpB(linker: QueryDsl.Linker, b: B, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition =
+      fieldHandler.booleanOp(linker, name, b, columnNameResolver)
 
   }
 
@@ -109,7 +111,7 @@ object MapperBuilder {
   trait PrimaryKey[A,B] {
     def columnNames: Iterable[ColumnName]
     def key(a: A): B
-    def whereClause(key: B): SqlString
+    def whereClause(key: B, columnNameResolver: ColumnNameResolver): SqlString
   }
 
   object implicits {
@@ -132,9 +134,10 @@ object MapperBuilder {
   {
     override def key(a: A): B = parm.parm.lens(a)
     override val columnNames = parm.columnNames
-    override def whereClause(key: B): SqlString = {
+
+    override def whereClause(key: B, columnNameResolver: ColumnNameResolver): SqlString = {
       import implicits._
-      val condition = parm.booleanOpB(QueryDsl.RootJoin, key)
+      val condition = parm.booleanOpB(QueryDsl.RootJoin, key, columnNameResolver)
       val ch = QueryDsl.asSql(condition)
       SqlString.keyword(ch.toString)
     }
@@ -148,7 +151,7 @@ object MapperBuilder {
   {
     override def key(a: A): (B1,B2) = parm0.parm.lens(a) -> parm1.parm.lens(a)
     override val columnNames = parm0.columnNames ++ parm1.columnNames
-    override def whereClause(key: (B1, B2)): SqlString = ???
+    override def whereClause(key: (B1, B2), columnNameResolver: ColumnNameResolver): SqlString = ???
   }
 
 

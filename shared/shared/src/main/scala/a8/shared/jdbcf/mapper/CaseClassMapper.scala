@@ -2,11 +2,13 @@ package a8.shared.jdbcf.mapper
 
 
 import a8.shared.SharedImports._
-import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, SqlString, TableName}
+import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, SqlString, TableLocator, TableName}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.MapperBuilder.{Parm, PrimaryKey}
 import SqlString._
-import a8.shared.{Chord, jdbcf}
+import a8.shared
+import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
+import a8.shared.{Chord, SharedImports, jdbcf}
 import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, StructuralProperty}
 
@@ -17,6 +19,18 @@ object CaseClassMapper {
 //  val QuestionMark = SqlString.keyword("?")
   val And = SqlString.keyword(" and ")
   val RootColumnNamePrefix = ColumnName("")
+
+  object ColumnNameResolver {
+    object noop extends ColumnNameResolver {
+      override def apply(columnName: ColumnName): ColumnName =
+        columnName
+    }
+  }
+
+  trait ColumnNameResolver {
+    def apply(columnName: ColumnName): ColumnName
+  }
+
 }
 
 case class CaseClassMapper[A, PK](
@@ -24,6 +38,7 @@ case class CaseClassMapper[A, PK](
   constructorFn: Iterator[Any]=>A,
   primaryKey: PrimaryKey[A,PK],
   tableName: TableName,
+  columnNameResolver: ColumnNameResolver = ColumnNameResolver.noop,
 ) extends KeyedTableMapper[A, PK] {
 
   import CaseClassMapper._
@@ -39,7 +54,7 @@ case class CaseClassMapper[A, PK](
 
   override def structuralEquality(linker: QueryDsl.Linker, a: A)(implicit alias: QueryDsl.Linker => Chord): QueryDsl.Condition =
     fields
-      .map(_.booleanOp(linker, a))
+      .map(_.booleanOp(linker, a, columnNameResolver))
       .reduceLeft((l,r) => QueryDsl.And(l,r))
 
   override def rawRead(row: Row, index: Int): (A, Int) = {
@@ -55,10 +70,14 @@ case class CaseClassMapper[A, PK](
     constructorFn(valuesIterator) -> offset
   }
 
+  lazy val resolvedColumnNames =
+    fields
+      .flatMap(_.columnNames)
+      .map(columnNameResolver.apply)
+
   lazy val selectAndFrom = {
     val selectFields =
-      fields
-        .flatMap(_.columnNames)
+      resolvedColumnNames
         .mkSqlString(SqlString.CommaSpace)
     sql"select ${selectFields} from ${tableName}"
   }
@@ -67,8 +86,7 @@ case class CaseClassMapper[A, PK](
   override def selectFieldsSql(alias: String): SqlString = {
     val aliasSqlStr = alias.keyword
     val selectFields =
-      fields
-        .flatMap(_.columnNames)
+      resolvedColumnNames
         .map(cn => sql"${aliasSqlStr}.${cn}")
         .mkSqlString(SqlString.CommaSpace)
     sql"select ${selectFields}"
@@ -83,7 +101,7 @@ case class CaseClassMapper[A, PK](
     sql"${selectFromAndWhere}${whereClause}"
 
   def keyToWhereClause(key: PK): SqlString =
-    primaryKey.whereClause(key)
+    primaryKey.whereClause(key, columnNameResolver)
 
   override def updateSql(row: A): SqlString = {
     val valuePairs = pairs(RootColumnNamePrefix, row)
@@ -102,6 +120,43 @@ case class CaseClassMapper[A, PK](
   override def insertSql(row: A): SqlString = {
     val valuePairs = pairs(RootColumnNamePrefix, row)
     sql"insert into ${tableName} (${valuePairs.map(_._1).mkSqlString(Comma)}) values(${valuePairs.map(_._2).mkSqlString(SqlString.Comma)})"
+  }
+
+  override def materializeTableMapper[F[_] : shared.SharedImports.Async](implicit conn: Conn[F]): F[TableMapper[A]] =
+    materializeKeyedTableMapper[F]
+      .map {
+        case tm: TableMapper[A] =>
+          tm
+      }
+
+  override def materializeKeyedTableMapper[F[_] : SharedImports.Async](implicit conn: Conn[F]): F[KeyedTableMapper[A, PK]] = {
+    conn
+      .resolveTableName(TableLocator(tableName))
+      .flatMap(rtm => conn.tableMetadata(rtm.asLocator))
+      .flatMap { tableMeta =>
+        val noPrefix = ColumnName("")
+        conn
+          .asInternal
+          .withStatement { st =>
+            Async[F].blocking {
+              val mappedColumnNames =
+                tableMeta
+                  .columns
+                  .map { rc =>
+                    rc.name -> ColumnName(st.enquoteLiteral(rc.name.value.toString, false))
+                  }
+                  .toMap
+
+              val columnNameResolver =
+                new ColumnNameResolver {
+                  override def apply(columnName: ColumnName): ColumnName =
+                    mappedColumnNames.getOrElse(columnName, columnName)
+                }
+
+              copy(columnNameResolver = columnNameResolver)
+            }
+          }
+      }
   }
 
 }

@@ -73,6 +73,7 @@ lazy val shared =
       libraryDependencies ++= Seq(
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
         "org.postgresql" % "postgresql" % "42.3.1",
+        "mysql" % "mysql-connector-java" % "8.0.28",
         "net.sf.jt400" % "jt400" % "10.7",
         "com.zaxxer" % "HikariCP" % "4.0.3",
         "com.sun.mail" % "jakarta.mail" % "2.0.1",

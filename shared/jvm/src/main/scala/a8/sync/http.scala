@@ -1,7 +1,7 @@
 package a8.sync
 
 
-import a8.shared.CompanionGen
+import a8.shared.{CompanionGen, SharedImports}
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp.MxRetryConfig
@@ -11,14 +11,18 @@ import a8.shared.SharedImports._
 import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.sync.http.Body
 import a8.sync.http.Body.StringBody
+import a8.sync.http.impl.RequestProcessorImpl
+import fs2.text
 import retry.RetryDetails.{GivingUp, WillDelayAndRetry}
 import retry._
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
+import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
-import sttp.client3.{Identity, RequestT, basicRequest}
+import sttp.client3.{Identity, RequestT, ResponseAs, basicRequest}
 
 import java.net.URLEncoder
+import java.nio.charset.Charset
 import scala.concurrent.duration.FiniteDuration
 
 object http extends LazyLogger {
@@ -35,7 +39,18 @@ object http extends LazyLogger {
     count: Int,
     initialBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
-  )
+  ) {
+    def retryPolicy[F[_]: Async] = {
+      import RetryPolicies._
+      // https://cb372.github.io/cats-retry/docs/policies.html
+      limitRetries[F](count)
+        .join(
+          exponentialBackoff[F](initialBackoff)
+            meet
+            constantDelay[F](maxBackoff)
+        )
+    }
+  }
 
   def applyRetryPolicy[F[_] : Async, A](retryPolicy: RetryPolicy[F], context: String, fa: F[A]): F[A] = {
 
@@ -61,6 +76,8 @@ object http extends LazyLogger {
 
   }
 
+  case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String) extends Exception
+
   object Request {
     def apply(baseUri: Uri): Request =
       impl.RequestImpl(baseUri)
@@ -73,7 +90,11 @@ object http extends LazyLogger {
     val method: Method
     val headers: Map[String,String]
 
+    val retryConfig: Option[RetryConfig]
+
     def subPath(subPath: Uri): Request
+
+    def withRetryConfig(retryConfig: RetryConfig): Request
 
     def jsonBody[A : JsonCodec](a: A): Request = jsonBody(a.toJsVal)
     def jsonBody(json: JsVal): Request
@@ -92,9 +113,6 @@ object http extends LazyLogger {
 
     def execAndMap[F[_],A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execAndMap(this)(validateFn)
-
-    def execWithStreamResponse[F[_]](implicit processor: RequestProcessor[F]): fs2.Stream[F,Byte] =
-      processor.execWithStreamResponse(this)
 
     def curlCommand: String
 
@@ -120,20 +138,30 @@ object http extends LazyLogger {
     def execAndMap[A](validateFn: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execAndMap(rawRequest, requestBody)(validateFn)
 
-    def execWithStreamResponse[A](implicit processor: RequestProcessor[F]): fs2.Stream[F,Byte] =
-      processor.execWithStreamResponse(rawRequest, requestBody)
-
     def updateRawRequest(fn: Request => Request): StreamingRequest[F] =
       copy(rawRequest = fn(rawRequest))
 
   }
 
-  trait Responder[A] {
-    def exec[F[_] : Async : RequestProcessor](responseMetadata: ResponseMetadata, body: fs2.Stream[F,Byte]): F[A]
-  }
+  case class Response[F[_]: Async](
+    responseMetadata: ResponseMetadata,
+    responseBody: fs2.Stream[F,Byte],
+  ) {
 
-  sealed trait RequestWithResponse[A] {
-    def exec[F[_] : Async]: F[A]
+    lazy val charset: Charset =
+      responseMetadata
+        .contentType
+        .flatMap(impl.charsetFromContentType)
+        .map(impl.sanitizeCharset)
+        .map(Charset.forName)
+        .getOrElse(Utf8Charset)
+
+    def responseBodyAsString: F[String] =
+      responseBody
+        .through(text.decodeWithCharset(charset))
+        .compile
+        .string
+
   }
 
   object Method {
@@ -145,11 +173,38 @@ object http extends LazyLogger {
     value: String
   )
 
+  object ResponseMetadata {
+
+    def apply[A](sttpResponse: sttp.client3.Response[A]): ResponseMetadata =
+      ResponseMetadata(
+        sttpResponse.code,
+        sttpResponse.statusText,
+        sttpResponse.headers.map(h => h.name -> h.value).toVector,
+      )
+
+    def apply[A](sttpResponseMetadata: sttp.model.ResponseMetadata): ResponseMetadata =
+      ResponseMetadata(
+        sttpResponseMetadata.code,
+        sttpResponseMetadata.statusText,
+        sttpResponseMetadata.headers.map(h => h.name -> h.value).toVector,
+      )
+
+  }
+
   case class ResponseMetadata(
     statusCode: StatusCode,
     statusText: String,
-    headers: Map[String,String],
-  )
+    headers: Vector[(String,String)],
+  ) {
+
+    lazy val headersByName =
+      headers
+        .map(h => CIString(h._1) -> h._2)
+        .toMap
+
+    lazy val contentType: Option[String] = headersByName.get(impl.contentTypeHeaderName)
+
+  }
 
   sealed trait RequestProcessor[F[_]] {
 
@@ -168,7 +223,15 @@ object http extends LazyLogger {
      */
     def execAndMap[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None)(validateFn: String => F[A]): F[A]
 
-    def execWithStreamResponse(request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None): fs2.Stream[F,Byte]
+    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
+
+    /**
+     *
+     * implementer of the responseEffect function must raise errors into the F.
+     * implementer is responsible for things like checking http status codes, etc, etc
+     *
+     */
+    def rawExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
 
   }
 
@@ -186,6 +249,25 @@ object http extends LazyLogger {
     def apply[F[_] : Async](retry: RetryConfig, backend: Backend[F], maxConnectionSemaphore: Semaphore[F]) =
       RequestProcessorImpl(retry, backend, maxConnectionSemaphore)
 
+  }
+
+  object impl {
+
+    val contentTypeHeaderName = CIString("Content-Type")
+
+    /** Removes quotes surrounding the charset.
+     */
+    def sanitizeCharset(charset: String): String = {
+      val c2 = charset.trim()
+      val c3 = if (c2.startsWith("\"")) c2.substring(1) else c2
+      if (c3.endsWith("\"")) c3.substring(0, c3.length - 1) else c3
+    }
+
+    def charsetFromContentType(ct: String): Option[String] =
+      ct.split(";").map(_.trim.toLowerCase).collectFirst {
+        case s if s.startsWith("charset=") && s.substring(8).trim != "" => s.substring(8).trim
+      }
+
     case class RequestProcessorImpl[F[_] : Async](
       retryConfig: RetryConfig,
       backend: Backend[F],
@@ -194,109 +276,78 @@ object http extends LazyLogger {
       with RequestProcessor[F]
     {
 
-      lazy val retryPolicy: RetryPolicy[F] = {
-        import RetryPolicies._
-        // https://cb372.github.io/cats-retry/docs/policies.html
-        limitRetries[F](retryConfig.count)
-          .join(
-            exponentialBackoff[F](retryConfig.initialBackoff)
-              meet
-            constantDelay[F](retryConfig.maxBackoff)
-          )
-      }
+      lazy val defaultRetryPolicy = retryConfig.retryPolicy[F]
 
       val F = Async[F]
 
       override def exec(request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]]): F[String] =
         execAndMap(request, streamingRequestBody)(F.pure)
 
-      override def execWithStreamResponse(request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]]): fs2.Stream[F, Byte] =
-        streamExecWithRetry(request)
-
-      override def execAndMap[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]])(validateFn: String => F[A]): F[A] =
-        execWithRetry(request, streamingRequestBody, validateFn)
-
-      def execWithRetry[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], mapFn: String => F[A]): F[A] = {
-        applyRetryPolicy(retryPolicy, request.uri.toString(), singleExec(request, streamingRequestBody, mapFn))
+      override def rawExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
+        val retryPolicy =
+          request
+            .retryConfig
+            .map(_.retryPolicy[F])
+            .getOrElse(defaultRetryPolicy)
+        applyRetryPolicy(retryPolicy, request.uri.toString(), rawSingleExec(request, streamingRequestBody, responseEffect))
       }
 
-      def singleExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], mapFn: String => F[A]): F[A] = {
-        maxConnectionSemaphore.permit.use { _ =>
-
-          val request0: client3.Request[Either[String, String], Any] =
-            basicRequest
-              .method(sttp.model.Method(request.method.value), request.uri)
-              .headers(request.headers)
-
-          val responseEffect =
-            streamingRequestBody match {
-              case Some(stream) =>
-                request0.streamBody(Fs2Streams[F])(stream)
-                  .send(backend.delegate)
-              case _ =>
-                val requestWithBody =
-                  request.body match {
-                    case Body.Empty =>
-                      request0
-                    case Body.StringBody(content) =>
-                      request0.body(content)
-                    case Body.JsonBody(json) =>
-                      request0.body(json.compactJson)
-                  }
-                requestWithBody
-                  .send(backend.delegate)
-            }
-
-          logger.trace(s"${request.method.value} ${request.uri}")
-          val startTime = System.currentTimeMillis()
-
-          responseEffect
-            .flatMap { response =>
-              logger.trace(s"${request.method.value} ${request.uri} completed in ${System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-              val responseBodyStrF: F[String] =
-                if ( response.code.isSuccess ) {
-                  response.body match {
-                    case Left(errorMessage) =>
-                      F.raiseError(new RuntimeException("we should never get a Left here since we are only dealing with 2xx successes"))
-                    case Right(responseBody) =>
-                      F.pure(responseBody)
-                  }
-                } else {
-                  F.raiseError(new RuntimeException(s"http response code is ${response.code} which is not success -- ${response.body.merge}"))
-                }
-              responseBodyStrF
-            }
-            .flatMap(mapFn)
-            .onError { error =>
-              loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
-            }
-
+      override def execAndMap[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]])(validateFn: String => F[A]): F[A] = {
+        def responseEffect(response: Response[F]): F[A] = {
+          for {
+            _ <- raiseResponseErrors(response)
+            responseBodyAsString <- response.responseBodyAsString
+            a <- validateFn(responseBodyAsString)
+          } yield a
         }
+        rawExec(request, streamingRequestBody, responseEffect)
       }
 
-      def streamExecWithRetry[A](request: Request): fs2.Stream[F,Byte] =
-        applyRetryPolicy(retryPolicy, request.uri.toString(), streamSingleExec(request))
-          .fs2StreamEval
-          .flatten
 
+      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
+        def wrappedResponseEffect(response: Response[F]): F[A] = {
+          raiseResponseErrors(response) >> responseEffect(response)
+        }
+        rawExec(request, streamingRequestBody, wrappedResponseEffect)
+      }
 
-      def streamSingleExec[A](request: Request): F[fs2.Stream[F,Byte]] = {
+      def raiseResponseErrors(response: Response[F]): F[Unit] =
+        if ( response.responseMetadata.statusCode.isSuccess ) {
+          F.unit
+        } else {
+          response
+            .responseBodyAsString
+            .flatMap { responseBodyAsString =>
+              F.raiseError(
+                InvalidHttpResponseStatusCode(response.responseMetadata.statusCode, response.responseMetadata.statusText, responseBodyAsString)
+              )
+            }
+        }
+
+      def rawSingleExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
         maxConnectionSemaphore.permit
           .use { _ =>
 
-            val request0: RequestT[Identity, Either[String, fs2.Stream[F, Byte]], Any with Fs2Streams[F]] =
+            def wrappedEffect(stream: fs2.Stream[F,Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): F[A] = {
+              val responseMetadata = ResponseMetadata(sttpResponseMetadata)
+              responseEffect(Response(responseMetadata, stream))
+            }
+
+            val request0: RequestT[Identity, A, Any with capabilities.Effect[F] with Fs2Streams[F]] =
               basicRequest
                 .method(sttp.model.Method(request.method.value), request.uri)
                 .headers(request.headers)
-                .response(client3.asStreamUnsafe(Fs2Streams[F]))
+                .response(client3.asStreamAlwaysWithMetadata(Fs2Streams[F])(wrappedEffect))
 
-            val requestWithBody: RequestT[Identity, Either[String, fs2.Stream[F,Byte]], Any with Fs2Streams[F]] =
-              request.body match {
-                case Body.Empty =>
+            val requestWithBody: RequestT[Identity, A, Any with capabilities.Effect[F] with Fs2Streams[F]] =
+              (streamingRequestBody, request.body) match {
+                case (Some(stream), _) =>
+                  request0.streamBody(Fs2Streams[F])(stream)
+                case (_, Body.Empty) =>
                   request0
-                case Body.StringBody(content) =>
+                case (_, Body.StringBody(content)) =>
                   request0.body(content)
-                case Body.JsonBody(json) =>
+                case (_, Body.JsonBody(json)) =>
                   request0.body(json.compactJson)
               }
 
@@ -305,20 +356,10 @@ object http extends LazyLogger {
 
             requestWithBody
               .send(backend.delegate)
-              .flatMap { response =>
+              .map { response =>
+                val responseMetadata = ResponseMetadata(response)
                 logger.trace(s"${request.method.value} ${request.uri} completed in ${System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-                val responseBodyStrF: F[fs2.Stream[F,Byte]] =
-                  if ( response.code.isSuccess ) {
-                    response.body match {
-                      case Left(errorMessage) =>
-                        F.raiseError(new RuntimeException("we should never get a Left here since we are only dealing with 2xx successes"))
-                      case Right(responseBody) =>
-                        F.pure(responseBody)
-                    }
-                  } else {
-                    F.raiseError(new RuntimeException(s"http response code is ${response.code} which is not success -- ${response.body.merge}"))
-                  }
-                responseBodyStrF
+                response.body
               }
               .onError { error =>
                 loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
@@ -329,15 +370,12 @@ object http extends LazyLogger {
 
     }
 
-  }
-
-  object impl {
-
     case class RequestImpl(
       uri: Uri,
       body: Body = Body.Empty,
       headers: Map[String, String] = Map.empty,
       method: Method = Method.GET,
+      retryConfig: Option[RetryConfig] = None,
     ) extends Request {
 
       def uri(uri: Uri): RequestImpl = copy(uri = uri)
@@ -349,6 +387,9 @@ object http extends LazyLogger {
         copy(
           body = toBodyFn(a)
         )
+
+      override def withRetryConfig(retryConfig: RetryConfig): Request =
+        copy(retryConfig = retryConfig.some)
 
       override def subPath(subPath: Uri): Request = {
         uri(uri.addPathSegments(subPath.pathSegments.segments))

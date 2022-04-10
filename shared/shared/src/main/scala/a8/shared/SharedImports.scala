@@ -19,6 +19,7 @@ import a8.shared.json.JsonCodec.JsonCodecOps
 import a8.shared.json.impl.JsonImports
 import wvlet.log.Logger
 
+import java.nio.charset.Charset
 import scala.collection.StringOps
 import language.implicitConversions
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
@@ -37,7 +38,7 @@ trait SharedImports
 
   val IsNonFatal = scala.util.control.NonFatal
 
-  lazy val Utf8Charset = java.nio.charset.Charset.forName("UTF-8")
+  lazy val Utf8Charset: Charset = java.nio.charset.Charset.forName("UTF-8")
 
   def some[A](a: A): Option[A] =
     Some(a)

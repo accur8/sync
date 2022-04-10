@@ -1,6 +1,8 @@
 package a8.shared.jdbcf.mapper
 
+import a8.shared.jdbcf.ColumnName
 import a8.shared.jdbcf.SqlString._
+import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.jdbcf.querydsl.QueryDslTest
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -75,4 +77,29 @@ class MapperTest extends AnyFunSuite {
     )
   }
 
+
+  object customColumnNameResolver extends ColumnNameResolver {
+    val suffix = ColumnName("X")
+    override def apply(columnName: ColumnName): ColumnName =
+      columnName ~ suffix
+  }
+  lazy val customWidgetMapper = Widget.jdbcMapper.asInstanceOf[CaseClassMapper[Widget,String]].copy(columnNameResolver = customColumnNameResolver)
+  lazy val customContainerMapper = Container.jdbcMapper.asInstanceOf[CaseClassMapper[Container,String]].copy(columnNameResolver = customColumnNameResolver)
+
+  test("fetchSql with custom columnNameResolver") {
+    val actual = customWidgetMapper.fetchSql("foo").toString
+    assertEquals(
+      "select idX, nameX, containerIdX from Widget where idX = 'foo'",
+      actual
+    )
+  }
+
+
+  test("selectSql w/component w/customNameResolver") {
+    val actual = customContainerMapper.selectSql(sql"1 = 1").toString
+    assertEquals(
+      "select idX, countX, nameX, addressline1X, addressline2X, addresscityX, addressstateX, addresszipX from Container where 1 = 1",
+      actual
+    )
+  }
 }
