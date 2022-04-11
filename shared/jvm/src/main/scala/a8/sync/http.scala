@@ -111,14 +111,18 @@ object http extends LazyLogger {
     def execWithJsonResponse[F[_] : Async, A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStringResponse(this, None, responseJson => json.readF[F,A](responseJson))
 
-    def execWithStreamResponse[F[_] : Async, A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execWithStreamResponse[F[_] : Async, A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStreamResponse[A](this, None, streamEffect)
 
     def execWithString[F[_],A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStringResponse(this, None, effect)
 
-    def execRaw[F[_] : Async, A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execRaw[A](this, None, streamEffect)
+    /**
+     * implementer of the responseEffect function must raise errors into the F.
+     * implementer is responsible for things like checking http status codes, etc, etc
+     */
+    def execRaw[F[_] : Async, A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execRaw[A](this, None, responseEffect)
 
     def curlCommand: String
 
@@ -138,11 +142,11 @@ object http extends LazyLogger {
     def exec(implicit processor: RequestProcessor[F]): F[String] =
       processor.exec(rawRequest, requestBody)
 
-    def execRaw[A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execRaw[A](rawRequest, requestBody, streamEffect)
+    def execRaw[A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execRaw[A](rawRequest, requestBody, responseEffect)
 
-    def execWithStreamingResponse[A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execWithStreamResponse[A](rawRequest, requestBody, streamEffect)
+    def execWithStreamingResponse[A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execWithStreamResponse[A](rawRequest, requestBody, responseEffect)
 
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStringResponse(rawRequest, requestBody, responseJson => json.readF[F,A](responseJson))
@@ -247,7 +251,7 @@ object http extends LazyLogger {
      *
      */
     def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, effect: String => F[A]): F[A]
-
+    
     def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
 
     /**
@@ -284,14 +288,19 @@ object http extends LazyLogger {
      */
     def sanitizeCharset(charset: String): String = {
       val c2 = charset.trim()
-      val c3 = if (c2.startsWith("\"")) c2.substring(1) else c2
-      if (c3.endsWith("\"")) c3.substring(0, c3.length - 1) else c3
+      val begin = if (c2.startsWith("\"")) 1 else 0
+      val end = if (c2.endsWith("\"")) (c2.length - 1) else c2.length
+      c2.substring(begin, end)
     }
 
-    def charsetFromContentType(ct: String): Option[String] =
-      ct.split(";").map(_.trim.toLowerCase).collectFirst {
-        case s if s.startsWith("charset=") && s.substring(8).trim != "" => s.substring(8).trim
-      }
+    def charsetFromContentType(contentType: String): Option[String] =
+      contentType
+        .split(";")
+        .map(_.trim.toLowerCase)
+        .collectFirst {
+          case s if s.startsWith("charset=") && s.substring(8).trim != "" =>
+            s.substring(8).trim
+        }
 
     case class RequestProcessorImpl[F[_] : Async](
       retryConfig: RetryConfig,
