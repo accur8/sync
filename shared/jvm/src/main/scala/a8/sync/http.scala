@@ -117,6 +117,9 @@ object http extends LazyLogger {
     def execWithString[F[_],A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStringResponse(this, None, effect)
 
+    def execRaw[F[_] : Async, A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execRaw[A](this, None, streamEffect)
+
     def curlCommand: String
 
     def streamingBody[F[_] : Async](requestBody: fs2.Stream[F,Byte]): StreamingRequest[F] =
@@ -134,6 +137,9 @@ object http extends LazyLogger {
 
     def exec(implicit processor: RequestProcessor[F]): F[String] =
       processor.exec(rawRequest, requestBody)
+
+    def execRaw[A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+      processor.execRaw[A](rawRequest, requestBody, streamEffect)
 
     def execWithStreamingResponse[A](streamEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStreamResponse[A](rawRequest, requestBody, streamEffect)
@@ -162,12 +168,25 @@ object http extends LazyLogger {
         .map(Charset.forName)
         .getOrElse(Utf8Charset)
 
+    def raiseResponseErrors: F[Unit] =
+      if ( responseMetadata.statusCode.isSuccess ) {
+        Async[F].unit
+      } else {
+        asInvalidHttpResponseStatusCode
+      }
+
     def responseBodyAsString: F[String] =
       responseBody
         .through(text.decodeWithCharset(charset))
         .compile
         .string
 
+    def asInvalidHttpResponseStatusCode[A]: F[A] = {
+      responseBodyAsString
+        .flatMap { body =>
+          Async[F].raiseError[A](InvalidHttpResponseStatusCode(responseMetadata.statusCode, responseMetadata.statusText, body))
+        }
+    }
   }
 
   object Method {
@@ -302,7 +321,7 @@ object http extends LazyLogger {
       override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], effect: String => F[A]): F[A] = {
         def responseEffect(response: Response[F]): F[A] = {
           for {
-            _ <- raiseResponseErrors(response)
+            _ <- response.raiseResponseErrors
             responseBodyAsString <- response.responseBodyAsString
             a <- effect(responseBodyAsString)
           } yield a
@@ -312,23 +331,10 @@ object http extends LazyLogger {
 
       override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
         def wrappedResponseEffect(response: Response[F]): F[A] = {
-          raiseResponseErrors(response) >> responseEffect(response)
+          response.raiseResponseErrors >> responseEffect(response)
         }
         execRaw(request, streamingRequestBody, wrappedResponseEffect)
       }
-
-      def raiseResponseErrors(response: Response[F]): F[Unit] =
-        if ( response.responseMetadata.statusCode.isSuccess ) {
-          F.unit
-        } else {
-          response
-            .responseBodyAsString
-            .flatMap { responseBodyAsString =>
-              F.raiseError(
-                InvalidHttpResponseStatusCode(response.responseMetadata.statusCode, response.responseMetadata.statusText, responseBodyAsString)
-              )
-            }
-        }
 
       def rawSingleExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
         maxConnectionSemaphore.permit
