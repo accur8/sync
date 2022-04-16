@@ -56,6 +56,8 @@ trait JsonTypedCodecs {
 
       val stringValues =
         Map(
+          "yes" -> rightTrue,
+          "no" -> rightFalse,
           "on" -> rightTrue,
           "off" -> rightFalse,
           "true" -> rightTrue,
