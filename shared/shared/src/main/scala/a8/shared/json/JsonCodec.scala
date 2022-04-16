@@ -27,6 +27,27 @@ object JsonCodec extends JsonCodecs {
   implicit def jsonTypedCodecAsJsonCodec[A, B <: JsVal](implicit jsonTypedCodec: JsonTypedCodec[A,B]): JsonCodec[A] =
     jsonTypedCodec.asJsonCodec
 
+  def or[A](left: JsonCodec[A], right: JsonCodec[A]): JsonCodec[A] =
+    new JsonCodec[A] {
+
+      override def write(a: A): JsVal =
+        left.write(a)
+
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
+        left.read(doc) match {
+          case l@ Left(_) =>
+            right.read(doc) match {
+              case Left(_) =>
+                l
+              case r@ Right(_) =>
+                r
+            }
+          case r@ Right(_) =>
+            r
+        }
+
+    }
+
 }
 
 trait JsonCodec[A] { jsonCodecA =>

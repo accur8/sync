@@ -112,7 +112,7 @@ object http extends LazyLogger {
       processor.execWithStringResponse(this, None, responseJson => json.readF[F,A](responseJson))
 
     def execWithStreamResponse[F[_] : Async, A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
-      processor.execWithStreamResponse[A](this, None, streamEffect)
+      processor.execWithStreamResponse[A](this, None, responseEffect)
 
     def execWithString[F[_],A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
       processor.execWithStringResponse(this, None, effect)
@@ -251,7 +251,7 @@ object http extends LazyLogger {
      *
      */
     def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, effect: String => F[A]): F[A]
-    
+
     def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
 
     /**

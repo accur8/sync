@@ -1,7 +1,7 @@
 package a8.shared.json.impl
 
 import a8.shared.SharedImports._
-import a8.shared.json.ast._
+import a8.shared.json.ast.{JsBool, _}
 import a8.shared.json.{JsonReadOptions, JsonTypedCodec, ReadError}
 import sttp.model.Uri
 
@@ -37,13 +37,75 @@ trait JsonTypedCodecs {
 
     }
 
-  implicit lazy val bool =
+  lazy val boolPure =
     create[Boolean,JsBool](
       b => if (b) JsTrue else JsFalse,
     ) {
       case JsTrue => true
       case JsFalse => false
     }
+
+  implicit lazy val bool: JsonTypedCodec[Boolean,JsVal] = {
+    new JsonTypedCodec[Boolean,JsVal] {
+
+      val rightTrue = Right(true)
+      val rightFalse = Right(false)
+
+      val trueNum = BigDecimal(1)
+      val falseNum = BigDecimal(0)
+
+      val stringValues =
+        Map(
+          "on" -> rightTrue,
+          "off" -> rightFalse,
+          "true" -> rightTrue,
+          "false" -> rightFalse,
+          "t" -> rightTrue,
+          "f" -> rightFalse,
+          "1" -> rightTrue,
+          "0" -> rightFalse,
+        )
+
+      override def write(b: Boolean): JsVal = JsBool(b)
+
+      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, Boolean] = {
+        doc.value match {
+          case JsTrue =>
+            rightTrue
+          case JsFalse =>
+            rightFalse
+          case JsStr(s) =>
+            stringValues
+              .get(s.toLowerCase)
+              .getOrElse(doc.errorL(s"cannot convert ${s} to a bool"))
+          case JsNum(n) =>
+            if ( n === trueNum )
+              rightTrue
+            else if ( n == falseNum )
+              rightFalse
+            else
+              doc.errorL(s"cannot convert ${n} to a bool")
+          case v =>
+            doc.errorL(s"cannot convert ${v} to a bool")
+        }
+      }
+
+    }
+//    create[Boolean,JsVal](
+//      b => JsBool(b)
+//    ) {
+//      case
+//      case JsStr(s) =>
+//        s.toLowerCase match {
+//          case "false" | "off" =>
+//            false
+//          case "true" =>
+//            true
+//          case _ =>
+//            sys.error(s"cannot convert ${s} to a bool")
+//        }
+//    }
+  }
 
   implicit lazy val uri =
     string.dimap[Uri](
