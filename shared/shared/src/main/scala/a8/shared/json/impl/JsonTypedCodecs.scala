@@ -37,16 +37,8 @@ trait JsonTypedCodecs {
 
     }
 
-  lazy val boolPure =
-    create[Boolean,JsBool](
-      b => if (b) JsTrue else JsFalse,
-    ) {
-      case JsTrue => true
-      case JsFalse => false
-    }
-
-  implicit lazy val bool: JsonTypedCodec[Boolean,JsVal] = {
-    new JsonTypedCodec[Boolean,JsVal] {
+  implicit lazy val bool: JsonTypedCodec[Boolean,JsBool] = {
+    new JsonTypedCodec[Boolean,JsBool] {
 
       val rightTrue = Right(true)
       val rightFalse = Right(false)
@@ -68,7 +60,7 @@ trait JsonTypedCodecs {
           "0" -> rightFalse,
         )
 
-      override def write(b: Boolean): JsVal = JsBool(b)
+      override def write(b: Boolean): JsBool = JsBool(b)
 
       override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, Boolean] = {
         doc.value match {
@@ -93,20 +85,6 @@ trait JsonTypedCodecs {
       }
 
     }
-//    create[Boolean,JsVal](
-//      b => JsBool(b)
-//    ) {
-//      case
-//      case JsStr(s) =>
-//        s.toLowerCase match {
-//          case "false" | "off" =>
-//            false
-//          case "true" =>
-//            true
-//          case _ =>
-//            sys.error(s"cannot convert ${s} to a bool")
-//        }
-//    }
   }
 
   implicit lazy val uri =
