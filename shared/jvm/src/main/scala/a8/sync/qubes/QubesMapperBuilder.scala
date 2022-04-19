@@ -18,12 +18,14 @@ object QubesMapperBuilder {
   sealed trait Parm[A] {
     val name: String
     val columnName: ColumnName
+    val ordinal: Int
     def toJson(a: A): JsVal
   }
 
   case class CaseClassParmParm[A,B : JsonCodec](caseClassParm: CaseClassParm[A,B]) extends Parm[A] {
     val name = caseClassParm.name
     val columnName = ColumnName(name)
+    val ordinal = caseClassParm.ordinal
     def toJson(a: A) = caseClassParm.lens(a).toJsVal
   }
 
@@ -90,7 +92,7 @@ object QubesMapperBuilder {
       QubesMapper.QubesMapperImpl[A,PK](
         appSpace = appSpace.getOrElse(sys.error("must supply an appSpace")),
         cubeName = cubeName.map(TableName.apply).getOrElse(sys.error("must supply a cubeName")),
-        parms = parms,
+        rawParms = parms,
         primaryKey = primaryKey.getOrElse(sys.error("must supply a primaryKey")),
       )
 

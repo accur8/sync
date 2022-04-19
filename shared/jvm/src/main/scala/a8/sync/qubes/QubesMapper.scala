@@ -13,7 +13,7 @@ object QubesMapper {
   case class QubesMapperImpl[A,B](
     cubeName: TableName,
     appSpace: String,
-    parms: Vector[Parm[A]],
+    rawParms: Vector[Parm[A]],
     primaryKey: PrimaryKey[A,B],
   )(
     implicit
@@ -23,6 +23,17 @@ object QubesMapper {
   {
 
     val codecA = implicitly[JsonTypedCodec[A, JsObj]]
+
+
+    lazy val parms = rawParms.sortBy(_.ordinal)
+
+    // validate ordinals
+    parms.zipWithIndex.find(t => t._1.ordinal != t._2) match {
+      case Some(parm) =>
+        sys.error(s"ordinal mismatch at ${parm}")
+      case None =>
+      // success
+    }
 
 
     override def fetch[F[_] : QubesApiClient : Async](key: B)(implicit sqlStringer: SqlStringer[B]): F[A] =

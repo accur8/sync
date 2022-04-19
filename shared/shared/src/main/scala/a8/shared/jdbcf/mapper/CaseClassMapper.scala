@@ -34,7 +34,7 @@ object CaseClassMapper {
 }
 
 case class CaseClassMapper[A, PK](
-  fields: Vector[Parm[A]],
+  rawFields: Vector[Parm[A]],
   constructorFn: Iterator[Any]=>A,
   primaryKey: PrimaryKey[A,PK],
   tableName: TableName,
@@ -44,6 +44,16 @@ case class CaseClassMapper[A, PK](
   import CaseClassMapper._
 
   implicit val rowReaderA: RowReader[A] = this
+
+  lazy val fields = rawFields.sortBy(_.ordinal)
+
+  // validate ordinals
+  fields.zipWithIndex.find(t => t._1.ordinal != t._2) match {
+    case Some(field) =>
+      sys.error(s"ordinal mismatch at ${field}")
+    case None =>
+    // success
+  }
 
   lazy val columnCount = fields.map(_.columnCount).sum
 
