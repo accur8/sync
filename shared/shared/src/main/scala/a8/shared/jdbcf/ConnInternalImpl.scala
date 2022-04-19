@@ -167,7 +167,7 @@ case class ConnInternalImpl[F[_] : Async](
       }
 
   override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Option[A]] =
-    selectOpt(keyedMapper.fetchSql(key))
+    selectOpt(keyedMapper.keyToWhereClause(key))
 
   override def commit: F[Unit] =
     F.blocking(jdbcConn.commit())

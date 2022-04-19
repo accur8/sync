@@ -17,6 +17,7 @@ object KeyedTableMapper {
 
 trait KeyedTableMapper[A, B] extends TableMapper[A] {
 
+  def keyToWhereClause(key: B): SqlString
   def updateSql(row: A): SqlString
   def deleteSql(key: B): SqlString
   def fetchSql(key: B): SqlString
