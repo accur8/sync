@@ -34,6 +34,16 @@ class JsonObjectCodec[A](
       .map { p =>
         p.addAliases(aliases.filter(_._1 === p.name).map(_._2))
       }
+      .sortBy(_.ordinal)
+
+  // validate ordinals
+  parms.zipWithIndex.find(t => t._1.ordinal != t._2) match {
+    case Some(parm) =>
+      sys.error(s"ordinal mismatch at ${parm}")
+    case None =>
+      // success
+  }
+
 
   lazy val ignoredFieldsSet =
     ignoredFields
