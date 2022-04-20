@@ -76,7 +76,8 @@ object http extends LazyLogger {
 
   }
 
-  case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String) extends Exception
+  case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String)
+    extends Exception(s"${statusCode.code} ${statusText} -- ${responseBody}")
 
   object Request {
     def apply(baseUri: Uri): Request =
