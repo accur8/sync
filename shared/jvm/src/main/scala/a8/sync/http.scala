@@ -196,7 +196,9 @@ object http extends LazyLogger {
 
   object Method {
     val GET = Method("GET")
+    val PATCH = Method("PATCH")
     val POST = Method("POST")
+    val PUT = Method("PUT")
   }
 
   case class Method(

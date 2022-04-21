@@ -1,7 +1,7 @@
 package a8.shared.jdbcf
 
 
-import java.time.{LocalDateTime, LocalTime}
+import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, ZoneId}
 import a8.shared.json.ast.{JsObj, JsVal}
 
 import scala.reflect.ClassTag
@@ -46,6 +46,15 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
       case ts: java.sql.Timestamp =>
         ts.toLocalDateTime
     }
+
+  implicit lazy val offsetDateTimeMapper = {
+    val utc = ZoneId.of("UTC")
+    singleColumnReader[OffsetDateTime] {
+      case ts: java.sql.Timestamp =>
+        // as suggested here https://stackoverflow.com/questions/43216737/how-to-convert-java-sql-timestamp-to-java-time-offsetdatetime
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(ts.getTime), utc)
+    }
+  }
 
   implicit lazy val localTimeMapper =
     singleColumnReader[LocalTime] {

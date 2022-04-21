@@ -1,6 +1,6 @@
 package a8.shared.jdbcf
 
-import java.time.{LocalDate, LocalDateTime, LocalTime}
+import java.time.{LocalDate, LocalDateTime, LocalTime, OffsetDateTime, ZoneOffset}
 import a8.shared.jdbcf.TypeName
 
 import scala.language.implicitConversions
@@ -158,6 +158,10 @@ object SqlString extends SqlStringLowPrio {
 
   implicit def localDateTime(ldt: LocalDateTime): SqlString =
     java.sql.Timestamp.valueOf(ldt).toString.escape
+
+  // as suggested here https://stackoverflow.com/questions/43216737/how-to-convert-java-sql-timestamp-to-java-time-offsetdatetime
+  implicit def offsetDateTime(odt: OffsetDateTime): SqlString =
+    java.sql.Timestamp.valueOf(odt.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime).toString.escape
 
   implicit def localTime(lt: LocalTime): SqlString =
     java.sql.Time.valueOf(lt).toString.escape

@@ -37,7 +37,7 @@ object MxQueryDslTest {
       val containerId = QueryDsl.field[String]("containerId", join)
       
       lazy val container: Container.TableDsl = {
-        val childJoin = QueryDsl.createJoin(join, "container", queryDsl.tableDsl, ()=>container, Container.jdbcMapper) { (from,to) =>
+        val childJoin = QueryDsl.createJoin(join, "container", queryDsl.tableDsl, ()=>Container.queryDsl.tableDsl, Container.jdbcMapper) { (from,to) =>
           from.containerId === to.id
         }
         new Container.TableDsl(childJoin)
