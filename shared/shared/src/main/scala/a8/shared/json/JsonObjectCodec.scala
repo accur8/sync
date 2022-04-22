@@ -63,7 +63,10 @@ class JsonObjectCodec[A](
   def ignoreField(fieldName: String): Boolean =
     ignoredFieldsSet(fieldName) || ignoredFieldRegexes.exists(_.ignore(fieldName))
 
-  lazy val parmsByName = parms.toMapTransform(_.name)
+  lazy val parmsByName =
+    parms
+      .flatMap(p => (p.name.some ++ p.extraAliases).map(_ -> p))
+      .toMap
 
   override def write(a: A): ast.JsObj =
     JsObj(
