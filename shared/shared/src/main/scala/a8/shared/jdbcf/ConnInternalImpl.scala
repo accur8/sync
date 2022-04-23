@@ -76,7 +76,6 @@ case class ConnInternalImpl[F[_] : Async](
     prepare(updateQuery)
       .evalMap { ps =>
         F.blocking {
-          logger.debug(s"executing update - ${updateQuery}")
           val i = ps.executeUpdate()
           i
         }

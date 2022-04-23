@@ -28,6 +28,7 @@ object Conn extends LazyLogger {
 
     def withSqlCtx0[A](sql: ResolvedSql)(fn: =>A): A =
       try {
+        logger.debug(s"running sql -- ${sql.value}")
         fn
       } catch {
         case e: java.sql.SQLException =>

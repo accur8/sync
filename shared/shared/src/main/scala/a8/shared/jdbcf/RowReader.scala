@@ -50,6 +50,8 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
   implicit lazy val offsetDateTimeMapper = {
     val utc = ZoneId.of("UTC")
     singleColumnReader[OffsetDateTime] {
+      case ldt: LocalDateTime =>
+        ldt.atOffset(java.time.ZoneOffset.UTC)
       case ts: java.sql.Timestamp =>
         // as suggested here https://stackoverflow.com/questions/43216737/how-to-convert-java-sql-timestamp-to-java-time-offsetdatetime
         OffsetDateTime.ofInstant(Instant.ofEpochMilli(ts.getTime), utc)
