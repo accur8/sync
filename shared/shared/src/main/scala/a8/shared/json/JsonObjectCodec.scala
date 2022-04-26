@@ -10,6 +10,8 @@ import fs2.Chunk
 import a8.shared.SharedImports._
 import a8.shared.app.Logging
 
+import scala.reflect.ClassTag
+
 object JsonObjectCodec {
 
 //  case class DecodingHints(
@@ -24,6 +26,7 @@ class JsonObjectCodec[A](
   constructors: Constructors[A],
   ignoredFields: Vector[IgnoredField],
   aliases: Vector[(String,String)],
+  classTag: ClassTag[A],
 )
   extends JsonTypedCodec[A,JsObj]
   with Logging
@@ -97,7 +100,7 @@ class JsonObjectCodec[A](
             success
           } else {
             import JsonReadOptions.UnusedFieldAction._
-            lazy val message = s"json object has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")}) -- ${jo.compactJson}"
+            lazy val message = s"json object @ ${doc.path} marshalling to ${classTag.runtimeClass.getName} has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")}) -- ${jo.compactJson}"
             readOptions.unusedFieldAction match {
               case Fail =>
                 doc.errorL(message)

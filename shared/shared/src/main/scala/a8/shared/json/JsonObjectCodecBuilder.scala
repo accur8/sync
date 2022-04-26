@@ -5,6 +5,7 @@ import a8.shared.SharedImports._
 import a8.shared.json.ast._
 
 import java.util.regex.Pattern
+import scala.reflect.ClassTag
 import scala.util.matching.Regex
 
 object JsonObjectCodecBuilder {
@@ -36,7 +37,7 @@ object JsonObjectCodecBuilder {
 
   }
 
-  def apply[A,B](generator: Generator[A,B]): JsonObjectCodecBuilder[A,B] =
+  def apply[A : ClassTag,B](generator: Generator[A,B]): JsonObjectCodecBuilder[A,B] =
     JsonObjectCodecBuilderImpl(generator)
 
 
@@ -53,7 +54,7 @@ object JsonObjectCodecBuilder {
     }
   }
 
-  case class JsonObjectCodecBuilderImpl[A,B](
+  case class JsonObjectCodecBuilderImpl[A : ClassTag,B](
     generator: Generator[A,B],
     parms: Vector[Parm[A]] = Vector.empty,
     ignoredFields: Vector[IgnoredField] = Vector.empty,
@@ -75,7 +76,7 @@ object JsonObjectCodecBuilder {
     }
 
     override def build: JsonObjectCodec[A] =
-      new JsonObjectCodec(parms, generator.constructors, ignoredFields, aliases)
+      new JsonObjectCodec(parms, generator.constructors, ignoredFields, aliases, implicitly[ClassTag[A]])
 
     override def addIgnoredField(name: String): JsonObjectCodecBuilder[A, B] =
       copy(ignoredFields = ignoredFields :+ IgnoredField.IgnoreFieldString(name))
