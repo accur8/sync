@@ -16,7 +16,7 @@ import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.sync.http.RetryConfig
 
 import scala.concurrent.duration.FiniteDuration
-
+import a8.sync.http.ResponseMetadata
 //====
 
 
@@ -76,6 +76,66 @@ object Mxhttp {
     
     
     lazy val typeName = "RetryConfig"
+  
+  }
+  
+  
+  
+  
+  trait MxResponseMetadata {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ResponseMetadata,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ResponseMetadata,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[ResponseMetadata,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.statusCodeInt)
+          .addField(_.statusText)
+          .addField(_.headers)
+      )
+      .build
+    
+    implicit val catsEq: cats.Eq[ResponseMetadata] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[ResponseMetadata,parameters.type] =  {
+      val constructors = Constructors[ResponseMetadata](3, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val statusCodeInt: CaseClassParm[ResponseMetadata,Int] = CaseClassParm[ResponseMetadata,Int]("statusCodeInt", _.statusCodeInt, (d,v) => d.copy(statusCodeInt = v), None, 0)
+      lazy val statusText: CaseClassParm[ResponseMetadata,String] = CaseClassParm[ResponseMetadata,String]("statusText", _.statusText, (d,v) => d.copy(statusText = v), None, 1)
+      lazy val headers: CaseClassParm[ResponseMetadata,Vector[(String,String)]] = CaseClassParm[ResponseMetadata,Vector[(String,String)]]("headers", _.headers, (d,v) => d.copy(headers = v), None, 2)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): ResponseMetadata = {
+        ResponseMetadata(
+          statusCodeInt = values(0).asInstanceOf[Int],
+          statusText = values(1).asInstanceOf[String],
+          headers = values(2).asInstanceOf[Vector[(String,String)]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): ResponseMetadata = {
+        val value =
+          ResponseMetadata(
+            statusCodeInt = values.next().asInstanceOf[Int],
+            statusText = values.next().asInstanceOf[String],
+            headers = values.next().asInstanceOf[Vector[(String,String)]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(statusCodeInt: Int, statusText: String, headers: Vector[(String,String)]): ResponseMetadata =
+        ResponseMetadata(statusCodeInt, statusText, headers)
+    
+    }
+    
+    
+    lazy val typeName = "ResponseMetadata"
   
   }
 }

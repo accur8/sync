@@ -4,7 +4,7 @@ package a8.sync
 import a8.shared.{CompanionGen, SharedImports}
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
-import a8.sync.Mxhttp.MxRetryConfig
+import a8.sync.Mxhttp.{MxResponseMetadata, MxRetryConfig}
 import sttp.model.{StatusCode, Uri}
 import wvlet.log.LazyLogger
 import a8.shared.SharedImports._
@@ -180,6 +180,10 @@ object http extends LazyLogger {
         asInvalidHttpResponseStatusCode
       }
 
+    def jsonResponseBody[A : JsonCodec]: F[A] =
+      responseBodyAsString
+        .flatMap(json.readF[F,A])
+
     def responseBodyAsString: F[String] =
       responseBody
         .through(text.decodeWithCharset(charset))
@@ -205,29 +209,32 @@ object http extends LazyLogger {
     value: String
   )
 
-  object ResponseMetadata {
+  object ResponseMetadata extends MxResponseMetadata {
 
     def apply[A](sttpResponse: sttp.client3.Response[A]): ResponseMetadata =
       ResponseMetadata(
-        sttpResponse.code,
+        sttpResponse.code.code,
         sttpResponse.statusText,
         sttpResponse.headers.map(h => h.name -> h.value).toVector,
       )
 
     def apply[A](sttpResponseMetadata: sttp.model.ResponseMetadata): ResponseMetadata =
       ResponseMetadata(
-        sttpResponseMetadata.code,
+        sttpResponseMetadata.code.code,
         sttpResponseMetadata.statusText,
         sttpResponseMetadata.headers.map(h => h.name -> h.value).toVector,
       )
 
   }
 
+  @CompanionGen
   case class ResponseMetadata(
-    statusCode: StatusCode,
+    statusCodeInt: Int,
     statusText: String,
     headers: Vector[(String,String)],
   ) {
+
+    lazy val statusCode = StatusCode(statusCodeInt)
 
     lazy val headersByName =
       headers
