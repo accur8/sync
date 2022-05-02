@@ -4,6 +4,7 @@ package a8.shared
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
 import SqlString._
+import a8.shared.ZString.ZStringer
 
 import language.implicitConversions
 
@@ -38,6 +39,12 @@ object LongValue {
       value
         .toLongOption
         .map(apply)
+
+    implicit val zstringer: ZStringer[A] =
+      new ZStringer[A] {
+        override def toZString(a: A): ZString =
+          a.value
+      }
 
   }
 

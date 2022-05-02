@@ -7,7 +7,7 @@ import a8.shared.json.JsonCodec
 import a8.shared.ops.{AnyOps, AsyncOps, BooleanOps, ChunkByteOps, ChunkOps, ClassOps, FStreamOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, StreamOps, ThrowableOps}
 import cats.data.Chain
 import fs2.Chunk
-import sttp.model.Uri
+import sttp.model.{Uri, UriInterpolator}
 
 import java.io.{PrintWriter, StringWriter}
 import java.nio.file.Path
@@ -20,7 +20,7 @@ import a8.shared.json.impl.JsonImports
 import wvlet.log.Logger
 
 import java.nio.charset.Charset
-import scala.collection.StringOps
+import scala.collection.{StringOps, mutable}
 import language.implicitConversions
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
 import scala.concurrent.Future
@@ -183,5 +183,39 @@ trait SharedImports
     new JsonCodecOps(a)
 
   object json extends JsonImports
+
+  implicit class StringContextOps(stringContext: StringContext) {
+
+    def zuri(parms: ZString*): Uri =
+      UriInterpolator
+        .interpolate(stringContext, parms)
+
+    def zz(parms: ZString*): ZString = {
+
+      val partsIter = stringContext.parts.iterator
+
+      // we always have one part in every string context
+      val head = partsIter.next()
+
+      parms
+        .iterator
+        .zip(partsIter.map(ZString.str))
+        .foldLeft(ZString.str(head)) { case (zstr, (l,r)) =>
+          ZString.impl.Concat3(zstr, l, r)
+        }
+
+    }
+
+    def z(parms: ZString*): String = {
+      val zstr = zz(parms:_*)
+      val sb = new StringBuilder
+      ZString.impl.append(zstr, sb)
+      sb.toString
+    }
+
+  }
+
+  implicit def uriOps(uri: Uri): UriOps =
+    new UriOps(uri)
 
 }

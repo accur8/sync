@@ -1,13 +1,14 @@
 package a8.sync
 
 
-import a8.shared.{CompanionGen, SharedImports}
+import a8.shared.{CompanionGen, SharedImports, ZString}
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp.{MxResponseMetadata, MxRetryConfig}
 import sttp.model.{StatusCode, Uri}
 import wvlet.log.LazyLogger
 import a8.shared.SharedImports._
+import a8.shared.ZString.ZStringer
 import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.sync.http.Body
 import a8.sync.http.Body.StringBody
@@ -100,7 +101,9 @@ object http extends LazyLogger {
     def jsonBody[A : JsonCodec](a: A): Request = jsonBody(a.toJsVal)
     def jsonBody(json: JsVal): Request
     def addHeader(name: String, value: String): Request
+    def addHeader[A: ZStringer](name: String, value: A): Request
     def addQueryParm(name: String, value: String): Request
+    def addQueryParm[A: ZStringer](name: String, value: A): Request
     def body[A](a: A)(implicit toBodyFn: A => Body): Request
     def method(m: Method): Request
 
@@ -411,6 +414,10 @@ object http extends LazyLogger {
 
       def uri(uri: Uri): RequestImpl = copy(uri = uri)
 
+
+      override def addHeader[A: ZStringer](name: String, value: A): Request =
+        addHeader(name, ZStringer[A].toZString(value).toString)
+
       override def addHeader(name: String, value: String): RequestImpl =
         copy(headers = headers + (name -> value))
 
@@ -432,6 +439,9 @@ object http extends LazyLogger {
             body = Body.JsonBody(json),
           )
       }
+
+      override def addQueryParm[A: ZStringer](name: String, value: A): Request =
+        addQueryParm(name, ZStringer[A].toZString(value).toString)
 
       override def addQueryParm(name: String, value: String): Request =
         uri(uri.addParam(name, value))

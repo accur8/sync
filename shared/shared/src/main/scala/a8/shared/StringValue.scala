@@ -3,6 +3,7 @@ package a8.shared
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import org.typelevel.ci.CIString
 import SharedImports._
+import a8.shared.ZString.{HasZString, ZStringer}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
 
 import language.implicitConversions
@@ -34,6 +35,12 @@ object StringValue {
     def unapply(value: String): Option[A] =
       Some(apply(value))
 
+    implicit val zstringer: ZStringer[A] =
+      new ZStringer[A] {
+        override def toZString(a: A): ZString =
+          a.value
+      }
+
   }
 
 
@@ -63,6 +70,12 @@ object StringValue {
       apply(CIString(value))
 
     def apply(value: CIString): A
+
+    implicit val zstringer: ZStringer[A] =
+      new ZStringer[A] {
+        override def toZString(a: A): ZString =
+          a.value.toString
+      }
 
   }
 
