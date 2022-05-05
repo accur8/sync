@@ -11,7 +11,13 @@ object JsDocMapper {
   object stringBacked {
 
     implicit val rowReader: a8.shared.jdbcf.RowReader[JsDoc] =
-      RowReader.stringReader.map(s => json.unsafeParse(s).toDoc)
+      implicitly[RowReader[Option[String]]]
+        .map {
+          case None =>
+            JsDoc.empty
+          case Some(s) =>
+            json.unsafeParse(s).toDoc
+        }
 
     implicit val rowWriter: a8.shared.jdbcf.RowWriter[JsDoc] =
       RowWriter.stringWriter.mapWriter[JsDoc](_.compactJson)
