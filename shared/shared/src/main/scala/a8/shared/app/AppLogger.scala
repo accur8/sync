@@ -59,6 +59,4 @@ trait AppLogger extends LazyLogger { self: BootstrappedIOApp =>
 
   }
 
-  bootstrapInit
-
 }

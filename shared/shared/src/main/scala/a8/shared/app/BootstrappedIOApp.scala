@@ -67,7 +67,7 @@ abstract class BootstrappedIOApp
     bootstrapper.logs.foreach(m => logger.debug(m))
 
     logger.debug(s"config prefix is ${bootstrapper.bootstrapConfig.appName.value}")
-    logger.debug(s"config files used ${bootstrapper.configFiles.mkString(" ")}")
+    logger.debug(s"config files used ${bootstrapper.configFiles.map(_.toRealPath()).mkString(" ")}")
     logger.debug(s"directories searched ${bootstrapper.directoriesSearched.mkString(" ")}")
     logger.debug(s"bootstrap config is ${bootstrapper.bootstrapConfig}")
     logger.debug(s"using config ${bootstrapper.rootConfig.prettyJson}")
