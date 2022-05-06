@@ -16,6 +16,9 @@ object ISeriesDialect extends Dialect {
 
   val logger = Logger.of[ISeriesDialect.type]
 
+
+  override def isPostgres: Boolean = false
+
   // Could derive separator from jdbc url "naming" parameter or call jdbc metadata getCatalogSeparator()
   override val schemaSeparator: SqlString = SqlString.operator("/")
 

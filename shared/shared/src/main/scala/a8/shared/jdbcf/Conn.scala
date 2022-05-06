@@ -5,6 +5,7 @@ import a8.shared.SharedImports._
 import a8.shared.app.{LoggerF, LoggingF}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
+import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.PostgresDialect.self
 import a8.shared.jdbcf.SqlString.ResolvedSql
@@ -35,10 +36,10 @@ object Conn extends LazyLogger {
           throw new JdbcSQLException(s"error running -- ${sql.value} -- ${e.getMessage}", e.getSQLState, e.getErrorCode, e)
       }
 
-    def makeResource[F[_] : Async](connFn: =>java.sql.Connection): Resource[F,Conn[F]] = {
+    def makeResource[F[_] : Async](connFn: =>java.sql.Connection, mapperCache: MapperMaterializer[F]): Resource[F,Conn[F]] = {
       val jdbcMetadata = JdbcMetadata[F]
       Managed.resource(connFn)
-        .map(jdbcConn => toConn[F](jdbcConn, jdbcMetadata))
+        .map(jdbcConn => toConn[F](jdbcConn, jdbcMetadata, mapperCache))
     }
 
   }
@@ -48,14 +49,15 @@ object Conn extends LazyLogger {
     user: String,
     password: String
   ): Resource[F, Conn[F]] = {
-    impl.makeResource(JdbcDriverManager.getConnection(url.toString, user, password))
+    ???
+//    impl.makeResource(JdbcDriverManager.getConnection(url.toString, user, password))
   }
 
-  def toConn[F[_] : Async](jdbcConn: JdbcConnection, jdbcMetadata: JdbcMetadata[F])(implicit monadCancel: MonadCancel[F, _]): Conn[F] = {
+  def toConn[F[_] : Async](jdbcConn: JdbcConnection, jdbcMetadata: JdbcMetadata[F], mapperCache: MapperMaterializer[F])(implicit monadCancel: MonadCancel[F, _]): Conn[F] = {
 
     def makeResourceF[A : Managed](thunk: =>A) = Managed.resource[F,A](thunk)
 
-    ConnInternalImpl(jdbcMetadata, jdbcConn)
+    ConnInternalImpl(jdbcMetadata, jdbcConn, mapperCache)
 
   }
 

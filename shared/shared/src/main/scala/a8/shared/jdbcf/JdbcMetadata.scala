@@ -1,5 +1,6 @@
 package a8.shared.jdbcf
 
+
 import a8.shared.CatsUtils.CacheBuilder
 import a8.shared.{AtomicMap, NamedToString}
 import a8.shared.jdbcf.JdbcMetadata.{JdbcTable, ResolvedJdbcTable}
@@ -7,6 +8,8 @@ import a8.shared.jdbcf.{CatalogName, ColumnName, ResolvedTableName, SchemaName, 
 import cats.effect.{Async, Resource}
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
+
+import java.sql.ResultSetMetaData
 
 object JdbcMetadata {
 
@@ -102,6 +105,8 @@ object JdbcMetadata {
 //    searchSchema: Option[String]
   ) {
 
+    lazy val columnsByName = columns.toMapTransform(_.name)
+
     lazy val columns: Seq[ResolvedColumn] = {
       val keysByColumnName = jdbcKeys.map(k => k.columnName -> k).iterator.toMap
       jdbcColumns.zipWithIndex.map { case (column,i) =>
@@ -127,6 +132,12 @@ object JdbcMetadata {
 
   case class ResolvedColumn(name: ColumnName, jdbcColumn: JdbcColumn, jdbcPrimaryKey: Option[JdbcPrimaryKey], ordinalPosition: Int /** from 0 */)(table: ResolvedJdbcTable) extends NamedToString {
     def isPrimaryKey = jdbcPrimaryKey.isDefined
+    def isNullable =
+      jdbcColumn
+        .isNullable
+        .getOrElse {
+          jdbcColumn.nullable === ResultSetMetaData.columnNullable
+        }
   }
 
 

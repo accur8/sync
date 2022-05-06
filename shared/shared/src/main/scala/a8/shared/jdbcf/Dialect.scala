@@ -12,6 +12,8 @@ trait Dialect {
 
   val validationQuery: Option[SqlString] = None
 
+  def isPostgres: Boolean
+
   def sqlEscapeStringValue(value: String): String =
     "'" + value.replace("'","''") + "'"
 
@@ -94,7 +96,9 @@ object Dialect {
 
   val duobleQuote = Chord.str('"'.toString)
 
-  case object Default extends Dialect
+  case object Default extends Dialect {
+    override def isPostgres: Boolean = false
+  }
 
   def apply[F[_]](jdbcUri: Uri): Dialect = {
     val schemaParts = jdbcUri.toString.split(":/").head.split(":").toList

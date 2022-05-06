@@ -2,10 +2,12 @@ package a8.shared.jdbcf
 
 
 import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, ZoneId}
-import a8.shared.json.ast.{JsObj, JsVal}
+import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 
 import scala.reflect.ClassTag
 import a8.shared.SharedImports._
+import a8.shared.jdbcf.JdbcMetadata.{ResolvedColumn, ResolvedJdbcTable}
+import a8.shared.jdbcf.mapper.MapperBuilder
 
 import java.io.BufferedReader
 
@@ -108,9 +110,6 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
 
     }
 
-  implicit def JsObjReader: RowReader[JsObj] =
-    (row: Row, _: Int) => row.unsafeAsJsObj -> row.unsafeAsJsObj.size
-
   implicit def JsValReader: RowReader[JsVal] =
     singleColumnReader[JsVal] {
       case v =>
@@ -131,13 +130,37 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
       }
     }
 
+  implicit val jsdocReader: RowReader[JsDoc] =
+    implicitly[RowReader[Option[String]]]
+      .map {
+        case None =>
+          JsDoc.empty
+        case Some(jsonStr) =>
+          json.unsafeParse(jsonStr).toDoc
+      }
 }
 
 trait RowReader[A] { outer =>
 
+  def materialize[F[_] : Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[RowReader[A]] =
+    Async[F].pure(this)
+
+  /**
+   * index counts from 0 (even though jdbc result set values start from 1)
+   */
   def read(row: Row): A = read(row, 0)
+
+  /**
+   * index counts from 0 (even though jdbc result set values start from 1)
+   */
   final def read(row: Row, index: Int): A = rawRead(row, index)._1
 
+  /**
+   * returns the value and the number of values read
+   *
+   * index counts from 0 (even though jdbc result set values start from 1)
+   *
+   */
   def rawRead(row: Row, index: Int): (A,Int)
 
   def readOpt(row: Row, index: Int): Option[A] =

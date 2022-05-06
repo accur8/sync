@@ -92,7 +92,7 @@ trait Row { outer =>
   def get[T](i: Int)(implicit mapper: RowReader[T]): T = mapper.read(this, i)
   def get[T](name: String)(implicit mapper: RowReader[T]): T = mapper.read(this, columnIndex(name))
 
-  def subRow(start: Int) =
+  def subRow(start: Int): Row =
     if ( start == 0 )
       this
     else

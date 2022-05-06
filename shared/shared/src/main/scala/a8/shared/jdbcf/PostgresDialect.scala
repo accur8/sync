@@ -9,6 +9,7 @@ object PostgresDialect extends Dialect {
 
   implicit def self: Dialect = this
 
+  override def isPostgres: Boolean = true
 
   /**
    * will do a case insensitive lookup

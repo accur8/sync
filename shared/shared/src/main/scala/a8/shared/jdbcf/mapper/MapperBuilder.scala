@@ -1,7 +1,7 @@
 package a8.shared.jdbcf.mapper
 
 
-import a8.shared.Chord
+import a8.shared.{Chord, SharedImports}
 import a8.shared.Meta._
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
@@ -42,9 +42,13 @@ object MapperBuilder {
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def rawRead(row: Row, index: Int): (Any, Int)
     def booleanOp(linker: QueryDsl.Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition
+
+    def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): F[Parm[A]]
+
   }
 
   case class FromCaseClassParm[A,B : FieldHandler](parm: CaseClassParm[A,B], ordinal: Int) extends Parm[A] {
+
     override def pairs(columnNamePrefix: ColumnName, row: A): Iterable[(ColumnName, SqlString)] = fieldHandler.pairs(columnNamePrefix ~ ColumnName(name), parm.lens(row))
     val fieldHandler = FieldHandler[B]
 //    val sqlStringer: SqlStringer[B] = implicitly[SqlStringer[B]]
@@ -56,6 +60,14 @@ object MapperBuilder {
     def rawRead(row: Row, index: Int): (Any, Int) =
       fieldHandler.rowReader.rawRead(row, index)
 
+    override def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[Parm[A]] = {
+      val columnName = ColumnName(columnNamePrefix.asString + parm.name)
+      fieldHandler
+        .materialize(columnName, conn, resolvedJdbcTable)
+        .map { materializedFieldHandler: FieldHandler[B] =>
+          FromCaseClassParm[A,B](parm, ordinal)(materializedFieldHandler)
+        }
+    }
 
     override def booleanOp(linker: Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition =
       fieldHandler.booleanOp(linker, name, parm.lens(a), columnNameResolver)

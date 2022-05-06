@@ -1,12 +1,14 @@
 package a8.shared.jdbcf.mapper
 
+import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.{Chord, jdbcf}
 import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Linker, StructuralProperty}
-import a8.shared.jdbcf.{ColumnName, Row, RowReader, RowWriter, SqlString}
-
+import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, RowWriter, SqlString}
+import cats.effect.Async
+import a8.shared.SharedImports._
 import java.sql.PreparedStatement
 
 object Mapper {
@@ -47,6 +49,7 @@ object Mapper {
   }
 
   sealed trait FieldHandler[A] {
+    def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[FieldHandler[A]]
     val rowReader: RowReader[A]
     def booleanOp(linker: QueryDsl.Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
@@ -59,6 +62,21 @@ object Mapper {
       val rowReader: RowReader[A],
       val sqlStringer: SqlStringer[A]
   ) extends FieldHandler[A] {
+
+    override def materialize[F[_] : Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[FieldHandler[A]] =
+      for {
+        materializedRowReader <- rowReader.materialize[F](columnNamePrefix, conn, resolvedJdbcTable)
+        resolvedColumn <-
+          resolvedJdbcTable.columnsByName.get(columnNamePrefix) match {
+            case None =>
+              Async[F].raiseError(new RuntimeException(s"no column named ${columnNamePrefix} found in ${resolvedJdbcTable.resolvedTableName}"))
+            case Some(rc) =>
+              Async[F].pure(rc)
+          }
+        materializedSqlStringer <- sqlStringer.materialize(conn, resolvedColumn)
+      } yield
+        new SingleFieldHandler[A]()(materializedRowReader, materializedSqlStringer)
+
     def columnNames(columnNamePrefix: ColumnName) = Iterable(columnNamePrefix)
     val columnCount = 1
     override def booleanOp(linker: Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition = {
@@ -70,6 +88,15 @@ object Mapper {
   }
 
   class ComponentFieldHandler[A](implicit componentMapper: ComponentMapper[A]) extends FieldHandler[A] {
+
+
+    override def materialize[F[_] : Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[FieldHandler[A]] =
+      componentMapper
+        .materializeComponentMapper(columnNamePrefix, conn, resolvedJdbcTable)
+        .map { materializedComponentMapper =>
+          new ComponentFieldHandler[A]()(materializedComponentMapper)
+        }
+
     val rowReader = componentMapper
     def columnNames(columnNamePrefix: ColumnName) = componentMapper.columnNames(columnNamePrefix)
     val columnCount = componentMapper.columnCount

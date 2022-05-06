@@ -1,7 +1,6 @@
 package a8.shared.jdbcf
 
 import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, SQLException => JdbcSQLException, Statement => JStatement}
-
 import a8.shared.app.LoggingF
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.JdbcMetadata.JdbcTable
@@ -11,10 +10,12 @@ import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
+import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
 
 case class ConnInternalImpl[F[_] : Async](
   jdbcMetadata: JdbcMetadata[F],
   jdbcConn: java.sql.Connection,
+  mapperMaterializer: MapperMaterializer[F],
 )
   extends LoggingF[F]
   with ConnInternal[F]
@@ -119,8 +120,12 @@ case class ConnInternalImpl[F[_] : Async](
       }
 
   override def insertRow[A: TableMapper](row: A): F[A] = {
-    val mapper = implicitly[TableMapper[A]]
-    runSingleRowUpdate(mapper.insertSql(row)).as(row)
+    for {
+      mapper <- mapperMaterializer.materialize(implicitly[TableMapper[A]])
+      row <-
+        runSingleRowUpdate(mapper.insertSql(row))
+          .as(row)
+    } yield row
   }
 
   override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[(A,UpsertResult)] = {
@@ -137,24 +142,41 @@ case class ConnInternalImpl[F[_] : Async](
   }
 
   override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
-    val mapper = implicitly[KeyedTableMapper[A, B]]
-    runSingleRowUpdate(mapper.updateSql(row))
-      .as(row)
+    for {
+      mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
+      row <-
+        runSingleRowUpdate(mapper.updateSql(row))
+          .as(row)
+    } yield row
   }
 
   override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
-    val mapper = implicitly[KeyedTableMapper[A,B]]
-    runSingleRowUpdate(mapper.deleteSql(mapper.key(row)))
-      .as(row)
+    for {
+      mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
+      row <-
+        runSingleRowUpdate(mapper.deleteSql(mapper.key(row)))
+          .as(row)
+    } yield row
   }
 
-  override def selectRows[A: TableMapper](whereClause: SqlString): F[Iterable[A]] =
-    query[A](implicitly[TableMapper[A]].selectSql(whereClause))
-      .select
+  override def selectRows[A: TableMapper](whereClause: SqlString): F[Iterable[A]] = {
+    for {
+      tm <- mapperMaterializer.materialize(implicitly[TableMapper[A]])
+      rows <-
+        query[A](tm.selectSql(whereClause))
+          .select
+    } yield rows
+  }
 
-  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): fs2.Stream[F, A] =
-    streamingQuery[A](implicitly[TableMapper[A]].selectSql(whereClause))
-      .run
+  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): fs2.Stream[F, A] = {
+    mapperMaterializer
+      .materialize(implicitly[TableMapper[A]])
+      .fs2StreamEval
+      .flatMap(tableMapper =>
+        streamingQuery[A](tableMapper.selectSql(whereClause))
+          .run
+      )
+  }
 
   override def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] =
     fetchRowOpt[A,B](key)

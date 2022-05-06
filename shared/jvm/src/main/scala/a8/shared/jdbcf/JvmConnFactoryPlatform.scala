@@ -7,6 +7,8 @@ import com.zaxxer.hikari.HikariDataSource
 import javax.sql.DataSource
 import sttp.model.Uri
 import a8.shared.SharedImports._
+import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializerImpl
+import a8.shared.jdbcf.mapper.KeyedTableMapper
 
 trait JvmConnFactoryPlatform extends ConnFactoryImpl {
 
@@ -38,15 +40,16 @@ trait JvmConnFactoryPlatform extends ConnFactoryImpl {
       temp
     }
 
-    Managed
-      .resource(createDs)
-      .map(ds =>
-        new ConnFactory[F] {
-          val config = databaseConfig
-          def connR: Resource[F,Conn[F]] =
-            Conn.impl.makeResource[F](ds.getConnection)
-        }
-      )
+    for {
+      ds <- Managed.resource(createDs)
+      cacheRef <- Resource.eval(Async[F].ref(Map.empty[KeyedTableMapper[_,_],KeyedTableMapper[_,_]]))
+    } yield
+      new ConnFactory[F] {
+        lazy val mapperCache = new MapperMaterializerImpl(cacheRef, this)
+        val config = databaseConfig
+        def connR: Resource[F,Conn[F]] =
+          Conn.impl.makeResource[F](ds.getConnection, mapperCache)
+      }
 
   }
 

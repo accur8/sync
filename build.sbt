@@ -71,6 +71,7 @@ lazy val shared =
     )
     .jvmSettings(
       libraryDependencies ++= Seq(
+        "org.hsqldb" % "hsqldb" % "2.6.1",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
         "org.postgresql" % "postgresql" % "42.3.4",
         "mysql" % "mysql-connector-java" % "8.0.28",

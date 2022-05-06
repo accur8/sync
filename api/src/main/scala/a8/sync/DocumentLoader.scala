@@ -1,18 +1,31 @@
 package a8.sync
 
 import a8.shared.jdbcf.SqlString._
-import a8.shared.jdbcf.{Conn, Row, RowReader, SchemaName, SqlString, TableLocator, TableName}
+import a8.shared.jdbcf.{Conn, Row, RowReader, SchemaName, SqlString, TableLocator, TableName, unsafe}
 import a8.sync.Imports._
 import cats.effect.{Async, Resource}
+
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicReference
-
 import a8.shared.json.DynamicJson
 import a8.shared.json.ast._
 
 import scala.concurrent.duration.Duration
 
 object DocumentLoader {
+
+  object RowToJsObj {
+    implicit val rowReader =
+      new RowReader[RowToJsObj] {
+        override def rawRead(row: Row, index: Int): (RowToJsObj, Int) =
+          RowToJsObj(
+            row
+              .subRow(index)
+              .unsafeAsJsObj
+          ) -> (row.size - index)
+      }
+  }
+  case class RowToJsObj(value: JsObj)
 
   case class CacheableLoader[F[_] : Async](cacheDuration: Duration, loader: DocumentLoader[F]) extends AbstractDocumentLoader[F] {
 
@@ -88,8 +101,11 @@ object DocumentLoader {
             for {
               resolvedJdbcTable <- conn.tableMetadata(TableLocator(schemaName, tableName))
               sql = resolvedJdbcTable.querySql(whereExpr)
-              rows <- conn.query[JsObj](sql).select
-            } yield JsArr(rows.toList)
+              rowsToJsObj <-
+                conn
+                  .query[RowToJsObj](sql)
+                  .select
+            } yield JsArr(rowsToJsObj.map(_.value).toList)
           }
         }
       }

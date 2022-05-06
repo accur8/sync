@@ -1,9 +1,15 @@
 package a8.shared.jdbcf
 
+import a8.shared
+import a8.shared.SharedImports
+
 import java.time.{LocalDate, LocalDateTime, LocalTime, OffsetDateTime, ZoneOffset}
 import a8.shared.jdbcf.TypeName
 
 import scala.language.implicitConversions
+import a8.shared.SharedImports._
+import a8.shared.jdbcf.JdbcMetadata.ResolvedColumn
+import a8.shared.json.ast.JsDoc
 
 object SqlString extends SqlStringLowPrio {
 
@@ -118,6 +124,9 @@ object SqlString extends SqlStringLowPrio {
 
   object SqlStringer {
 
+    implicit val jsDocSqlStringer: SqlStringer[JsDoc] =
+      JsDocSqlStringer(false, None)
+
     implicit val hasSqlString: SqlStringer[HasSqlString] =
       new SqlStringer[HasSqlString] {
         override def toSqlString(a: HasSqlString): SqlString = a.asSqlFragment
@@ -133,7 +142,7 @@ object SqlString extends SqlStringLowPrio {
         override def toSqlString(a: String): SqlString = a.escape
       }
 
-    implicit val optionStringer: SqlStringer[Option[String]] =
+    implicit val optionStringStringer: SqlStringer[Option[String]] =
       new SqlStringer[Option[String]] {
         override def toSqlString(a: Option[String]): SqlString = {
           a match {
@@ -145,11 +154,35 @@ object SqlString extends SqlStringLowPrio {
         }
       }
 
+    implicit def optionSqlString[A: SqlStringer]: SqlStringer[Option[A]] =
+      OptionSqlStringer(SqlStringer[A])
+
     def apply[A : SqlStringer] = implicitly[SqlStringer[A]]
+
+    case class OptionSqlStringer[A](delegate: SqlStringer[A]) extends SqlStringer[Option[A]] {
+
+      override def materialize[F[_] : shared.SharedImports.Async](conn: Conn[F], resolvedColumn: ResolvedColumn): F[SqlStringer[Option[A]]] = {
+        delegate
+          .materialize(conn, resolvedColumn)
+          .map(OptionSqlStringer.apply)
+      }
+
+      override def toSqlString(opt: Option[A]): SqlString = {
+        opt match {
+          case None =>
+            SqlString.Null
+          case Some(a) =>
+            delegate.toSqlString(a)
+        }
+      }
+
+    }
 
   }
 
   trait SqlStringer[A] {
+    def materialize[F[_]: Async](conn: Conn[F], resolvedColumn: ResolvedColumn): F[SqlStringer[A]] =
+      Async[F].pure(this)
     def toSqlString(a: A): SqlString
   }
 
