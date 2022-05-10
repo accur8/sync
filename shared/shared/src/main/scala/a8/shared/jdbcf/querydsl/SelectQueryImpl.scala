@@ -3,7 +3,7 @@ package a8.shared.jdbcf.querydsl
 
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
-import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Condition, Join, JoinImpl, LinkCompiler, Linker, OrderBy}
+import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Condition, Join, JoinImpl, PathCompiler, Path, OrderBy}
 import cats.effect.Async
 
 import scala.language.implicitConversions
@@ -60,9 +60,9 @@ case class SelectQueryImpl[F[_]: Async, T,U](
         }
         .toMap
 
-    implicit val linkCompiler: LinkCompiler =
-      new LinkCompiler {
-        override def alias(linker: Linker): SqlString = {
+    implicit val linkCompiler: PathCompiler =
+      new PathCompiler {
+        override def alias(linker: Path): SqlString = {
           linker match {
             case c: ComponentJoin =>
               aliasesByJoin(c.baseJoin) ~ QueryDsl.ss.Period

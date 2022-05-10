@@ -11,7 +11,7 @@ import a8.shared.jdbcf.mapper.CaseClassMapper.{And, ColumnNameResolver}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.Mapper.FieldHandler
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, LinkCompiler, Linker, field, fieldExprs}
+import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, PathCompiler, Path, field, fieldExprs}
 
 import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
@@ -41,7 +41,7 @@ object MapperBuilder {
     val columnNames: Iterable[ColumnName]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def rawRead(row: Row, index: Int): (Any, Int)
-    def booleanOp(linker: QueryDsl.Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition
+    def booleanOp(linker: QueryDsl.Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
 
     def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): F[Parm[A]]
 
@@ -69,10 +69,10 @@ object MapperBuilder {
         }
     }
 
-    override def booleanOp(linker: Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition =
+    override def booleanOp(linker: Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition =
       fieldHandler.booleanOp(linker, name, parm.lens(a), columnNameResolver)
 
-    def booleanOpB(linker: QueryDsl.Linker, b: B, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition =
+    def booleanOpB(linker: QueryDsl.Path, b: B, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition =
       fieldHandler.booleanOp(linker, name, b, columnNameResolver)
 
   }
@@ -127,9 +127,9 @@ object MapperBuilder {
   }
 
   object implicits {
-    implicit val linkCompiler: LinkCompiler =
-      new LinkCompiler {
-        override def alias(linker: Linker): SqlString = {
+    implicit val linkCompiler: PathCompiler =
+      new PathCompiler {
+        override def alias(linker: Path): SqlString = {
           linker match {
             case c: ComponentJoin =>
               alias(c.parent)

@@ -11,7 +11,7 @@ import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.{Chord, SharedImports, jdbcf}
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, LinkCompiler, StructuralProperty}
+import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, PathCompiler, StructuralProperty}
 
 import java.sql.PreparedStatement
 
@@ -75,7 +75,7 @@ case class CaseClassMapper[A, PK](
       .flatMap(_.columnNames)
       .map(cn => ColumnName(columnNamePrefix.value.toString + cn.value.toString))
 
-  override def structuralEquality(linker: QueryDsl.Linker, a: A)(implicit alias: LinkCompiler): QueryDsl.Condition =
+  override def structuralEquality(linker: QueryDsl.Path, a: A)(implicit alias: PathCompiler): QueryDsl.Condition =
     fields
       .map(_.booleanOp(linker, a, columnNameResolver))
       .reduceLeft((l,r) => QueryDsl.And(l,r))

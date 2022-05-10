@@ -29,7 +29,7 @@ object Mxmodel {
         .buildMapper
     
     
-    class TableDsl(join: QueryDsl.Linker) extends QueryDsl.Component[ResolvedTableName](join) {
+    class TableDsl(join: QueryDsl.Path) extends QueryDsl.Component[ResolvedTableName](join) {
       val catalog = QueryDsl.field[Option[CatalogName]]("catalog", join)
       val schema = QueryDsl.field[Option[SchemaName]]("schema", join)
       val name = QueryDsl.field[TableName]("name", join)

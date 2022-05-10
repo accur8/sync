@@ -216,7 +216,7 @@ object MxQueryDslTest {
         .buildMapper
     
     
-    class TableDsl(join: QueryDsl.Linker) extends QueryDsl.Component[Address](join) {
+    class TableDsl(join: QueryDsl.Path) extends QueryDsl.Component[Address](join) {
       val line1 = QueryDsl.field[String]("line1", join)
       val line2 = QueryDsl.field[String]("line2", join)
       val city = QueryDsl.field[String]("city", join)

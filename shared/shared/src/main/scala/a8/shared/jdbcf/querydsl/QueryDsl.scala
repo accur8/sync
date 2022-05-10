@@ -80,7 +80,7 @@ object QueryDsl {
 
   case class IsNull(left: Expr[_], not: Boolean) extends Condition
 
-  case class StructuralEquality[A: ComponentMapper](linker: Linker, component: Component[A], value: A) extends Condition {
+  case class StructuralEquality[A: ComponentMapper](linker: Path, component: Component[A], value: A) extends Condition {
     val mapper = implicitly[ComponentMapper[A]]
   }
 
@@ -115,18 +115,18 @@ object QueryDsl {
 
   sealed trait FieldExpr[T] extends Expr[T] {
     def name: String
-    def join: Linker
+    def join: Path
     def resolvedComponentName: Boolean
   }
 
   case class In[T: SqlStringer](left: Expr[T], set: Iterable[Constant[T]]) extends Condition
 
-  case class Field[T: SqlStringer](name: String, join: Linker, resolvedComponentName: Boolean) extends FieldExpr[T] {
+  case class Field[T: SqlStringer](name: String, join: Path, resolvedComponentName: Boolean) extends FieldExpr[T] {
     if ( name.startsWith("addr") || name.startsWith("line") ) {
       toString
     }
   }
-  case class NumericField[T: SqlStringer](name: String, join: Linker, resolvedComponentName: Boolean) extends NumericExpr[T] with FieldExpr[T]
+  case class NumericField[T: SqlStringer](name: String, join: Path, resolvedComponentName: Boolean) extends NumericExpr[T] with FieldExpr[T]
 
   case class Concat(left: Expr[_], right: Expr[_]) extends Expr[String]
 
@@ -180,7 +180,7 @@ object QueryDsl {
   def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[_]] =
     cond match {
       case se@ StructuralEquality(_, _, _) =>
-        fieldExprs(generateStructuralComparison(se)(LinkCompiler.empty))
+        fieldExprs(generateStructuralComparison(se)(PathCompiler.empty))
       case Condition.TRUE =>
         IndexedSeq.empty
       case Condition.FALSE =>
@@ -225,17 +225,17 @@ object QueryDsl {
 
   }
 
-  object LinkCompiler {
-    case object empty extends LinkCompiler {
-      override def alias(linker: Linker): SqlString =
+  object PathCompiler {
+    case object empty extends PathCompiler {
+      override def alias(linker: Path): SqlString =
         SqlString.Empty
     }
   }
 
 
-  trait LinkCompiler {
-    def alias(linker: Linker): SqlString
-    def prefix(linker: Linker): String =
+  trait PathCompiler {
+    def alias(linker: Path): SqlString
+    def prefix(linker: Path): String =
       linker match {
         case cj: ComponentJoin =>
           cj.path.mkString
@@ -244,12 +244,12 @@ object QueryDsl {
       }
   }
 
-  sealed trait Linker {
+  sealed trait Path {
     def baseJoin: Join
     def columnName(suffix: ColumnName): ColumnName
   }
 
-  sealed trait Join extends Linker {
+  sealed trait Join extends Path {
     /**
      * all joins in the chain including this one
      */
@@ -271,7 +271,7 @@ object QueryDsl {
     def columnName(suffix: ColumnName) = suffix
   }
 
-  case class ComponentJoin(name: String, parent: Linker) extends Linker {
+  case class ComponentJoin(name: String, parent: Path) extends Path {
     val nameAsColumnName = ColumnName(name)
     lazy val path: Vector[String] = name +: parentPath
     lazy val parentPath: Vector[String] =
@@ -303,10 +303,10 @@ object QueryDsl {
   }
 
 
-  def field[T: SqlStringer](name: String, join: Linker = RootJoin): Field[T] =
+  def field[T: SqlStringer](name: String, join: Path = RootJoin): Field[T] =
     Field[T](name, join, false)
 
-  def numericField[T: SqlStringer](name: String, join: Linker = RootJoin): NumericField[T] =
+  def numericField[T: SqlStringer](name: String, join: Path = RootJoin): NumericField[T] =
     NumericField[T](name, join, false)
 
   sealed abstract class Expr[T: SqlStringer] {
@@ -372,26 +372,26 @@ object QueryDsl {
 
   }
 
-  def parens(cond: Condition)(implicit alias: LinkCompiler = LinkCompiler.empty): SqlString = {
+  def parens(cond: Condition)(implicit alias: PathCompiler = PathCompiler.empty): SqlString = {
     if ( cond.isComposite )
       ss.LeftParen ~ asSql(cond) ~ ss.RightParen
     else
       asSql(cond)
   }
 
-  def noAliasAliasMapper(j: Linker): SqlString = SqlString.Empty
+  def noAliasAliasMapper(j: Path): SqlString = SqlString.Empty
 
   trait StructuralProperty[A] {
-    def booleanOp(linker: QueryDsl.Linker, a: A): QueryDsl.Condition
+    def booleanOp(linker: QueryDsl.Path, a: A): QueryDsl.Condition
   }
 
-  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: LinkCompiler): Condition = {
+  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: PathCompiler): Condition = {
     structuralEquality
       .mapper
       .structuralEquality(structuralEquality.linker, structuralEquality.value)
   }
 
-  def asSql(cond: Condition)(implicit alias: LinkCompiler): SqlString = {
+  def asSql(cond: Condition)(implicit alias: PathCompiler): SqlString = {
     import SqlString._
     cond match {
       case se@ StructuralEquality(_, _, _) =>
@@ -419,7 +419,7 @@ object QueryDsl {
     }
   }
 
-  def exprAsSql[T](expr: Expr[T])(implicit compiler: LinkCompiler): SqlString = expr match {
+  def exprAsSql[T](expr: Expr[T])(implicit compiler: PathCompiler): SqlString = expr match {
     case fe: FieldExpr[T] =>
       val a = compiler.alias(fe.join)
       val name =
@@ -449,11 +449,11 @@ object QueryDsl {
   case class OrderBy(expr: Expr[_], ascending: Boolean = true) {
     def asc = copy(ascending=true)
     def desc = copy(ascending=false)
-    def asSql(implicit alias: LinkCompiler): SqlString =
+    def asSql(implicit alias: PathCompiler): SqlString =
       QueryDsl.exprAsSql(expr) ~*~ (if (ascending) ss.Asc else ss.Desc)
   }
 
-  abstract class Component[A](join: QueryDsl.Linker) {
+  abstract class Component[A](join: QueryDsl.Path) {
     def ===(right: A)(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, right)
   }

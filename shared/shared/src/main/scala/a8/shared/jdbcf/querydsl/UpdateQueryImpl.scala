@@ -3,7 +3,7 @@ package a8.shared.jdbcf.querydsl
 
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
-import QueryDsl.{Condition, LinkCompiler, ss}
+import QueryDsl.{Condition, PathCompiler, ss}
 import cats.effect.Async
 
 import scala.language.existentials
@@ -29,7 +29,7 @@ case class UpdateQueryImpl[F[_]: Async, T,U](
     val assignmentSql: SqlString =
       assignments
         .map { assignment =>
-          val left = QueryDsl.exprAsSql(assignment.left)(LinkCompiler.empty)
+          val left = QueryDsl.exprAsSql(assignment.left)(PathCompiler.empty)
           val right = QueryDsl.exprAsSql(assignment.right)(qr.linkCompiler)
           left * ss.Equal * right
         }
