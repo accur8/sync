@@ -141,9 +141,6 @@ object Chord {
 
 }
 
-
-
-
 sealed trait Chord {
   override def toString = Chord.mkString(this)
 }

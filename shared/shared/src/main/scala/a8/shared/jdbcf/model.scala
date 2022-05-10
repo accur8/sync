@@ -1,5 +1,6 @@
 package a8.shared.jdbcf
 
+
 import a8.shared.CompanionGen
 
 import java.sql.ResultSet
@@ -9,7 +10,7 @@ import a8.shared.jdbcf.SqlString.HasSqlString
 import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
 import cats.effect.Sync
 import org.typelevel.ci.CIString
-
+import scala.language.implicitConversions
 
 object ColumnName extends CIStringValueCompanion[ColumnName] {
 }
@@ -44,10 +45,10 @@ trait SqlIdentifierValue extends CIStringValue with HasSqlString {
   override val asSqlFragment = SqlString.identifier(asString)
 }
 
-object TableName extends CIStringValueCompanion[TableName] {
-}
+object TableName extends CIStringValueCompanion[TableName]
 case class TableName(value: CIString) extends SqlIdentifierValue {
   def asLowerCaseStringValue = SqlString.EscapedSqlString(asString.toLowerCase)
+  def asSqlString: SqlString = ???
 }
 
 object SchemaName extends CIStringValueCompanion[SchemaName] {

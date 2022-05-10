@@ -5,10 +5,11 @@ import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.{Chord, jdbcf}
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Linker, StructuralProperty}
+import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, LinkCompiler, Linker, StructuralProperty}
 import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, RowWriter, SqlString}
 import cats.effect.Async
 import a8.shared.SharedImports._
+
 import java.sql.PreparedStatement
 
 object Mapper {
@@ -51,7 +52,7 @@ object Mapper {
   sealed trait FieldHandler[A] {
     def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[FieldHandler[A]]
     val rowReader: RowReader[A]
-    def booleanOp(linker: QueryDsl.Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition
+    def booleanOp(linker: QueryDsl.Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName, SqlString)]
     val columnCount: Int
@@ -79,10 +80,10 @@ object Mapper {
 
     def columnNames(columnNamePrefix: ColumnName) = Iterable(columnNamePrefix)
     val columnCount = 1
-    override def booleanOp(linker: Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition = {
+    override def booleanOp(linker: Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition = {
       import QueryDsl._
-      val resolvedName = columnNameResolver(linker.columnName(ColumnName(name)))
-      BooleanOperation(Field(resolvedName.toString, linker), ops.eq, Constant(a))
+      val resolvedName = columnNameResolver.quote(linker.columnName(ColumnName(name)))
+      BooleanOperation(Field(resolvedName.value, linker, true), ops.eq, Constant(a))
     }
     def pairs(columnNamePrefix: ColumnName, a: A) = Iterable(columnNamePrefix -> sqlStringer.toSqlString(a))
   }
@@ -101,7 +102,7 @@ object Mapper {
     def columnNames(columnNamePrefix: ColumnName) = componentMapper.columnNames(columnNamePrefix)
     val columnCount = componentMapper.columnCount
 
-    override def booleanOp(linker: Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition = {
+    override def booleanOp(linker: Linker, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition = {
       val componentLinker = ComponentJoin(name, linker)
       componentMapper.structuralEquality(componentLinker, a)
     }

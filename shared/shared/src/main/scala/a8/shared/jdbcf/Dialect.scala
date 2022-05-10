@@ -3,19 +3,37 @@ package a8.shared.jdbcf
 import a8.shared.Chord
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey}
-import a8.shared.jdbcf.SqlString.RawSqlString
-import cats.effect.Sync
+import a8.shared.jdbcf.SqlString.{AbstractEscaper, DefaultJdbcEscaper, Escaper, RawSqlString}
+import cats.effect.{Resource, Sync}
 import sttp.model.Uri
 import UnsafeResultSetOps._
+import cats.effect.kernel.Async
+import a8.shared.SharedImports._
+
+import java.sql.Connection
 
 trait Dialect {
 
   val validationQuery: Option[SqlString] = None
 
-  def isPostgres: Boolean
+  def escaper[F[_] : Async](jdbcConnR: Resource[F, Connection]): Resource[F, Escaper] = {
+    Resource.eval[F, Escaper](
+      jdbcConnR.use(conn =>
+        for {
+          keywordSet <- KeywordSet.fromMetadata[F](conn.getMetaData)
+          escaper0 <-
+            Async[F].blocking {
+              val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
+              new AbstractEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {}
+            }
+        } yield escaper0
+      )
+    )
+  }
 
-  def sqlEscapeStringValue(value: String): String =
-    "'" + value.replace("'","''") + "'"
+  def isIdentifierDefaultCase(name: String): Boolean
+
+  def isPostgres: Boolean
 
   def sqlQuotedIdentifier(identifier: String): String =
     identifier
@@ -97,7 +115,15 @@ object Dialect {
   val duobleQuote = Chord.str('"'.toString)
 
   case object Default extends Dialect {
+
     override def isPostgres: Boolean = false
+
+    /**
+     * no default case for default dialect
+     */
+    override def isIdentifierDefaultCase(name: String): Boolean =
+      false
+
   }
 
   def apply[F[_]](jdbcUri: Uri): Dialect = {
@@ -107,6 +133,10 @@ object Dialect {
         PostgresDialect
       case "jdbc" :: _ :: "postgresql" :: _ =>
         PostgresDialect
+      case "jdbc" :: "mysql" :: _ =>
+        MySqlDialect
+      case "jdbc" :: _ :: "mysql" :: _ =>
+        MySqlDialect
       case _ =>
         DialectPlatform(jdbcUri)
           .getOrElse(Default)

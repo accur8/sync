@@ -2,7 +2,7 @@ package a8.shared.jdbcf
 
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
-import a8.shared.jdbcf.SqlString.ResolvedSql
+import a8.shared.jdbcf.SqlString.CompiledSql
 import cats.effect.Async
 
 import scala.language.higherKinds
@@ -10,10 +10,10 @@ import scala.language.higherKinds
 object StreamingQuery {
 
   def create[F[_] : Async, A : RowReader](conn: ConnInternal[F], sql: SqlString): StreamingQuery[F,A] = {
-    Impl(conn, conn.resolve(sql), 1000)
+    Impl(conn, conn.compile(sql), 1000)
   }
 
-  case class Impl[F[_] : Async, A : RowReader](conn: ConnInternal[F], sql: ResolvedSql, batchSize: Int) extends StreamingQuery[F,A] {
+  case class Impl[F[_] : Async, A : RowReader](conn: ConnInternal[F], sql: CompiledSql, batchSize: Int) extends StreamingQuery[F,A] {
 
     val F = Async[F]
 
@@ -40,7 +40,7 @@ object StreamingQuery {
 
 
 trait StreamingQuery[F[_],A] {
-  val sql: ResolvedSql
+  val sql: CompiledSql
   val reader: RowReader[A]
   def run: fs2.Stream[F,A]
   def batchSize(size: Int): StreamingQuery[F,A]

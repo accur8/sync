@@ -1,7 +1,6 @@
 package a8.shared.jdbcf
 
 import a8.shared
-import a8.shared.SharedImports
 
 import java.time.{LocalDate, LocalDateTime, LocalTime, OffsetDateTime, ZoneOffset}
 import a8.shared.jdbcf.TypeName
@@ -9,6 +8,7 @@ import a8.shared.jdbcf.TypeName
 import scala.language.implicitConversions
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.JdbcMetadata.ResolvedColumn
+import a8.shared.jdbcf.SqlString.{CompiledSql, DefaultJdbcEscaper, Escaper}
 import a8.shared.json.ast.JsDoc
 
 object SqlString extends SqlStringLowPrio {
@@ -17,7 +17,7 @@ object SqlString extends SqlStringLowPrio {
   val Null: SqlString = keyword("null")
   val Comma = keyword(",")
   val CommaSpace = keyword(", ")
-
+  val Space = keyword(" ")
 
   case object Empty extends SqlString
   case class RawSqlString(sqlSafeValue: String) extends SqlString
@@ -29,17 +29,17 @@ object SqlString extends SqlStringLowPrio {
   case class CompositeSqlString(parts: Iterable[SqlString]) extends SqlString
   case class CompositeString(parts: Iterable[String]) extends SqlString
 
-  case class Context(
-    dialect: Dialect,
-    jdbcConn: Option[java.sql.Connection] = None,
-  )
+//  case class Context(
+//    dialect: Dialect,
+//    jdbcConn: Option[java.sql.Connection] = None,
+//  )
 
   object unsafe {
 
     def rawSqlString(s: String) = RawSqlString(s)
 
-    def resolve(sqlString: SqlString)(implicit dialect: Dialect): ResolvedSql = {
-      implicit val ctx = Context(dialect)
+    def compile(sqlString: SqlString, escaper: Escaper): CompiledSql = {
+//      implicit val ctx = Context(escaper)
 
       val sb = new StringBuilder
       def run(ss: SqlString): Unit = {
@@ -58,13 +58,13 @@ object SqlString extends SqlStringLowPrio {
           case RawSqlString(v) =>
             sb.append(v)
           case EscapedSqlString(s) =>
-            sb.append(dialect.sqlEscapeStringValue(s))
+            sb.append(escaper.unsafeSqlEscapeStringValue(s))
           case CompositeString(parts) =>
             parts.foreach(sb.append)
           case CompositeSqlString(parts) =>
             parts.foreach(run)
           case DialectQuotedIdentifier(v) =>
-            sb.append(dialect.sqlQuotedIdentifier(v))
+            sb.append(escaper.unsafeSqlQuotedIdentifier(v))
           case SeparatedSqlString(iter, sep) =>
             if ( iter.nonEmpty ) {
               var first = true
@@ -83,7 +83,7 @@ object SqlString extends SqlStringLowPrio {
 
       run(sqlString)
 
-      ResolvedSql(sb.toString())
+      CompiledSql(sb.toString())
 
     }
   }
@@ -115,7 +115,7 @@ object SqlString extends SqlStringLowPrio {
 
   def keyword(str: String): SqlString = unsafe.rawSqlString(str)
 
-  case class ResolvedSql(value: String)
+  case class CompiledSql(value: String)
 
 
   trait HasSqlString extends SqlString {
@@ -218,8 +218,58 @@ object SqlString extends SqlStringLowPrio {
         .getOrElse(Null)
   }
 
+  trait Escaper {
+    def unsafeSqlEscapeStringValue(value: String): String
+    def unsafeSqlQuotedIdentifier(identifier: String): String
+  }
+
+  class AbstractEscaper(identifierQuoteStr: String, keywordSet: KeywordSet, defaultCaseFn: String=>Boolean) extends Escaper {
+
+    override def unsafeSqlEscapeStringValue(value: String): String =
+      "'" + value.replace("'","''") + "'"
+
+    def unsafeSqlQuotedIdentifier(identifier: String): String = {
+      val isDefaultCase = defaultCaseFn(identifier)
+      val isKeyword = keywordSet.isKeyword(identifier)
+      if ( isDefaultCase && !isKeyword ) {
+        identifier
+      } else {
+        s"${identifierQuoteStr}${identifier}${identifierQuoteStr}"
+      }
+    }
+
+  }
+
+  object DefaultJdbcEscaper extends AbstractEscaper("\"", KeywordSet.default, _ => false)
+
+  object NoopEscaper extends Escaper {
+    override def unsafeSqlEscapeStringValue(value: String): String =
+      "'" + value.replace("'","''") + "'"
+    override def unsafeSqlQuotedIdentifier(identifier: String): String =
+      identifier
+  }
+
+
+  //  implicit class IterableSqlString(iter: Iterable[SqlString]) {
+//    def mkSqlString: SqlString = CompositeSqlString(iter)
+//    def mkSqlString(separator: SqlString): SqlString = SeparatedSqlString(iter, separator)
+//  }
+
+  implicit class SqlStringOps(private val left: SqlString) extends AnyVal {
+    @inline def ~(r: SqlString): SqlString = Concat(left, r)
+    @inline def *(r: SqlString): SqlString = Concat3(left, Space, r)
+    @inline def ~*~(r: SqlString): SqlString = left * r
+  }
+
+
 }
 
 sealed trait SqlString {
-  override def toString = SqlString.unsafe.resolve(this)(Dialect.Default).value
+
+  def compile(implicit escaper: Escaper): CompiledSql =
+    SqlString.unsafe.compile(this, escaper)
+
+  override def toString =
+    SqlString.unsafe.compile(this, DefaultJdbcEscaper).value
+
 }

@@ -4,7 +4,7 @@ import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManage
 import a8.shared.app.LoggingF
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.JdbcMetadata.JdbcTable
-import a8.shared.jdbcf.SqlString.ResolvedSql
+import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
@@ -16,19 +16,22 @@ case class ConnInternalImpl[F[_] : Async](
   jdbcMetadata: JdbcMetadata[F],
   jdbcConn: java.sql.Connection,
   mapperMaterializer: MapperMaterializer[F],
+  jdbcUrl: Uri,
+  dialect: Dialect,
+  escaper: Escaper,
 )
   extends LoggingF[F]
   with ConnInternal[F]
 {
 
+  jdbcConn.getMetaData.getIdentifierQuoteString
+
   val F = Async[F]
 
   override def asInternal: ConnInternal[F] = this
 
-  lazy val jdbcUrl = Uri.unsafeParse(jdbcConn.getMetaData.getURL)
-
-  override def resolve(sql: SqlString): ResolvedSql =
-    SqlString.unsafe.resolve(sql)
+  override def compile(sql: SqlString): CompiledSql =
+    SqlString.unsafe.compile(sql, escaper)
 
   override def tables: F[Iterable[JdbcTable]] = {
     F.blocking {
@@ -96,7 +99,7 @@ case class ConnInternalImpl[F[_] : Async](
     managedStream(jdbcConn.createStatement())
 
   override def prepare(sql: SqlString): fs2.Stream[F, JdbcPreparedStatement] = {
-    val resolvedSql = resolve(sql)
+    val resolvedSql = compile(sql)
     managedStream(withSqlCtx0[JdbcPreparedStatement](resolvedSql)(jdbcConn.prepareStatement(resolvedSql.value)))
   }
 

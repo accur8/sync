@@ -2,7 +2,7 @@ package a8.shared.jdbcf
 
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
-import a8.shared.jdbcf.SqlString.ResolvedSql
+import a8.shared.jdbcf.SqlString.CompiledSql
 import cats.effect.Async
 import cats.implicits._
 
@@ -13,7 +13,7 @@ object Query {
   def create[F[_] : Async, A : RowReader](conn: ConnInternal[F], sql: SqlString): Query[F,A] = {
 
     val F = Async[F]
-    val sql0 = conn.resolve(sql)
+    val sql0 = conn.compile(sql)
 
     new Query[F,A] {
 
@@ -60,7 +60,7 @@ object Query {
 
 
 trait Query[F[_],A] { query =>
-  val sql: ResolvedSql
+  val sql: CompiledSql
   val reader: RowReader[A]
   def select: F[Iterable[A]]
   def unique: F[A]

@@ -8,7 +8,7 @@ import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.PostgresDialect.self
-import a8.shared.jdbcf.SqlString.ResolvedSql
+import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import cats.effect.kernel.Resource.ExitCase
@@ -24,10 +24,10 @@ object Conn extends LazyLogger {
 
   object impl {
 
-    def withSqlCtx[F[_] : Async, A](sql: ResolvedSql)(fn: =>A): F[A] =
+    def withSqlCtx[F[_] : Async, A](sql: CompiledSql)(fn: =>A): F[A] =
       Async[F].blocking(withSqlCtx0(sql)(fn))
 
-    def withSqlCtx0[A](sql: ResolvedSql)(fn: =>A): A =
+    def withSqlCtx0[A](sql: CompiledSql)(fn: =>A): A =
       try {
         logger.debug(s"running sql -- ${sql.value}")
         fn
@@ -36,10 +36,10 @@ object Conn extends LazyLogger {
           throw new JdbcSQLException(s"error running -- ${sql.value} -- ${e.getMessage}", e.getSQLState, e.getErrorCode, e)
       }
 
-    def makeResource[F[_] : Async](connFn: =>java.sql.Connection, mapperCache: MapperMaterializer[F]): Resource[F,Conn[F]] = {
+    def makeResource[F[_] : Async](connFn: =>java.sql.Connection, mapperCache: MapperMaterializer[F], jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): Resource[F,Conn[F]] = {
       val jdbcMetadata = JdbcMetadata[F]
       Managed.resource(connFn)
-        .map(jdbcConn => toConn[F](jdbcConn, jdbcMetadata, mapperCache))
+        .map(jdbcConn => toConn[F](jdbcConn, jdbcMetadata, mapperCache, jdbcUrl, dialect, escaper))
     }
 
   }
@@ -53,17 +53,20 @@ object Conn extends LazyLogger {
 //    impl.makeResource(JdbcDriverManager.getConnection(url.toString, user, password))
   }
 
-  def toConn[F[_] : Async](jdbcConn: JdbcConnection, jdbcMetadata: JdbcMetadata[F], mapperCache: MapperMaterializer[F])(implicit monadCancel: MonadCancel[F, _]): Conn[F] = {
-
-    def makeResourceF[A : Managed](thunk: =>A) = Managed.resource[F,A](thunk)
-
-    ConnInternalImpl(jdbcMetadata, jdbcConn, mapperCache)
-
+  def toConn[F[_] : Async](
+    jdbcConn: JdbcConnection,
+    jdbcMetadata: JdbcMetadata[F],
+    mapperCache: MapperMaterializer[F],
+    jdbcUrl: Uri,
+    dialect: Dialect,
+    escaper: Escaper,
+  ): Conn[F] = {
+    ConnInternalImpl(jdbcMetadata, jdbcConn, mapperCache, jdbcUrl, dialect, escaper)
   }
 
   trait ConnInternal[F[_]] extends Conn[F] {
     val jdbcMetadata: JdbcMetadata[F]
-    def resolve(sql: SqlString): ResolvedSql
+    def compile(sql: SqlString): CompiledSql
     def withInternalConn[A](fn: JdbcConnection=>A): F[A]
     def statement: fs2.Stream[F, JStatement]
     def prepare(sql: SqlString): fs2.Stream[F, JdbcPreparedStatement]
@@ -87,8 +90,6 @@ trait Conn[F[_]] {
 
   val jdbcUrl: Uri
 
-  implicit lazy val dialect: Dialect = Dialect(jdbcUrl)
-
   def resolveTableName(tableLocator: TableLocator, useCache: Boolean = true): F[ResolvedTableName]
   def tables: F[Iterable[JdbcTable]]
   def tableMetadata(tableLocator: TableLocator, useCache: Boolean = true): F[ResolvedJdbcTable]
@@ -97,7 +98,6 @@ trait Conn[F[_]] {
   def update(updateQuery: SqlString): F[Int]
   def batcher[A : RowWriter](sql: SqlString): Batcher[F,A]
   def isAutoCommit: F[Boolean]
-
 
   def insertRow[A : TableMapper](row: A): F[A]
   def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[(A,UpsertResult)]
@@ -117,5 +117,8 @@ trait Conn[F[_]] {
 
   def commit: F[Unit]
   def rollback: F[Unit]
+
+  implicit val escaper: Escaper
+  implicit val dialect: Dialect
 
 }

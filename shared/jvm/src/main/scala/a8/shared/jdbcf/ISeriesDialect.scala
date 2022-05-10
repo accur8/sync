@@ -16,6 +16,8 @@ object ISeriesDialect extends Dialect {
 
   val logger = Logger.of[ISeriesDialect.type]
 
+  override def isIdentifierDefaultCase(name: String): Boolean =
+    !name.exists(_.isLower)
 
   override def isPostgres: Boolean = false
 

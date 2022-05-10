@@ -37,6 +37,9 @@ object SqlStringLowPrio {
 
   class IterableSqlString[A <: SqlString](private val iterable: Iterable[A]) extends AnyVal {
 
+    def mkSqlString: SqlString =
+      CompositeSqlString(iterable)
+
     def mkSqlString(separator: SqlString): SqlString =
       SeparatedSqlString(iterable, separator)
 

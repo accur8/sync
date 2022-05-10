@@ -2,7 +2,7 @@ package a8.shared.jdbcf
 
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx
-import a8.shared.jdbcf.SqlString.ResolvedSql
+import a8.shared.jdbcf.SqlString.CompiledSql
 import cats.effect.Async
 import fs2.Chunk
 
@@ -18,7 +18,7 @@ object Batcher {
 
     new Batcher[F,A] {
 
-      override lazy val sql = conn.resolve(sql0)
+      override lazy val sql = conn.compile(sql0)
 
       override def execBatch(stream: fs2.Stream[F, A]): fs2.Stream[F,Int] = {
         conn
@@ -53,7 +53,7 @@ object Batcher {
 
 
 trait Batcher[F[_],A] {
-  val sql: ResolvedSql
+  val sql: CompiledSql
   def execBatch(stream: fs2.Stream[F,A]): fs2.Stream[F,Int]
 }
 

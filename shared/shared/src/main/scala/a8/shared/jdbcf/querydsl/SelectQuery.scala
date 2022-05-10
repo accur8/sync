@@ -1,6 +1,6 @@
 package a8.shared.jdbcf.querydsl
 
-import a8.shared.jdbcf.Conn
+import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.querydsl.QueryDsl._
 
 
@@ -16,6 +16,6 @@ trait SelectQuery[F[_], T, U] {
   def fetchOpt(implicit conn: Conn[F]): F[Option[T]]
   def streamingSelect(implicit conn: Conn[F]): fs2.Stream[F,T]
   def select(implicit conn: Conn[F]): F[Vector[T]]
-  def asSql: String
+  def sqlString: SqlString
 
 }

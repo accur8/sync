@@ -11,7 +11,7 @@ import a8.shared.jdbcf.mapper.CaseClassMapper.{And, ColumnNameResolver}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.Mapper.FieldHandler
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, Linker, field, fieldExprs}
+import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, LinkCompiler, Linker, field, fieldExprs}
 
 import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
@@ -41,7 +41,7 @@ object MapperBuilder {
     val columnNames: Iterable[ColumnName]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def rawRead(row: Row, index: Int): (Any, Int)
-    def booleanOp(linker: QueryDsl.Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition
+    def booleanOp(linker: QueryDsl.Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition
 
     def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): F[Parm[A]]
 
@@ -69,10 +69,10 @@ object MapperBuilder {
         }
     }
 
-    override def booleanOp(linker: Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition =
+    override def booleanOp(linker: Linker, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition =
       fieldHandler.booleanOp(linker, name, parm.lens(a), columnNameResolver)
 
-    def booleanOpB(linker: QueryDsl.Linker, b: B, columnNameResolver: ColumnNameResolver)(implicit alias: Linker => Chord): QueryDsl.Condition =
+    def booleanOpB(linker: QueryDsl.Linker, b: B, columnNameResolver: ColumnNameResolver)(implicit alias: LinkCompiler): QueryDsl.Condition =
       fieldHandler.booleanOp(linker, name, b, columnNameResolver)
 
   }
@@ -127,16 +127,19 @@ object MapperBuilder {
   }
 
   object implicits {
-    implicit def linkerToChord(linker: Linker): Chord = {
-      linker match {
-        case c: ComponentJoin =>
-          Chord.str(c.path.mkString)
-        case QueryDsl.RootJoin =>
-          Chord.empty
-        case j: Join =>
-          sys.error("not supported")
+    implicit val linkCompiler: LinkCompiler =
+      new LinkCompiler {
+        override def alias(linker: Linker): SqlString = {
+          linker match {
+            case c: ComponentJoin =>
+              alias(c.parent)
+            case QueryDsl.RootJoin =>
+              SqlString.Empty
+            case j: Join =>
+              sys.error("not supported")
+          }
+        }
       }
-    }
   }
 
   case class SinglePrimaryKey[A,B](
@@ -150,8 +153,8 @@ object MapperBuilder {
     override def whereClause(key: B, columnNameResolver: ColumnNameResolver): SqlString = {
       import implicits._
       val condition = parm.booleanOpB(QueryDsl.RootJoin, key, columnNameResolver)
-      val ch = QueryDsl.asSql(condition)
-      SqlString.keyword(ch.toString)
+      val ss = QueryDsl.asSql(condition)
+      ss
     }
   }
 

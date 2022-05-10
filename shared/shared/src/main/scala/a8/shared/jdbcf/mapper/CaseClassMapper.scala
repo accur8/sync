@@ -11,7 +11,7 @@ import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.{Chord, SharedImports, jdbcf}
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, StructuralProperty}
+import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, LinkCompiler, StructuralProperty}
 
 import java.sql.PreparedStatement
 
@@ -23,13 +23,13 @@ object CaseClassMapper {
 
   object ColumnNameResolver {
     object noop extends ColumnNameResolver {
-      override def apply(columnName: ColumnName): ColumnName =
-        columnName
+      override def quote(columnName: ColumnName): DialectQuotedIdentifier =
+        DialectQuotedIdentifier(columnName.asString)
     }
   }
 
   trait ColumnNameResolver {
-    def apply(columnName: ColumnName): ColumnName
+    def quote(columnName: ColumnName): DialectQuotedIdentifier
   }
 
 }
@@ -75,7 +75,7 @@ case class CaseClassMapper[A, PK](
       .flatMap(_.columnNames)
       .map(cn => ColumnName(columnNamePrefix.value.toString + cn.value.toString))
 
-  override def structuralEquality(linker: QueryDsl.Linker, a: A)(implicit alias: QueryDsl.Linker => Chord): QueryDsl.Condition =
+  override def structuralEquality(linker: QueryDsl.Linker, a: A)(implicit alias: LinkCompiler): QueryDsl.Condition =
     fields
       .map(_.booleanOp(linker, a, columnNameResolver))
       .reduceLeft((l,r) => QueryDsl.And(l,r))
@@ -96,7 +96,7 @@ case class CaseClassMapper[A, PK](
   lazy val resolvedColumnNames =
     fields
       .flatMap(_.columnNames)
-      .map(columnNameResolver.apply)
+      .map(columnNameResolver.quote)
 
   lazy val selectAndFrom = {
     val selectFields =
@@ -146,35 +146,30 @@ case class CaseClassMapper[A, PK](
   }
 
   override def materializeKeyedTableMapper[F[_] : SharedImports.Async](implicit conn: Conn[F]): F[KeyedTableMapper[A, PK]] = {
-    def columnNameResolverF(tableMeta: ResolvedJdbcTable) =
-      conn
-        .asInternal
-        .withStatement { st =>
-          Async[F].blocking {
-            val mappedColumnNames =
-              tableMeta
-                .columns
-                .map { rc =>
-                  val quotedId = st.enquoteIdentifier(rc.name.value.toString, true)
-                  rc.name -> ColumnName(quotedId)
-                }
-                .toMap
-
-            val columnNameResolver =
-              new ColumnNameResolver {
-                override def apply(columnName: ColumnName): ColumnName =
-                  mappedColumnNames.getOrElse(columnName, columnName)
-              }
-
-            columnNameResolver
+    def columnNameResolver0(tableMeta: ResolvedJdbcTable) = {
+      val mappedColumnNames: Map[ColumnName, DialectQuotedIdentifier] =
+        tableMeta
+          .columns
+          .map { rc =>
+            rc.name -> SqlString.DialectQuotedIdentifier(rc.name.value.toString)
           }
+          .toMap
+
+      val columnNameResolver =
+        new ColumnNameResolver {
+          override def quote(columnName: ColumnName): DialectQuotedIdentifier =
+            mappedColumnNames.getOrElse(columnName, DialectQuotedIdentifier(columnName.asString))
         }
+
+      columnNameResolver
+    }
+//        }
 
   val columnNamePrefix = ColumnName("")
     for {
       tableName <- conn.resolveTableName(TableLocator(tableName))
       resolvedJdbcTable <- conn.tableMetadata(tableName.asLocator)
-      columnNameResolver <- columnNameResolverF(resolvedJdbcTable)
+      columnNameResolver = columnNameResolver0(resolvedJdbcTable)
       materializedRawFields <-
         rawFields
           .map { parm =>

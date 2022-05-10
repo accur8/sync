@@ -9,6 +9,12 @@ object PostgresDialect extends Dialect {
 
   implicit def self: Dialect = this
 
+  /**
+   * postgres default case is lower
+   */
+  override def isIdentifierDefaultCase(name: String): Boolean =
+    !name.exists(_.isUpper)
+
   override def isPostgres: Boolean = true
 
   /**

@@ -2,8 +2,9 @@ package a8.shared.jdbcf.querydsl
 
 
 import a8.shared.CompanionGen
+import a8.shared.jdbcf.SqlString.{DefaultJdbcEscaper, Escaper, NoopEscaper}
 import a8.shared.jdbcf.mapper.{MapperBuilder, PK}
-import a8.shared.jdbcf.querydsl
+import a8.shared.jdbcf.{SqlString, querydsl}
 import a8.shared.jdbcf.querydsl.MxQueryDslTest.{MxAddress, MxContainer, MxWidget}
 import a8.shared.jdbcf.querydsl.QueryDsl.Join
 import cats.effect.{Async, IO}
@@ -40,6 +41,16 @@ object QueryDslTest {
 
 class QueryDslTest extends AnyFunSuite {
 
+  implicit val defaultEscaper: Escaper = NoopEscaper
+
+  implicit class SqlStringOps(sqlString: SqlString) {
+    def compileToString: String =
+      sqlString
+        .compile
+        .value
+        .trim
+  }
+
   import QueryDslTest._
 
   def assertEquals[A](expected: A, actual: A) =
@@ -49,9 +60,13 @@ class QueryDslTest extends AnyFunSuite {
 
     val query = Widget.query[IO](aa => aa.id === "foo" and aa.container.id === "bar")
 
-    val actual = query.asSql.trim
+    val actual = query.sqlString.compileToString
 
-    assertEquals("select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' and bb.id = 'bar'", actual)
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' and bb.id = 'bar'"
+    )(
+      actual
+    )
 
   }
 
@@ -61,9 +76,13 @@ class QueryDslTest extends AnyFunSuite {
 
     val query = Container.query[IO](aa => aa.address === address)
 
-    val actual = query.asSql.trim
+    val actual = query.sqlString.compileToString
 
-    assertEquals("select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'line1' and aa.addressline2 = 'line2' and aa.addresscity = 'city' and aa.addressstate = 'state' and aa.addresszip = 'zip'", actual)
+    assertResult(
+      "select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'line1' and aa.addressline2 = 'line2' and aa.addresscity = 'city' and aa.addressstate = 'state' and aa.addresszip = 'zip'"
+    )(
+      actual
+    )
 
   }
 
@@ -71,9 +90,13 @@ class QueryDslTest extends AnyFunSuite {
 
     val query = Container.query[IO](aa => aa.address.line1 === "myline1")
 
-    val actual = query.asSql.trim
+    val actual = query.sqlString.compileToString
 
-    assertEquals("select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'myline1'", actual)
+    assertResult(
+      "select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'myline1'"
+    )(
+      actual
+    )
 
   }
 
@@ -81,28 +104,44 @@ class QueryDslTest extends AnyFunSuite {
 
     val query = Widget.query[IO](aa => aa.id === "foo" and aa.container.id === "bar").orderBys(aa=>List(aa.id, aa.container.name))
 
-    val actual = query.asSql.trim
+    val actual = query.sqlString.compileToString
 
-    assertEquals("select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' and bb.id = 'bar' order by aa.id ASC, bb.name ASC", actual)
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' and bb.id = 'bar' order by aa.id asc, bb.name asc"
+    )(
+      actual
+    )
 
   }
 
   test("simple") {
     val query = Container.query[IO](aa => aa.count >= 1L)
-    val actual = query.asSql.trim
-    assertEquals("""select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count >= 1""", actual)
+    val actual = query.sqlString.compileToString
+    assertResult(
+      """select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count >= 1"""
+    )(
+      actual
+    )
   }
 
   test("noneAsNull") {
     val query = Container.query[IO](aa => aa.count === None)
-    val actual = query.asSql.trim
-    assertEquals("""select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count is null""", actual)
+    val actual = query.sqlString.compileToString
+    assertResult(
+      """select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count is null"""
+    )(
+      actual
+    )
   }
 
   test("someAsValue") {
     val query = Container.query[IO](aa => aa.count === Some(1L))
-    val actual = query.asSql.trim
-    assertEquals("""select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count = 1""", actual)
+    val actual = query.sqlString.compileToString
+    assertResult(
+      """select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count = 1"""
+    )(
+      actual
+    )
   }
 
 //  test("updateQuery") {

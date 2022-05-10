@@ -1,12 +1,10 @@
 package a8.shared.jdbcf.querydsl
 
-import a8.shared.Chord
 import a8.shared.jdbcf.{ColumnName, RowWriter, SqlString}
 import a8.shared.jdbcf.mapper.{ComponentMapper, Mapper, TableMapper}
 
 import scala.language.{existentials, implicitConversions}
-import Chord._
-import a8.shared.jdbcf.SqlString.SqlStringer
+import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
 import cats.data.Chain
 import cats.effect.Async
@@ -41,27 +39,33 @@ TODO support overriding the select fields
 
 object QueryDsl {
 
-  object ch {
-    val Space = Chord.str(" ")
-    val Underscore = Chord.str("_")
-    val LeftParen = Chord.str("(")
-    val RightParen = Chord.str(")")
-    val IsNotNull = Chord.str("is not null")
-    val IsNull = Chord.str("is null")
-    val OneEqOne = Chord.str("1 = 1")
-    val OneNeOne = Chord.str("1 <> 1")
-    val And = Chord.str("and")
-    val Or = Chord.str("or")
-    val In = Chord.str("in")
-    val Null = Chord.str("null")
-    val Concat = Chord.str("||")
-    val NullWithParens = Chord.str("(null)")
-//    val QuestionMark = Chord.str("?")
-    val Comma = Chord.str(",")
-    val CommaSpace = Chord.str(", ")
-    val Equal = Chord.str("=")
-    val From = Chord.str("from")
-    val Update = Chord.str("update")
+  object ss {
+    val Period = SqlString.keyword(".")
+    val Space = SqlString.keyword(" ")
+    val Underscore = SqlString.keyword("_")
+    val LeftParen = SqlString.keyword("(")
+    val RightParen = SqlString.keyword(")")
+    val IsNotNull = SqlString.keyword("is not null")
+    val IsNull = SqlString.keyword("is null")
+    val OneEqOne = SqlString.keyword("1 = 1")
+    val OneNeOne = SqlString.keyword("1 <> 1")
+    val And = SqlString.keyword("and")
+    val Or = SqlString.keyword("or")
+    val In = SqlString.keyword("in")
+    val Null = SqlString.keyword("null")
+    val Concat = SqlString.keyword("||")
+    val NullWithParens = SqlString.keyword("(null)")
+//    val QuestionMark = SqlString.keyword("?")
+    val Comma = SqlString.keyword(",")
+    val CommaSpace = SqlString.keyword(", ")
+    val Equal = SqlString.keyword("=")
+    val From = SqlString.keyword("from")
+    val Update = SqlString.keyword("update")
+    val Asc = SqlString.keyword("asc")
+    val Desc = SqlString.keyword("desc")
+    val Set = SqlString.keyword("set")
+    val Where = SqlString.keyword("where")
+    val NewLine = SqlString.keyword("\n")
   }
 
   val TRUE: Condition = Condition.TRUE
@@ -84,6 +88,7 @@ object QueryDsl {
 
   case class Constant[T: SqlStringer](value: T) extends Expr[T] {
     val sqlStringer = SqlStringer[T]
+    val sqlString = sqlStringer.toSqlString(value)
 //    def applyRowWriter = QueryDsl.applyRowWriter(value, RowWriter[T])
 //    def applyRowWriterChain = Chain.one(applyRowWriter)
   }
@@ -111,12 +116,17 @@ object QueryDsl {
   sealed trait FieldExpr[T] extends Expr[T] {
     def name: String
     def join: Linker
+    def resolvedComponentName: Boolean
   }
 
   case class In[T: SqlStringer](left: Expr[T], set: Iterable[Constant[T]]) extends Condition
 
-  case class Field[T: SqlStringer](name: String, join: Linker) extends FieldExpr[T]
-  case class NumericField[T: SqlStringer](name: String, join: Linker) extends NumericExpr[T] with FieldExpr[T]
+  case class Field[T: SqlStringer](name: String, join: Linker, resolvedComponentName: Boolean) extends FieldExpr[T] {
+    if ( name.startsWith("addr") || name.startsWith("line") ) {
+      toString
+    }
+  }
+  case class NumericField[T: SqlStringer](name: String, join: Linker, resolvedComponentName: Boolean) extends NumericExpr[T] with FieldExpr[T]
 
   case class Concat(left: Expr[_], right: Expr[_]) extends Expr[String]
 
@@ -124,22 +134,22 @@ object QueryDsl {
   case class NumericOperation[T: SqlStringer](left: Expr[T], op: NumericOperator, right: Expr[T]) extends NumericExpr[T]
 
   sealed trait BooleanOperator {
-    val asSql: Chord
+    val asSql: SqlString
   }
   abstract class AbstractOperator(sqlStr: String) {
-    val asSql: Chord = Chord.str(sqlStr)
+    val asSql: SqlString = SqlString.keyword(sqlStr)
   }
 
   sealed trait NumericOperator {
-    val asSql: Chord
+    val asSql: SqlString
   }
 
   sealed trait UnaryOperator {
-    val asSql: Chord
+    val asSql: SqlString
   }
 
   sealed trait BinaryOperator {
-    val asSql: Chord
+    val asSql: SqlString
   }
 
   object ops {
@@ -170,7 +180,7 @@ object QueryDsl {
   def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[_]] =
     cond match {
       case se@ StructuralEquality(_, _, _) =>
-        fieldExprs(generateStructuralComparison(se)(_ => Chord.empty))
+        fieldExprs(generateStructuralComparison(se)(LinkCompiler.empty))
       case Condition.TRUE =>
         IndexedSeq.empty
       case Condition.FALSE =>
@@ -215,6 +225,25 @@ object QueryDsl {
 
   }
 
+  object LinkCompiler {
+    case object empty extends LinkCompiler {
+      override def alias(linker: Linker): SqlString =
+        SqlString.Empty
+    }
+  }
+
+
+  trait LinkCompiler {
+    def alias(linker: Linker): SqlString
+    def prefix(linker: Linker): String =
+      linker match {
+        case cj: ComponentJoin =>
+          cj.path.mkString
+        case _ =>
+          ""
+      }
+  }
+
   sealed trait Linker {
     def baseJoin: Join
     def columnName(suffix: ColumnName): ColumnName
@@ -235,8 +264,8 @@ object QueryDsl {
     def columnName(suffix: ColumnName) = suffix
   }
 
-  case class JoinImpl(parent: Join, name: String, toTableMapper: TableMapper[_], joinExprFn: ()=>QueryDsl.Condition) extends Join {
-    lazy val joinExpr = joinExprFn()
+  case class JoinImpl(parent: Join, name: String, toTableMapper: TableMapper[_], joinExprFn: Join=>QueryDsl.Condition) extends Join {
+    lazy val joinExpr = joinExprFn(this)
     override def chain = this :: parent.chain
     def depth = parent.depth + 1
     def columnName(suffix: ColumnName) = suffix
@@ -244,11 +273,13 @@ object QueryDsl {
 
   case class ComponentJoin(name: String, parent: Linker) extends Linker {
     val nameAsColumnName = ColumnName(name)
-    def path = name :: parentPath
-    def parentPath: List[String] =
+    lazy val path: Vector[String] = name +: parentPath
+    lazy val parentPath: Vector[String] =
       parent match {
-        case pj: ComponentJoin => pj.path
-        case _ => Nil
+        case pj: ComponentJoin =>
+          pj.path
+        case _ =>
+          Vector.empty
       }
     lazy val baseJoin: Join =
       parent match {
@@ -263,20 +294,20 @@ object QueryDsl {
     parent: Join,
     name: String,
     fromTableDsl: A,
-    toTableDsl: ()=>B,
+    toTableDsl: Join=>B,
     toTableMapper: TableMapper[_]
   ) (
     joinExprFn: (A, B) => QueryDsl.Condition
   ): Join = {
-    JoinImpl(parent, name, toTableMapper, ()=>joinExprFn(fromTableDsl, toTableDsl()))
+    JoinImpl(parent, name, toTableMapper, join=>joinExprFn(fromTableDsl, toTableDsl(join)))
   }
 
 
   def field[T: SqlStringer](name: String, join: Linker = RootJoin): Field[T] =
-    Field[T](name, join)
+    Field[T](name, join, false)
 
   def numericField[T: SqlStringer](name: String, join: Linker = RootJoin): NumericField[T] =
-    NumericField[T](name, join)
+    NumericField[T](name, join, false)
 
   sealed abstract class Expr[T: SqlStringer] {
 
@@ -341,65 +372,72 @@ object QueryDsl {
 
   }
 
-  def parens(cond: Condition)(implicit alias: Linker => Chord = _ => Chord.empty): Chord = {
+  def parens(cond: Condition)(implicit alias: LinkCompiler = LinkCompiler.empty): SqlString = {
     if ( cond.isComposite )
-      ch.LeftParen ~ asSql(cond) ~ ch.RightParen
+      ss.LeftParen ~ asSql(cond) ~ ss.RightParen
     else
       asSql(cond)
   }
 
-  def noAliasAliasMapper(j: Linker): Chord = Chord.empty
+  def noAliasAliasMapper(j: Linker): SqlString = SqlString.Empty
 
   trait StructuralProperty[A] {
     def booleanOp(linker: QueryDsl.Linker, a: A): QueryDsl.Condition
   }
 
-  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: Linker => Chord): Condition = {
+  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: LinkCompiler): Condition = {
     structuralEquality
       .mapper
       .structuralEquality(structuralEquality.linker, structuralEquality.value)
   }
 
-  def asSql(cond: Condition)(implicit alias: Linker => Chord): Chord =
+  def asSql(cond: Condition)(implicit alias: LinkCompiler): SqlString = {
+    import SqlString._
     cond match {
       case se@ StructuralEquality(_, _, _) =>
         asSql(generateStructuralComparison(se))
       case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
-        exprAsSql(l) * ch.IsNotNull
+        exprAsSql(l) * ss.IsNotNull
       case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
-        exprAsSql(l) * ch.IsNull
+        exprAsSql(l) * ss.IsNull
       case Condition.TRUE =>
-        ch.OneEqOne
+        ss.OneEqOne
       case Condition.FALSE =>
-        ch.OneNeOne
+        ss.OneNeOne
       case and: And =>
-        asSql(and.left) ~*~ ch.And ~*~ asSql(and.right)
+        asSql(and.left) ~*~ ss.And ~*~ asSql(and.right)
       case or: Or =>
-        asSql(or.left) ~*~ ch.Or ~*~ asSql(or.right)
+        asSql(or.left) ~*~ ss.Or ~*~ asSql(or.right)
       case op: BooleanOperation[_] =>
         exprAsSql(op.left) ~*~ op.op.asSql ~*~ exprAsSql(op.right)
       case is: IsNull =>
-        exprAsSql(is.left) ~*~ (if (is.not) ch.IsNotNull else ch.IsNull)
+        exprAsSql(is.left) ~*~ (if (is.not) ss.IsNotNull else ss.IsNull)
       case in: In[_] if in.set.isEmpty =>
-        exprAsSql(in.left) ~*~ ch.In ~*~ "(null)"
+        exprAsSql(in.left) ~*~ ss.In ~*~ ss.NullWithParens
       case in: In[_] =>
-        exprAsSql(in.left) ~*~ ch.In ~*~ ch.LeftParen ~ in.set.map(exprAsSql).mkChord(ch.Comma) ~ ")"
+        exprAsSql(in.left) ~*~ ss.In ~*~ ss.LeftParen ~ in.set.map(exprAsSql).mkSqlString(ss.Comma) ~ ss.RightParen
     }
+  }
 
-  def exprAsSql[T](expr: Expr[T])(implicit alias: Linker => Chord): Chord = expr match {
+  def exprAsSql[T](expr: Expr[T])(implicit compiler: LinkCompiler): SqlString = expr match {
     case fe: FieldExpr[T] =>
-      val a = alias(fe.join)
-      a ~ fe.name
+      val a = compiler.alias(fe.join)
+      val name =
+        if ( fe.resolvedComponentName )
+          fe.name
+        else
+          compiler.prefix(fe.join) + fe.name
+      a ~ DialectQuotedIdentifier(name)
     case OptionConstant(Some(c)) =>
       exprAsSql(c)
     case constant: Constant[T] =>
-      Chord.str(constant.sqlStringer.toSqlString(constant.value).toString)
+      constant.sqlString
     case c: Concat =>
-      exprAsSql(c.left) ~*~ "||" ~*~ exprAsSql(c.right)
+      exprAsSql(c.left) ~*~ ss.Concat ~*~ exprAsSql(c.right)
     case no: NumericOperation[T] =>
       exprAsSql(no.left) ~*~ no.op.asSql ~*~ exprAsSql(no.right)
     case OptionConstant(None) =>
-      ch.Null
+      ss.Null
     case UnaryOperation(op, e) =>
       op.asSql ~ exprAsSql(e)
   }
@@ -411,7 +449,8 @@ object QueryDsl {
   case class OrderBy(expr: Expr[_], ascending: Boolean = true) {
     def asc = copy(ascending=true)
     def desc = copy(ascending=false)
-    def asSql(implicit alias: Linker => Chord) = QueryDsl.exprAsSql(expr) ~*~ (if (ascending) "ASC" else "DESC")
+    def asSql(implicit alias: LinkCompiler): SqlString =
+      QueryDsl.exprAsSql(expr) ~*~ (if (ascending) ss.Asc else ss.Desc)
   }
 
   abstract class Component[A](join: QueryDsl.Linker) {
