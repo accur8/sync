@@ -10,6 +10,16 @@ import a8.sync.qubes.QubesMapperBuilder.{Parm, PrimaryKey}
 
 object QubesMapper {
 
+  implicit object QubesEscaper extends Escaper {
+
+    override def unsafeSqlEscapeStringValue(value: String): String =
+      "'" + value.replace("'","''") + "'"
+
+    override def unsafeSqlQuotedIdentifier(identifier: String): String =
+      identifier
+
+  }
+
   case class QubesMapperImpl[A,B](
     cubeName: TableName,
     appSpace: String,
@@ -57,7 +67,7 @@ object QubesMapper {
 
     override def queryReq(whereClause: SqlString): QueryRequest =
       QueryRequest(
-        query = (sql"from ${cubeName} select ${parms.map(p => sql"${p.columnName} as ${p.columnName}").mkSqlString(SqlString.Comma)} where ${whereClause}").toString,
+        query = sql"from ${cubeName} select ${parms.map(p => sql"${p.columnName} as ${p.columnName}").mkSqlString(SqlString.Comma)} where ${whereClause}".compile.value,
         dataFormat = QueryRequest.verbose,
         appSpace = Some(appSpace),
       )
