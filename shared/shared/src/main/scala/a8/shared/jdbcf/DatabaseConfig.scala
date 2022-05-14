@@ -19,6 +19,5 @@ case class DatabaseConfig(
   password: String,
   minIdle: Int = 1,
   maxPoolSize: Int = 50,
-//  dialect: Dialect = Dialect.Default,
   autoCommit: Boolean = true,
 )

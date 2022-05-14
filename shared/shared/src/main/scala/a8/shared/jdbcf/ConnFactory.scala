@@ -6,14 +6,14 @@ import a8.shared.jdbcf.Conn.impl
 import sttp.model.Uri
 
 import javax.sql.DataSource
-
+import zio._
 
 object ConnFactory extends ConnFactoryPlatform with ConnFactoryImpl {
 }
 
-trait ConnFactory[F[_]] {
+trait ConnFactory {
 
   val config: DatabaseConfig
-  def connR: Resource[F,Conn[F]]
+  def connR: ZIO[Scope,Throwable,Conn]
 
 }

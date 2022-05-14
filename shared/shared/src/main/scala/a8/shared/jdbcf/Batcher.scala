@@ -1,48 +1,51 @@
 package a8.shared.jdbcf
 
+import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx
 import a8.shared.jdbcf.SqlString.CompiledSql
-import cats.effect.Async
-import fs2.Chunk
+import zio.stream.{UStream, ZSink, ZStream}
 
 import scala.language.higherKinds
 
 object Batcher {
 
-  def create[F[_] : Async, A : RowWriter](conn: ConnInternal[F], sql: SqlString): Batcher[F,A] = {
+  def create[A : RowWriter](conn: ConnInternal, sql: SqlString): Batcher[A] = {
 
     val sql0 = sql
     val writerA = implicitly[RowWriter[A]]
-    val F = Async[F]
 
-    new Batcher[F,A] {
+    new Batcher[A] {
 
       override lazy val sql = conn.compile(sql0)
 
-      override def execBatch(stream: fs2.Stream[F, A]): fs2.Stream[F,Int] = {
-        conn
-          .prepare(sql0)
-          .flatMap { ps =>
-            val results =
-              fs2.Stream
-                .eval[F, fs2.Stream[F,Int]] {
-                  withSqlCtx(sql) {
-                    val results = ps.executeBatch()
-                    fs2.Stream.chunk[F,Int](Chunk.array(results))
+
+      override def execBatch(stream: XStream[A]): XStream[Int] = {
+        val effect =
+          conn
+            .prepare(sql0)
+            .map { ps =>
+              val results: XStream[Int] =
+                ZStream
+                  .fromIterableZIO {
+                    withSqlCtx(sql) {
+                      ps.executeBatch().toIterable
+                    }
                   }
-                }
-                .flatten
-            fs2.Stream.exec {
-              stream
-                .map { a =>
-                  writerA.applyParameters(ps, a, 0)
-                  ps.addBatch()
-                }
-                .compile
-                .drain
-            } ++ results
-          }
+              val header =
+                ZStream
+                  .execute {
+                    stream
+                      .map { a =>
+                        writerA.applyParameters(ps, a, 0)
+                        ps.addBatch()
+                      }
+                      .run(ZSink.last)
+                  }
+              header
+                .flatMap(_ => results)
+            }
+        ZStream.unwrapScoped(effect)
       }
     }
 
@@ -52,8 +55,8 @@ object Batcher {
 
 
 
-trait Batcher[F[_],A] {
+trait Batcher[A] {
   val sql: CompiledSql
-  def execBatch(stream: fs2.Stream[F,A]): fs2.Stream[F,Int]
+  def execBatch(stream: XStream[A]): XStream[Int]
 }
 

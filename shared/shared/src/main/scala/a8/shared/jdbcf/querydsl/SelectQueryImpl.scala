@@ -4,21 +4,21 @@ package a8.shared.jdbcf.querydsl
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
 import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Condition, Join, JoinImpl, PathCompiler, Path, OrderBy}
-import cats.effect.Async
 
 import scala.language.implicitConversions
 import scala.language.existentials
 import a8.shared.SharedImports._
 import SqlString._
+import zio._
 
-case class SelectQueryImpl[F[_]: Async, T,U](
+case class SelectQueryImpl[T,U](
   tableDsl: U,
   outerMapper: TableMapper[T],
   where: Condition,
   orderBy: List[OrderBy],
   maxRows: Int = -1
 )
-  extends SelectQuery[F,T,U]
+  extends SelectQuery[T,U]
 {
 
   implicit def implicitMapper: TableMapper[T] = outerMapper
@@ -35,7 +35,7 @@ case class SelectQueryImpl[F[_]: Async, T,U](
         orderBy
           .map(_.asSql)
           .mkSqlString(CommaSpace)
-          .some
+          .toSome
       }
 
     lazy val fieldExprs = QueryDsl.fieldExprs(where)
@@ -109,47 +109,47 @@ case class SelectQueryImpl[F[_]: Async, T,U](
   override def sqlString: SqlString =
     queryResolver.extendedQuerySql
 
-  override def orderBy(orderFn: U=>OrderBy): SelectQuery[F,T,U] =
+  override def orderBy(orderFn: U=>OrderBy): SelectQuery[T,U] =
     copy(orderBy=List(orderFn(tableDsl)))
 
-  override def orderBys(orderFn: U=>Iterable[OrderBy]): SelectQuery[F,T,U] =
+  override def orderBys(orderFn: U=>Iterable[OrderBy]): SelectQuery[T,U] =
     copy(orderBy=orderFn(tableDsl).toList)
 
-  override def maxRows(count: Int): SelectQuery[F,T, U] =
+  override def maxRows(count: Int): SelectQuery[T, U] =
     copy(maxRows=count)
 
-  override def fetch(implicit conn: Conn[F]): F[T] =
+  override def fetch(implicit conn: Conn): Task[T] =
     fetchOpt
       .flatMap {
         case None =>
-          Async[F].raiseError(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
+          ZIO.die(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
         case Some(t) =>
-          Async[F].pure(t)
+          ZIO.succeed(t)
       }
 
-  override def fetchOpt(implicit conn: Conn[F]): F[Option[T]] =
+  override def fetchOpt(implicit conn: Conn): Task[Option[T]] =
     select
       .flatMap {
         case Vector() =>
-          Async[F].pure(None)
+          ZIO.succeed(None)
         case Vector(t) =>
-          Async[F].pure(t.some)
+          ZIO.succeed(Some(t))
         case v =>
-          Async[F].raiseError(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
+          ZIO.die(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
       }
 
-  override def select(implicit conn: Conn[F]): F[Vector[T]] =
+  override def select(implicit conn: Conn): Task[Vector[T]] =
     conn
       .query[T](sqlString)
       .select
       .map(_.toVector)
 
-  override def streamingSelect(implicit conn: Conn[F]): fs2.Stream[F, T] =
+  override def streamingSelect(implicit conn: Conn): XStream[ T] =
     conn
       .streamingQuery[T](sqlString)
       .run
 
-  def sqlForErrorMessage(implicit conn: Conn[F]): String = {
+  def sqlForErrorMessage(implicit conn: Conn): String = {
     import conn._
     sqlString
       .compile

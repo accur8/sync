@@ -4,11 +4,12 @@ package a8.shared.jdbcf
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.ast.{JsDoc, JsNothing, JsNull}
+import zio._
 
 case class JsDocSqlStringer(nullable: Boolean, typeSuffix: Option[String]) extends SqlStringer[JsDoc] {
 
 
-  override def materialize[F[_]: Async](conn: Conn[F], resolvedColumn: JdbcMetadata.ResolvedColumn): F[SqlStringer[JsDoc]] = {
+  override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): Task[SqlStringer[JsDoc]] = {
 
     val typeSuffix =
       conn
@@ -16,7 +17,7 @@ case class JsDocSqlStringer(nullable: Boolean, typeSuffix: Option[String]) exten
         .isPostgres
         .toOption("::"  + resolvedColumn.jdbcColumn.typeName)
 
-    Async[F].pure(
+    ZIO.succeed(
       JsDocSqlStringer(resolvedColumn.isNullable, typeSuffix)
     )
   }

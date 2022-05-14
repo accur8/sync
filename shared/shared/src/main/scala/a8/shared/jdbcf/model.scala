@@ -8,7 +8,6 @@ import a8.shared.StringValue.{CIStringValue, CIStringValueCompanion}
 import a8.shared.jdbcf.Mxmodel.MxResolvedTableName
 import a8.shared.jdbcf.SqlString.HasSqlString
 import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
-import cats.effect.Sync
 import org.typelevel.ci.CIString
 import scala.language.implicitConversions
 

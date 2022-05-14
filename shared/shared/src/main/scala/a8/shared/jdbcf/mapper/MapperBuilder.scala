@@ -17,6 +17,7 @@ import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join,
 import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
 import language.implicitConversions
+import zio._
 
 object MapperBuilder {
 
@@ -44,7 +45,7 @@ object MapperBuilder {
     def rawRead(row: Row, index: Int): (Any, Int)
     def booleanOp(linker: QueryDsl.Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
 
-    def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): F[Parm[A]]
+    def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[Parm[A]]
 
   }
 
@@ -61,7 +62,7 @@ object MapperBuilder {
     def rawRead(row: Row, index: Int): (Any, Int) =
       fieldHandler.rowReader.rawRead(row, index)
 
-    override def materialize[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: ResolvedJdbcTable): F[Parm[A]] = {
+    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[Parm[A]] = {
       val columnName = ColumnName(columnNamePrefix.asString + parm.name)
       fieldHandler
         .materialize(columnName, conn, resolvedJdbcTable)

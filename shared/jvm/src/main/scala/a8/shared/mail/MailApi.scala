@@ -1,10 +1,11 @@
 package a8.shared.mail
 
 import a8.shared.SharedImports._
+import a8.shared.app.LoggingF
 import jakarta.mail.{Authenticator, PasswordAuthentication, Session, Transport}
 
 import java.util.Properties
-
+import zio._
 /**
  * Usage:
  *
@@ -21,12 +22,12 @@ import java.util.Properties
  *   mailApi.send(message)
  * }
  */
-object MailApi {
+object MailApi extends LoggingF {
 
-  def asResource[F[_] : Sync](config: MailConfig): Resource[F, MailApi[F]] = {
+  def asResource(config: MailConfig): ZIO[Scope,Throwable,MailApi] = {
 
-    def acquire: F[MailApi[F]] =
-      Sync[F].blocking {
+    def acquire: Task[MailApi] =
+      ZIO.attemptBlocking {
         val props = new Properties()
         props.put("mail.debug", config.debug.toString)
         props.put("mail.debug.auth", config.debug.toString)
@@ -56,20 +57,24 @@ object MailApi {
         MailApi(session, transport)
       }
 
-    def release(mailApi: MailApi[F]): F[Unit] =
-      Sync[F].blocking {
-        mailApi.transport.close()
-      }
+    def release(mailApi: MailApi): ZIO[Any,Nothing,Unit] =
+      ZIO
+        .attemptBlocking(
+          mailApi.transport.close()
+        )
+        .catchAll(th =>
+          loggerF.debug("catching and swallowing likely benign error on release", th)
+        )
 
-    Resource.make(acquire)(release)
+    ZIO.acquireRelease(acquire)(release)
   }
 
 }
 
-case class MailApi[F[_]: Sync](session: Session, transport: Transport) {
+case class MailApi(session: Session, transport: Transport) {
 
-  def send(message: MailMessage): F[Unit] = {
-    Sync[F].blocking {
+  def send(message: MailMessage): Task[Unit] = {
+    ZIO.attemptBlocking {
       val mimeMessage = message.toMimeMessage(session)
       transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients)
     }

@@ -3,13 +3,13 @@ package a8.shared.app
 
 import a8.shared.SharedImports._
 import a8.shared.app.BootstrapConfig.AppName
-import cats.effect.{ExitCode, IO}
 import wvlet.log.LogLevel
+import zio._
 
 abstract class BootstrappedIOApp
-  extends IOApp
+  extends ZIOAppDefault
     with AppLogger
-    with IOLogger
+    with LoggingF
 {
 
   def initialLogLevels: Iterable[(String,wvlet.log.LogLevel)] = {
@@ -54,12 +54,12 @@ abstract class BootstrappedIOApp
     getClass.shortName.toLowerCase
 
   lazy val resolvedAppName: AppName =
-    AppName(System.getProperty("appname", defaultAppName))
+    AppName(java.lang.System.getProperty("appname", defaultAppName))
 
   lazy val bootstrapper = Bootstrapper(resolvedAppName)
   lazy val bootstrapConfig = bootstrapper.bootstrapConfig
 
-  def appInit: IO[Unit] = IO.delay {
+  def appInit: Task[Unit] = ZIO.attempt {
 
     // make sure bootstrap is complete
     bootstrapInit
@@ -88,16 +88,19 @@ abstract class BootstrappedIOApp
 
   }
 
-  def wrapRun(io: IO[Unit]): IO[Unit] =
-    io.logCompletion
 
-  def run: IO[Unit]
+  def runT: Task[Unit]
 
-  def run(args: List[String]): IO[ExitCode] = {
-    for {
-      _ <- appInit
-      _ <- this.run
-    } yield ExitCode.Success
+
+  final override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
+    (
+      for {
+        _ <- appInit
+        _ <- runT
+      } yield ()
+    ).catchAll(th =>
+      loggerF.error("fatal error ending app", th)
+    )
   }
 
 

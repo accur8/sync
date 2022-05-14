@@ -1,13 +1,12 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.CatsUtils.CacheBuilder
 import a8.shared.{AtomicMap, NamedToString}
 import a8.shared.jdbcf.JdbcMetadata.{JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.{CatalogName, ColumnName, ResolvedTableName, SchemaName, TableLocator, TableName}
-import cats.effect.{Async, Resource}
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
+import zio._
 
 import java.sql.ResultSetMetaData
 
@@ -141,21 +140,20 @@ object JdbcMetadata {
   }
 
 
-  def apply[F[_] : Async]: JdbcMetadata[F] = {
-    val F = Async[F]
+  val default =
 
-    new JdbcMetadata[F] {
+    new JdbcMetadata {
 
-      val resolvedTableNameCache = AtomicMap[TableLocator,ResolvedTableName]
-      val tableMetadataCache = AtomicMap[TableLocator,ResolvedJdbcTable]
+      val resolvedTableNameCache = AtomicMap[TableLocator, ResolvedTableName]
+      val tableMetadataCache = AtomicMap[TableLocator, ResolvedJdbcTable]
 
-      override def resolveTableName(tableLocator: TableLocator, conn: Conn[F], useCache: Boolean): F[ResolvedTableName] = {
+      override def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedTableName] = {
         resolvedTableNameCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(F.pure)
+          .map(a => ZIO.succeed(a))
           .getOrElse {
-            impl.resolveTableName[F](tableLocator, conn)
+            impl.resolveTableName(tableLocator, conn)
               .map { table =>
                 resolvedTableNameCache.put(tableLocator, table)
                 table
@@ -164,42 +162,37 @@ object JdbcMetadata {
       }
 
 
-
-
-
-      override def tables(conn: Conn[F]): F[Iterable[JdbcTable]] = {
+      override def tables(conn: Conn): Task[Iterable[JdbcTable]] = {
         conn.asInternal.withInternalConn { jdbcConn =>
-            resultSetToVector(
-              jdbcConn
-                .getMetaData
-                .getTables(null, null, null, null)
-            ).map(JdbcTable.apply)
+          resultSetToVector(
+            jdbcConn
+              .getMetaData
+              .getTables(null, null, null, null)
+          ).map(JdbcTable.apply)
         }
       }
 
-      override def tableMetadata(tableLocator: TableLocator, conn: Conn[F], useCache: Boolean): F[ResolvedJdbcTable] = {
+      override def tableMetadata(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedJdbcTable] = {
         tableMetadataCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(F.pure)
+          .map(a => ZIO.succeed(a))
           .getOrElse {
-            impl.tableMeta[F](tableLocator, conn)
+            impl.tableMeta(tableLocator, conn)
               .map { table =>
                 tableMetadataCache.put(tableLocator, table)
                 table
               }
           }
       }
-
     }
-  }
 
   object impl {
 
-    def resolveTableName[F[_] : Sync](tableLocator: TableLocator, conn: Conn[F]): F[ResolvedTableName] =
+    def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] =
       conn.dialect.resolveTableName(tableLocator, conn)
 
-    def tableMeta[F[_]: Sync](tableLocator: TableLocator, conn: Conn[F]): F[ResolvedJdbcTable] = {
+    def tableMeta(tableLocator: TableLocator, conn: Conn): Task[ResolvedJdbcTable] = {
       import conn.dialect
       for {
         resolvedTableName <- dialect.resolveTableName(tableLocator, conn)
@@ -235,10 +228,10 @@ object JdbcMetadata {
 
 }
 
-trait JdbcMetadata[F[_]] {
+trait JdbcMetadata {
 
-  def resolveTableName(tableLocator: TableLocator, conn: Conn[F], useCache: Boolean): F[ResolvedTableName]
-  def tables(conn: Conn[F]): F[Iterable[JdbcTable]]
-  def tableMetadata(tableLocator: TableLocator, conn: Conn[F], useCache: Boolean): F[ResolvedJdbcTable]
+  def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedTableName]
+  def tables(conn: Conn): Task[Iterable[JdbcTable]]
+  def tableMetadata(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedJdbcTable]
 
 }

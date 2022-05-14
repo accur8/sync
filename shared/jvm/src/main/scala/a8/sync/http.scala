@@ -1,81 +1,72 @@
 package a8.sync
 
 
-import a8.shared.{CompanionGen, SharedImports, ZString}
+import a8.shared.{CompanionGen, ZString}
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp.{MxResponseMetadata, MxRetryConfig}
 import sttp.model.{StatusCode, Uri}
-import wvlet.log.LazyLogger
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.sync.http.Body
 import a8.sync.http.Body.StringBody
 import a8.sync.http.impl.RequestProcessorImpl
-import fs2.text
-import retry.RetryDetails.{GivingUp, WillDelayAndRetry}
-import retry._
-import sttp.capabilities.fs2.Fs2Streams
-import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
+import cats.data.Chain
+import sttp.capabilities.zio.ZioStreams
+import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
 import sttp.client3.{Identity, RequestT, ResponseAs, basicRequest}
+import zio.Schedule.WithState
+import zio.{durationInt => _, _}
+import zio.stream.{ZPipeline, ZSink}
 
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.DurationConverters._
 
-object http extends LazyLogger {
+object http extends LoggingF {
 
-  case class Backend[F[_] : Async](
-    delegate: sttp.client3.SttpBackend[F, Fs2Streams[F] with capabilities.WebSockets]
+  case class Backend(
+    delegate: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets]
   )
 
   object RetryConfig extends MxRetryConfig {
     val noRetries = RetryConfig(0, 1.second, 1.minute)
   }
+
+//  type RetryPolicy = WithState[(Long, Long), Any, Any, (zio.Duration, Long)]
+  type RetryPolicy = Schedule[Any, Any, (zio.Duration, Long)]
+
   @CompanionGen
   case class RetryConfig(
     count: Int,
     initialBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
   ) {
-    def retryPolicy[F[_]: Async] = {
-      import RetryPolicies._
-      // https://cb372.github.io/cats-retry/docs/policies.html
-      limitRetries[F](count)
-        .join(
-          exponentialBackoff[F](initialBackoff)
-            meet
-            constantDelay[F](maxBackoff)
-        )
+    lazy val retryPolicy: RetryPolicy = {
+      val exponential = Schedule.exponential(initialBackoff.toJava)
+      val retry = Schedule.recurs(count)
+      exponential && retry
     }
   }
 
-  def applyRetryPolicy[F[_] : Async, A](retryPolicy: RetryPolicy[F], context: String, fa: F[A]): F[A] = {
-
-    def logError(err: Throwable, details: RetryDetails): F[Unit] = {
-      val F = Sync[F]
-      details match {
-        case WillDelayAndRetry(nextDelay, retriesSoFar, cumulativeDelay) =>
-          F.delay{
-            logger.debug(s"http request failed on the $retriesSoFar retry -- $context", err)
+  def applyRetryPolicy[A](retryPolicy: RetryPolicy, context: String, effect: Task[A]): Task[A] =
+    for {
+      counter <- Ref.make(1)
+      a <-
+        effect
+          .onError { cause =>
+            for {
+              tryNumber <- counter.get
+              _ <- loggerF.debug(s"try number ${tryNumber} failed", cause)
+              _ <- counter.update(_ + 1)
+            } yield ()
           }
-        case GivingUp(totalRetries, totalDelay) =>
-          F.delay {
-            logger.warn(s"giving up http request after $totalRetries retries -- $context", err)
-          }
-      }
-    }
-
-    // using cats-retry here https://cb372.github.io/cats-retry/docs/index.htmlx
-    retryingOnAllErrors[A](
-      policy = retryPolicy,
-      onError = logError
-    )(fa)
-
-  }
+          .retry(retryPolicy)
+    } yield a
 
   case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String)
     extends Exception(s"${statusCode.code} ${statusText} -- ${responseBody}")
@@ -109,63 +100,63 @@ object http extends LazyLogger {
 
     def formBody(fields: Iterable[(String,String)]): Request
 
-    def exec[F[_]](implicit processor: RequestProcessor[F]): F[String] =
+    def exec[F[_]](implicit processor: RequestProcessor): Task[String] =
       processor.exec(this)
 
-    def execWithJsonResponse[F[_] : Async, A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
-      processor.execWithStringResponse(this, None, responseJson => json.readF[F,A](responseJson))
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor): Task[A] =
+      processor.execWithStringResponse(this, None, responseJson => json.readF[A](responseJson))
 
-    def execWithStreamResponse[F[_] : Async, A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execWithStreamResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
       processor.execWithStreamResponse[A](this, None, responseEffect)
 
-    def execWithString[F[_],A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execWithString[F[_],A](effect: String=>Task[A])(implicit processor: RequestProcessor): Task[A] =
       processor.execWithStringResponse(this, None, effect)
 
     /**
      * implementer of the responseEffect function must raise errors into the F.
      * implementer is responsible for things like checking http status codes, etc, etc
      */
-    def execRaw[F[_] : Async, A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
       processor.execRaw[A](this, None, responseEffect)
 
     def curlCommand: String
 
-    def streamingBody[F[_] : Async](requestBody: fs2.Stream[F,Byte]): StreamingRequest[F] =
-      StreamingRequest[F](this, requestBody.some)
+    def streamingBody(requestBody: XStream[Byte]): StreamingRequest =
+      StreamingRequest(this, Some(requestBody))
 
-    def streaming[F[_] : Async]: StreamingRequest[F] =
-      StreamingRequest[F](this)
+    def streaming: StreamingRequest =
+      StreamingRequest(this)
 
   }
 
-  case class StreamingRequest[F[_] : Async](rawRequest: Request, requestBody: Option[fs2.Stream[F,Byte]] = None) {
+  case class StreamingRequest(rawRequest: Request, requestBody: Option[XStream[Byte]] = None) {
 
-    def requestBody(requestBody: fs2.Stream[F,Byte]): StreamingRequest[F] =
-      copy(requestBody = requestBody.some)
+    def requestBody(requestBody: XStream[Byte]): StreamingRequest =
+      copy(requestBody = Some(requestBody))
 
-    def exec(implicit processor: RequestProcessor[F]): F[String] =
+    def exec(implicit processor: RequestProcessor): Task[String] =
       processor.exec(rawRequest, requestBody)
 
-    def execRaw[A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
       processor.execRaw[A](rawRequest, requestBody, responseEffect)
 
-    def execWithStreamingResponse[A](responseEffect: Response[F]=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execWithStreamingResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
       processor.execWithStreamResponse[A](rawRequest, requestBody, responseEffect)
 
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor[F]): F[A] =
-      processor.execWithStringResponse(rawRequest, requestBody, responseJson => json.readF[F,A](responseJson))
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor): Task[A] =
+      processor.execWithStringResponse(rawRequest, requestBody, responseJson => json.readF[A](responseJson))
 
-    def execWithEffect[A](effect: String=>F[A])(implicit processor: RequestProcessor[F]): F[A] =
+    def execWithEffect[A](effect: String=>Task[A])(implicit processor: RequestProcessor): Task[A] =
       processor.execWithStringResponse(rawRequest, requestBody, effect)
 
-    def updateRawRequest(fn: Request => Request): StreamingRequest[F] =
+    def updateRawRequest(fn: Request => Request): StreamingRequest =
       copy(rawRequest = fn(rawRequest))
 
   }
 
-  case class Response[F[_]: Async](
+  case class Response(
     responseMetadata: ResponseMetadata,
-    responseBody: fs2.Stream[F,Byte],
+    responseBody: XStream[Byte],
   ) {
 
     lazy val charset: Charset =
@@ -176,27 +167,26 @@ object http extends LazyLogger {
         .map(Charset.forName)
         .getOrElse(Utf8Charset)
 
-    def raiseResponseErrors: F[Unit] =
+    def raiseResponseErrors: Task[Unit] =
       if ( responseMetadata.statusCode.isSuccess ) {
-        Async[F].unit
+        ZIO.unit
       } else {
         asInvalidHttpResponseStatusCode
       }
 
-    def jsonResponseBody[A : JsonCodec]: F[A] =
+    def jsonResponseBody[A : JsonCodec]: Task[A] =
       responseBodyAsString
-        .flatMap(json.readF[F,A])
+        .flatMap(json.readF[A])
 
-    def responseBodyAsString: F[String] =
+    def responseBodyAsString: Task[String] =
       responseBody
-        .through(text.decodeWithCharset(charset))
-        .compile
-        .string
+        .via(ZPipeline.decodeCharsWith(charset))
+        .run(ZSink.mkString)
 
-    def asInvalidHttpResponseStatusCode[A]: F[A] = {
+    def asInvalidHttpResponseStatusCode[A]: Task[A] = {
       responseBodyAsString
         .flatMap { body =>
-          Async[F].raiseError[A](InvalidHttpResponseStatusCode(responseMetadata.statusCode, responseMetadata.statusText, body))
+          ZIO.die(InvalidHttpResponseStatusCode(responseMetadata.statusCode, responseMetadata.statusText, body))
         }
     }
   }
@@ -248,11 +238,11 @@ object http extends LazyLogger {
 
   }
 
-  sealed trait RequestProcessor[F[_]] {
+  sealed trait RequestProcessor {
 
-    val backend: Backend[F]
+    val backend: Backend
 
-    def exec(request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None): F[String]
+    def exec(request: Request, streamingRequestBody: Option[XStream[Byte]] = None): Task[String]
 
     /**
      * Will exec the request and map the response allowing for error's in the map'ing to
@@ -263,9 +253,9 @@ object http extends LazyLogger {
      * may be json but is it the json you actually want).
      *
      */
-    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, effect: String => F[A]): F[A]
+    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, effect: String => Task[A]): Task[A]
 
-    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
+    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
 
     /**
      *
@@ -273,22 +263,22 @@ object http extends LazyLogger {
      * implementer is responsible for things like checking http status codes, etc, etc
      *
      */
-    def execRaw[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]] = None, responseEffect: Response[F]=>F[A]): F[A]
+    def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
 
   }
 
   object RequestProcessor {
 
-    def asResource[F[_] : Async](retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[F,RequestProcessor[F]] = {
+    def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
       for {
-        sttpBackend <- AsyncHttpClientFs2Backend.resource()
-        maxConnectionSemaphore <- Resource.eval(Semaphore[F](maxConnections))
+        sttpBackend <-HttpClientZioBackend.scoped()
+        maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
         RequestProcessorImpl(retry, Backend(sttpBackend), maxConnectionSemaphore)
     }
 
 
-    def apply[F[_] : Async](retry: RetryConfig, backend: Backend[F], maxConnectionSemaphore: Semaphore[F]) =
+    def apply(retry: RetryConfig, backend: Backend, maxConnectionSemaphore: Semaphore) =
       RequestProcessorImpl(retry, backend, maxConnectionSemaphore)
 
   }
@@ -315,33 +305,31 @@ object http extends LazyLogger {
             s.substring(8).trim
         }
 
-    case class RequestProcessorImpl[F[_] : Async](
+    case class RequestProcessorImpl(
       retryConfig: RetryConfig,
-      backend: Backend[F],
-      maxConnectionSemaphore: Semaphore[F]
-    ) extends LoggingF[F]
-      with RequestProcessor[F]
+      backend: Backend,
+      maxConnectionSemaphore: Semaphore
+    ) extends LoggingF
+      with RequestProcessor
     {
 
-      lazy val defaultRetryPolicy = retryConfig.retryPolicy[F]
+      lazy val defaultRetryPolicy = retryConfig.retryPolicy
 
-      val F = Async[F]
+      override def exec(request: Request, streamingRequestBody: Option[XStream[Byte]]): Task[String] =
+        execWithStringResponse(request, streamingRequestBody, s => ZIO.succeed(s))
 
-      override def exec(request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]]): F[String] =
-        execWithStringResponse(request, streamingRequestBody, F.pure)
-
-      override def execRaw[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
+      override def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
         val retryPolicy =
           request
             .retryConfig
-            .map(_.retryPolicy[F])
+            .map(_.retryPolicy)
             .getOrElse(defaultRetryPolicy)
         applyRetryPolicy(retryPolicy, request.uri.toString(), rawSingleExec(request, streamingRequestBody, responseEffect))
       }
 
 
-      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], effect: String => F[A]): F[A] = {
-        def responseEffect(response: Response[F]): F[A] = {
+      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], effect: String => Task[A]): Task[A] = {
+        def responseEffect(response: Response): Task[A] = {
           for {
             _ <- response.raiseResponseErrors
             responseBodyAsString <- response.responseBodyAsString
@@ -351,32 +339,32 @@ object http extends LazyLogger {
         execRaw(request, streamingRequestBody, responseEffect)
       }
 
-      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[fs2.Stream[F, Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
-        def wrappedResponseEffect(response: Response[F]): F[A] = {
-          response.raiseResponseErrors >> responseEffect(response)
+      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+        def wrappedResponseEffect(response: Response): Task[A] = {
+          response.raiseResponseErrors *> responseEffect(response)
         }
         execRaw(request, streamingRequestBody, wrappedResponseEffect)
       }
 
-      def rawSingleExec[A](request: Request, streamingRequestBody: Option[fs2.Stream[F,Byte]], responseEffect: Response[F]=>F[A]): F[A] = {
-        maxConnectionSemaphore.permit
-          .use { _ =>
+      def rawSingleExec[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+        maxConnectionSemaphore
+          .withPermit {
 
-            def wrappedEffect(stream: fs2.Stream[F,Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): F[A] = {
+            def wrappedEffect(stream: XStream[Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): Task[A] = {
               val responseMetadata = ResponseMetadata(sttpResponseMetadata)
               responseEffect(Response(responseMetadata, stream))
             }
 
-            val request0: RequestT[Identity, A, Any with capabilities.Effect[F] with Fs2Streams[F]] =
+            val request0: RequestT[Identity, A, Any with capabilities.Effect[Task] with ZioStreams] =
               basicRequest
                 .method(sttp.model.Method(request.method.value), request.uri)
                 .headers(request.headers)
-                .response(client3.asStreamAlwaysWithMetadata(Fs2Streams[F])(wrappedEffect))
+                .response(client3.asStreamAlwaysWithMetadata(ZioStreams)(wrappedEffect))
 
-            val requestWithBody: RequestT[Identity, A, Any with capabilities.Effect[F] with Fs2Streams[F]] =
+            val requestWithBody: RequestT[Identity, A, Any with capabilities.Effect[Task] with ZioStreams] =
               (streamingRequestBody, request.body) match {
                 case (Some(stream), _) =>
-                  request0.streamBody(Fs2Streams[F])(stream)
+                  request0.streamBody(ZioStreams)(stream)
                 case (_, Body.Empty) =>
                   request0
                 case (_, Body.StringBody(content)) =>
@@ -386,13 +374,13 @@ object http extends LazyLogger {
               }
 
             logger.trace(s"${request.method.value} ${request.uri}")
-            val startTime = System.currentTimeMillis()
+            val startTime = java.lang.System.currentTimeMillis()
 
             requestWithBody
               .send(backend.delegate)
               .map { response =>
                 val responseMetadata = ResponseMetadata(response)
-                logger.trace(s"${request.method.value} ${request.uri} completed in ${System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+                logger.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
                 response.body
               }
               .onError { error =>

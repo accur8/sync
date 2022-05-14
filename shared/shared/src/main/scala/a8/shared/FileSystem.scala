@@ -7,7 +7,6 @@ import java.nio.file.{Files, LinkOption, Paths, Path => NioPath}
 import java.time.LocalDateTime
 import SharedImports._
 import a8.shared.ops.IteratorOps
-import fs2.Chunk
 
 import scala.util.Try
 

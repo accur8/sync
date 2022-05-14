@@ -1,7 +1,8 @@
 package a8.sync.qubes
 
+
 import a8.shared.jdbcf.SqlString.SqlStringer
-import cats.effect.Async
+import zio.Task
 
 /**
  *
@@ -10,7 +11,7 @@ import cats.effect.Async
  */
 trait QubesKeyedMapper[A,B] extends QubesMapper[A] {
 
- def fetch[F[_] : QubesApiClient : Async](b: B)(implicit sqlStringer: SqlStringer[B]): F[A]
- def fetchOpt[F[_] : QubesApiClient : Async](b: B)(implicit sqlStringer: SqlStringer[B]): F[Option[A]]
+ def fetch(b: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[A]
+ def fetchOpt(b: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[Option[A]]
 
 }

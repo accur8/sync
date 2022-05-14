@@ -14,7 +14,7 @@ import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, PathCompiler, StructuralProperty}
 
 import java.sql.PreparedStatement
-
+import zio._
 
 object CaseClassMapper {
 //  val QuestionMark = SqlString.keyword("?")
@@ -60,14 +60,13 @@ case class CaseClassMapper[A, PK](
   }
 
 
-  override def materializeComponentMapper[F[_]: Async](columnNamePrefix: ColumnName, conn: Conn[F], resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): F[ComponentMapper[A]] =
+  override def materializeComponentMapper(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[ComponentMapper[A]] =
     rawFields
       .map { parm =>
         parm.materialize(columnNamePrefix, conn, resolvedJdbcTable)
       }
       .sequence
       .map(materializedParms => copy(rawFields = materializedParms))
-
 
   lazy val columnCount = fields.map(_.columnCount).sum
 
@@ -154,7 +153,7 @@ case class CaseClassMapper[A, PK](
     sql"insert into ${tableName} (${valuePairs.map(_._1).mkSqlString(Comma)}) values(${valuePairs.map(_._2).mkSqlString(SqlString.Comma)})"
   }
 
-  override def materializeKeyedTableMapper[F[_] : SharedImports.Async](implicit conn: Conn[F]): F[KeyedTableMapper[A, PK]] = {
+  override def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper[A, PK]] = {
     def columnNameResolver0(tableMeta: ResolvedJdbcTable) = {
       val mappedColumnNames: Map[ColumnName, DialectQuotedIdentifier] =
         tableMeta

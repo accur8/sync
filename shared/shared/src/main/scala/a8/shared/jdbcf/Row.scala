@@ -1,12 +1,12 @@
 package a8.shared.jdbcf
 
 
-import fs2.Chunk
 import org.typelevel.ci.CIString
 
 import scala.reflect.{ClassTag, classTag}
 import a8.shared.SharedImports._
 import a8.shared.json.ast.JsObj
+import zio.Chunk
 
 object Row {
 

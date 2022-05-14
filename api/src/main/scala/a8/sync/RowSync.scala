@@ -3,14 +3,15 @@ package a8.sync
 
 import a8.sync.ResolvedTable.ResolvedField
 import a8.sync.impl.{NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedValue}
-import fs2.Chunk
 import Imports._
 import a8.shared.jdbcf.{Dialect, SqlString}
 import SqlString._
 import a8.sync.ResolvedTable.ColumnMapper.StringNormalValue
 import a8.sync.RowSync.ValidationMessage
 import a8.sync.dsl.TruncateAction
+import cats.data.Chain
 import wvlet.log.LogLevel
+import zio.Chunk
 
 import scala.collection.mutable
 

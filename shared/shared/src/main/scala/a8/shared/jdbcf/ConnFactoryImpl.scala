@@ -1,36 +1,49 @@
 package a8.shared.jdbcf
 
+
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
+import zio._
 
 object ConnFactoryImpl {
 
-  abstract class MapperMaterializer[F[_]: Async] {
-    def materialize[A,B](ktm: KeyedTableMapper[A,B]): F[KeyedTableMapper[A,B]]
-    def materialize[A](tm: TableMapper[A]): F[TableMapper[A]]
+  object MapperMaterializer {
+    object noop extends MapperMaterializer {
+      override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper[A, B]] =
+        ZIO.succeed(ktm)
+      override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] =
+        ZIO.succeed(tm)
+    }
   }
 
-  class MapperMaterializerImpl[F[_]: Async](
-    cacheRef: Ref[F,Map[KeyedTableMapper[_,_],KeyedTableMapper[_,_]]],
-    connFactory: ConnFactory[F],
-  ) extends MapperMaterializer[F] {
+  abstract class MapperMaterializer {
+    def materialize[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]]
+    def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]]
+  }
 
-    def materializeImpl[A,B](ktm: KeyedTableMapper[A,B]): F[KeyedTableMapper[A,B]] = {
-      connFactory
-        .connR
-        .use(implicit conn =>
-          ktm.materializeKeyedTableMapper
-        )
-    }
+  class MapperMaterializerImpl(
+    cacheRef: Ref[Map[KeyedTableMapper[_,_],KeyedTableMapper[_,_]]],
+    connFactory: ConnFactory,
+  ) extends MapperMaterializer {
 
-    def create[A,B](ktm: KeyedTableMapper[A,B]): F[KeyedTableMapper[A,B]] =
+    def materializeImpl[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]] =
+      ZIO
+        .scoped {
+          connFactory
+            .connR
+            .flatMap(implicit conn =>
+              ktm.materializeKeyedTableMapper
+            )
+        }
+
+    def create[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]] =
       for {
         cache <- cacheRef.get
         materialized <- materializeImpl(ktm)
         _ <- cacheRef.update(_ + (ktm -> materialized))
       } yield materialized
 
-    def fetchOrCreate[A,B](ktm: KeyedTableMapper[A,B]): F[KeyedTableMapper[A,B]] = {
+    def fetchOrCreate[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]] = {
       for {
         cache <- cacheRef.get
         materialized <- {
@@ -38,16 +51,16 @@ object ConnFactoryImpl {
             case None =>
               create(ktm)
             case Some(m) =>
-              Async[F].pure(m.asInstanceOf[KeyedTableMapper[A,B]])
+              ZIO.succeed(m.asInstanceOf[KeyedTableMapper[A,B]])
           }
         }
       } yield materialized
     }
 
-    override def materialize[A, B](ktm: KeyedTableMapper[A, B]): F[KeyedTableMapper[A, B]] =
+    override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper[A, B]] =
       fetchOrCreate(ktm)
 
-    override def materialize[A](tm: TableMapper[A]): F[TableMapper[A]] = {
+    override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] = {
       tm match {
         case ktm: KeyedTableMapper[A,_] =>
           fetchOrCreate(ktm)
@@ -64,5 +77,5 @@ object ConnFactoryImpl {
 
 
 trait ConnFactoryImpl {
-  def resource[F[_] : Async](databaseConfig: DatabaseConfig): Resource[F, ConnFactory[F]]
+  def resource(databaseConfig: DatabaseConfig): ZIO[Scope,Throwable,ConnFactory]
 }

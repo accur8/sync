@@ -4,7 +4,6 @@ package a8.sync
 import a8.sync.ResolvedTable.ResolvedField
 import a8.sync.dsl.{Field, Table, TruncateAction}
 import a8.sync.impl.{NormalizedDataSet, NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedValue, SqlValue, queryService}
-import fs2.Chunk
 import Imports._
 import a8.shared.CompanionGen
 import a8.shared.jdbcf.{Conn, Dialect, Row, SqlString}
@@ -17,6 +16,8 @@ import java.sql.{PreparedStatement => JPreparedStatement}
 import a8.shared.json.DynamicJson
 import a8.shared.json.ast._
 import a8.sync.RowSync.ValidationMessage
+import cats.data.Chain
+import zio._
 
 import scala.util.Try
 
@@ -367,7 +368,7 @@ case class ResolvedTable(
   }
 
   lazy val keyFieldsByIndex: Chunk[ResolvedField] =
-    Chunk.array(
+    Chunk.fromArray(
       resolvedFields
         .iterator
         .flatMap(f => f.keyOrdinal.map(_ -> f))
@@ -404,8 +405,8 @@ case class ResolvedTable(
         }
     )
 
-  def runSync[F[_] : Monad](rootDocument: DynamicJson, conn: Conn[F], defaultTruncation: TruncateAction): F[Chain[RowSync]] = {
-    targetDataSet[F](rootDocument, conn)
+  def runSync(rootDocument: DynamicJson, conn: Conn, defaultTruncation: TruncateAction): Task[Chain[RowSync]] = {
+    targetDataSet(rootDocument, conn)
       .map { targetDs =>
         val sourceDs = sourceDataSet(rootDocument)
         sync(sourceDs, targetDs, defaultTruncation)
@@ -485,7 +486,7 @@ case class ResolvedTable(
     NormalizedDataSet(rows)
   }
 
-  def targetDataSet[F[_] : Monad](rootDocument: DynamicJson, conn: Conn[F]): F[NormalizedDataSet] = {
+  def targetDataSet(rootDocument: DynamicJson, conn: Conn): Task[NormalizedDataSet] = {
     queryService
       .query(targetQuery(rootDocument), conn)
       .map(ds => NormalizedDataSet(resolvedTable, ds))

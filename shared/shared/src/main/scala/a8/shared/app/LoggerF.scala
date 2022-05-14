@@ -1,10 +1,11 @@
 package a8.shared.app
 
-import a8.shared.SharedImports.Sync
-import a8.shared.app.LoggerF.{Pos}
-import cats.Monad
-import wvlet.log.{LogEnv, LogLevel, LogRecord, LogSource, Logger}
 
+import a8.shared.SharedImports._
+import a8.shared.app.LoggerF.Pos
+import cats.Monad
+import wvlet.log.{LogLevel, LogRecord, LogSource, Logger}
+import zio.{LogLevel => _, _}
 
 object LoggerF {
 
@@ -27,26 +28,36 @@ object LoggerF {
     def asLogSource = LogSource(file.value, fileName.value, line.value, 0)
   }
 
-  def wrap[F[_] : Sync](logger: Logger): LoggerF[F] =
-    LoggerF.create[F](logger)
+  def wrap(logger: Logger): LoggerF =
+    LoggerF.create(logger)
 
-  def create[F[_] : Sync](implicit fullName: sourcecode.FullName): LoggerF[F] = {
+  def create(implicit fullName: sourcecode.FullName): LoggerF = {
     val loggerName = fullName.value.split("\\.").dropRight(1).mkString(".")
     create(Logger(loggerName))
   }
 
-  def create[F[_] : Sync](delegate: Logger): LoggerF[F] = {
-    new LoggerF[F] {
+  def create(delegate: Logger): LoggerF = {
+    new LoggerF {
 
       override protected def isEnabled(logLevel: LogLevel): Boolean =
         delegate.isEnabled(logLevel)
 
-      override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): F[Unit] = {
-        Sync[F].blocking {
-          val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message, cause)
-          delegate.log(logRecord)
-        }
+      override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit] = {
+        ZIO
+          .attemptBlocking {
+            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message, cause)
+            delegate.log(logRecord)
+          }
+          .catchAll(_ => ZIO.unit)
       }
+
+      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Throwable], pos: Pos): UIO[Unit] =
+        ZIO
+          .attemptBlocking {
+            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message + "\n" + cause.prettyPrint.indent("    ") , None)
+            delegate.log(logRecord)
+          }
+          .catchAll(_ => ZIO.unit)
 
     }
   }
@@ -58,72 +69,86 @@ object LoggerF {
  * many of these methods are implemented to perform well as distinct from being as concise / DRY as possible
  *
  */
-abstract class LoggerF[F[_] : Monad] {
+abstract class LoggerF {
 
-  val F = Monad[F]
+  import wvlet.log.LogLevel
 
   protected def isEnabled(logLevel: LogLevel): Boolean
-  protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): F[Unit]
+  protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit]
+  protected def impl(logLevel: LogLevel, message: String, cause: Cause[Throwable], pos: Pos): UIO[Unit]
 
-  def error(message: String)(implicit pos: Pos): F[Unit] = {
+  def error(message: String)(implicit pos: Pos): UIO[Unit] = {
     if ( isEnabled(LogLevel.ERROR) )
       impl(LogLevel.ERROR, message, None, pos)
     else
-      Monad[F].unit
+      ZIO.unit
   }
 
-  def error(message: String, cause: Throwable)(implicit pos: Pos): F[Unit] =
+  def error(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.ERROR) )
       impl(LogLevel.ERROR, message, Some(cause), pos)
     else
-      F.unit
+      ZIO.unit
 
-  def warn(message: String)(implicit pos: Pos): F[Unit] =
+  def warn(message: String)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.WARN) )
       impl(LogLevel.WARN, message, None, pos)
     else
-      F.unit
+      ZIO.unit
 
-  def warn(message: String, cause: Throwable)(implicit pos: Pos): F[Unit] =
+  def warn(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.WARN) )
       impl(LogLevel.WARN, message, Some(cause), pos)
     else
-      F.unit
+      ZIO.unit
 
-  def info(message: String)(implicit pos: Pos): F[Unit] =
+  def warn(message: String, cause: zio.Cause[Throwable])(implicit pos: Pos): UIO[Unit] = {
+    if ( isEnabled(LogLevel.WARN) )
+      impl(LogLevel.WARN, message, cause, pos)
+    else
+      ZIO.unit
+  }
+
+  def info(message: String)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.INFO) )
       impl(LogLevel.INFO, message, None, pos)
     else
-      F.unit
+      ZIO.unit
 
-  def info(message: String, cause: Throwable)(implicit pos: Pos): F[Unit] =
+  def info(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.INFO) )
       impl(LogLevel.INFO, message, Some(cause), pos)
     else
-      F.unit
+      ZIO.unit
 
-  def debug(message: String)(implicit pos: Pos): F[Unit] =
+  def debug(message: String)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.DEBUG) )
       impl(LogLevel.DEBUG, message, None, pos)
     else
-      F.unit
+      ZIO.unit
 
-  def debug(message: String, cause: Throwable)(implicit pos: Pos): F[Unit] =
+  def debug(message: String, cause: zio.Cause[Throwable])(implicit pos: Pos): UIO[Unit] =
+    if ( isEnabled(LogLevel.DEBUG) )
+      impl(LogLevel.DEBUG, message, cause, pos)
+    else
+      ZIO.unit
+
+  def debug(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.DEBUG) )
       impl(LogLevel.DEBUG, message, Some(cause), pos)
     else
-      F.unit
+      ZIO.unit
 
-  def trace(message: String)(implicit pos: Pos): F[Unit] =
+  def trace(message: String)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.TRACE) )
       impl(LogLevel.TRACE, message, None, pos)
     else
-      F.unit
+      ZIO.unit
 
-  def trace(message: String, cause: Throwable)(implicit pos: Pos): F[Unit] =
+  def trace(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.TRACE) )
       impl(LogLevel.TRACE, message, Some(cause), pos)
     else
-      F.unit
+      ZIO.unit
 
 }

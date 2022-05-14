@@ -1,12 +1,9 @@
 package a8.shared
 
 
-import a8.shared.CatsUtils.Memo
-import a8.shared.SharedImports.Async
 import a8.shared.json.JsonCodec
-import a8.shared.ops.{AnyOps, AsyncOps, BooleanOps, ChunkByteOps, ChunkOps, ClassOps, FStreamOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, StreamOps, ThrowableOps}
+import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
 import cats.data.Chain
-import fs2.Chunk
 import sttp.model.{Uri, UriInterpolator}
 
 import java.io.{PrintWriter, StringWriter}
@@ -17,7 +14,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import a8.shared.json.JsonCodec.JsonCodecOps
 import a8.shared.json.impl.JsonImports
-import wvlet.log.Logger
 
 import java.nio.charset.Charset
 import scala.collection.{StringOps, mutable}
@@ -27,14 +23,39 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag
 import scala.util.Try
+import cats.syntax
+import cats.instances
+import wvlet.log.Logger
 
 object SharedImports extends SharedImports
 
 trait SharedImports
-  extends CatsImportsTrait
-    with AsJavaExtensions
+  extends AsJavaExtensions
     with AsScalaExtensions
+    with syntax.AllSyntax
+    with syntax.AllSyntaxBinCompat0
+    with syntax.AllSyntaxBinCompat1
+    with syntax.AllSyntaxBinCompat2
+    with syntax.AllSyntaxBinCompat3
+    with syntax.AllSyntaxBinCompat4
+    with syntax.AllSyntaxBinCompat5
+    with syntax.AllSyntaxBinCompat6
+    with instances.AllInstances
+    with instances.AllInstancesBinCompat0
+    with instances.AllInstancesBinCompat1
+    with instances.AllInstancesBinCompat2
+    with instances.AllInstancesBinCompat3
+    with instances.AllInstancesBinCompat4
+    with instances.AllInstancesBinCompat5
+    with instances.AllInstancesBinCompat6
 {
+
+  type Resource[A] = zio.ZIO[zio.Scope,Throwable,A]
+
+  type XStream[A] = zio.stream.ZStream[Any,Throwable,A]
+
+  type CIString = org.typelevel.ci.CIString
+  val CIString = org.typelevel.ci.CIString
 
   val IsNonFatal = scala.util.control.NonFatal
 
@@ -93,6 +114,8 @@ trait SharedImports
 
   }
 
+  implicit def sharedImportsZStreamOps[R,E,A](stream: zio.stream.ZStream[R,E,A]): ZStreamOps[R,E,A] =
+    new ZStreamOps(stream)
 
   implicit def sharedImportsStringOps(s: String): ops.StringOps =
     new a8.shared.ops.StringOps(s)
@@ -100,14 +123,8 @@ trait SharedImports
   implicit def matchOpsAnyRef[A <: AnyRef](a: A): AnyOps[A] =
     new AnyOps[A](a)
 
-  implicit def matchOpsAnyVal[A <: AnyVal](a: A): AnyOps[A] =
+  implicit def matchOpsAnyVal[A <: AnyVal](a: A) =
     new AnyOps[A](a)
-
-  implicit def fStreamOps[F[_] : Async,A](strF: F[fs2.Stream[F,A]]): FStreamOps[F, A] =
-    new FStreamOps[F,A](strF)
-
-  implicit def streamOps[F[_] : Async,A](str: fs2.Stream[F,A]): StreamOps[F, A] =
-    new StreamOps(str)
 
   implicit def sharedImportsIntOps(i: Int): IntOps =
     new IntOps(i)
@@ -118,17 +135,8 @@ trait SharedImports
   implicit def sharedImportsLocalDateTimeOps(localDateTime: LocalDateTime): LocalDateTimeOps =
     new LocalDateTimeOps(localDateTime)
 
-  implicit def throwableOps(th: Throwable): ThrowableOps =
+  implicit def throwableOps(th: Throwable) =
     new ThrowableOps(th)
-
-  implicit def chunkOps[A](ch: Chunk[A]): ChunkOps[A] =
-    new ChunkOps(ch)
-
-  implicit def chunkBytesOps(ch: Chunk[Byte]): ChunkByteOps =
-    new ChunkByteOps(ch)
-
-  implicit def sharedImportsAsyncOps[F[_] : Async, A](fa: F[A]): AsyncOps[F, A] =
-    new a8.shared.ops.AsyncOps[F,A](fa)
 
   implicit def iterableOps[A](iterable: Iterable[A]): IterableOps[A, Iterable] =
     new IterableOps(iterable)
@@ -217,5 +225,20 @@ trait SharedImports
 
   implicit def uriOps(uri: Uri): UriOps =
     new UriOps(uri)
+
+  implicit def implicitZioOps[R, E, A](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
+    new ZioOps(effect)
+
+  implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope with R,E,A]): ScopedZioOps[R,E,A] =
+    new ScopedZioOps[R,E,A](effect)
+
+  implicit def implicitZioCollectOps[R, E, A, Collection[+Element] <: Iterable[Element]](
+    in: Collection[zio.ZIO[R, E, A]]
+  )(implicit
+    bf: zio.BuildFrom[Collection[zio.ZIO[R, E, A]], A, Collection[A]],
+    trace: zio.Trace
+  ): ZioCollectOps[R, E, A, Collection] =
+    new ZioCollectOps[R, E, A, Collection](in)
+
 
 }

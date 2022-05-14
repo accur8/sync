@@ -40,7 +40,6 @@ lazy val api =
     .dependsOn(sharedJVM)
     .settings(
       libraryDependencies ++= Seq(
-        "co.fs2" %% "fs2-io" % "3.2.4",
         "net.sf.jt400" % "jt400" % "10.7",
         "com.zaxxer" % "HikariCP" % "4.0.3",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
@@ -53,20 +52,19 @@ lazy val shared =
     .crossProject("a8-sync-shared", file("shared"), "shared")
     .settings(
       libraryDependencies ++= Seq(
-        "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2" % "3.5.1",
-        "com.github.cb372" %%% "cats-retry" % "3.1.0",
+        "org.wvlet.airframe" %% "airframe-log" % "22.1.0",
+        "org.typelevel" %% "cats-core" % "2.7.0",
+        "org.typelevel" %% "case-insensitive" % "1.2.0",
         "com.beachape" %%% "enumeratum" % "1.7.0",
         "com.lihaoyi" %%% "sourcecode" % "0.2.7",
         "org.typelevel" %% "case-insensitive" % "1.2.0",
-        "org.typelevel" %% "cats-effect" % "3.3.4",
-        "co.fs2" %% "fs2-core" % "3.2.4",
         "com.softwaremill.sttp.model" %% "core" % "1.4.20",
-        "org.wvlet.airframe" %% "airframe-log" % "22.1.0",
         "org.slf4j" % "slf4j-jdk14" % "2.0.0-alpha5",
         "org.scalactic" %% "scalactic" % "3.2.10",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
         "org.typelevel" %% "jawn-parser" % "1.3.2",
         "org.typelevel" %% "jawn-ast" % "1.3.2",
+        "com.softwaremill.sttp.client3" %% "zio" % "3.6.1",
       )
     )
     .jvmSettings(

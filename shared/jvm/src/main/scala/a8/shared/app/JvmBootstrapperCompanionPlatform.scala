@@ -9,7 +9,6 @@ import a8.shared.json.{JsonCodec, ast}
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
 import a8.shared.json.ast.JsDoc
-import wvlet.log.LogLevel
 
 import scala.collection.mutable
 import scala.reflect.ClassTag

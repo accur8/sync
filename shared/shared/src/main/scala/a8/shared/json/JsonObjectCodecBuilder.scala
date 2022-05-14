@@ -16,7 +16,7 @@ object JsonObjectCodecBuilder {
     def read(jsonDoc: JsDoc): Either[ReadError,Any]
     def addAliases(aliases: Iterable[String]): Parm[A]
     val extraAliases: Iterable[String]
-    lazy val resolvedAliases = name.some ++ extraAliases.filter(_ != name)
+    lazy val resolvedAliases = name.toSome ++ extraAliases.filter(_ != name)
     val ordinal: Int
   }
 

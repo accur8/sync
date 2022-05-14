@@ -1,5 +1,6 @@
 package a8.sync.qubes
 
+
 import a8.shared.{CompanionGen, StringValue}
 import a8.shared.jdbcf.SqlString
 import a8.shared.json.ast._
@@ -10,20 +11,14 @@ import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.sync.http.{Backend, Method, RequestProcessor, RetryConfig}
 import a8.sync.http
 import a8.sync.qubes.MxQubesApiClient._
-import cats.effect.kernel.Deferred
-import org.asynchttpclient.AsyncHttpClient
 import sttp.client3._
-import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
-import wvlet.log.LazyLogger
+import zio.{durationInt => _, _}
 
 import scala.concurrent.duration.FiniteDuration
 
 object QubesApiClient extends Logging {
-
-  def apply[F[_] : QubesApiClient]: QubesApiClient[F] =
-    implicitly[QubesApiClient[F]]
 
   object Config extends MxConfig {
     val fiveSeconds = 5.seconds
@@ -45,8 +40,8 @@ object QubesApiClient extends Logging {
     uri: Uri,
     authToken: AuthToken,
     maximumSimultaneousHttpConnections: Int = 5,
-    readTimeout: FiniteDuration = Config.twentySeconds,
-    connectTimeout: FiniteDuration = Config.fiveSeconds,
+//    readTimeout: FiniteDuration = Config.twentySeconds,
+//    connectTimeout: FiniteDuration = Config.fiveSeconds,
     retry: RetryConfig = Config.defaultRetryConfig,
   )
 
@@ -84,72 +79,33 @@ object QubesApiClient extends Logging {
     numberOfRowsUpdated: Int = 0,
     keys: JsObj = JsObj.empty,
   ) {
-//    def asF[F[_] : Async]: F[Int] = {
-//      val F = Async[F]
-//      if (success) {
-//        F.pure(numberOfRowsUpdated)
-//      } else {
-//        validationFailures match {
-//          case Some(jv) =>
-//            F.raiseError(new RuntimeException("Qubes crud validation error: " + jv.compactJson))
-//          case None =>
-//            F.raiseError(new RuntimeException("Qubes crud error: " + errorMessage.getOrError("None")))
-//        }
-//      }
-//    }
-    def asF[F[_] : Async](ctx: String): F[Int] = {
-      val F = Async[F]
+    def asF(ctx: String): Task[Int] = {
       if (success) {
-        F.pure(numberOfRowsUpdated)
+        ZIO.succeed(numberOfRowsUpdated)
       } else {
         validationFailures match {
           case Some(jv) =>
-            F.raiseError(new RuntimeException(s"${ctx} - Qubes crud validation error: " + jv.compactJson))
+            ZIO.die(new RuntimeException(s"${ctx} - Qubes crud validation error: " + jv.compactJson))
           case None =>
-            F.raiseError(new RuntimeException(s"${ctx} - Qubes crud error: " + errorMessage.getOrError("None")))
+            ZIO.die(new RuntimeException(s"${ctx} - Qubes crud error: " + errorMessage.getOrError("None")))
         }
       }
     }
 
   }
 
-  def asResource[F[_] : Async](config: Config): Resource[F,QubesApiClient[F]] = {
-    val F = Async[F]
-
-    def acquire: F[AsyncHttpClient] =
-      F.delay {
-        import org.asynchttpclient.Dsl
-        Dsl.asyncHttpClient(
-          Dsl.config()
-            .setConnectTimeout(config.connectTimeout.toMillis.toInt)
-            .setReadTimeout(config.readTimeout.toMillis.toInt)
-            .setRequestTimeout(config.readTimeout.toMillis.toInt)
-            .setMaxConnections(config.maximumSimultaneousHttpConnections)
-            .build()
-        )
-      }
-
-    val asyncHttpClientR = Resource.make(acquire)(client => F.delay(client.close()))
-
-    for {
-      asyncHttpClient <- asyncHttpClientR
-      maxConnectionSemaphore <- Resource.eval(Semaphore[F](config.maximumSimultaneousHttpConnections))
-      dispatcher <- Dispatcher[F]
-    } yield {
-      import sttp.client3.logging._
-      val sttpBackend = AsyncHttpClientFs2Backend.usingClient[F](asyncHttpClient, dispatcher)
-      val sttpLogger = QubesApiClient.sttpLogger[F]
-      val loggingBackend = LoggingBackend(delegate = sttpBackend, logger = sttpLogger, beforeCurlInsteadOfShow = true)
-      new QubesApiClient[F](config, Backend(loggingBackend), maxConnectionSemaphore)
-    }
+  def asResource(config: QubesApiClient.Config): Resource[QubesApiClient] = {
+    RequestProcessor
+      .asResource(retry = config.retry, maxConnections = config.maximumSimultaneousHttpConnections)
+      .map(rp => QubesApiClient(config, rp))
   }
 
-  def sttpLogger[F[_] : Async]: sttp.client3.logging.Logger[F] = {
+  def sttpLogger: sttp.client3.logging.Logger[Task] = {
     import sttp.client3.logging.{ LogLevel => SttpLevel }
     import wvlet.log.{ LogLevel => WvletLevel }
-    new sttp.client3.logging.Logger[F] {
-      override def apply(sttpLevel: sttp.client3.logging.LogLevel, message: => String): F[Unit] = {
-        Async[F].blocking {
+    new sttp.client3.logging.Logger[Task] {
+      override def apply(sttpLevel: sttp.client3.logging.LogLevel, message: => String): Task[Unit] = {
+        ZIO.attemptBlocking {
           sttpLevel match {
             case LogLevel.Trace =>
               logger.trace(message)
@@ -164,8 +120,8 @@ object QubesApiClient extends Logging {
           }
         }
       }
-      override def apply(sttpLevel: LogLevel, message: => String, t: Throwable): F[Unit] = {
-        Async[F].blocking {
+      override def apply(sttpLevel: LogLevel, message: => String, t: Throwable): Task[Unit] = {
+        ZIO.attemptBlocking {
           sttpLevel match {
             case LogLevel.Trace =>
               logger.trace(message, t)
@@ -186,22 +142,20 @@ object QubesApiClient extends Logging {
 
 }
 
-class QubesApiClient[F[_] : Async](
+case class QubesApiClient(
   config: QubesApiClient.Config,
-  val backend: Backend[F],
-  maxConnectionSemaphore: Semaphore[F],
-) extends LazyLogger {
+  requestProcessor: RequestProcessor,
+) extends Logging {
 
   import QubesApiClient._
 
   object impl {
-    val F = Async[F]
 
-    implicit lazy val requestProcessor: RequestProcessor[F] = RequestProcessor(config.retry, backend, maxConnectionSemaphore)
+    implicit lazy val implicitRequestProcessor = requestProcessor
     lazy val baseRequest = http.Request(config.uri).addHeader("X-SESS", config.authToken.value)
 
-    def executeA[A: JsonCodec, B: JsonCodec](subPath: Uri, requestBody: A): F[B] =
-      F.defer {
+    def executeA[A: JsonCodec, B: JsonCodec](subPath: Uri, requestBody: A): Task[B] = {
+      ZIO.suspend {
 
         val request =
           baseRequest
@@ -210,10 +164,11 @@ class QubesApiClient[F[_] : Async](
             .jsonBody(requestBody.toJsVal)
 
 
-        request.execWithJsonResponse[F,B]
+        request.execWithJsonResponse[B]
       }
+    }
 
-    def execute[A: JsonCodec](subPath: Uri, requestBody: A): F[JsDoc] = {
+    def execute[A: JsonCodec](subPath: Uri, requestBody: A): Task[JsDoc] = {
       val request =
         baseRequest
           .subPath(subPath)
@@ -221,90 +176,90 @@ class QubesApiClient[F[_] : Async](
       logger.trace(s"${request.method.value} ${request.uri}")
 
       request.execWithString { responseBodyStr =>
-          F.defer {
-            json.parseF(responseBodyStr)
-              .map(jv => JsDoc(jv))
-          }
+        ZIO.suspend {
+          json.parseF(responseBodyStr)
+            .map(jv => JsDoc(jv))
         }
-    }
+      }
+  }
 
   }
   import impl._
 
   object lowlevel {
 
-    def query(request: QueryRequest): F[JsDoc] =
+    def query(request: QueryRequest): Task[JsDoc] =
       execute(uri"api/query", request)
 
-    def insert(request: UpdateRowRequest): F[UpdateRowResponse] =
-      impl.executeA(uri"api/insert", request)
+    def insert(request: UpdateRowRequest): Task[UpdateRowResponse] =
+      impl.executeA[UpdateRowRequest, UpdateRowResponse](uri"api/insert", request)
 
-    def update(request: UpdateRowRequest): F[UpdateRowResponse] =
-      executeA(uri"api/updateRow", request)
+    def update(request: UpdateRowRequest): Task[UpdateRowResponse] =
+      executeA[UpdateRowRequest, UpdateRowResponse](uri"api/updateRow", request)
 
-    def upsert(request: UpdateRowRequest): F[UpdateRowResponse] =
-      executeA(uri"api/upsertRow", request)
+    def upsert(request: UpdateRowRequest): Task[UpdateRowResponse] =
+      executeA[UpdateRowRequest, UpdateRowResponse](uri"api/upsertRow", request)
 
-    def delete(request: UpdateRowRequest): F[UpdateRowResponse] =
-      executeA(uri"api/delete", request)
+    def delete(request: UpdateRowRequest): Task[UpdateRowResponse] =
+      executeA[UpdateRowRequest, UpdateRowResponse](uri"api/delete", request)
 
   }
 
-  def fullQuery[A : JsonCodec](query: SqlString): F[Iterable[A]] = {
+  def fullQuery[A : JsonCodec](query: SqlString): Task[Iterable[A]] = {
     executeA[QueryRequest,JsDoc](uri"api/query", QueryRequest(query = query.toString))
       .flatMap { jsonDoc =>
-        jsonDoc("data").value.asF[F,Iterable[A]]
+        jsonDoc("data").value.asF[Iterable[A]]
       }
   }
 
-  def query[A : QubesMapper](whereClause: SqlString): F[Iterable[A]] = {
+  def query[A : QubesMapper](whereClause: SqlString): Task[Iterable[A]] = {
     val qm = implicitly[QubesMapper[A]]
     import qm.codecA
     executeA[QueryRequest,JsDoc](uri"api/query", qm.queryReq(whereClause))
       .flatMap { jsonDoc =>
-        jsonDoc("data").value.asF[F,Iterable[A]]
+        jsonDoc("data").value.asF[Iterable[A]]
       }
   }
 
-  def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B]): F[A] = {
-    implicit def implicitQubesApiClient: QubesApiClient[F] = this
+  def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B]): Task[A] = {
+    implicit def implicitQubesApiClient = this
     qubesKeyedMapper.fetch(key)
   }
 
-  def insert[A : QubesMapper](row: A): F[Unit] =
+  def insert[A : QubesMapper](row: A): Task[Unit] =
     processResponse(
       "insert",
       row,
       lowlevel.insert(implicitly[QubesMapper[A]].insertReq(row))
     )
 
-  def update[A : QubesMapper](row: A): F[Unit] =
+  def update[A : QubesMapper](row: A): Task[Unit] =
     processResponse(
       "update",
       row,
       lowlevel.update(implicitly[QubesMapper[A]].updateReq(row))
     )
 
-  def upsert[A : QubesMapper](row: A): F[Unit] =
+  def upsert[A : QubesMapper](row: A): Task[Unit] =
     processResponse(
       "upsert",
       row,
       lowlevel.upsert(implicitly[QubesMapper[A]].updateReq(row))
     )
 
-  def delete[A : QubesMapper](row: A): F[Unit] =
+  def delete[A : QubesMapper](row: A): Task[Unit] =
     processResponse(
       "delete",
       row,
       lowlevel.delete(implicitly[QubesMapper[A]].deleteReq(row))
     )
 
-  protected def processResponse[A : QubesMapper](context: String, row: A, f: F[UpdateRowResponse]): F[Unit] =
+  protected def processResponse[A : QubesMapper](context: String, row: A, f: Task[UpdateRowResponse]): Task[Unit] =
     f.flatMap(_.asF(context)).flatMap {
       case 1 =>
-        F.unit
+        ZIO.unit
       case i =>
-        F.raiseError[Unit](new RuntimeException(s"expected to ${context} 1 row but affected ${i} rows instead -- ${implicitly[QubesMapper[A]].qualifiedName} ${row}"))
+        ZIO.die(new RuntimeException(s"expected to ${context} 1 row but affected ${i} rows instead -- ${implicitly[QubesMapper[A]].qualifiedName} ${row}"))
     }
 
 }

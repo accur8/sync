@@ -1,21 +1,24 @@
 package a8.shared.jdbcf.querydsl
 
+
+import a8.shared.SharedImports._
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.querydsl.QueryDsl._
+import zio.stream.UStream
+import zio._
 
-
-trait SelectQuery[F[_], T, U] {
+trait SelectQuery[T, U] {
 
   def where: Condition
   def orderBy: Iterable[OrderBy]
-  def orderBy(order: U => OrderBy): SelectQuery[F,T,U]
-  def orderBys(order: U => Iterable[OrderBy]): SelectQuery[F,T,U]
-  def maxRows(count: Int): SelectQuery[F,T,U]
+  def orderBy(order: U => OrderBy): SelectQuery[T,U]
+  def orderBys(order: U => Iterable[OrderBy]): SelectQuery[T,U]
+  def maxRows(count: Int): SelectQuery[T,U]
 
-  def fetch(implicit conn: Conn[F]): F[T]
-  def fetchOpt(implicit conn: Conn[F]): F[Option[T]]
-  def streamingSelect(implicit conn: Conn[F]): fs2.Stream[F,T]
-  def select(implicit conn: Conn[F]): F[Vector[T]]
+  def fetch(implicit conn: Conn): Task[T]
+  def fetchOpt(implicit conn: Conn): Task[Option[T]]
+  def streamingSelect(implicit conn: Conn): XStream[T]
+  def select(implicit conn: Conn): Task[Vector[T]]
   def sqlString: SqlString
 
 }

@@ -35,8 +35,6 @@ object MxQubesApiClient {
           .addField(_.uri)
           .addField(_.authToken)
           .addField(_.maximumSimultaneousHttpConnections)
-          .addField(_.readTimeout)
-          .addField(_.connectTimeout)
           .addField(_.retry)
       )
       .build
@@ -44,7 +42,7 @@ object MxQubesApiClient {
     implicit val catsEq: cats.Eq[Config] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Config,parameters.type] =  {
-      val constructors = Constructors[Config](6, unsafe.iterRawConstruct)
+      val constructors = Constructors[Config](4, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -52,9 +50,7 @@ object MxQubesApiClient {
       lazy val uri: CaseClassParm[Config,Uri] = CaseClassParm[Config,Uri]("uri", _.uri, (d,v) => d.copy(uri = v), None, 0)
       lazy val authToken: CaseClassParm[Config,AuthToken] = CaseClassParm[Config,AuthToken]("authToken", _.authToken, (d,v) => d.copy(authToken = v), None, 1)
       lazy val maximumSimultaneousHttpConnections: CaseClassParm[Config,Int] = CaseClassParm[Config,Int]("maximumSimultaneousHttpConnections", _.maximumSimultaneousHttpConnections, (d,v) => d.copy(maximumSimultaneousHttpConnections = v), Some(()=> 5), 2)
-      lazy val readTimeout: CaseClassParm[Config,FiniteDuration] = CaseClassParm[Config,FiniteDuration]("readTimeout", _.readTimeout, (d,v) => d.copy(readTimeout = v), Some(()=> Config.twentySeconds), 3)
-      lazy val connectTimeout: CaseClassParm[Config,FiniteDuration] = CaseClassParm[Config,FiniteDuration]("connectTimeout", _.connectTimeout, (d,v) => d.copy(connectTimeout = v), Some(()=> Config.fiveSeconds), 4)
-      lazy val retry: CaseClassParm[Config,RetryConfig] = CaseClassParm[Config,RetryConfig]("retry", _.retry, (d,v) => d.copy(retry = v), Some(()=> Config.defaultRetryConfig), 5)
+      lazy val retry: CaseClassParm[Config,RetryConfig] = CaseClassParm[Config,RetryConfig]("retry", _.retry, (d,v) => d.copy(retry = v), Some(()=> Config.defaultRetryConfig), 3)
     }
     
     
@@ -65,9 +61,7 @@ object MxQubesApiClient {
           uri = values(0).asInstanceOf[Uri],
           authToken = values(1).asInstanceOf[AuthToken],
           maximumSimultaneousHttpConnections = values(2).asInstanceOf[Int],
-          readTimeout = values(3).asInstanceOf[FiniteDuration],
-          connectTimeout = values(4).asInstanceOf[FiniteDuration],
-          retry = values(5).asInstanceOf[RetryConfig],
+          retry = values(3).asInstanceOf[RetryConfig],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Config = {
@@ -76,16 +70,14 @@ object MxQubesApiClient {
             uri = values.next().asInstanceOf[Uri],
             authToken = values.next().asInstanceOf[AuthToken],
             maximumSimultaneousHttpConnections = values.next().asInstanceOf[Int],
-            readTimeout = values.next().asInstanceOf[FiniteDuration],
-            connectTimeout = values.next().asInstanceOf[FiniteDuration],
             retry = values.next().asInstanceOf[RetryConfig],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(uri: Uri, authToken: AuthToken, maximumSimultaneousHttpConnections: Int, readTimeout: FiniteDuration, connectTimeout: FiniteDuration, retry: RetryConfig): Config =
-        Config(uri, authToken, maximumSimultaneousHttpConnections, readTimeout, connectTimeout, retry)
+      def typedConstruct(uri: Uri, authToken: AuthToken, maximumSimultaneousHttpConnections: Int, retry: RetryConfig): Config =
+        Config(uri, authToken, maximumSimultaneousHttpConnections, retry)
     
     }
     

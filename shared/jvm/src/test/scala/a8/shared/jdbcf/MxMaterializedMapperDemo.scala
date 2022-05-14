@@ -96,10 +96,10 @@ object MxMaterializedMapperDemo {
     
     val queryDsl = new QueryDsl[BigBoo, TableDsl, Int](jdbcMapper, new TableDsl)
     
-    def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[F, BigBoo, TableDsl] =
+    def query(whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[BigBoo, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update[F[_]: cats.effect.Async](set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[F, TableDsl] =
+    def update(set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[TableDsl] =
       queryDsl.update(set)
     
     

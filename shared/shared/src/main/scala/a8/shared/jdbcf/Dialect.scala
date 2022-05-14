@@ -4,32 +4,63 @@ import a8.shared.Chord
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey}
 import a8.shared.jdbcf.SqlString.{AbstractEscaper, DefaultJdbcEscaper, Escaper, RawSqlString}
-import cats.effect.{Resource, Sync}
 import sttp.model.Uri
 import UnsafeResultSetOps._
-import cats.effect.kernel.Async
 import a8.shared.SharedImports._
-
+import zio._
 import java.sql.Connection
+
+object Dialect {
+
+  val duobleQuote = Chord.str('"'.toString)
+
+  case object Default extends Dialect {
+
+    override def isPostgres: Boolean = false
+
+    /**
+     * no default case for default dialect
+     */
+    override def isIdentifierDefaultCase(name: String): Boolean =
+      false
+
+  }
+
+  def apply(jdbcUri: Uri): Dialect = {
+    val schemaParts = jdbcUri.toString.split(":/").head.split(":").toList
+    schemaParts match {
+      case "jdbc" :: "postgresql" :: _ =>
+        PostgresDialect
+      case "jdbc" :: _ :: "postgresql" :: _ =>
+        PostgresDialect
+      case "jdbc" :: "mysql" :: _ =>
+        MySqlDialect
+      case "jdbc" :: _ :: "mysql" :: _ =>
+        MySqlDialect
+      case _ =>
+        DialectPlatform(jdbcUri)
+          .getOrElse(Default)
+    }
+  }
+
+}
 
 trait Dialect {
 
   val validationQuery: Option[SqlString] = None
 
-  def escaper[F[_] : Async](jdbcConnR: Resource[F, Connection]): Resource[F, Escaper] = {
-    Resource.eval[F, Escaper](
-      jdbcConnR.use(conn =>
+  def escaper(jdbcConnR: Resource[Connection]): Resource[Escaper] =
+    jdbcConnR
+      .flatMap { conn =>
         for {
-          keywordSet <- KeywordSet.fromMetadata[F](conn.getMetaData)
+          keywordSet <- KeywordSet.fromMetadata(conn.getMetaData)
           escaper0 <-
-            Async[F].blocking {
+            ZIO.attemptBlocking {
               val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
               new AbstractEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {}
             }
         } yield escaper0
-      )
-    )
-  }
+      }
 
   def isIdentifierDefaultCase(name: String): Boolean
 
@@ -46,7 +77,7 @@ trait Dialect {
     /**
    * will do a case insensitive lookup
    */
-  def resolveTableName[F[_] : Sync](tableLocator: TableLocator, conn: Conn[F]): F[ResolvedTableName] =
+  def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] =
     conn.asInternal.withInternalConn { jdbcConn =>
       jdbcConn
         .getMetaData
@@ -71,7 +102,7 @@ trait Dialect {
         )
     }
 
-  def primaryKeys[F[_] : Sync](table: ResolvedTableName, conn: Conn[F]): F[Vector[JdbcPrimaryKey]] = {
+  def primaryKeys(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcPrimaryKey]] = {
     val locator = table.asLocator
     conn
       .asInternal
@@ -91,7 +122,7 @@ trait Dialect {
       }
   }
 
-  def columns[F[_] : Sync](table: ResolvedTableName, conn: Conn[F]): F[Vector[JdbcColumn]] = {
+  def columns(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcColumn]] = {
     conn
       .asInternal
       .withInternalConn { jdbcConn =>
@@ -106,41 +137,6 @@ trait Dialect {
             )
         resultSetToVector(columnsRs).map(JdbcColumn.fromMetadataRow)
       }
-  }
-
-}
-
-object Dialect {
-
-  val duobleQuote = Chord.str('"'.toString)
-
-  case object Default extends Dialect {
-
-    override def isPostgres: Boolean = false
-
-    /**
-     * no default case for default dialect
-     */
-    override def isIdentifierDefaultCase(name: String): Boolean =
-      false
-
-  }
-
-  def apply[F[_]](jdbcUri: Uri): Dialect = {
-    val schemaParts = jdbcUri.toString.split(":/").head.split(":").toList
-    schemaParts match {
-      case "jdbc" :: "postgresql" :: _ =>
-        PostgresDialect
-      case "jdbc" :: _ :: "postgresql" :: _ =>
-        PostgresDialect
-      case "jdbc" :: "mysql" :: _ =>
-        MySqlDialect
-      case "jdbc" :: _ :: "mysql" :: _ =>
-        MySqlDialect
-      case _ =>
-        DialectPlatform(jdbcUri)
-          .getOrElse(Default)
-    }
   }
 
 }

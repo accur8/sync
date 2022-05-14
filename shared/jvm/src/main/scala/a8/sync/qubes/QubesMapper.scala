@@ -7,6 +7,7 @@ import a8.shared.json.{JsonObjectCodec, JsonTypedCodec}
 import a8.shared.json.ast.JsObj
 import a8.sync.qubes.QubesApiClient.{QueryRequest, UpdateRowRequest}
 import a8.sync.qubes.QubesMapperBuilder.{Parm, PrimaryKey}
+import zio._
 
 object QubesMapper {
 
@@ -46,19 +47,17 @@ object QubesMapper {
     }
 
 
-    override def fetch[F[_] : QubesApiClient : Async](key: B)(implicit sqlStringer: SqlStringer[B]): F[A] =
-      fetchOpt[F](key)
+    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[A] =
+      fetchOpt(key)
         .flatMap {
           case None =>
-            Async[F].raiseError(new RuntimeException(s"no record ${key} found in ${cubeName}"))
+            ZIO.die(new RuntimeException(s"no record ${key} found in ${cubeName}"))
           case Some(i) =>
-            Async[F].pure(i)
+            ZIO.succeed(i)
         }
 
-    override def fetchOpt[F[_] : QubesApiClient : Async](key: B)(implicit sqlStringer: SqlStringer[B]): F[Option[A]] = {
-      val F = Async[F]
-      val qubesApiClient = implicitly[QubesApiClient[F]]
-      implicit def qm: QubesMapperImpl[A, B] = this
+    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[Option[A]] = {
+      implicit def qm = this
       import SqlString._
       qubesApiClient
         .query[A](primaryKey.whereClause(key))
