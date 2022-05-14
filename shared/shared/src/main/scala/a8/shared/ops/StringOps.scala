@@ -5,6 +5,7 @@ import sttp.model.Uri
 
 import java.util.regex.Pattern
 import a8.shared.SharedImports._
+import zio.stream.{UStream, ZStream}
 
 
 class StringOps(private val source: String) extends AnyVal {
@@ -16,15 +17,14 @@ class StringOps(private val source: String) extends AnyVal {
   def rtrim = source.replaceAll("\\s+$", "")
   def toUri = Uri.unsafeParse(source)
 
-  def toChunk: fs2.Chunk[Byte] =
-    fs2.Chunk.array(
+  def toChunk: zio.Chunk[Byte] =
+    zio.Chunk.fromArray(
       Utf8Charset.encode(source).array()
     )
 
-  def toChunkyStream[F[_]]: fs2.Stream[F, Byte] = {
-    fs2.Stream
-      .chunk(toChunk)
-      .covary[F]
+  def toChunkyStream[F[_]]: UStream[Byte] = {
+    ZStream
+      .fromChunk(toChunk)
   }
 
   def indent(indent: String) =
@@ -75,6 +75,7 @@ class StringOps(private val source: String) extends AnyVal {
     splitter(source, limit)
 
   }
+
 
   def padLeftTo(len: Int, elem: Char): String = {
     val sourceLen = source.length

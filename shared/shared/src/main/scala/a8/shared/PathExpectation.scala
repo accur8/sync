@@ -4,29 +4,31 @@ package a8.shared
 import a8.shared.FileSystem.Directory
 import SharedImports._
 import cats.Eq
+import zio._
 
 import java.nio.file.{Files, LinkOption, Path => NioPath, Paths => NioPaths}
 
 object PathExpectation {
 
 
-  def emptyDirectory[F[_] : Sync](dir: String): F[Directory] =
-    Sync[F].blocking {
+  def emptyDirectory(dir: String): Task[Directory] = {
+    ZIO.blocking {
       val nioPath = NioPaths.get(dir)
       FileSystem.path(dir) match {
         case Some(d: Directory) =>
-          emptyDirectory[F](d)
+          emptyDirectory(d)
         case Some(p) =>
           p.delete()
-          emptyDirectory[F](FileSystem.dir(dir))
+          emptyDirectory(FileSystem.dir(dir))
         case None =>
-          Sync[F].pure(FileSystem.dir(dir))
+          ZIO.succeed(FileSystem.dir(dir))
       }
-    }.flatten
+    }
+  }
 
 
-  def emptyDirectory[F[_] : Sync](dir: Directory): F[Directory] =
-    Sync[F].blocking {
+  def emptyDirectory(dir: Directory): Task[Directory] =
+    ZIO.attemptBlocking {
       if ( dir.exists() ) {
         dir.deleteChildren()
       } else {
@@ -36,9 +38,9 @@ object PathExpectation {
     }
 
 
-  def symlinkWithContents[F[_] : Sync](symLink: NioPath, contents: NioPath): F[Boolean] = {
-    Sync[F].blocking {
-      implicit val pathEq: Eq[NioPath] = Eq.fromUniversalEquals[java.nio.file.Path]
+  def symlinkWithContents(symLink: NioPath, contents: NioPath): Task[Boolean] = {
+    ZIO.attemptBlocking {
+      implicit val pathEq = Eq.fromUniversalEquals[java.nio.file.Path]
       val createSymLink =
         if ( Files.exists(symLink, LinkOption.NOFOLLOW_LINKS) ) {
           if ( Files.isSymbolicLink(symLink) ) {

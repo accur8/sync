@@ -2,8 +2,8 @@ package a8.shared.jdbcf
 
 
 import a8.shared.jdbcf.{ResolvedTableName, SchemaName, TableLocator, TableName}
-import cats.effect.Sync
 import SqlString._
+import zio.Task
 
 object PostgresDialect extends Dialect {
 
@@ -20,7 +20,7 @@ object PostgresDialect extends Dialect {
   /**
    * will do a case insensitive lookup
    */
-  override def resolveTableName[F[_] : Sync](tableLocator: TableLocator, conn: Conn[F]): F[ResolvedTableName] = {
+  override def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] = {
     import tableLocator._
     val schemaPart = tableLocator.schemaName.map(s=>q" and schemaname = ${s.asString.escape}").getOrElse(q"")
     val sql = q"""

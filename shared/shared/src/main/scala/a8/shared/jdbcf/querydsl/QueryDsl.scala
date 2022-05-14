@@ -1,15 +1,13 @@
 package a8.shared.jdbcf.querydsl
 
 
-import a8.shared.SharedImports._
-import a8.shared.jdbcf.{ColumnName, Conn, RowWriter, SqlString}
-import a8.shared.jdbcf.mapper.{ComponentMapper, KeyedTableMapper, Mapper, TableMapper}
+import a8.shared.jdbcf.{ColumnName, Conn, SqlString}
+import a8.shared.jdbcf.mapper.{ComponentMapper, KeyedTableMapper, TableMapper}
 
 import scala.language.{existentials, implicitConversions}
 import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
-import cats.data.Chain
-import cats.effect.Async
+import zio.Task
 
 /*
 
@@ -471,10 +469,10 @@ class QueryDsl[T, TableDsl, K](
 
   implicit def keyedTableMapper0: KeyedTableMapper[T, K] = keyedTableMapper
 
-  def query[F[_]: Async](whereFn: TableDsl => QueryDsl.Condition): SelectQuery[F, T, TableDsl] =
+  def query(whereFn: TableDsl => QueryDsl.Condition): SelectQuery[T, TableDsl] =
     SelectQueryImpl(tableDsl, keyedTableMapper, whereFn(tableDsl), Nil)
 
-  def update[F[_]: Async](set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[F, TableDsl] =
+  def update(set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[TableDsl] =
     UpdateQueryImpl(
       tableDsl = tableDsl,
       outerMapper = keyedTableMapper,
@@ -482,13 +480,11 @@ class QueryDsl[T, TableDsl, K](
       where = Condition.TRUE
     )
 
-  def updateRow[F[_]: Async](row: T)(where: TableDsl => QueryDsl.Condition)(implicit conn: Conn[F]): F[Option[T]] = {
+  def updateRow(row: T)(where: TableDsl => QueryDsl.Condition)(implicit conn: Conn): Task[Option[T]] = {
     val selectQuery = SelectQueryImpl(tableDsl, keyedTableMapper, where(tableDsl), Nil)
     conn
       .updateRowWhere(row)(selectQuery.queryResolver.whereSqlNoAlias)
   }
-
-
 
 }
 

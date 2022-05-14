@@ -92,5 +92,5 @@ case class BootstrapConfig(
   tempDir: TempDir,
   cacheDir: CacheDir,
   dataDir: DataDir,
-  defaultLogLevel: wvlet.log.LogLevel,
+  defaultLogLevel: LogLevel,
 ) extends NamedToString

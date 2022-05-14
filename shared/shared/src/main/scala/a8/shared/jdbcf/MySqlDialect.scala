@@ -1,9 +1,7 @@
 package a8.shared.jdbcf
 
-import a8.shared.jdbcf.SqlString._
-import cats.effect.{Resource, Sync}
-import cats.effect.kernel.Async
 
+import a8.shared.jdbcf.SqlString._
 import java.sql.Connection
 
 object MySqlDialect extends Dialect {

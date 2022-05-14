@@ -2,7 +2,8 @@ package a8.shared.ops
 
 
 import a8.shared.SharedImports._
-import fs2.Chunk
+import cats.data.Chain
+import zio.Chunk
 
 import scala.reflect.ClassTag
 
@@ -24,6 +25,6 @@ class IteratorOps[A](private val iterator: Iterator[A]) {
     Chain.fromSeq(iterator.toSeq)
 
   def toChunk(implicit classTag: ClassTag[A]): Chunk[A] =
-    Chunk.array(iterator.toArray)
+    Chunk.fromArray(iterator.toArray)
 
 }

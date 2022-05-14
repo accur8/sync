@@ -1,5 +1,6 @@
 package a8.shared.jdbcf
 
+
 import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, SQLException => JdbcSQLException, Statement => JStatement}
 import a8.shared.app.LoggingF
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
@@ -11,30 +12,30 @@ import sttp.model.Uri
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
+import zio._
+import zio.stream.UStream
 
-case class ConnInternalImpl[F[_] : Async](
-  jdbcMetadata: JdbcMetadata[F],
+case class ConnInternalImpl(
+  jdbcMetadata: JdbcMetadata,
   jdbcConn: java.sql.Connection,
-  mapperMaterializer: MapperMaterializer[F],
+  mapperMaterializer: MapperMaterializer,
   jdbcUrl: Uri,
   dialect: Dialect,
   escaper: Escaper,
 )
-  extends LoggingF[F]
-  with ConnInternal[F]
+  extends LoggingF
+  with ConnInternal
 {
 
   jdbcConn.getMetaData.getIdentifierQuoteString
 
-  val F = Async[F]
-
-  override def asInternal: ConnInternal[F] = this
+  override def asInternal: ConnInternal = this
 
   override def compile(sql: SqlString): CompiledSql =
     SqlString.unsafe.compile(sql, escaper)
 
-  override def tables: F[Iterable[JdbcTable]] = {
-    F.blocking {
+  override def tables: Task[Iterable[JdbcTable]] = {
+    ZIO.attemptBlocking {
       resultSetToVector(
         jdbcConn
           .getMetaData
@@ -45,95 +46,96 @@ case class ConnInternalImpl[F[_] : Async](
   }
 
 
-  override def selectOne[A: TableMapper](whereClause: SqlString): F[A] =
+  override def selectOne[A: TableMapper](whereClause: SqlString): Task[A] =
     selectOpt[A](whereClause)
       .flatMap {
         case Some(a) =>
-          F.pure(a)
+         ZIO.succeed(a)
         case None =>
-          F.raiseError(new RuntimeException(s"expected a single value and got none with whereClause = ${whereClause}"))
+          ZIO.die(new RuntimeException(s"expected a single value and got none with whereClause = ${whereClause}"))
       }
 
-  override def selectOpt[A: TableMapper](whereClause: SqlString): F[Option[A]] =
+  override def selectOpt[A: TableMapper](whereClause: SqlString): Task[Option[A]] =
     selectRows[A](whereClause)
       .flatMap {
         _.toList match {
           case Nil =>
-            F.pure(None)
+           ZIO.succeed(None)
           case List(a) =>
-            F.pure(Some(a))
+           ZIO.succeed(Some(a))
           case l =>
-            F.raiseError(new RuntimeException(s"expected 0 or 1 value got ${l.size} with whereClase = ${whereClause} -- ${l}"))
+            ZIO.die(new RuntimeException(s"expected 0 or 1 value got ${l.size} with whereClase = ${whereClause} -- ${l}"))
         }
       }
 
-  def managedStream[A : Managed](thunk: =>A): fs2.Stream[F,A] =
-    Managed.stream[F, A](thunk)
+  def scoped[A : Managed](thunk: =>A): ZIO[Scope, Throwable, A] =
+    Managed.scoped[A](thunk)
 
-  override def streamingQuery[A : RowReader](sql: SqlString): StreamingQuery[F,A] =
-    StreamingQuery.create[F,A](this, sql)
+  override def streamingQuery[A : RowReader](sql: SqlString): StreamingQuery[A] =
+    StreamingQuery.create[A](this, sql)
 
-  override def query[A: RowReader](sqlStr: SqlString): Query[F, A] =
-    Query.create[F,A](this, sqlStr)
+  override def query[A: RowReader](sqlStr: SqlString): Query[ A] =
+    Query.create[A](this, sqlStr)
 
-  override def update(updateQuery: SqlString): F[Int] = {
-    prepare(updateQuery)
-      .evalMap { ps =>
-        F.blocking {
-          val i = ps.executeUpdate()
-          i
+  override def update(updateQuery: SqlString): Task[Int] =
+    ZIO.scoped[Any](
+      prepare(updateQuery)
+        .flatMap { ps =>
+          ZIO.attemptBlocking {
+            val i = ps.executeUpdate()
+            i
+          }
         }
-      }
-      .compile
-      .lastOrError
+    )
+
+
+  override def withStatement[A](fn: JStatement => Task[A]): Task[A] = {
+    ZIO.scoped {
+      statement
+        .flatMap(fn)
+    }
   }
 
+  override def statement: Resource[JStatement] =
+    scoped(jdbcConn.createStatement())
 
-  override def withStatement[A](fn: JStatement => F[A]): F[A] =
-    statement
-      .evalMap(fn)
-      .compile
-      .lastOrError
-
-  override def statement: fs2.Stream[F, JStatement] =
-    managedStream(jdbcConn.createStatement())
-
-  override def prepare(sql: SqlString): fs2.Stream[F, JdbcPreparedStatement] = {
+  override def prepare(sql: SqlString): Resource[JdbcPreparedStatement] = {
     val resolvedSql = compile(sql)
-    managedStream(withSqlCtx0[JdbcPreparedStatement](resolvedSql)(jdbcConn.prepareStatement(resolvedSql.value)))
+    scoped(withSqlCtx0[JdbcPreparedStatement](resolvedSql)(jdbcConn.prepareStatement(resolvedSql.value)))
   }
 
-  override def batcher[A : RowWriter](sql: SqlString): Batcher[F,A] =
-    Batcher.create[F,A](this, sql)
+  override def batcher[A : RowWriter](sql: SqlString): Batcher[A] =
+    Batcher.create[A](this, sql)
 
-  override def withInternalConn[A](fn: JdbcConnection => A): F[A] = {
-    F.blocking(fn(jdbcConn))
+  override def withInternalConn[A](fn: JdbcConnection => A): Task[A] = {
+    ZIO.attemptBlocking(fn(jdbcConn))
   }
 
-  override def isAutoCommit: F[Boolean] =
-    F.delay(jdbcConn.getAutoCommit)
+  override def isAutoCommit: Task[Boolean] = {
+    ZIO.attempt(jdbcConn.getAutoCommit)
+  }
 
-  def runSingleRowUpdate(updateQuery: SqlString): F[Unit] =
+  def runSingleRowUpdate(updateQuery: SqlString): Task[Unit] =
     runSingleRowUpdateOpt(updateQuery)
       .flatMap {
         case true =>
-          F.unit
+          ZIO.unit
         case false =>
-          F.raiseError[Unit](new RuntimeException(s"ran update and expected 1 row to be affected and 0 rows were affected -- ${updateQuery}"))
+          ZIO.die(new RuntimeException(s"ran update and expected 1 row to be affected and 0 rows were affected -- ${updateQuery}"))
       }
 
-  def runSingleRowUpdateOpt(updateQuery: SqlString): F[Boolean] =
+  def runSingleRowUpdateOpt(updateQuery: SqlString): Task[Boolean] =
     update(updateQuery)
       .flatMap {
         case 1 =>
-          F.pure(true)
+          ZIO.succeed(true)
         case 0 =>
-          F.pure(false)
+          ZIO.succeed(false) 
         case i =>
-          F.raiseError[Boolean](new RuntimeException(s"ran update and expected 1 or 0 row(s) to be affected and ${i} rows were affected -- ${updateQuery}"))
+          ZIO.die(new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${updateQuery}"))
       }
 
-  override def insertRow[A: TableMapper](row: A): F[A] = {
+  override def insertRow[A: TableMapper](row: A): Task[A] = {
     val auditedRow = TableMapper[A].auditProvider.onInsert(row)
     for {
       mapper <- mapperMaterializer.materialize(implicitly[TableMapper[A]])
@@ -143,7 +145,7 @@ case class ConnInternalImpl[F[_] : Async](
     } yield row
   }
 
-  override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[(A,UpsertResult)] = {
+  override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[(A,UpsertResult)] = {
     val mapper = implicitly[KeyedTableMapper[A,B]]
     fetchRowOpt(mapper.key(row))
       .flatMap {
@@ -156,7 +158,7 @@ case class ConnInternalImpl[F[_] : Async](
       }
   }
 
-  override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
+  override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[A] = {
     val auditedRow = keyedMapper.auditProvider.onUpdate(row)
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
@@ -166,7 +168,7 @@ case class ConnInternalImpl[F[_] : Async](
     } yield row
   }
 
-  override def updateRowWhere[A, B](row: A)(where: SqlString)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Option[A]] = {
+  override def updateRowWhere[A, B](row: A)(where: SqlString)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[Option[A]] = {
     val auditedRow = keyedMapper.auditProvider.onUpdate(row)
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
@@ -175,7 +177,7 @@ case class ConnInternalImpl[F[_] : Async](
     } yield rowUpdated.toOption(auditedRow)
   }
 
-  override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
+  override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[A] = {
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
       row <-
@@ -184,7 +186,7 @@ case class ConnInternalImpl[F[_] : Async](
     } yield row
   }
 
-  override def selectRows[A: TableMapper](whereClause: SqlString): F[Iterable[A]] = {
+  override def selectRows[A: TableMapper](whereClause: SqlString): Task[Iterable[A]] = {
     for {
       tm <- mapperMaterializer.materialize(implicitly[TableMapper[A]])
       rows <-
@@ -193,32 +195,32 @@ case class ConnInternalImpl[F[_] : Async](
     } yield rows
   }
 
-  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): fs2.Stream[F, A] = {
+  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): XStream[A] = {
     mapperMaterializer
       .materialize(implicitly[TableMapper[A]])
-      .fs2StreamEval
+      .zstreamEval
       .flatMap(tableMapper =>
         streamingQuery[A](tableMapper.selectSql(whereClause))
           .run
       )
   }
 
-  override def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] =
+  override def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[A] =
     fetchRowOpt[A,B](key)
       .flatMap {
         case Some(row) =>
-          F.pure(row)
+         ZIO.succeed(row)
         case None =>
-          F.raiseError[A](new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
+          ZIO.die(new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
       }
 
-  override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Option[A]] =
+  override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[Option[A]] =
     selectOpt(keyedMapper.keyToWhereClause(key))
 
-  override def commit: F[Unit] =
-    F.blocking(jdbcConn.commit())
+  override def commit: Task[Unit] =
+    ZIO.attemptBlocking(jdbcConn.commit())
 
-  override def rollback: F[Unit] =
-    F.blocking(jdbcConn.rollback())
+  override def rollback: Task[Unit] =
+    ZIO.attemptBlocking(jdbcConn.rollback())
 
 }

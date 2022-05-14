@@ -1,33 +1,34 @@
 package a8.shared.jdbcf
 
-import a8.shared.CompanionGen
-import a8.shared.jdbcf.DatabaseConfig.DatabaseId
+import a8.shared.SharedImports.{sharedImportsIntOps => _, _}
+import a8.shared.app.BootstrappedIOApp
 import a8.shared.jdbcf.MaterializedMapperDemo.BigBoo
-import a8.shared.jdbcf.MxMaterializedMapperDemo._
 import a8.shared.jdbcf.SqlString._
-import a8.shared.jdbcf.mapper.{PK, SqlTable}
-import cats.effect.{ExitCode, IO, IOApp}
+import zio.{Task, ZIO}
 
-object UpdateRowWhereDemo extends IOApp {
+object UpdateRowWhereDemo extends BootstrappedIOApp {
 
   import MaterializedMapperDemo.databaseConfig
 
-  override def run(args: List[String]): IO[ExitCode] =
-    ConnFactory.resource[IO](databaseConfig).use { connFactory =>
+  lazy val connFactoryR = ConnFactory.resource(databaseConfig)
+
+  override def runT: Task[Unit] =
+    ZIO.scoped {
       for {
-        _ <-
-          connFactory.connR.use(conn =>
-            conn.update(sql"""create table BIGBOO ("grOup" int, "name" varchar(255))""")
-          )
-        _ <- runit(connFactory)
-      } yield ExitCode(0)
+        connFactory <- connFactoryR
+          _ <-
+            connFactory.connR.use(conn =>
+              conn.update(sql"""create table BIGBOO ("grOup" int, "name" varchar(255))""")
+            )
+          _ <- runit(connFactory)
+      } yield ()
     }
 
-  def runit(connFactory: ConnFactory[IO]): IO[Unit] = {
+  def runit(connFactory: ConnFactory): Task[Unit] = {
     connFactory.connR.use { implicit conn =>
       BigBoo
         .queryDsl
-        .updateRow[IO](BigBoo(1, "a"))(aa => aa.name === "123")
+        .updateRow(BigBoo(1, "a"))(aa => aa.name === "123")
         .as(())
     }
   }

@@ -1,13 +1,14 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.SharedImports.{OptionT, Sync}
 import a8.shared.jdbcf.JdbcMetadata.JdbcPrimaryKey
 import com.ibm.as400.access.AS400JDBCSQLSyntaxErrorException
 import sttp.model.Uri
-import wvlet.log.Logger
 import SqlString._
 import a8.shared.SharedImports._
+import cats.data.OptionT
+import wvlet.log.Logger
+import zio._
 
 object ISeriesDialect extends Dialect {
 
@@ -24,13 +25,11 @@ object ISeriesDialect extends Dialect {
   // Could derive separator from jdbc url "naming" parameter or call jdbc metadata getCatalogSeparator()
   override val schemaSeparator: SqlString = SqlString.operator("/")
 
-  override def primaryKeys[F[_] : Sync](table: ResolvedTableName, conn: Conn[F]): F[Vector[JdbcMetadata.JdbcPrimaryKey]] = {
+  override def primaryKeys(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcMetadata.JdbcPrimaryKey]] = {
 
-    val F = Sync[F]
-
-    def attempt1: F[Option[Vector[JdbcPrimaryKey]]] = {
+    def attempt1: Task[Option[Vector[JdbcPrimaryKey]]] = {
       super
-        .primaryKeys[F](table, conn)
+        .primaryKeys(table, conn)
         .map {
           case v if v.isEmpty =>
             None
@@ -39,7 +38,7 @@ object ISeriesDialect extends Dialect {
         }
     }
 
-    def attempt2: F[Option[Vector[JdbcPrimaryKey]]] = {
+    def attempt2: Task[Option[Vector[JdbcPrimaryKey]]] = {
       val schemaClause = table.schema.map(s => sql" and DBKLIB = ${s.asString.escape}").getOrElse(sql"")
       val sql = sql"select DBKFLD from QADBKFLD where DBKFIL = ${table.name.asString.escape}${schemaClause} order by DBKPOS"
       conn
@@ -64,22 +63,22 @@ object ISeriesDialect extends Dialect {
             None
           }
         }
-        .handleErrorWith {
+        .catchAll {
           case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0551]") =>
             logger.debug(s"not authorized to QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case e: java.sql.SQLException if e.getMessage.contains("[SQL0551]") =>
             logger.debug(s"not authorized to QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case e: Exception =>
             logger.debug(s"error querying QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case th: Throwable =>
-            F.raiseError(th)
+            ZIO.die(th)
         }
     }
 
-    def attempt3: F[Option[Vector[JdbcPrimaryKey]]] = {
+    def attempt3: Task[Option[Vector[JdbcPrimaryKey]]] = {
       val schemaClause = table.schema.map(s => sql" and index_schema = ${s.asString.escape}").getOrElse(sql"")
       val sql = sql"""select COLUMN_NAMES from qsys2${schemaSeparator}SYSPARTITIONINDEXES where table_name = ${table.name.asString.escape} and index_type = 'PHYSICAL'${schemaClause}"""
       conn
@@ -105,25 +104,26 @@ object ISeriesDialect extends Dialect {
           case _ =>
             None
         }
-        .handleErrorWith {
+        .catchAll {
           case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0551]") =>
             logger.debug(s"not authorized to qsys2${schemaSeparator}SYSPARTITIONINDEXES unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0204]") =>
             logger.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case e: java.sql.SQLException if e.getMessage.contains("[SQL0551]") =>
             logger.debug(s"not authorized to qsys2${schemaSeparator}SYSPARTITIONINDEXES unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case e: java.sql.SQLException if e.getMessage.contains("[SQL0204]") =>
             logger.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            F.pure(None)
+            ZIO.succeed(None)
           case th: Throwable =>
-            F.raiseError(th)
+            ZIO.die(th)
         }
     }
 
-    val result: OptionT[F, Vector[JdbcPrimaryKey]] = OptionT(attempt1) <+> OptionT(attempt2) <+> OptionT(attempt3)
+    import cats.syntax._
+    val result: OptionT[Task, Vector[JdbcPrimaryKey]] = ??? // OptionT(attempt1) <+> OptionT(attempt2) <+> OptionT(attempt3)
 
     result
       .value
@@ -143,9 +143,8 @@ object ISeriesDialect extends Dialect {
    * Note for this dialect the catalog parm is ignored since it is implicit in the connection
    *
    */
-  override def resolveTableName[F[_] : Sync](tableLocator: TableLocator, conn: Conn[F]): F[ResolvedTableName] = {
+  override def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] = {
     import tableLocator._
-    val F = Sync[F]
     val libraryList = extractLibraryListFromJdbcUrl(conn.jdbcUrl)
     val schemaPart =
       schemaName
@@ -161,7 +160,7 @@ object ISeriesDialect extends Dialect {
       .select
       .flatMap { rows =>
         if ( rows.isEmpty ) {
-          F.raiseError(new RuntimeException(s"unable to resolveTableName ${tableLocator} in ${conn.jdbcUrl}"))
+          ZIO.die(new RuntimeException(s"unable to resolveTableName ${tableLocator} in ${conn.jdbcUrl}"))
         } else {
 
           val row = rows.toList.minBy(r => libraryList.indexOf(r._2).getOrElse(Integer.MAX_VALUE))
@@ -172,18 +171,20 @@ object ISeriesDialect extends Dialect {
             else
               Iterable.empty
 
-          ResolvedTableName(
-            None,
-            Some(row._2),
-            row._1,
-          ).pure[F]
+          ZIO.succeed(
+            ResolvedTableName(
+              None,
+              Some(row._2),
+              row._1,
+            )
+          )
         }
       }
   }
 
 
-  override def columns[F[_] : Sync](table: ResolvedTableName, conn: Conn[F]): F[Vector[JdbcMetadata.JdbcColumn]] = {
-    def loadColumnNames(): F[Map[String, Option[String]]] = {
+  override def columns(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcMetadata.JdbcColumn]] = {
+    def loadColumnNames(): Task[Map[String, Option[String]]] = {
       val schemaClause = table.schema.map(s => sql" and TABLE_SCHEMA = ${s.asString.escape}").getOrElse(sql"")
       val sql = sql"select COLUMN_NAME, SYSTEM_COLUMN_NAME from QSYS2${schemaSeparator}SYSCOLUMNS where TABLE_NAME = ${table.name.asString.escape}${schemaClause}"
       conn

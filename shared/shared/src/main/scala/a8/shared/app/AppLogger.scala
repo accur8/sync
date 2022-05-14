@@ -1,14 +1,13 @@
 package a8.shared.app
 
 import org.slf4j.LoggerFactory
-import wvlet.log.{Logger, _}
+import wvlet.log.{LogLevel, LogRotationHandler, Logger}
 
 import java.util.logging.Level
 
-trait AppLogger extends LazyLogger { self: BootstrappedIOApp =>
+trait AppLogger extends Logging { self: BootstrappedIOApp =>
 
   lazy val bootstrapInit = {
-
     def configureLogLevels() = {
 
       Logger.setDefaultLogLevel(bootstrapConfig.defaultLogLevel)

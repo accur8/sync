@@ -1,7 +1,7 @@
 package a8.shared.app
 
-import cats.effect.Sync
-import wvlet.log.{LazyLogger, LogEnv, Logger}
+import wvlet.log.Logger
+
 
 object Logging {
 

@@ -2,21 +2,22 @@ package a8.sync.demos
 
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.sync.DataSet
-import a8.sync.Imports._
+import a8.sync.Imports.{sharedImportsIntOps => _, _}
 import a8.sync.impl.queryService
 import a8.shared.jdbcf.Conn
-import cats.effect.{IO, IOApp}
 import com.ibm.as400.access.AS400JDBCDriver
 
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import a8.shared.jdbcf.SqlString._
+import zio._
+import zio.stream.ZSink
 
-object LongQueryDemo extends IOApp.Simple {
+object LongQueryDemo extends ZIOAppDefault {
 
   lazy val connR =
-    Conn.fromNewConnection[IO](
+    Conn.fromNewConnection(
       "jdbc:postgresql://localhost/glen".toUri, // connect URL (driver-specific)
       "glen", // user
       "", // password
@@ -29,35 +30,38 @@ object LongQueryDemo extends IOApp.Simple {
     sql
   }
 
-  val program =
-    connR
-      .use { conn =>
-        conn
-          .streamingQuery[LocalDateTime](valuesQuery(55))
-          .run
-          .evalMap { row =>
-            IO.println(s"row ${row}")
-          }
-          .compile
-          .toList
-      }
+  val program: Task[List[LocalDateTime]] =
+    ZIO.scoped {
+      connR
+        .use { conn =>
+          conn
+            .streamingQuery[LocalDateTime](valuesQuery(55))
+            .run
+            .tap { row =>
+              ZIO.succeed(println(s"row ${row}"))
+            }
+            .run(ZSink.collectAll)
+            .map(_.toList)
+        }
+    }
 
 
-//  override def run: IO[Unit] = {
+  //  override def run: IO[Unit] = {
 //    for {
 //      _ <- program
 //    } yield ()
 //  }
 
-  override def run: IO[Unit] = {
+
+  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
     for {
-      fiber <- program.start
+      fiber <- program.fork
       _ <-
         (
-          IO.sleep(FiniteDuration(10, TimeUnit.SECONDS))
-            *> IO.println("cancelling")
-            *> fiber.cancel
-            *> IO.sleep(FiniteDuration(10, TimeUnit.SECONDS))
+          ZIO.sleep(10.seconds)
+            *> ZIO.succeed(println("cancelling"))
+            *> fiber.interrupt
+            *> ZIO.sleep(10.seconds)
         )
     } yield ()
   }
