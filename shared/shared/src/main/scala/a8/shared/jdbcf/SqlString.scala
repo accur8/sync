@@ -10,6 +10,7 @@ import a8.shared.SharedImports._
 import a8.shared.jdbcf.JdbcMetadata.ResolvedColumn
 import a8.shared.jdbcf.SqlString.{CompiledSql, DefaultJdbcEscaper, Escaper}
 import a8.shared.json.ast.JsDoc
+import zio._
 
 object SqlString extends SqlStringLowPrio {
 
@@ -161,7 +162,7 @@ object SqlString extends SqlStringLowPrio {
 
     case class OptionSqlStringer[A](delegate: SqlStringer[A]) extends SqlStringer[Option[A]] {
 
-      override def materialize[F[_] : shared.SharedImports.Async](conn: Conn[F], resolvedColumn: ResolvedColumn): F[SqlStringer[Option[A]]] = {
+      override def materialize(conn: Conn, resolvedColumn: ResolvedColumn): Task[SqlStringer[Option[A]]] = {
         delegate
           .materialize(conn, resolvedColumn)
           .map(OptionSqlStringer.apply)
@@ -181,8 +182,8 @@ object SqlString extends SqlStringLowPrio {
   }
 
   trait SqlStringer[A] {
-    def materialize[F[_]: Async](conn: Conn[F], resolvedColumn: ResolvedColumn): F[SqlStringer[A]] =
-      Async[F].pure(this)
+    def materialize(conn: Conn, resolvedColumn: ResolvedColumn): Task[SqlStringer[A]] =
+      ZIO.succeed(this)
     def toSqlString(a: A): SqlString
   }
 

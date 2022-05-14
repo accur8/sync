@@ -1,8 +1,9 @@
 package a8.shared.json.impl
 
-import a8.shared.SharedImports.Async
+
 import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, ReadError}
+import zio.{Task, ZIO}
 
 trait JsValMixin { self: JsVal =>
 
@@ -41,13 +42,13 @@ trait JsValMixin { self: JsVal =>
   def as[A : JsonCodec]: Either[ReadError,A] =
     JsonCodec[A].read(toDoc)
 
-  def asF[F[_] : Async, A : JsonCodec]: F[A] =
-    Async[F].defer {
+  def asF[A: JsonCodec]: Task[A] =
+    ZIO.suspend {
       JsonCodec[A].read(toDoc) match {
         case Left(re) =>
-          Async[F].raiseError(re.asException)
+          ZIO.die(re.asException)
         case Right(v) =>
-          Async[F].pure(v)
+          ZIO.succeed(v)
       }
     }
 

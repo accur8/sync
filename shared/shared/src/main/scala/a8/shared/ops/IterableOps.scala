@@ -2,6 +2,7 @@ package a8.shared.ops
 
 
 import a8.shared.SharedImports._
+import cats.data.Chain
 
 class IterableOps[T, U[T] <: Iterable[T]](val _delegate: U[T]) {
 

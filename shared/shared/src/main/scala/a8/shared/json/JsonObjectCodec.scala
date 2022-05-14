@@ -6,7 +6,7 @@ import a8.shared.json.JsonObjectCodecBuilder.{IgnoredField, Parm}
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, resolveAliases}
 import cats.{Eval, Foldable}
-import fs2.Chunk
+import zio.Chunk
 import a8.shared.SharedImports._
 import a8.shared.app.Logging
 

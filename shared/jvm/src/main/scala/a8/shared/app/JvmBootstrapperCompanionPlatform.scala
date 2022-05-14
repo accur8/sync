@@ -9,7 +9,6 @@ import a8.shared.json.{JsonCodec, ast}
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
 import a8.shared.json.ast.JsDoc
-import wvlet.log.LogLevel
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -75,7 +74,7 @@ class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
           tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),
           cacheDir = CacheDir(FileSystem.dir(resolvedDto.cacheDir.get)),
           dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
-          defaultLogLevel = wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
+          defaultLogLevel = ???, //wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
         )
       }
 

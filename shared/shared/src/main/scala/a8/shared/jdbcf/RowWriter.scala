@@ -1,7 +1,7 @@
 package a8.shared.jdbcf
 
-import a8.shared.jdbcf.SqlString.SqlStringer
 
+import a8.shared.jdbcf.SqlString.SqlStringer
 
 import java.sql.PreparedStatement
 import a8.shared.SharedImports._
@@ -9,7 +9,7 @@ import a8.shared.SharedImports._
 object RowWriter {
 
   def create[A](fn: java.sql.PreparedStatement=>((Int, A)=>Unit))(implicit sqlStringer: SqlStringer[A]): RowWriter[A] = {
-    val sqlStringer0 = sqlStringer.some
+    val sqlStringer0 = sqlStringer.toSome
     new RowWriter[A] {
       val parameterCount = 1
       override def columnNames(columnName: ColumnName): Iterable[ColumnName] = Iterable(columnName)
@@ -17,7 +17,7 @@ object RowWriter {
         fn(ps)(parameterIndex, a)
       }
       override def sqlString(a: A): Option[SqlString] =
-        sqlStringer.toSqlString(a).some
+        sqlStringer.toSqlString(a).toSome
     }
   }
 

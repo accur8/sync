@@ -1,12 +1,10 @@
 package a8.shared
 
 
-import a8.shared.CatsUtils.Memo
-import a8.shared.SharedImports.Async
+import a8.shared.app.Logger
 import a8.shared.json.JsonCodec
-import a8.shared.ops.{AnyOps, AsyncOps, BooleanOps, ChunkByteOps, ChunkOps, ClassOps, FStreamOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, StreamOps, ThrowableOps}
+import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
 import cats.data.Chain
-import fs2.Chunk
 import sttp.model.{Uri, UriInterpolator}
 
 import java.io.{PrintWriter, StringWriter}
@@ -17,7 +15,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import a8.shared.json.JsonCodec.JsonCodecOps
 import a8.shared.json.impl.JsonImports
-import wvlet.log.Logger
 
 import java.nio.charset.Charset
 import scala.collection.{StringOps, mutable}
@@ -31,10 +28,16 @@ import scala.util.Try
 object SharedImports extends SharedImports
 
 trait SharedImports
-  extends CatsImportsTrait
-    with AsJavaExtensions
+  extends AsJavaExtensions
     with AsScalaExtensions
 {
+
+  type Resource[A] = zio.ZIO[zio.Scope,Throwable,A]
+
+  type UStream[A] = zio.stream.UStream[A]
+
+  type CIString = org.typelevel.ci.CIString
+  val CIString = org.typelevel.ci.CIString
 
   val IsNonFatal = scala.util.control.NonFatal
 
@@ -42,6 +45,9 @@ trait SharedImports
 
   def some[A](a: A): Option[A] =
     Some(a)
+
+  def none[A]: Option[A] =
+    None
 
   object ParseBigInt {
     def unapply(s : String) : Option[BigInt] = try {
@@ -93,7 +99,6 @@ trait SharedImports
 
   }
 
-
   implicit def sharedImportsStringOps(s: String) =
     new a8.shared.ops.StringOps(s)
 
@@ -102,12 +107,6 @@ trait SharedImports
 
   implicit def matchOpsAnyVal[A <: AnyVal](a: A) =
     new AnyOps[A](a)
-
-  implicit def fStreamOps[F[_] : Async,A](strF: F[fs2.Stream[F,A]]) =
-    new FStreamOps[F,A](strF)
-
-  implicit def streamOps[F[_] : Async,A](str: fs2.Stream[F,A]) =
-    new StreamOps(str)
 
   implicit def sharedImportsIntOps(i: Int) =
     new IntOps(i)
@@ -120,15 +119,6 @@ trait SharedImports
 
   implicit def throwableOps(th: Throwable) =
     new ThrowableOps(th)
-
-  implicit def chunkOps[A](ch: Chunk[A]) =
-    new ChunkOps(ch)
-
-  implicit def chunkBytesOps(ch: Chunk[Byte]) =
-    new ChunkByteOps(ch)
-
-  implicit def sharedImportsAsyncOps[F[_] : Async, A](fa: F[A]) =
-    new a8.shared.ops.AsyncOps[F,A](fa)
 
   implicit def iterableOps[A](iterable: Iterable[A]) =
     new IterableOps(iterable)

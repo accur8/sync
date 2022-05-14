@@ -1,10 +1,11 @@
 package a8.shared.jdbcf
 
-import cats.effect.kernel.Async
+
 import org.typelevel.ci.CIString
 
 import java.sql.DatabaseMetaData
 import a8.shared.SharedImports._
+import zio._
 
 object KeywordSet {
 
@@ -848,8 +849,8 @@ ZONE
 
   }
 
-  def fromMetadata[F[_]: Async](dbm: DatabaseMetaData): F[KeywordSet] =
-    Async[F].blocking {
+  def fromMetadata(dbm: DatabaseMetaData): Task[KeywordSet] =
+    ZIO.attemptBlocking {
       val databaseSpecificKeywordSet =
         dbm
           .getSQLKeywords

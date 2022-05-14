@@ -24,6 +24,6 @@ trait TableMapper[A] extends ComponentMapper[A] { self =>
    * @tparam F
    * @return
    */
-  def materializeTableMapper[F[_]: Async](implicit conn: Conn[F]): F[TableMapper[A]]
+  def materializeTableMapper(implicit conn: Conn): zio.Task[TableMapper[A]]
 
 }

@@ -3,8 +3,8 @@ package a8.shared.json.impl
 import a8.shared.json.ReadError.{ParseError, SingleReadError}
 import a8.shared.json.ast.{JsObj, JsVal}
 import a8.shared.json.{JsonCodec, ReadError}
-import cats.effect.kernel.Async
 import org.typelevel.jawn.Parser
+import zio._
 
 trait JsonPackageObjectApi {
 
@@ -41,24 +41,22 @@ trait JsonPackageObjectApi {
         v
     }
 
-  def parseF[F[_]: Async](jsonStr: String): F[JsVal] =
+  def parseF(jsonStr: String): Task[JsVal] =
     fromDeferredEither(
       parse(jsonStr)
     )
 
-  def readF[F[_] : Async, A : JsonCodec](jsonStr: String): F[A] =
+  def readF[A : JsonCodec](jsonStr: String): Task[A] =
     fromDeferredEither(
       read[A](jsonStr)
     )
 
-  protected def fromDeferredEither[F[_] : Async,A](eitherFn: => Either[ReadError,A]): F[A] =
-    Async[F].defer {
-      Async[F].fromEither(
-        eitherFn
-          .left
-          .map(_.asException)
-      )
-    }
+  protected def fromDeferredEither[A](eitherFn: => Either[ReadError,A]): Task[A] =
+    ZIO.fromEither(
+      eitherFn
+        .left
+        .map(_.asException)
+    )
 
   def read[A : JsonCodec](jsonStr: String): Either[ReadError,A] =
     parse(jsonStr)

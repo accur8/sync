@@ -1,57 +1,53 @@
 package a8.shared.jdbcf
 
+import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.SqlString.CompiledSql
-import cats.effect.Async
-import cats.implicits._
-
-import scala.language.higherKinds
+import zio._
+import zio.stream.ZSink
 
 object Query {
 
-  def create[F[_] : Async, A : RowReader](conn: ConnInternal[F], sql: SqlString): Query[F,A] = {
+  def create[A : RowReader](conn: ConnInternal, sql: SqlString): Query[A] = {
 
-    val F = Async[F]
     val sql0 = conn.compile(sql)
 
-    new Query[F,A] {
+    new Query[A] {
 
       override val sql = sql0
 
       override val reader: RowReader[A] = implicitly[RowReader[A]]
 
-      def stream: fs2.Stream[F, A] = {
+      def stream: UStream[A] = {
         conn
           .statement
           .flatMap { st =>
-            Managed.stream[F,java.sql.ResultSet](withSqlCtx0(sql)(st.executeQuery(sql.value)))
+            Managed.stream[java.sql.ResultSet](withSqlCtx0(sql)(st.executeQuery(sql.value)))
               .flatMap(rs => resultSetToStream(rs))
                 .map(reader.read)
           }
       }
 
-      override def select: F[Iterable[A]] =
+      override def select: Task[Iterable[A]] =
         stream
-          .compile
-          .toList
+          .run(ZSink.collectAll)
           .map(_.toIterable)
 
-      override def unique: F[A] =
+      override def unique: Task[A] =
         fetch
           .flatMap {
             case None =>
-              F.raiseError(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
+              ZIO.die(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
             case Some(v) =>
-              F.pure(v)
+              ZIO.succeed(v)
           }
 
 
-      override def fetch: F[Option[A]] =
+      override def fetch: Task[Option[A]] =
         stream
           .take(1)
-          .compile
-          .last
+          .run(ZSink.last)
 
     }
   }
@@ -59,11 +55,11 @@ object Query {
 }
 
 
-trait Query[F[_],A] { query =>
+trait Query[A] { query =>
   val sql: CompiledSql
   val reader: RowReader[A]
-  def select: F[Iterable[A]]
-  def unique: F[A]
-  def fetch: F[Option[A]]
+  def select: Task[Iterable[A]]
+  def unique: Task[A]
+  def fetch: Task[Option[A]]
 }
 

@@ -1,7 +1,8 @@
 package a8.shared.jdbcf
 
-import a8.shared.SharedImports.{Async, Resource}
+
+import zio._
 
 trait JsConnFactoryPlatform extends ConnFactoryImpl {
-  override def resource[F[_] : Async](databaseConfig: DatabaseConfig): Resource[F, ConnFactory[F]] = ???
+  override def resource(databaseConfig: DatabaseConfig): ZIO[Scope, Throwable, ConnFactory] = ???
 }
