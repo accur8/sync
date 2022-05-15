@@ -2,51 +2,52 @@ package a8.sync
 
 
 import a8.shared.jdbcf
-import java.sql.{PreparedStatement, SQLException}
 
+import java.sql.{PreparedStatement, SQLException}
 import a8.sync.ResolvedTable.{ColumnMapper, ResolvedField}
 import a8.sync.dsl.{Mapping, ResolvedMapping, Table}
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey, JdbcTable}
 import a8.shared.jdbcf.SqlString.HasSqlString
 import a8.shared.jdbcf.{Dialect, Row, RowWriter, SchemaName, SqlString, TableLocator, TableName}
 import a8.shared.json.ast.{JsNull, JsVal}
-import fs2.Chunk
-import cats._
-import cats.effect._
-import cats.implicits._
 import org.typelevel.ci.CIString
+import zio._
+import Imports._
 
 object impl {
 
   object queryService {
 
-    def query[F[_] : Monad](query: SqlString, conn: jdbcf.Conn[F]): F[DataSet] = {
+    def query(query: SqlString, conn: jdbcf.Conn): Task[DataSet] = {
       conn
         .query[Row](query)
         .select
         .map(c => DataSet(c.toVector))
     }
 
-    def updates[F[_] : Monad](updateQueries: Vector[SqlString], conn: jdbcf.Conn[F]): F[Vector[Int]] =
-      updateQueries.traverse(uq => update[F](uq, conn))
+    def updates(updateQueries: Vector[SqlString], conn: jdbcf.Conn): Task[Vector[Int]] =
+      updateQueries
+        .map(uq => update(uq, conn))
+        .sequence
 
-    def update[F[_]](updateSql: SqlString, conn: jdbcf.Conn[F]): F[Int] = {
+    def update(updateSql: SqlString, conn: jdbcf.Conn): Task[Int] = {
       conn.update(updateSql)
     }
 
   }
 
 
-  def resolveMapping[F[_] : Async](schema: SchemaName, mapping: Mapping, conn: jdbcf.Conn[F]): F[ResolvedMapping] = {
+  def resolveMapping(schema: SchemaName, mapping: Mapping, conn: jdbcf.Conn): Task[ResolvedMapping] = {
     mapping
       .tables
-      .traverse(t => resolveTable(schema, t, conn))
+      .map(t => resolveTable(schema, t, conn))
+      .sequence
       .map { resolvedTables =>
         ResolvedMapping(schema, resolvedTables, mapping)
       }
   }
 
-  def resolveTable[F[_] : Async](schema: SchemaName, table: Table, conn: jdbcf.Conn[F]): F[ResolvedTable] = {
+  def resolveTable(schema: SchemaName, table: Table, conn: jdbcf.Conn): Task[ResolvedTable] = {
     val locator = TableLocator(schema, table.targetTable)
     for {
       resolvedJdbcTable <- conn.tableMetadata(locator)
@@ -76,7 +77,7 @@ object impl {
       ResolvedTable(
         schema,
         table,
-        Chunk.array(resolvedFields.toArray),
+        Chunk.fromArray(resolvedFields.toArray),
         conn.dialect,
       )
     }

@@ -7,6 +7,7 @@ import a8.shared.app.MxBootstrapConfig.MxBootstrapConfigDto
 
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
+import wvlet.log.LogLevel
 
 
 /*
@@ -92,5 +93,5 @@ case class BootstrapConfig(
   tempDir: TempDir,
   cacheDir: CacheDir,
   dataDir: DataDir,
-  defaultLogLevel: Logger.LogLevel,
+  defaultLogLevel: LogLevel,
 ) extends NamedToString

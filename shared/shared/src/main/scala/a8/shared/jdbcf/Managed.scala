@@ -7,7 +7,7 @@ import a8.shared.app.{Logging, LoggingF}
 import zio.stream.{UStream, ZStream}
 import zio._
 
-object Managed extends Logging with LoggingF {
+object Managed extends LoggingF {
 
   abstract class AbstractManaged[A] extends Managed[A] {
     override def safeClose(a: A): UIO[Unit] =
@@ -46,23 +46,32 @@ object Managed extends Logging with LoggingF {
       override val isCancelable: Boolean = false
       override def cancel(conn: Connection): Task[Unit] = ZIO.unit
 
-      override def complete(exitCase: ExitCase, conn: Connection): Task[Unit] = {
-        ZIO.attemptBlocking {
-          trylogo("cleaning up completed connection") {
+      override def complete(exitCase: Exit[Any, Any], conn: Connection): UIO[Unit] =
+        ZIO.suspendSucceed {
+          val effect =
             if (!conn.getAutoCommit && !conn.isClosed) {
               exitCase match {
-                case ExitCase.Canceled =>
-                  logger.debug("Transaction canceled. Closing connection without commit.")
-                case ExitCase.Errored(_) =>
-                  logger.debug("Transaction failed. Rolling back and closing connection.")
-                  conn.rollback()
-                case ExitCase.Succeeded =>
-                  conn.commit()
+                case _ if exitCase.isInterrupted || exitCase.isFailure =>
+                  val exitName = {
+                    if (exitCase.isInterrupted) "canceled"
+                    else if (exitCase.isFailure) "failed"
+                    else "success"
+                  }
+                  for {
+                    _ <- loggerF.debug(s"Transaction ${exitName}. Rolling back and closing connection.")
+                    _ <- ZIO.attempt(conn.rollback())
+                  } yield ()
+                case _ =>
+                  ZIO.attemptBlocking(
+                    conn.commit()
+                  )
               }
+            } else {
+              ZIO.unit
             }
-          }
-        } >> safeClose(conn)
-      }
+          val safeEffect = effect.catchAll(th => loggerF.debug(s"logging and swallowing error completing connection ${conn} it is likely bening", th))
+          safeEffect *> safeClose(conn)
+        }
 
       override def isClosed(conn: Connection): Task[Boolean] =
         ZIO.attemptBlocking(conn.isClosed)
@@ -94,61 +103,39 @@ object Managed extends Logging with LoggingF {
 
   def apply[A : Managed]: Managed[A] = implicitly[Managed[A]]
 
-  def resource[A : Managed](thunk: =>A): ZIO[Scope,Throwable,A] = {
+  def resource[A : Managed](thunk: =>A): Resource[A] = {
     val Managed = implicitly[Managed[A]]
     ZIO.acquireRelease(
       ZIO.attemptBlocking(thunk)
     )(
-      a => Managed.complete(a)
+      a => Managed.complete(Exit.succeed(a), a)
     )
   }
 
-  def resourceWithContext[A : Managed](context: String)(thunk: =>A): Resource[A] = {
+  def resourceWithContext[A : Managed](contextOpt: Option[String])(thunk: =>A): Resource[A] = {
     val managed = implicitly[Managed[A]]
-    val acquire =
+
+    val acquire: ZIO[Any, Throwable, A] =
       ZIO
         .attemptBlocking(thunk)
-        .catchAll { th =>
-          ZIO.attemptBlocking(
-            logger.warn(s"error acquiring resource with context ${context}", th)
-          )
-        }
+        .onError( th =>
+          contextOpt match {
+            case Some(context) =>
+              loggerF.debug(s"error acquiring resource with context ${context}", th)
+            case None =>
+              ZIO.unit
+          }
+        )
 
-    def release(a: A, exit :Exit[Any,Any]): ZIO[Any,Nothing,Unit] =
+    def release(a: A, exit: Exit[Any,Any]): ZIO[Any,Nothing,Unit] =
       managed.complete(exit, a)
 
     ZIO.acquireReleaseExit(acquire)(release)
 
-//          val resource = thunk
-//          resource -> { ec: ExitCase => Managed.complete(ec, resource) }
-//        }
-//        .onError  {
-//          case IsNonFatal(th) =>
-//            ZIO.attemptBlocking(
-//              logger.warn(s"error acquiring resource with context ${context}", th)
-//            )
-//        }
-//    )
   }
 
-  def stream[A : Managed](thunk: =>A): UStream[A] = {
-    val managed = Managed[A]
-    val baseStream = ZStream.resource(resource[A](thunk))
-    if ( managed.isCancelable ) {
-      baseStream
-        .flatMap { a =>
-          ZStream.emit(a)
-            .onFinalizeCase {
-              case ExitCase.Canceled =>
-                managed.cancel(a)
-              case _ =>
-                ZIO.unit
-            }
-        }
-    } else {
-      baseStream
-    }
-  }
+  def scoped[A : Managed](thunk: =>A): Resource[A] =
+    resourceWithContext(None)(thunk)
 
 }
 
@@ -162,5 +149,5 @@ trait Managed[A] {
   /**
    * only closes if isClosed = false
    */
-  def safeClose(a: A): Task[Unit]
+  def safeClose(a: A): UIO[Unit]
 }

@@ -1,5 +1,7 @@
 package a8.shared.app
 
+import wvlet.log.Logger
+
 
 object Logging {
 

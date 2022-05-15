@@ -11,7 +11,7 @@ object JsonCodecMapper {
 
 class JsonCodecMapper[A : JsonCodec] extends SqlStringer[A] with RowReader[A] {
 
-  override def materialize[F[_]: Async](conn: Conn[F], resolvedColumn: JdbcMetadata.ResolvedColumn): F[SqlStringer[A]] = {
+  override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): zio.Task[SqlStringer[A]] = {
     for {
       delegate <- SqlStringer.jsDocSqlStringer.materialize(conn, resolvedColumn)
     } yield

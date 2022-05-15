@@ -1,9 +1,8 @@
 package a8.sync
 
 
-import java.sql.{ResultSet}
+import java.sql.ResultSet
 import a8.sync.dsl.JsonPath
-import fs2.Chunk
 import org.typelevel.ci.CIString
 import Imports._
 import a8.sync.ResolvedTable.{ColumnMapper, DataType, ResolvedField}
@@ -12,9 +11,11 @@ import a8.shared.jdbcf.{ColumnName, Conn, Dialect, SchemaName, SqlString, TableN
 import a8.shared.json.DynamicJson
 import a8.shared.json.ast.{JsNothing, JsVal}
 import a8.sync.RowSync.ValidationMessage
+import cats.data.Chain
 import wvlet.log.LogLevel
 
 import language.higherKinds
+import zio._
 
 /**
 
@@ -51,12 +52,13 @@ object dsl {
 
   case class ResolvedMapping(schema: SchemaName, tables: Vector[ResolvedTable], mapping: Mapping) {
 
-    def processRootDocument[F[_] : Async](document: DynamicJson, conn: Conn[F]): F[MappingResult] = {
+    def processRootDocument(document: DynamicJson, conn: Conn): Task[MappingResult] = {
       mapping
         .postDocumentAcquisitionFilter(document)
         .toOption(
           tables
-            .traverse(table => table.runSync(document, conn, mapping.defaultTruncationAction))
+            .map(table => table.runSync(document, conn, mapping.defaultTruncationAction))
+            .sequence
             .map(_.foldLeft(Chain.empty[RowSync])(_ ++ _))
             .map { rowSyncs =>
               val validationMessages = rowSyncs.flatMap(_.validationMessages)
@@ -67,9 +69,9 @@ object dsl {
                   MappingResult.Success(document, rowSyncs, validationMessages) : MappingResult
               }
             }
-            .handleError(th => MappingResult.Error(document, th, Chain.empty))
+            .catchAll(th => ZIO.succeed(MappingResult.Error(document, th, Chain.empty)))
         )
-        .getOrElse(Async[F].pure(MappingResult.Skip(document, Chain(LogLevel.INFO -> "skipped claim -- postProcessDocumentFilter returned false"))))
+        .getOrElse(ZIO.succeed(MappingResult.Skip(document, Chain(LogLevel.INFO -> "skipped claim -- postProcessDocumentFilter returned false"))))
     }
 
   }
@@ -81,7 +83,7 @@ object dsl {
     syncWhereClause: DynamicJson => SqlString,
     fields: Iterable[Field],
   ) {
-    lazy val fieldsAsChunk = Chunk.array(fields.toArray)
+    lazy val fieldsAsChunk = Chunk.fromArray(fields.toArray)
 
     def addFields(moreFields: Iterable[Field]): Table =
       copy(fields = fields ++ moreFields)

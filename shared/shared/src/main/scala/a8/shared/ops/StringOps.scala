@@ -76,6 +76,7 @@ class StringOps(private val source: String) extends AnyVal {
 
   }
 
+
   def padLeftTo(len: Int, elem: Char): String = {
     val sourceLen = source.length
     if (sourceLen >= len) {

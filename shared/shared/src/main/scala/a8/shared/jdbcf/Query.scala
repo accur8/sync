@@ -5,7 +5,7 @@ import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.SqlString.CompiledSql
 import zio._
-import zio.stream.ZSink
+import zio.stream.{UStream, ZSink, ZStream}
 
 object Query {
 
@@ -19,14 +19,19 @@ object Query {
 
       override val reader: RowReader[A] = implicitly[RowReader[A]]
 
-      def stream: UStream[A] = {
-        conn
-          .statement
-          .flatMap { st =>
-            Managed.stream[java.sql.ResultSet](withSqlCtx0(sql)(st.executeQuery(sql.value)))
-              .flatMap(rs => resultSetToStream(rs))
-                .map(reader.read)
-          }
+      def stream: XStream[A] = {
+        val effect: ZIO[Scope, Throwable, XStream[A]] =
+          conn
+            .statement
+            .flatMap(st =>
+              Managed
+                .scoped[java.sql.ResultSet](withSqlCtx0(sql)(st.executeQuery(sql.value)))
+                .map(rs =>
+                  resultSetToStream(rs)
+                    .map(reader.read)
+                )
+            )
+        ZStream.unwrapScoped(effect)
       }
 
       override def select: Task[Iterable[A]] =

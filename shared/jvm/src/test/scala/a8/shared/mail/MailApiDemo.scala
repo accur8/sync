@@ -1,8 +1,10 @@
 package a8.shared.mail
 
+
+import a8.shared.SharedImports._
 import a8.shared.app.BootstrappedIOApp
-import cats.effect.IO
 import wvlet.log.{LogLevel, Logger}
+import zio._
 
 object MailApiDemo extends BootstrappedIOApp {
 
@@ -19,9 +21,9 @@ object MailApiDemo extends BootstrappedIOApp {
     debug = true,
   )
 
-  lazy val mailApiR = MailApi.asResource[IO](mailConfig)
+  lazy val mailApiR: ZIO[Scope, Throwable, MailApi] = MailApi.asResource(mailConfig)
 
-  override def run: IO[Unit] = {
+  override def runT: Task[Unit] = {
     mailApiR.use { mailApi =>
       val message =
         MailMessage()

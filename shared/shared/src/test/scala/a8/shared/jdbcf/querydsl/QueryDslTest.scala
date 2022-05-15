@@ -7,7 +7,6 @@ import a8.shared.jdbcf.mapper.{MapperBuilder, PK}
 import a8.shared.jdbcf.{SqlString, querydsl}
 import a8.shared.jdbcf.querydsl.MxQueryDslTest.{MxAddress, MxContainer, MxWidget}
 import a8.shared.jdbcf.querydsl.QueryDsl.Join
-import cats.effect.{Async, IO}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions
@@ -58,7 +57,7 @@ class QueryDslTest extends AnyFunSuite {
 
   test("simpleJoinInWhere") {
 
-    val query = Widget.query[IO](aa => aa.id === "foo" and aa.container.id === "bar")
+    val query = Widget.query(aa => aa.id === "foo" and aa.container.id === "bar")
 
     val actual = query.sqlString.compileToString
 
@@ -74,7 +73,7 @@ class QueryDslTest extends AnyFunSuite {
 
     val address = Address("line1", "line2", "city", "state", "zip")
 
-    val query = Container.query[IO](aa => aa.address === address)
+    val query = Container.query(aa => aa.address === address)
 
     val actual = query.sqlString.compileToString
 
@@ -88,7 +87,7 @@ class QueryDslTest extends AnyFunSuite {
 
   test("address line 1 equality") {
 
-    val query = Container.query[IO](aa => aa.address.line1 === "myline1")
+    val query = Container.query(aa => aa.address.line1 === "myline1")
 
     val actual = query.sqlString.compileToString
 
@@ -102,7 +101,7 @@ class QueryDslTest extends AnyFunSuite {
 
   test("simpleJoinInOrderBy") {
 
-    val query = Widget.query[IO](aa => aa.id === "foo" and aa.container.id === "bar").orderBys(aa=>List(aa.id, aa.container.name))
+    val query = Widget.query(aa => aa.id === "foo" and aa.container.id === "bar").orderBys(aa=>List(aa.id, aa.container.name))
 
     val actual = query.sqlString.compileToString
 
@@ -115,7 +114,7 @@ class QueryDslTest extends AnyFunSuite {
   }
 
   test("simple") {
-    val query = Container.query[IO](aa => aa.count >= 1L)
+    val query = Container.query(aa => aa.count >= 1L)
     val actual = query.sqlString.compileToString
     assertResult(
       """select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count >= 1"""
@@ -125,7 +124,7 @@ class QueryDslTest extends AnyFunSuite {
   }
 
   test("noneAsNull") {
-    val query = Container.query[IO](aa => aa.count === None)
+    val query = Container.query(aa => aa.count === None)
     val actual = query.sqlString.compileToString
     assertResult(
       """select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count is null"""
@@ -135,7 +134,7 @@ class QueryDslTest extends AnyFunSuite {
   }
 
   test("someAsValue") {
-    val query = Container.query[IO](aa => aa.count === Some(1L))
+    val query = Container.query(aa => aa.count === Some(1L))
     val actual = query.sqlString.compileToString
     assertResult(
       """select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.count = 1"""
@@ -146,7 +145,7 @@ class QueryDslTest extends AnyFunSuite {
 
 //  test("updateQuery") {
 //
-//    val updateQuery = Widget.update[IO](aa => aa.name := "foo").where(aa => aa.id === "xyz")
+//    val updateQuery = Widget.update(aa => aa.name := "foo").where(aa => aa.id === "xyz")
 //
 //    val actual = updateQuery.asSql.trim
 //

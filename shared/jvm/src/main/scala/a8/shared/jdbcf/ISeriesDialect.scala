@@ -6,8 +6,8 @@ import com.ibm.as400.access.AS400JDBCSQLSyntaxErrorException
 import sttp.model.Uri
 import SqlString._
 import a8.shared.SharedImports._
-import a8.shared.app.Logger
 import cats.data.OptionT
+import wvlet.log.Logger
 import zio._
 
 object ISeriesDialect extends Dialect {

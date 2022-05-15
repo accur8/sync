@@ -1,9 +1,9 @@
 package a8.sync
 
+
 import a8.shared.jdbcf.SqlString._
 import a8.shared.jdbcf.{Conn, Row, RowReader, SchemaName, SqlString, TableLocator, TableName, unsafe}
 import a8.sync.Imports._
-import cats.effect.{Async, Resource}
 
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicReference
@@ -11,6 +11,7 @@ import a8.shared.json.DynamicJson
 import a8.shared.json.ast._
 
 import scala.concurrent.duration.Duration
+import zio._
 
 object DocumentLoader {
 
@@ -27,9 +28,7 @@ object DocumentLoader {
   }
   case class RowToJsObj(value: JsObj)
 
-  case class CacheableLoader[F[_] : Async](cacheDuration: Duration, loader: DocumentLoader[F]) extends AbstractDocumentLoader[F] {
-
-    val F = Async[F]
+  case class CacheableLoader(cacheDuration: Duration, loader: DocumentLoader) extends AbstractDocumentLoader {
 
     val lastLoad = new AtomicReference[Option[(LocalDateTime, JsVal)]](None)
 
@@ -48,10 +47,10 @@ object DocumentLoader {
       }
 
     def load = {
-      F.defer {
+      ZIO.suspend {
         cachedValue match {
           case Some(value) =>
-            F.pure(value)
+            ZIO.succeed(value)
           case None =>
             loader
               .load
@@ -65,16 +64,16 @@ object DocumentLoader {
 
   }
 
-  def cache[F[_] : Async](loader: DocumentLoader[F], cacheDuration: Option[Duration]): DocumentLoader[F] = {
+  def cache(loader: DocumentLoader, cacheDuration: Option[Duration]): DocumentLoader = {
     cacheDuration
-      .map(d => CacheableLoader[F](d, loader))
+      .map(d => CacheableLoader(d, loader))
       .getOrElse(loader)
   }
 
-  def queryIntoMap[F[_] : Async](connFactory: Resource[F, Conn[F]], keyExpr: SqlString, valueExpr: SqlString, schemaName: Option[SchemaName], tableName: TableName, whereExpr: Option[SqlString] = None, cacheDuration: Option[Duration] = None): DocumentLoader[F] = {
+  def queryIntoMap(connFactory: Resource[Conn], keyExpr: SqlString, valueExpr: SqlString, schemaName: Option[SchemaName], tableName: TableName, whereExpr: Option[SqlString] = None, cacheDuration: Option[Duration] = None): DocumentLoader = {
     val queryLoader =
-      new AbstractDocumentLoader[F] {
-        override def load: F[JsVal] = {
+      new AbstractDocumentLoader {
+        override def load: Task[JsVal] = {
           connFactory.use { conn =>
             val whereClause = whereExpr.map(e => q" where ${e}")
             val schemaPrefix = schemaName.map(sn => q"${sn}${conn.dialect.schemaSeparator}").getOrElse(q"")
@@ -93,10 +92,10 @@ object DocumentLoader {
     cache(queryLoader, cacheDuration)
   }
 
-  def query[F[_] : Async](connFactory: Resource[F, Conn[F]], schemaName: Option[SchemaName], tableName: TableName, whereExpr: Option[SqlString] = None, cacheDuration: Option[Duration] = None): DocumentLoader[F] = {
+  def query(connFactory: Resource[Conn], schemaName: Option[SchemaName], tableName: TableName, whereExpr: Option[SqlString] = None, cacheDuration: Option[Duration] = None): DocumentLoader = {
     val queryLoader =
-      new AbstractDocumentLoader[F] {
-        override def load: F[JsVal] = {
+      new AbstractDocumentLoader {
+        override def load: Task[JsVal] = {
           connFactory.use { conn =>
             for {
               resolvedJdbcTable <- conn.tableMetadata(TableLocator(schemaName, tableName))
@@ -114,19 +113,22 @@ object DocumentLoader {
   }
 
 
-  def jobject[F[_] : Async](fields: (String,DocumentLoader[F])*):  DocumentLoader[F]  = {
+  def jobject(fields: (String,DocumentLoader)*):  DocumentLoader  = {
     val vfields = fields.toVector
-    new AbstractDocumentLoader[F] {
-      override def load: F[JsVal] =
+    new AbstractDocumentLoader {
+      override def load: Task[JsVal] =
         vfields
-          .traverse { case (fieldName, loader) =>
-            loader.load.map(fieldName -> _)
+          .map { case (fieldName, loader) =>
+            loader
+              .load
+              .map(fieldName -> _)
           }
+          .sequence
           .map(v => JsObj(v.toMap))
     }
   }
 
-  abstract class AbstractDocumentLoader[F[_] : Async] extends DocumentLoader[F] {
+  abstract class AbstractDocumentLoader extends DocumentLoader {
     def loadAsDynamicJson = load.map(DynamicJson.apply)
 
   }
@@ -134,7 +136,7 @@ object DocumentLoader {
 }
 
 
-sealed trait DocumentLoader[F[_]] {
-  def load: F[JsVal]
-  def loadAsDynamicJson: F[DynamicJson]
+sealed trait DocumentLoader {
+  def load: Task[JsVal]
+  def loadAsDynamicJson: Task[DynamicJson]
 }

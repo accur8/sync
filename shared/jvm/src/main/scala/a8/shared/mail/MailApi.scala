@@ -24,7 +24,7 @@ import zio._
  */
 object MailApi extends LoggingF {
 
-  def asResource(config: MailConfig): Resource[MailApi] = {
+  def asResource(config: MailConfig): ZIO[Scope,Throwable,MailApi] = {
 
     def acquire: Task[MailApi] =
       ZIO.attemptBlocking {

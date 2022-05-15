@@ -12,7 +12,7 @@ package object jdbcf {
     resultSet.runAsIterator(_.toVector)
   }
 
-  def resultSetToStream(resultSet: ResultSet, chunkSize: Int = 1000): UStream[Row] = {
+  def resultSetToStream(resultSet: ResultSet, chunkSize: Int = 1000): XStream[Row] = {
     ???
 //    fs2.Stream.bracket(F.unit)(_ => F.blocking(if ( resultSet.isClosed ) () else resultSet.close()))
 //      .flatMap { _ =>

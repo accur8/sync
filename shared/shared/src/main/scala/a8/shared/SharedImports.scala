@@ -1,7 +1,6 @@
 package a8.shared
 
 
-import a8.shared.app.Logger
 import a8.shared.json.JsonCodec
 import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
 import cats.data.Chain
@@ -24,17 +23,36 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag
 import scala.util.Try
+import cats.syntax
+import cats.instances
+import wvlet.log.Logger
 
 object SharedImports extends SharedImports
 
 trait SharedImports
   extends AsJavaExtensions
     with AsScalaExtensions
+    with syntax.AllSyntax
+    with syntax.AllSyntaxBinCompat0
+    with syntax.AllSyntaxBinCompat1
+    with syntax.AllSyntaxBinCompat2
+    with syntax.AllSyntaxBinCompat3
+    with syntax.AllSyntaxBinCompat4
+    with syntax.AllSyntaxBinCompat5
+    with syntax.AllSyntaxBinCompat6
+    with instances.AllInstances
+    with instances.AllInstancesBinCompat0
+    with instances.AllInstancesBinCompat1
+    with instances.AllInstancesBinCompat2
+    with instances.AllInstancesBinCompat3
+    with instances.AllInstancesBinCompat4
+    with instances.AllInstancesBinCompat5
+    with instances.AllInstancesBinCompat6
 {
 
   type Resource[A] = zio.ZIO[zio.Scope,Throwable,A]
 
-  type UStream[A] = zio.stream.UStream[A]
+  type XStream[A] = zio.stream.ZStream[Any,Throwable,A]
 
   type CIString = org.typelevel.ci.CIString
   val CIString = org.typelevel.ci.CIString
@@ -45,9 +63,6 @@ trait SharedImports
 
   def some[A](a: A): Option[A] =
     Some(a)
-
-  def none[A]: Option[A] =
-    None
 
   object ParseBigInt {
     def unapply(s : String) : Option[BigInt] = try {
@@ -98,6 +113,9 @@ trait SharedImports
       timeUnitsByName.get(s.trim.toLowerCase)
 
   }
+
+  implicit def sharedImportsZStreamOps[R,E,A](stream: zio.stream.ZStream[R,E,A]): ZStreamOps[R,E,A] =
+    new ZStreamOps(stream)
 
   implicit def sharedImportsStringOps(s: String) =
     new a8.shared.ops.StringOps(s)
@@ -207,5 +225,20 @@ trait SharedImports
 
   implicit def uriOps(uri: Uri): UriOps =
     new UriOps(uri)
+
+  implicit def implicitZioOps[R, E, A](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
+    new ZioOps(effect)
+
+  implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope with R,E,A]): ScopedZioOps[R,E,A] =
+    new ScopedZioOps[R,E,A](effect)
+
+  implicit def implicitZioCollectOps[R, E, A, Collection[+Element] <: Iterable[Element]](
+    in: Collection[zio.ZIO[R, E, A]]
+  )(implicit
+    bf: zio.BuildFrom[Collection[zio.ZIO[R, E, A]], A, Collection[A]],
+    trace: zio.Trace
+  ): ZioCollectOps[R, E, A, Collection] =
+    new ZioCollectOps[R, E, A, Collection](in)
+
 
 }

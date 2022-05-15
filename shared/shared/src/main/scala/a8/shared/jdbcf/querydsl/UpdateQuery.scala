@@ -8,11 +8,11 @@ import a8.shared.jdbcf.querydsl.QueryDsl.Expr
 import scala.language.implicitConversions
 
 
-trait UpdateQuery[F[_],TableDsl] {
+trait UpdateQuery[TableDsl] {
 
-  def where(whereFn: TableDsl => QueryDsl.Condition): UpdateQuery[F,TableDsl]
+  def where(whereFn: TableDsl => QueryDsl.Condition): UpdateQuery[TableDsl]
 
-  def execute(implicit conn: Conn[F]): F[Int]
+  def execute(implicit conn: Conn): zio.Task[Int]
 
   def sqlString: SqlString
 

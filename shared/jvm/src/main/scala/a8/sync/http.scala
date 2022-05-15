@@ -14,12 +14,13 @@ import a8.sync.http.Body.StringBody
 import a8.sync.http.impl.RequestProcessorImpl
 import cats.data.Chain
 import sttp.capabilities.zio.ZioStreams
+import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
 import sttp.client3.{Identity, RequestT, ResponseAs, basicRequest}
 import zio.Schedule.WithState
 import zio.{durationInt => _, _}
-import zio.stream.UStream
+import zio.stream.{ZPipeline, ZSink}
 
 import java.net.URLEncoder
 import java.nio.charset.Charset
@@ -135,7 +136,7 @@ object http extends Logging {
 
     def curlCommand: String
 
-    def streamingBody(requestBody: UStream[Byte]): StreamingRequest =
+    def streamingBody(requestBody: XStream[Byte]): StreamingRequest =
       StreamingRequest(this, Some(requestBody))
 
     def streaming: StreamingRequest =
@@ -143,9 +144,9 @@ object http extends Logging {
 
   }
 
-  case class StreamingRequest(rawRequest: Request, requestBody: Option[UStream[Byte]] = None) {
+  case class StreamingRequest(rawRequest: Request, requestBody: Option[XStream[Byte]] = None) {
 
-    def requestBody(requestBody: UStream[Byte]): StreamingRequest =
+    def requestBody(requestBody: XStream[Byte]): StreamingRequest =
       copy(requestBody = Some(requestBody))
 
     def exec(implicit processor: RequestProcessor): Task[String] =
@@ -170,7 +171,7 @@ object http extends Logging {
 
   case class Response(
     responseMetadata: ResponseMetadata,
-    responseBody: UStream[Byte],
+    responseBody: XStream[Byte],
   ) {
 
     lazy val charset: Charset =
@@ -194,9 +195,8 @@ object http extends Logging {
 
     def responseBodyAsString: Task[String] =
       responseBody
-        .through(text.decodeWithCharset(charset))
-        .compile
-        .string
+        .via(ZPipeline.decodeCharsWith(charset))
+        .run(ZSink.mkString)
 
     def asInvalidHttpResponseStatusCode[A]: Task[A] = {
       responseBodyAsString
@@ -255,9 +255,9 @@ object http extends Logging {
 
   sealed trait RequestProcessor {
 
-    val backend: Backend[Task]
+    val backend: Backend
 
-    def exec(request: Request, streamingRequestBody: Option[UStream[Byte]] = None): Task[String]
+    def exec(request: Request, streamingRequestBody: Option[XStream[Byte]] = None): Task[String]
 
     /**
      * Will exec the request and map the response allowing for error's in the map'ing to
@@ -268,9 +268,9 @@ object http extends Logging {
      * may be json but is it the json you actually want).
      *
      */
-    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[UStream[Byte]] = None, effect: String => Task[A]): Task[A]
+    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, effect: String => Task[A]): Task[A]
 
-    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[UStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
+    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
 
     /**
      *
@@ -278,7 +278,7 @@ object http extends Logging {
      * implementer is responsible for things like checking http status codes, etc, etc
      *
      */
-    def execRaw[A](request: Request, streamingRequestBody: Option[UStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
+    def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
 
   }
 
@@ -286,8 +286,8 @@ object http extends Logging {
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
       for {
-        sttpBackend <- AsyncHttpClientFs2Backend.resource()
-        maxConnectionSemaphore <- Resource.eval(Semaphore(maxConnections))
+        sttpBackend <-HttpClientZioBackend.scoped()
+        maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
         RequestProcessorImpl(retry, Backend(sttpBackend), maxConnectionSemaphore)
     }
@@ -330,10 +330,10 @@ object http extends Logging {
 
       lazy val defaultRetryPolicy = retryConfig.retryPolicy
 
-      override def exec(request: Request, streamingRequestBody: Option[UStream[Byte]]): Task[String] =
-        execWithStringResponse(request, streamingRequestBody, ZIO.succeed)
+      override def exec(request: Request, streamingRequestBody: Option[XStream[Byte]]): Task[String] =
+        execWithStringResponse(request, streamingRequestBody, s => ZIO.succeed(s))
 
-      override def execRaw[A](request: Request, streamingRequestBody: Option[UStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+      override def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
         val retryPolicy =
           request
             .retryConfig
@@ -343,7 +343,7 @@ object http extends Logging {
       }
 
 
-      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[UStream[Byte]], effect: String => Task[A]): Task[A] = {
+      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], effect: String => Task[A]): Task[A] = {
         def responseEffect(response: Response): Task[A] = {
           for {
             _ <- response.raiseResponseErrors
@@ -354,18 +354,18 @@ object http extends Logging {
         execRaw(request, streamingRequestBody, responseEffect)
       }
 
-      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[UStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
         def wrappedResponseEffect(response: Response): Task[A] = {
-          response.raiseResponseErrors >> responseEffect(response)
+          response.raiseResponseErrors *> responseEffect(response)
         }
         execRaw(request, streamingRequestBody, wrappedResponseEffect)
       }
 
-      def rawSingleExec[A](request: Request, streamingRequestBody: Option[UStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
-        maxConnectionSemaphore.permit
-          .use { _ =>
+      def rawSingleExec[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+        maxConnectionSemaphore
+          .withPermit {
 
-            def wrappedEffect(stream: UStream[Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): Task[A] = {
+            def wrappedEffect(stream: XStream[Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): Task[A] = {
               val responseMetadata = ResponseMetadata(sttpResponseMetadata)
               responseEffect(Response(responseMetadata, stream))
             }

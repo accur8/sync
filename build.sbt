@@ -40,7 +40,6 @@ lazy val api =
     .dependsOn(sharedJVM)
     .settings(
       libraryDependencies ++= Seq(
-        "co.fs2" %% "fs2-io" % "3.2.4",
         "net.sf.jt400" % "jt400" % "10.7",
         "com.zaxxer" % "HikariCP" % "4.0.3",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",

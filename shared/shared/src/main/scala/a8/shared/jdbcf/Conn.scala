@@ -2,7 +2,7 @@ package a8.shared.jdbcf
 
 import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, SQLException => JdbcSQLException, Statement => JStatement}
 import a8.shared.SharedImports._
-import a8.shared.app.{Logger, LoggerF, Logging, LoggingF}
+import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
@@ -66,8 +66,8 @@ object Conn extends Logging {
     val jdbcMetadata: JdbcMetadata
     def compile(sql: SqlString): CompiledSql
     def withInternalConn[A](fn: JdbcConnection=>A): Task[A]
-    def statement: UStream[JStatement]
-    def prepare(sql: SqlString): UStream[JdbcPreparedStatement]
+    def statement: ZIO[Scope, Throwable, JStatement]
+    def prepare(sql: SqlString): ZIO[Scope, Throwable, JdbcPreparedStatement]
 
     def withStatement[A](fn: JStatement=>Task[A]): Task[A]
 
@@ -103,7 +103,7 @@ trait Conn {
   def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[A]
 
   def selectRows[A : TableMapper](whereClause: SqlString): Task[Iterable[A]]
-  def streamingSelectRows[A : TableMapper](whereClause: SqlString): UStream[A]
+  def streamingSelectRows[A : TableMapper](whereClause: SqlString): XStream[A]
 
   def selectOne[A : TableMapper](whereClause: SqlString): Task[A]
   def selectOpt[A : TableMapper](whereClause: SqlString): Task[Option[A]]

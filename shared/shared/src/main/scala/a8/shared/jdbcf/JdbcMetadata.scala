@@ -151,7 +151,7 @@ object JdbcMetadata {
         resolvedTableNameCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(ZIO.succeed)
+          .map(a => ZIO.succeed(a))
           .getOrElse {
             impl.resolveTableName(tableLocator, conn)
               .map { table =>
@@ -176,7 +176,7 @@ object JdbcMetadata {
         tableMetadataCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(ZIO.succeed)
+          .map(a => ZIO.succeed(a))
           .getOrElse {
             impl.tableMeta(tableLocator, conn)
               .map { table =>

@@ -1,5 +1,6 @@
 package a8.shared.jdbcf
 
+import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx
 import a8.shared.jdbcf.SqlString.CompiledSql
@@ -19,30 +20,32 @@ object Batcher {
       override lazy val sql = conn.compile(sql0)
 
 
-      override def execBatch(stream: UStream[A]): UStream[Int] = {
-        conn
-          .prepare(sql0)
-          .flatMap { ps =>
-            val results: UStream[Int] =
-              ZStream
-                .fromIterableZIO {
-                  withSqlCtx(sql) {
-                    ps.executeBatch().toIterable
+      override def execBatch(stream: XStream[A]): XStream[Int] = {
+        val effect =
+          conn
+            .prepare(sql0)
+            .map { ps =>
+              val results: XStream[Int] =
+                ZStream
+                  .fromIterableZIO {
+                    withSqlCtx(sql) {
+                      ps.executeBatch().toIterable
+                    }
                   }
-                }
-            val header =
-              ZStream
-                .execute {
-                stream
-                  .map { a =>
-                    writerA.applyParameters(ps, a, 0)
-                    ps.addBatch()
+              val header =
+                ZStream
+                  .execute {
+                    stream
+                      .map { a =>
+                        writerA.applyParameters(ps, a, 0)
+                        ps.addBatch()
+                      }
+                      .run(ZSink.last)
                   }
-                  .run(ZSink.last)
-                }
-            header
-              .flatMap(_ => results)
-          }
+              header
+                .flatMap(_ => results)
+            }
+        ZStream.unwrapScoped(effect)
       }
     }
 
@@ -54,6 +57,6 @@ object Batcher {
 
 trait Batcher[A] {
   val sql: CompiledSql
-  def execBatch(stream: UStream[A]): UStream[Int]
+  def execBatch(stream: XStream[A]): XStream[Int]
 }
 

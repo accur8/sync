@@ -68,8 +68,8 @@ case class ConnInternalImpl(
         }
       }
 
-  def managedStream[A : Managed](thunk: =>A): UStream[A] =
-    Managed.stream[A](thunk)
+  def scoped[A : Managed](thunk: =>A): ZIO[Scope, Throwable, A] =
+    Managed.scoped[A](thunk)
 
   override def streamingQuery[A : RowReader](sql: SqlString): StreamingQuery[A] =
     StreamingQuery.create[A](this, sql)
@@ -77,31 +77,31 @@ case class ConnInternalImpl(
   override def query[A: RowReader](sqlStr: SqlString): Query[ A] =
     Query.create[A](this, sqlStr)
 
-  override def update(updateQuery: SqlString): Task[Int] = {
-    prepare(updateQuery)
-      .evalMap { ps =>
-        ZIO.attemptBlocking {
-          val i = ps.executeUpdate()
-          i
+  override def update(updateQuery: SqlString): Task[Int] =
+    ZIO.scoped[Any](
+      prepare(updateQuery)
+        .flatMap { ps =>
+          ZIO.attemptBlocking {
+            val i = ps.executeUpdate()
+            i
+          }
         }
-      }
-      .compile
-      .lastOrError
+    )
+
+
+  override def withStatement[A](fn: JStatement => Task[A]): Task[A] = {
+    ZIO.scoped {
+      statement
+        .flatMap(fn)
+    }
   }
 
+  override def statement: Resource[JStatement] =
+    scoped(jdbcConn.createStatement())
 
-  override def withStatement[A](fn: JStatement => Task[A]): Task[A] =
-    statement
-      .evalMap(fn)
-      .compile
-      .lastOrError
-
-  override def statement: UStream[JStatement] =
-    managedStream(jdbcConn.createStatement())
-
-  override def prepare(sql: SqlString): UStream[JdbcPreparedStatement] = {
+  override def prepare(sql: SqlString): Resource[JdbcPreparedStatement] = {
     val resolvedSql = compile(sql)
-    managedStream(withSqlCtx0[JdbcPreparedStatement](resolvedSql)(jdbcConn.prepareStatement(resolvedSql.value)))
+    scoped(withSqlCtx0[JdbcPreparedStatement](resolvedSql)(jdbcConn.prepareStatement(resolvedSql.value)))
   }
 
   override def batcher[A : RowWriter](sql: SqlString): Batcher[A] =
@@ -173,10 +173,10 @@ case class ConnInternalImpl(
     } yield rows
   }
 
-  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): fs2.Stream[F, A] = {
+  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): XStream[A] = {
     mapperMaterializer
       .materialize(implicitly[TableMapper[A]])
-      .fs2StreamEval
+      .zstreamEval
       .flatMap(tableMapper =>
         streamingQuery[A](tableMapper.selectSql(whereClause))
           .run
@@ -189,7 +189,7 @@ case class ConnInternalImpl(
         case Some(row) =>
          ZIO.succeed(row)
         case None =>
-          ZIO.die[A](new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
+          ZIO.die(new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
       }
 
   override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[Option[A]] =

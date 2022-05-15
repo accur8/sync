@@ -7,7 +7,6 @@ import scala.language.{existentials, implicitConversions}
 import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
 import cats.data.Chain
-import cats.effect.Async
 
 /*
 
@@ -467,10 +466,10 @@ class QueryDsl[T, TableDsl](
   val tableDsl: TableDsl
 ) {
 
-  def query[F[_]: Async](whereFn: TableDsl => QueryDsl.Condition): SelectQuery[F, T, TableDsl] =
+  def query(whereFn: TableDsl => QueryDsl.Condition): SelectQuery[T, TableDsl] =
     SelectQueryImpl(tableDsl, mapper, whereFn(tableDsl), Nil)
 
-  def update[F[_]: Async](set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[F, TableDsl] =
+  def update(set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[TableDsl] =
     UpdateQueryImpl(
       tableDsl = tableDsl,
       outerMapper = mapper,
