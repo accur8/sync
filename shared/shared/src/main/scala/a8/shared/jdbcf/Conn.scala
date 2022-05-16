@@ -6,6 +6,7 @@ import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
+import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.PostgresDialect.self
 import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
@@ -36,7 +37,8 @@ object Conn extends Logging {
 
     def makeResource(connFn: =>java.sql.Connection, mapperCache: MapperMaterializer, jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): ZIO[Scope,Throwable,Conn] = {
       val jdbcMetadata = JdbcMetadata.default
-      Managed.resource(connFn)
+      Managed
+        .resource(connFn)
         .map(jdbcConn => toConn(jdbcConn, jdbcMetadata, mapperCache, jdbcUrl, dialect, escaper))
     }
 
@@ -47,8 +49,16 @@ object Conn extends Logging {
     user: String,
     password: String
   ): Resource[Conn] = {
-    ???
-//    impl.makeResource(JdbcDriverManager.getConnection(url.toString, user, password))
+    val config =
+      DatabaseConfig(
+        DatabaseId(url.toString),
+        url = url,
+        user = user,
+        password = password,
+      )
+    ConnFactory
+      .resource(config)
+      .flatMap(_.connR)
   }
 
   def toConn(

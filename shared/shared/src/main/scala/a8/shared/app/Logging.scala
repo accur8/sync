@@ -31,6 +31,6 @@ object Logging {
 
 trait Logging {
 
-  implicit lazy val logger: Logger = ??? //Logger(Logging.loggerName(this.getClass))
+  implicit lazy val logger: Logger = Logger(Logging.loggerName(this.getClass))
 
 }

@@ -27,8 +27,7 @@ object BootstrapConfig {
         cacheDir = "cache".toSome,
         dataDir = "data".toSome,
         tempDir = "temp".toSome,
-        defaultLogLevel = ???,
-//        defaultLogLevel = LogLevel.DEBUG.name.toSome,
+        defaultLogLevel = LogLevel.DEBUG.name.toSome,
       ).copy(source = Some("default"))
 
     val empty =

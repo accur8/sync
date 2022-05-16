@@ -27,7 +27,7 @@ import java.nio.charset.Charset
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters._
 
-object http extends Logging {
+object http extends LoggingF {
 
   case class Backend(
     delegate: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets]
@@ -37,7 +37,8 @@ object http extends Logging {
     val noRetries = RetryConfig(0, 1.second, 1.minute)
   }
 
-  type RetryPolicy = WithState[(Long, Long), Any, Any, (zio.Duration, Long)]
+//  type RetryPolicy = WithState[(Long, Long), Any, Any, (zio.Duration, Long)]
+  type RetryPolicy = Schedule[Any, Any, (zio.Duration, Long)]
 
   @CompanionGen
   case class RetryConfig(
@@ -45,43 +46,27 @@ object http extends Logging {
     initialBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
   ) {
-    def retryPolicy: RetryPolicy = {
+    lazy val retryPolicy: RetryPolicy = {
       val exponential = Schedule.exponential(initialBackoff.toJava)
       val retry = Schedule.recurs(count)
       exponential && retry
-//      import RetryPolicies._
-//      // https://cb372.github.io/cats-retry/docs/policies.html
-//      limitRetries(count)
-//        .join(
-//          exponentialBackoff(initialBackoff)
-//            meet
-//            constantDelay(maxBackoff)
-//        )
     }
   }
 
-  def applyRetryPolicy[A](retryPolicy: RetryPolicy, context: String, fa: Task[A]): Task[A] = {
-    ???
-//    def logError(err: Throwable, details: RetryDetails): Task[Unit] = {
-//      details match {
-//        case WillDelayAndRetry(nextDelay, retriesSoFar, cumulativeDelay) =>
-//          F.delay{
-//            logger.debug(s"http request failed on the $retriesSoFar retry -- $context", err)
-//          }
-//        case GivingUp(totalRetries, totalDelay) =>
-//          F.delay {
-//            logger.warn(s"giving up http request after $totalRetries retries -- $context", err)
-//          }
-//      }
-//    }
-//
-//    // using cats-retry here https://cb372.github.io/cats-retry/docs/index.htmlx
-//    retryingOnAllErrors[A](
-//      policy = retryPolicy,
-//      onError = logError
-//    )(fa)
-
-  }
+  def applyRetryPolicy[A](retryPolicy: RetryPolicy, context: String, effect: Task[A]): Task[A] =
+    for {
+      counter <- Ref.make(1)
+      a <-
+        effect
+          .onError { cause =>
+            for {
+              tryNumber <- counter.get
+              _ <- loggerF.debug(s"try number ${tryNumber} failed", cause)
+              _ <- counter.update(_ + 1)
+            } yield ()
+          }
+          .retry(retryPolicy)
+    } yield a
 
   case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String)
     extends Exception(s"${statusCode.code} ${statusText} -- ${responseBody}")

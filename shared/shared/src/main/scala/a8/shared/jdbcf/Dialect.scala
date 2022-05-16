@@ -10,6 +10,41 @@ import a8.shared.SharedImports._
 import zio._
 import java.sql.Connection
 
+object Dialect {
+
+  val duobleQuote = Chord.str('"'.toString)
+
+  case object Default extends Dialect {
+
+    override def isPostgres: Boolean = false
+
+    /**
+     * no default case for default dialect
+     */
+    override def isIdentifierDefaultCase(name: String): Boolean =
+      false
+
+  }
+
+  def apply(jdbcUri: Uri): Dialect = {
+    val schemaParts = jdbcUri.toString.split(":/").head.split(":").toList
+    schemaParts match {
+      case "jdbc" :: "postgresql" :: _ =>
+        PostgresDialect
+      case "jdbc" :: _ :: "postgresql" :: _ =>
+        PostgresDialect
+      case "jdbc" :: "mysql" :: _ =>
+        MySqlDialect
+      case "jdbc" :: _ :: "mysql" :: _ =>
+        MySqlDialect
+      case _ =>
+        DialectPlatform(jdbcUri)
+          .getOrElse(Default)
+    }
+  }
+
+}
+
 trait Dialect {
 
   val validationQuery: Option[SqlString] = None
@@ -102,41 +137,6 @@ trait Dialect {
             )
         resultSetToVector(columnsRs).map(JdbcColumn.fromMetadataRow)
       }
-  }
-
-}
-
-object Dialect {
-
-  val duobleQuote = Chord.str('"'.toString)
-
-  case object Default extends Dialect {
-
-    override def isPostgres: Boolean = false
-
-    /**
-     * no default case for default dialect
-     */
-    override def isIdentifierDefaultCase(name: String): Boolean =
-      false
-
-  }
-
-  def apply[F[_]](jdbcUri: Uri): Dialect = {
-    val schemaParts = jdbcUri.toString.split(":/").head.split(":").toList
-    schemaParts match {
-      case "jdbc" :: "postgresql" :: _ =>
-        PostgresDialect
-      case "jdbc" :: _ :: "postgresql" :: _ =>
-        PostgresDialect
-      case "jdbc" :: "mysql" :: _ =>
-        MySqlDialect
-      case "jdbc" :: _ :: "mysql" :: _ =>
-        MySqlDialect
-      case _ =>
-        DialectPlatform(jdbcUri)
-          .getOrElse(Default)
-    }
   }
 
 }

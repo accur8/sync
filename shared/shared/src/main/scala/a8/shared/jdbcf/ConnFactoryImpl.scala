@@ -7,6 +7,15 @@ import zio._
 
 object ConnFactoryImpl {
 
+  object MapperMaterializer {
+    object noop extends MapperMaterializer {
+      override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper[A, B]] =
+        ZIO.succeed(ktm)
+      override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] =
+        ZIO.succeed(tm)
+    }
+  }
+
   abstract class MapperMaterializer {
     def materialize[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]]
     def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]]

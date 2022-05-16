@@ -40,8 +40,8 @@ object QubesApiClient extends Logging {
     uri: Uri,
     authToken: AuthToken,
     maximumSimultaneousHttpConnections: Int = 5,
-    readTimeout: FiniteDuration = Config.twentySeconds,
-    connectTimeout: FiniteDuration = Config.fiveSeconds,
+//    readTimeout: FiniteDuration = Config.twentySeconds,
+//    connectTimeout: FiniteDuration = Config.fiveSeconds,
     retry: RetryConfig = Config.defaultRetryConfig,
   )
 
@@ -79,19 +79,6 @@ object QubesApiClient extends Logging {
     numberOfRowsUpdated: Int = 0,
     keys: JsObj = JsObj.empty,
   ) {
-//    def asF[F[_] : Async]: Task[Int] = {
-//      val F = Async[F]
-//      if (success) {
-//        F.pure(numberOfRowsUpdated)
-//      } else {
-//        validationFailures match {
-//          case Some(jv) =>
-//            F.raiseError(new RuntimeException("Qubes crud validation error: " + jv.compactJson))
-//          case None =>
-//            F.raiseError(new RuntimeException("Qubes crud error: " + errorMessage.getOrError("None")))
-//        }
-//      }
-//    }
     def asF(ctx: String): Task[Int] = {
       if (success) {
         ZIO.succeed(numberOfRowsUpdated)
@@ -107,34 +94,10 @@ object QubesApiClient extends Logging {
 
   }
 
-  def asResource(config: Config): Resource[QubesApiClient] = {
-    ???
-//    def acquire: Task[AsyncHttpClient] =
-//      ZIO.attempt {
-//        import org.asynchttpclient.Dsl
-//        Dsl.asyncHttpClient(
-//          Dsl.config()
-//            .setConnectTimeout(config.connectTimeout.toMillis.toInt)
-//            .setReadTimeout(config.readTimeout.toMillis.toInt)
-//            .setRequestTimeout(config.readTimeout.toMillis.toInt)
-//            .setMaxConnections(config.maximumSimultaneousHttpConnections)
-//            .build()
-//        )
-//      }
-//
-//    val asyncHttpClientR = Resource.make(acquire)(client => F.delay(client.close()))
-//
-//    for {
-//      asyncHttpClient <- asyncHttpClientR
-//      maxConnectionSemaphore <- Resource.eval(Semaphore[F](config.maximumSimultaneousHttpConnections))
-//      dispatcher <- Dispatcher[F]
-//    } yield {
-//      import sttp.client3.logging._
-//      val sttpBackend = AsyncHttpClientFs2Backend.usingClient[F](asyncHttpClient, dispatcher)
-//      val sttpLogger = QubesApiClient.sttpLogger[F]
-//      val loggingBackend = LoggingBackend(delegate = sttpBackend, logger = sttpLogger, beforeCurlInsteadOfShow = true)
-//      new QubesApiClient[F](config, Backend(loggingBackend), maxConnectionSemaphore)
-//    }
+  def asResource(config: QubesApiClient.Config): Resource[QubesApiClient] = {
+    RequestProcessor
+      .asResource(retry = config.retry, maxConnections = config.maximumSimultaneousHttpConnections)
+      .map(rp => QubesApiClient(config, rp))
   }
 
   def sttpLogger: sttp.client3.logging.Logger[Task] = {
@@ -179,17 +142,16 @@ object QubesApiClient extends Logging {
 
 }
 
-class QubesApiClient(
+case class QubesApiClient(
   config: QubesApiClient.Config,
-  val backend: Backend,
-  maxConnectionSemaphore: Semaphore,
+  requestProcessor: RequestProcessor,
 ) extends Logging {
 
   import QubesApiClient._
 
   object impl {
 
-    implicit lazy val requestProcessor: RequestProcessor = RequestProcessor(config.retry, backend, maxConnectionSemaphore)
+    implicit lazy val implicitRequestProcessor = requestProcessor
     lazy val baseRequest = http.Request(config.uri).addHeader("X-SESS", config.authToken.value)
 
     def executeA[A: JsonCodec, B: JsonCodec](subPath: Uri, requestBody: A): Task[B] = {

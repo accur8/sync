@@ -74,7 +74,7 @@ class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
           tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),
           cacheDir = CacheDir(FileSystem.dir(resolvedDto.cacheDir.get)),
           dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
-          defaultLogLevel = ???, //wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
+          defaultLogLevel = wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
         )
       }
 
