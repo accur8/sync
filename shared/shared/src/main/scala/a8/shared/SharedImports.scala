@@ -188,7 +188,7 @@ trait SharedImports
 
     def zuri(parms: ZString*): Uri =
       UriInterpolator
-        .interpolate(stringContext, parms)
+        .interpolate(stringContext, parms:_*)
 
     def zz(parms: ZString*): ZString = {
 
