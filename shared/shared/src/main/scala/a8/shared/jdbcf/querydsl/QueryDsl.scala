@@ -485,7 +485,7 @@ class QueryDsl[T, TableDsl, K](
   def updateRow[F[_]: Async](row: T)(where: TableDsl => QueryDsl.Condition)(implicit conn: Conn[F]): F[Option[T]] = {
     val selectQuery = SelectQueryImpl(tableDsl, keyedTableMapper, where(tableDsl), Nil)
     conn
-      .updateRowWhere(row)(selectQuery.queryResolver.whereSql)
+      .updateRowWhere(row)(selectQuery.queryResolver.whereSqlNoAlias)
   }
 
 

@@ -92,6 +92,11 @@ case class SelectQueryImpl[F[_]: Async, T,U](
       w
     }
 
+    lazy val whereSqlNoAlias: SqlString = {
+      val w = QueryDsl.asSql(where)(PathCompiler.empty)
+      w
+    }
+
     lazy val extendedQuerySql: SqlString = {
       val selectFields = outerMapper.selectFieldsSql("aa")
       val join = joinSql.map(js => sql"${js} ").getOrElse(SqlString.Empty)

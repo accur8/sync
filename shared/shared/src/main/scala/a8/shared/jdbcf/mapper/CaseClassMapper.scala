@@ -137,7 +137,7 @@ case class CaseClassMapper[A, PK](
         case Some(ss) =>
           sql" and ${ss}"
       }
-    sql"update ${tableName} set ${valuePairs.map(p => sql"${p._1} = ${p._2}").mkSqlString(CommaSpace)} where ${keyToWhereClause(key(row))}${extraWhere}"
+    sql"update ${tableName} set ${valuePairs.map(p => sql"${p._1} = ${p._2}").mkSqlString(CommaSpace)} where ${keyToWhereClause(key(row))}${whereSuffix}"
   }
 
   override def deleteSql(key: PK): SqlString =
