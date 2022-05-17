@@ -1,5 +1,7 @@
 { system ? builtins.currentSystem }:
+
 let
+
   sources = import ./nix/sources.nix;
 
   nixpkgs = import sources.nixpkgs { inherit system; };
@@ -18,34 +20,37 @@ let
   my-ammonite = nixpkgs.ammonite_2_13.override { jre = my-java; };
 
   my-sbt = nixpkgs.sbt.override { jre = my-java; };
+
 in
-devshell.mkShell ({ extraModulesPath, ... }: {
-  imports = [
-    "${extraModulesPath}/language/go.nix"
-  ];
 
-  # Load packages
-  packages = [
-    a8-scripts.a8-scripts
-    my-java
-    my-sbt
-    nixpkgs.python3
-    nixpkgs.gnupg
-  ];
-
-  # Set env vars
-  env = [
-    { name = "KEY"; value = "1"; }
-    { name = "SDFSDFG"; eval = "$KEY-xxx"; }
-  ];
-
-    # Add commands in the menu
-  commands =
-    if builtins.currentSystem == "aarch64-darwin" then [] else [
-      {
-        package = nixpkgs.niv;
-        category = "nix";
-      }
+  devshell.mkShell ({ extraModulesPath, ... }: {
+  
+    imports = [
+      "${extraModulesPath}/language/go.nix"
     ];
 
-})
+    # Load packages
+    packages = [
+      a8-scripts.a8-scripts
+      my-java
+      my-sbt
+      nixpkgs.python3
+      nixpkgs.gnupg
+    ];
+
+      # Set env vars
+    #env = [
+    #  { name = "KEY"; value = "1"; }
+    #  { name = "SDFSDFG"; eval = "$KEY-xxx"; }
+    #];
+
+      # Add commands in the menu
+    commands =
+      if builtins.currentSystem == "aarch64-darwin" then [] else [
+        {
+          package = nixpkgs.niv;
+          category = "nix";
+        }
+      ];
+
+  })

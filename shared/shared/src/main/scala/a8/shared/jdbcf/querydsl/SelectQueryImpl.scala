@@ -23,7 +23,7 @@ case class SelectQueryImpl[F[_]: Async, T,U](
 
   implicit def implicitMapper = outerMapper
 
-  def queryResolver =
+  lazy val queryResolver =
     new QueryResolver
 
   class QueryResolver {

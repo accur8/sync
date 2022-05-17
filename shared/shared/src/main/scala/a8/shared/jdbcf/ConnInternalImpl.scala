@@ -114,20 +114,32 @@ case class ConnInternalImpl[F[_] : Async](
     F.delay(jdbcConn.getAutoCommit)
 
   def runSingleRowUpdate(updateQuery: SqlString): F[Unit] =
+    runSingleRowUpdateOpt(updateQuery)
+      .flatMap {
+        case true =>
+          F.unit
+        case false =>
+          F.raiseError[Unit](new RuntimeException(s"ran update and expected 1 row to be affected and 0 rows were affected -- ${updateQuery}"))
+      }
+
+  def runSingleRowUpdateOpt(updateQuery: SqlString): F[Boolean] =
     update(updateQuery)
       .flatMap {
         case 1 =>
-          F.unit
+          F.pure(true)
+        case 0 =>
+          F.pure(false)
         case i =>
-          F.raiseError[Unit](new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${updateQuery}"))
+          F.raiseError[Boolean](new RuntimeException(s"ran update and expected 1 or 0 row(s) to be affected and ${i} rows were affected -- ${updateQuery}"))
       }
 
   override def insertRow[A: TableMapper](row: A): F[A] = {
+    val auditedRow = TableMapper[A].auditProvider.onInsert(row)
     for {
       mapper <- mapperMaterializer.materialize(implicitly[TableMapper[A]])
       row <-
-        runSingleRowUpdate(mapper.insertSql(row))
-          .as(row)
+        runSingleRowUpdate(mapper.insertSql(auditedRow))
+          .as(auditedRow)
     } yield row
   }
 
@@ -137,20 +149,30 @@ case class ConnInternalImpl[F[_] : Async](
       .flatMap {
         case Some(v) =>
           updateRow(row)
-            .as(row -> UpsertResult.Update)
+            .map(_ -> UpsertResult.Update)
         case None =>
           insertRow(row)
-            .as(row -> UpsertResult.Insert)
+            .map(_ -> UpsertResult.Insert)
       }
   }
 
   override def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {
+    val auditedRow = keyedMapper.auditProvider.onUpdate(row)
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
       row <-
-        runSingleRowUpdate(mapper.updateSql(row))
-          .as(row)
+        runSingleRowUpdate(mapper.updateSql(auditedRow))
+          .as(auditedRow)
     } yield row
+  }
+
+  override def updateRowWhere[A, B](row: A)(where: SqlString)(implicit keyedMapper: KeyedTableMapper[A, B]): F[Option[A]] = {
+    val auditedRow = keyedMapper.auditProvider.onUpdate(row)
+    for {
+      mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
+      rowUpdated <-
+        runSingleRowUpdateOpt(mapper.updateSql(auditedRow, where.some))
+    } yield rowUpdated.toOption(auditedRow)
   }
 
   override def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): F[A] = {

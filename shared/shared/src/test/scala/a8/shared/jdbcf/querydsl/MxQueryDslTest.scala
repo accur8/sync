@@ -44,7 +44,7 @@ object MxQueryDslTest {
       }
     }
     
-    val queryDsl = new QueryDsl[Widget, TableDsl](jdbcMapper, new TableDsl)
+    val queryDsl = new QueryDsl[Widget, TableDsl, String](jdbcMapper, new TableDsl)
     
     def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[F, Widget, TableDsl] =
       queryDsl.query(whereFn)
@@ -132,7 +132,7 @@ object MxQueryDslTest {
     
     }
     
-    val queryDsl = new QueryDsl[Container, TableDsl](jdbcMapper, new TableDsl)
+    val queryDsl = new QueryDsl[Container, TableDsl, String](jdbcMapper, new TableDsl)
     
     def query[F[_]: cats.effect.Async](whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[F, Container, TableDsl] =
       queryDsl.query(whereFn)

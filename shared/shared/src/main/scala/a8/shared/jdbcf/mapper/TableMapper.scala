@@ -1,10 +1,11 @@
 package a8.shared.jdbcf.mapper
 
 import a8.shared.SharedImports._
+import a8.shared.jdbcf.mapper.MapperBuilder.AuditProvider
 import a8.shared.jdbcf.{Conn, RowReader, RowWriter, SqlString, TableName}
 
 object TableMapper {
-
+  def apply[A: TableMapper] = implicitly[TableMapper[A]]
 }
 
 trait TableMapper[A] extends ComponentMapper[A] { self =>
@@ -25,5 +26,7 @@ trait TableMapper[A] extends ComponentMapper[A] { self =>
    * @return
    */
   def materializeTableMapper[F[_]: Async](implicit conn: Conn[F]): F[TableMapper[A]]
+
+  def auditProvider: AuditProvider[A]
 
 }

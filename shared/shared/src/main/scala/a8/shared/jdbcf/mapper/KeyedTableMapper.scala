@@ -3,6 +3,7 @@ package a8.shared.jdbcf.mapper
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
+import a8.shared.jdbcf.mapper.MapperBuilder.AuditProvider
 
 
 object KeyedTableMapper {
@@ -18,7 +19,7 @@ object KeyedTableMapper {
 trait KeyedTableMapper[A, B] extends TableMapper[A] {
 
   def keyToWhereClause(key: B): SqlString
-  def updateSql(row: A): SqlString
+  def updateSql(row: A, extraWhere: Option[SqlString] = None): SqlString
   def deleteSql(key: B): SqlString
   def fetchSql(key: B): SqlString
   def key(row: A): B

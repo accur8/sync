@@ -10,8 +10,9 @@ import a8.shared.jdbcf._
 import a8.shared.jdbcf.mapper.CaseClassMapper.{And, ColumnNameResolver}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.Mapper.FieldHandler
+import a8.shared.jdbcf.mapper.MapperBuilder.AuditProvider
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, PathCompiler, Path, field, fieldExprs}
+import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, Path, PathCompiler, field, fieldExprs}
 
 import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
@@ -107,15 +108,23 @@ object MapperBuilder {
     override def buildMapper: ComponentMapper[A] =
       buildKeyedTableMapper
 
-    override def buildTableMapper: TableMapper[A] =
+
+    override def buildTableMapper(implicit auditProvider: AuditProvider[A]): TableMapper[A] =
       buildKeyedTableMapper
 
-    override def buildKeyedTableMapper: KeyedTableMapper[A,PK] = {
+
+    override def buildKeyedTableMapper(implicit auditProvider: AuditProvider[A]): KeyedTableMapper[A, PK] = {
       if ( fields.size != generator.constructors.expectedFieldCount ) {
         sys.error(s"field mis match builder has ${fields.size} fields and constructor expects ${generator.constructors.expectedFieldCount} fields")
       }
       val tn = tableName.getOrElse(TableName(classTag.runtimeClass.shortName))
-      CaseClassMapper[A,PK](fields, generator.constructors.iterRawConstruct, primaryKey.getOrElse(impl.explodingPrimaryKey[A,PK]), tn)
+      CaseClassMapper[A,PK](
+        fields,
+        generator.constructors.iterRawConstruct,
+        primaryKey.getOrElse(impl.explodingPrimaryKey[A,PK]),
+        tn,
+        auditProvider,
+      )
     }
 
   }
@@ -170,6 +179,25 @@ object MapperBuilder {
   }
 
 
+  object AuditProvider {
+    implicit def noop[A]: AuditProvider[A] =
+      new AuditProvider[A] {
+        override def onUpdate(a: A): A = a
+        override def onInsert(a: A): A = a
+      }
+  }
+
+  /**
+   * generally as a design choice the AuditProvider should be minimallistic.  As the
+   * design choice should be to expose most of the code at the model layer.  This is here
+   * to support things like updating created and last changed timestamp's on tables.
+   * @tparam A
+   */
+  trait AuditProvider[A] {
+    def onUpdate(a: A): A
+    def onInsert(a: A): A
+  }
+
 }
 
 
@@ -182,6 +210,6 @@ trait MapperBuilder[A,B,PK] {
 //  def primaryKey2[PK1: RowReader, PK2: RowReader](fn1: B => CaseClassParm[A,PK1], fn2: B => CaseClassParm[A,PK1]): MapperBuilder[A,B,(PK1,PK2)]
 //  def primaryKey3[PK1: RowReader, PK2: RowReader, PK3: RowReader](fn1: B => CaseClassParm[A,PK1], fn2: B => CaseClassParm[A,PK1], fn3: B => CaseClassParm[A,PK3]): MapperBuilder[A,B,(PK1,PK2,PK3)]
   def buildMapper: ComponentMapper[A]
-  def buildTableMapper: TableMapper[A]
-  def buildKeyedTableMapper: KeyedTableMapper[A,PK]
+  def buildTableMapper(implicit auditProvider: AuditProvider[A]): TableMapper[A]
+  def buildKeyedTableMapper(implicit auditProvider: AuditProvider[A]): KeyedTableMapper[A,PK]
 }

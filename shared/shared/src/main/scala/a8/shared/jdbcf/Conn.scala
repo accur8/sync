@@ -102,6 +102,7 @@ trait Conn[F[_]] {
   def insertRow[A : TableMapper](row: A): F[A]
   def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[(A,UpsertResult)]
   def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[A]
+  def updateRowWhere[A, B](row: A)(where: SqlString)(implicit keyedMapper: KeyedTableMapper[A,B]): F[Option[A]]
   def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): F[A]
 
   def selectRows[A : TableMapper](whereClause: SqlString): F[Iterable[A]]

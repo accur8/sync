@@ -4,7 +4,7 @@ package a8.shared.jdbcf.mapper
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.{ColumnName, Conn, JdbcMetadata, Row, RowReader, SqlString, TableLocator, TableName}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
-import a8.shared.jdbcf.mapper.MapperBuilder.{FromCaseClassParm, Parm, PrimaryKey}
+import a8.shared.jdbcf.mapper.MapperBuilder.{AuditProvider, FromCaseClassParm, Parm, PrimaryKey}
 import SqlString._
 import a8.shared
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
@@ -39,6 +39,7 @@ case class CaseClassMapper[A, PK](
   constructorFn: Iterator[Any]=>A,
   primaryKey: PrimaryKey[A,PK],
   tableName: TableName,
+  auditProvider: AuditProvider[A],
   columnNameResolver: ColumnNameResolver = ColumnNameResolver.noop,
 ) extends KeyedTableMapper[A, PK] { self =>
 
@@ -126,9 +127,17 @@ case class CaseClassMapper[A, PK](
   def keyToWhereClause(key: PK): SqlString =
     primaryKey.whereClause(key, columnNameResolver)
 
-  override def updateSql(row: A): SqlString = {
+
+  override def updateSql(row: A, extraWhere: Option[SqlString]): SqlString = {
     val valuePairs = pairs(RootColumnNamePrefix, row)
-    sql"update ${tableName} set ${valuePairs.map(p => sql"${p._1} = ${p._2}").mkSqlString(CommaSpace)} where ${keyToWhereClause(key(row))}"
+    val whereSuffix =
+      extraWhere match {
+        case None =>
+          SqlString.Empty
+        case Some(ss) =>
+          sql" and ${ss}"
+      }
+    sql"update ${tableName} set ${valuePairs.map(p => sql"${p._1} = ${p._2}").mkSqlString(CommaSpace)} where ${keyToWhereClause(key(row))}${extraWhere}"
   }
 
   override def deleteSql(key: PK): SqlString =
