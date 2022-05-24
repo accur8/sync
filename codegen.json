@@ -3,7 +3,8 @@
   "defaults": [
     {
       "anno": {
-        "jsonCodec": true
+        "jsonCodec": true,
+        "zio": true
       }
     }
   ]
