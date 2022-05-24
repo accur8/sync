@@ -12,6 +12,12 @@ object StringValue {
 
   abstract class Companion[A <: StringValue] {
 
+    implicit val fromString: FromString[A] =
+      new FromString[A] {
+        override def fromString(value: String): Option[A] =
+          Some(apply(value))
+      }
+
     implicit lazy val catsEq: cats.kernel.Eq[A] =
       cats.kernel.Eq.by[A,String](_.value)
 
@@ -50,6 +56,12 @@ object StringValue {
   }
 
   abstract class CIStringValueCompanion[A <: CIStringValue] {
+
+    implicit val fromString: FromString[A] =
+      new FromString[A] {
+        override def fromString(value: String): Option[A] =
+          Some(apply(value))
+      }
 
     implicit val catsEq: cats.kernel.Eq[A] =
       cats.kernel.Eq.by[A,CIString](_.value)

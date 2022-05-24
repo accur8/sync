@@ -12,6 +12,14 @@ object LongValue {
 
   abstract class Companion[A <: LongValue] {
 
+    implicit val fromString: FromString[A] =
+      new FromString[A] {
+        override def fromString(value: String): Option[A] =
+          value
+            .toLongOption
+            .map(apply)
+      }
+
     implicit lazy val catsEq: cats.kernel.Eq[A] =
       cats.kernel.Eq.by[A,Long](_.value)
 

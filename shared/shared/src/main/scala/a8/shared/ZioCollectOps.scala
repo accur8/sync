@@ -15,4 +15,7 @@ class ZioCollectOps[R, E, A, Collection[+Element] <: Iterable[Element]](
   def sequence: ZIO[R,E,Collection[A]] =
     ZIO.collectAll(in)
 
+  def sequencePar: ZIO[R,E,Collection[A]] =
+    ZIO.collectAllPar(in)
+
 }
