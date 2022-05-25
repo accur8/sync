@@ -267,7 +267,7 @@ class QubesApiClient[F[_] : Async](
   }
 
   def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B]): F[A] = {
-    implicit def implicitQubesApiClient = this
+    implicit def implicitQubesApiClient: QubesApiClient[F] = this
     qubesKeyedMapper.fetch(key)
   }
 

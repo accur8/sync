@@ -8,7 +8,7 @@ object ChordDemo {
 
   def main(args: Array[String]): Unit = {
 
-    implicit val indent = Indent(Chord.str("-->"))
+    implicit val indent: Indent = Indent(Chord.str("-->"))
 
     val ch = Chord.str("foo") ~ Chord.indent(Chord.str("123\n") ~ "abc\n" ~ "def")
 

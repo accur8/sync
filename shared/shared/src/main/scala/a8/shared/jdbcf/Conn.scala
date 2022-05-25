@@ -13,12 +13,12 @@ import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import cats.effect.kernel.Resource.ExitCase
 import sttp.model.Uri
-import wvlet.log.LazyLogger
+import wvlet.log.{LazyLogger, Logger}
 import a8.shared.jdbcf.UnsafeResultSetOps._
 
 object Conn extends LazyLogger {
 
-  implicit def implicitLogger = logger
+  implicit def implicitLogger: Logger = logger
 
   def apply[F[_] : Conn] = implicitly[Conn[F]]
 

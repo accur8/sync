@@ -17,7 +17,7 @@ object UnionTest {
   object Foo {
 
 
-    implicit lazy val jsonCodec =
+    implicit lazy val jsonCodec: JsonTypedCodec[Foo, ast.JsObj] =
       UnionCodecBuilder[Foo]
         .typeFieldName("kind")
         .addType[Foo1]("foo1")

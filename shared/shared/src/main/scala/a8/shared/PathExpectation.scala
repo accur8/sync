@@ -38,7 +38,7 @@ object PathExpectation {
 
   def symlinkWithContents[F[_] : Sync](symLink: NioPath, contents: NioPath): F[Boolean] = {
     Sync[F].blocking {
-      implicit val pathEq = Eq.fromUniversalEquals[java.nio.file.Path]
+      implicit val pathEq: Eq[NioPath] = Eq.fromUniversalEquals[java.nio.file.Path]
       val createSymLink =
         if ( Files.exists(symLink, LinkOption.NOFOLLOW_LINKS) ) {
           if ( Files.isSymbolicLink(symLink) ) {

@@ -5,7 +5,7 @@ import a8.sync.ResolvedTable.ResolvedField
 import a8.sync.impl.{NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedValue}
 import fs2.Chunk
 import Imports._
-import a8.shared.jdbcf.SqlString
+import a8.shared.jdbcf.{Dialect, SqlString}
 import SqlString._
 import a8.sync.ResolvedTable.ColumnMapper.StringNormalValue
 import a8.sync.RowSync.ValidationMessage
@@ -39,7 +39,7 @@ object RowSync {
 
     def syncToSql(sync: RowSync): SqlString = {
 
-      implicit def dialect = sync.table.dialect
+      implicit def dialect: Dialect = sync.table.dialect
 
       import sync.table
       import sync.table.keyFieldsByIndex

@@ -36,7 +36,7 @@ object Row {
         )
   }
 
-  implicit val rowReader =
+  implicit val rowReader: RowReader[Row] =
     new RowReader[Row] {
       override def rawRead(row: Row, index: Int): (Row, Int) = {
         val subRow = row.subRow(index)

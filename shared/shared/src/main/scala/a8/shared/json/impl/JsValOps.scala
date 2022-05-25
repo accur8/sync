@@ -6,7 +6,7 @@ import a8.shared.json.ast._
 object JsValOps {
 
   object impl {
-    implicit val implicitIndent = Chord.Indent(Chord.str("  "))
+    implicit val implicitIndent: Chord.Indent = Chord.Indent(Chord.str("  "))
     val colonCh = Chord.str(":")
     val colonSpaceCh = Chord.str(": ")
     val leftBracketCh = Chord.str("[")

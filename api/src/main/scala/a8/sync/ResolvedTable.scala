@@ -347,7 +347,7 @@ case class ResolvedTable(
   dialect: Dialect,
 ) { resolvedTable =>
 
-  implicit def implicitDialect = dialect
+  implicit def implicitDialect: Dialect = dialect
 
   def qualifiedTargetTable: SqlString = {
     import a8.shared.jdbcf.SqlString._

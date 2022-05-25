@@ -17,7 +17,7 @@ import scala.language.implicitConversions
 
 object AuditLogSync extends IOApp.Simple {
 
-  implicit def toCiString(s: String) = CIString(s)
+  implicit def toCiString(s: String): CIString = CIString(s)
 
 //  DriverManager.registerDriver(new org.postgresql.Driver)
 //  case class VersionCache(tableName: String, version: Long)

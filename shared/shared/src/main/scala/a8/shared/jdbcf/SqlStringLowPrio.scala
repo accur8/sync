@@ -71,7 +71,7 @@ trait SqlStringLowPrio {
 
   implicit def stringOpsSqlString(s: String): StringOpsSqlString = new StringOpsSqlString(s)
 
-  implicit def sqlStringContextImplicit(sc: StringContext) =
+  implicit def sqlStringContextImplicit(sc: StringContext): SqlFragmentContext =
     new SqlFragmentContext(sc)
 
   implicit def liftJdbcColumn(jdbcColumn: JdbcColumn): SqlString = {

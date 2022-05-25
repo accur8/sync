@@ -33,23 +33,23 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
       }
     }
 
-  implicit lazy val intReader = singleColumnReader[Int] {
+  implicit lazy val intReader: RowReader[Int] = singleColumnReader[Int] {
     case i: java.lang.Number => i.intValue()
   }
-  implicit lazy val stringReader = singleColumnReader[String] {
+  implicit lazy val stringReader: RowReader[String] = singleColumnReader[String] {
     case s: String =>
       s
     case clob: java.sql.Clob =>
       clob.getCharacterStream.readFully()
   }
 
-  implicit lazy val localDateTimeMapper =
+  implicit lazy val localDateTimeMapper: RowReader[LocalDateTime] =
     singleColumnReader[LocalDateTime] {
       case ts: java.sql.Timestamp =>
         ts.toLocalDateTime
     }
 
-  implicit lazy val offsetDateTimeMapper = {
+  implicit lazy val offsetDateTimeMapper: RowReader[OffsetDateTime] = {
     val utc = ZoneId.of("UTC")
     singleColumnReader[OffsetDateTime] {
       case ldt: LocalDateTime =>
@@ -60,43 +60,43 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
     }
   }
 
-  implicit lazy val localTimeMapper =
+  implicit lazy val localTimeMapper: RowReader[LocalTime] =
     singleColumnReader[LocalTime] {
       case ts: java.sql.Time =>
         ts.toLocalTime
     }
 
-  implicit lazy val byteReader =
+  implicit lazy val byteReader: RowReader[Byte] =
     singleColumnReader[Byte] {
       case i: java.lang.Number =>
         i.byteValue()
     }
 
-  implicit lazy val shortReader =
+  implicit lazy val shortReader: RowReader[Short] =
     singleColumnReader[Short] {
       case i: java.lang.Number =>
         i.shortValue()
     }
 
-  implicit lazy val longReader =
+  implicit lazy val longReader: RowReader[Long] =
     singleColumnReader[Long] {
       case i: java.lang.Number =>
         i.longValue()
     }
 
-  implicit lazy val floatReader =
+  implicit lazy val floatReader: RowReader[Float] =
     singleColumnReader[Float] {
       case i: java.lang.Number =>
         i.floatValue()
     }
 
-  implicit lazy val doubleReader =
+  implicit lazy val doubleReader: RowReader[Double] =
     singleColumnReader[Double] {
       case i: java.lang.Number =>
         i.doubleValue()
     }
 
-  implicit lazy val boolean =
+  implicit lazy val boolean: RowReader[Boolean] =
     singleColumnReader[Boolean] {
       case s: String =>
         s.toLowerCase match {

@@ -24,8 +24,8 @@ object StringValue {
         _.value.toString,
       )
 
-    implicit val rowReader = RowReader.stringReader.map(s => apply(s.trim))
-    implicit val rowWriter = RowWriter.stringWriter.mapWriter[A](_.value)
+    implicit val rowReader: RowReader[A] = RowReader.stringReader.map(s => apply(s.trim))
+    implicit val rowWriter: RowWriter[A] = RowWriter.stringWriter.mapWriter[A](_.value)
 
     implicit def toSqlString(a: A): SqlString =
       SqlString.escapedString(a.value)

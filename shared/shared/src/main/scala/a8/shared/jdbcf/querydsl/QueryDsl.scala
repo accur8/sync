@@ -102,7 +102,7 @@ object QueryDsl {
     OptionConstant(oc)
   }
 
-  implicit def valueToConstant[T: SqlStringer](value: T) = Constant(value)
+  implicit def valueToConstant[T: SqlStringer](value: T): Constant[T] = Constant(value)
 
   implicit def byteToConstant(value: Byte): Constant[Byte] = valueToConstant(value)
   implicit def shortToConstant(value: Short): Constant[Short] = valueToConstant(value)
@@ -445,7 +445,7 @@ object QueryDsl {
   }
 
   object OrderBy {
-    implicit def exprToOrderBy[T](f: Expr[T]) = OrderBy(f)
+    implicit def exprToOrderBy[T](f: Expr[T]): OrderBy = OrderBy(f)
   }
 
   case class OrderBy(expr: Expr[_], ascending: Boolean = true) {
@@ -469,7 +469,7 @@ class QueryDsl[T, TableDsl, K](
   val tableDsl: TableDsl
 ) {
 
-  implicit def keyedTableMapper0 = keyedTableMapper
+  implicit def keyedTableMapper0: KeyedTableMapper[T, K] = keyedTableMapper
 
   def query[F[_]: Async](whereFn: TableDsl => QueryDsl.Condition): SelectQuery[F, T, TableDsl] =
     SelectQueryImpl(tableDsl, keyedTableMapper, whereFn(tableDsl), Nil)

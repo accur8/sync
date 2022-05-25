@@ -5,6 +5,6 @@ import wvlet.log.LazyLogger
 
 abstract class LoggingF[F[_] : Sync] extends Logging {
 
-  implicit lazy val loggerF = LoggerF.wrap[F](logger)
+  implicit lazy val loggerF: LoggerF[F] = LoggerF.wrap[F](logger)
 
 }

@@ -77,7 +77,7 @@ object FileSystem {
       import java.nio.file.{Files, Paths}
       import java.nio.file.StandardCopyOption.REPLACE_EXISTING
       import language.implicitConversions
-      implicit def toNioPath(path: Path) = Paths.get(path.canonicalPath)
+      implicit def toNioPath(path: Path): NioPath = Paths.get(path.canonicalPath)
       Files.copy(this, target, REPLACE_EXISTING)
     }
   }

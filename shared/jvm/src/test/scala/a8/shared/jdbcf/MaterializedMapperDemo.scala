@@ -21,7 +21,7 @@ object MaterializedMapperDemo extends IOApp {
     )
 
   object JsonCC extends MxJsonCC {
-    implicit val jsonCodecMapper = JsonCodecMapper[JsonCC]
+    implicit val jsonCodecMapper: JsonCodecMapper[JsonCC] = JsonCodecMapper[JsonCC]
   }
   @CompanionGen
   case class JsonCC(foo: Int, bar: String)

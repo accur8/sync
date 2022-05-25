@@ -174,7 +174,7 @@ case class CaseClassMapper[A, PK](
     }
 //        }
 
-  val columnNamePrefix = ColumnName("")
+    val columnNamePrefix = ColumnName("")
     for {
       tableName <- conn.resolveTableName(TableLocator(tableName))
       resolvedJdbcTable <- conn.tableMetadata(tableName.asLocator)

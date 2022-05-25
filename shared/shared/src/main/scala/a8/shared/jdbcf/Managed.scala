@@ -7,12 +7,12 @@ import a8.shared.SharedImports
 import a8.shared.SharedImports._
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Resource.ExitCase
-import wvlet.log.LazyLogger
+import wvlet.log.{LazyLogger, Logger}
 
 
 object Managed extends LazyLogger {
 
-  implicit def logger0 = logger
+  implicit def logger0: Logger = logger
 
   abstract class AbstractManaged[A] extends Managed[A] {
     override def safeClose[F[_] : Sync](a: A): F[Unit] =

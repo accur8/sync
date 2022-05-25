@@ -31,25 +31,25 @@ object SingleArgConstructor {
       override def deconstruct(b: B): A = deconstructFn(b)
     }
 
-  implicit val longToBigDecimal =
+  implicit val longToBigDecimal: SingleArgConstructor[Long, BigDecimal] =
     create[Long,BigDecimal](
       BigDecimal.valueOf,
       _.toLong,
     )
 
-  implicit val shortToBigDecimal =
+  implicit val shortToBigDecimal: SingleArgConstructor[Short, BigDecimal] =
     create[Short,BigDecimal](
       n => BigDecimal.valueOf(n),
       _.toShort,
     )
 
-  implicit val intToBigDecimal =
+  implicit val intToBigDecimal: SingleArgConstructor[Int, BigDecimal] =
     create[Int,BigDecimal](
       i => BigDecimal.valueOf(i),
       _.toInt,
     )
 
-  implicit val bigIntToBigDecimal =
+  implicit val bigIntToBigDecimal: SingleArgConstructor[BigInt, BigDecimal] =
     create[BigInt,BigDecimal](
       bi => BigDecimal(bi),
       _.toBigInt,

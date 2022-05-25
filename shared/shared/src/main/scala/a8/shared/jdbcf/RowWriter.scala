@@ -32,17 +32,17 @@ object RowWriter {
         None
     }
 
-  implicit val byteWriter = create[Byte](ps => ps.setByte(_, _))
-  implicit val shortWriter = create[Short](ps => ps.setShort(_, _))
-  implicit val integerWriter = create[Integer](ps => ps.setInt(_, _))
-  implicit val intWriter = create[Int](ps => ps.setInt(_, _))
-  implicit val longWriter = create[Long](ps => ps.setLong(_, _))
-  implicit val floatWriter = create[Float](ps => ps.setFloat(_, _))
-  implicit val doubleWriter = create[Double](ps => ps.setDouble(_, _))
-  implicit val javaMathBigDecimal = create[java.math.BigDecimal](ps => ps.setBigDecimal(_, _))
-  implicit val scalaBigDecimal = create[BigDecimal](ps => { (pi, bd) => ps.setBigDecimal(pi, bd.bigDecimal) })
+  implicit val byteWriter: RowWriter[Byte] = create[Byte](ps => ps.setByte(_, _))
+  implicit val shortWriter: RowWriter[Short] = create[Short](ps => ps.setShort(_, _))
+  implicit val integerWriter: RowWriter[Integer] = create[Integer](ps => ps.setInt(_, _))
+  implicit val intWriter: RowWriter[Int] = create[Int](ps => ps.setInt(_, _))
+  implicit val longWriter: RowWriter[Long] = create[Long](ps => ps.setLong(_, _))
+  implicit val floatWriter: RowWriter[Float] = create[Float](ps => ps.setFloat(_, _))
+  implicit val doubleWriter: RowWriter[Double] = create[Double](ps => ps.setDouble(_, _))
+  implicit val javaMathBigDecimal: RowWriter[java.math.BigDecimal] = create[java.math.BigDecimal](ps => ps.setBigDecimal(_, _))
+  implicit val scalaBigDecimal: RowWriter[BigDecimal] = create[BigDecimal](ps => { (pi, bd) => ps.setBigDecimal(pi, bd.bigDecimal) })
 
-  implicit val stringWriter = create[String](ps => ps.setString(_, _))
+  implicit val stringWriter: RowWriter[String] = create[String](ps => ps.setString(_, _))
 
   def apply[A : RowWriter]: RowWriter[A] = implicitly[RowWriter[A]]
 
