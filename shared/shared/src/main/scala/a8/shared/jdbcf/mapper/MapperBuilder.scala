@@ -65,7 +65,7 @@ object MapperBuilder {
       val columnName = ColumnName(columnNamePrefix.asString + parm.name)
       fieldHandler
         .materialize(columnName, conn, resolvedJdbcTable)
-        .map { materializedFieldHandler: FieldHandler[B] =>
+        .map { (materializedFieldHandler: FieldHandler[B]) =>
           FromCaseClassParm[A,B](parm, ordinal)(materializedFieldHandler)
         }
     }

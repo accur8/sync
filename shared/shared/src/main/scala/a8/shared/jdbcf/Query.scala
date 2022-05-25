@@ -35,7 +35,7 @@ object Query {
         stream
           .compile
           .toList
-          .map(_.toIterable)
+          .map(values => values: Iterable[A])
 
       override def unique: F[A] =
         fetch

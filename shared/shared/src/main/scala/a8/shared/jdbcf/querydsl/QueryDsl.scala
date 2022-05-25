@@ -154,23 +154,23 @@ object QueryDsl {
     val asSql: SqlString
   }
 
-  object ops {
+  object Ops {
 
-    object eq extends AbstractOperator("=") with BooleanOperator
-    object ne extends AbstractOperator("<>") with BooleanOperator
-    object gt extends AbstractOperator(">") with BooleanOperator
-    object ge extends AbstractOperator(">=") with BooleanOperator
-    object lt extends AbstractOperator("<") with BooleanOperator
-    object le extends AbstractOperator("<=") with BooleanOperator
+    object Equal extends AbstractOperator("=") with BooleanOperator
+    object NotEqual extends AbstractOperator("<>") with BooleanOperator
+    object GreaterThan extends AbstractOperator(">") with BooleanOperator
+    object GreaterThanOrEqual extends AbstractOperator(">=") with BooleanOperator
+    object LesserThan extends AbstractOperator("<") with BooleanOperator
+    object LesserThanOrEqual extends AbstractOperator("<=") with BooleanOperator
 
-    object negate extends AbstractOperator("-") with UnaryOperator
+    object Negate extends AbstractOperator("-") with UnaryOperator
 
-    object concat extends AbstractOperator("||") with BinaryOperator
+    object Concat extends AbstractOperator("||") with BinaryOperator
 
-    object add extends AbstractOperator("+") with NumericOperator
-    object subtract extends AbstractOperator("-") with NumericOperator
-    object mult extends AbstractOperator("*") with NumericOperator
-    object divide extends AbstractOperator("/") with NumericOperator
+    object Add extends AbstractOperator("+") with NumericOperator
+    object Subtract extends AbstractOperator("-") with NumericOperator
+    object Mult extends AbstractOperator("*") with NumericOperator
+    object Divide extends AbstractOperator("/") with NumericOperator
 
   }
 
@@ -320,25 +320,25 @@ object QueryDsl {
       Concat(this, value)
 
     def ===(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.eq, value)
+      BooleanOperation(this, Ops.Equal, value)
 
     def eq_(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.eq, value)
+      BooleanOperation(this, Ops.Equal, value)
 
     def <>(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.ne, value)
+      BooleanOperation(this, Ops.NotEqual, value)
 
     def >(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.gt, value)
+      BooleanOperation(this, Ops.GreaterThan, value)
 
     def >=(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.ge, value)
+      BooleanOperation(this, Ops.GreaterThanOrEqual, value)
 
     def <(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.lt, value)
+      BooleanOperation(this, Ops.LesserThan, value)
 
     def <=(value: Expr[T]): Condition =
-      BooleanOperation(this, ops.le, value)
+      BooleanOperation(this, Ops.LesserThanOrEqual, value)
 
     def is_null: Condition =
       IsNull(this, false)
@@ -358,19 +358,19 @@ object QueryDsl {
   sealed abstract class NumericExpr[T: SqlStringer] extends Expr[T] {
 
     def unary_- : Expr[T] =
-      UnaryOperation(ops.negate, this)
+      UnaryOperation(Ops.Negate, this)
 
     def +(value: Expr[T]): NumericExpr[T] =
-      NumericOperation(this, ops.add, value)
+      NumericOperation(this, Ops.Add, value)
 
     def -(value: Expr[T]): Expr[T] =
-      NumericOperation(this, ops.subtract, value)
+      NumericOperation(this, Ops.Subtract, value)
 
     def *(value: Expr[T]): Expr[T] =
-      NumericOperation(this, ops.mult, value)
+      NumericOperation(this, Ops.Mult, value)
 
     def /(value: Expr[T]): Expr[T] =
-      NumericOperation(this, ops.divide, value)
+      NumericOperation(this, Ops.Divide, value)
 
   }
 
@@ -398,9 +398,9 @@ object QueryDsl {
     cond match {
       case se@ StructuralEquality(_, _, _) =>
         asSql(generateStructuralComparison(se))
-      case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
+      case BooleanOperation(l, Ops.NotEqual, OptionConstant(None)) =>
         exprAsSql(l) * ss.IsNotNull
-      case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
+      case BooleanOperation(l, Ops.Equal, OptionConstant(None)) =>
         exprAsSql(l) * ss.IsNull
       case Condition.TRUE =>
         ss.OneEqOne

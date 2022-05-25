@@ -102,7 +102,7 @@ object Managed extends LazyLogger {
       Sync[F]
         .blocking {
           val resource = thunk
-          resource -> { ec: ExitCase => Managed.complete[F](ec, resource) }
+          resource -> { (ec: ExitCase) => Managed.complete[F](ec, resource) }
         }
     )
   }
@@ -113,7 +113,7 @@ object Managed extends LazyLogger {
     Resource.applyCase(
       F.blocking {
           val resource = thunk
-          resource -> { ec: ExitCase => Managed.complete[F](ec, resource) }
+          resource -> { (ec: ExitCase) => Managed.complete[F](ec, resource) }
         }
         .onError  {
           case IsNonFatal(th) =>

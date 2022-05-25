@@ -83,7 +83,7 @@ object Mapper {
     override def booleanOp(linker: Path, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition = {
       import QueryDsl._
       val resolvedName = columnNameResolver.quote(linker.columnName(ColumnName(name)))
-      BooleanOperation(Field(resolvedName.value, linker, true), ops.eq, Constant(a))
+      BooleanOperation(Field(resolvedName.value, linker, true), Ops.Equal, Constant(a))
     }
     def pairs(columnNamePrefix: ColumnName, a: A) = Iterable(columnNamePrefix -> sqlStringer.toSqlString(a))
   }

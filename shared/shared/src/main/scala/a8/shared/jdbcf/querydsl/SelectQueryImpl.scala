@@ -75,7 +75,6 @@ case class SelectQueryImpl[F[_]: Async, T,U](
     lazy val joinSql: Option[SqlString] =
       aliasesByJoin
         .filter(_._1.depth > 0)
-        .toIterable
         .toNonEmpty
         .map {
           _.iterator
