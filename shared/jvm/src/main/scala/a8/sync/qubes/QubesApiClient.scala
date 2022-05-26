@@ -151,7 +151,7 @@ case class QubesApiClient(
 
   object impl {
 
-    implicit lazy val implicitRequestProcessor = requestProcessor
+    implicit lazy val implicitRequestProcessor: RequestProcessor = requestProcessor
     lazy val baseRequest = http.Request(config.uri).addHeader("X-SESS", config.authToken.value)
 
     def executeA[A: JsonCodec, B: JsonCodec](subPath: Uri, requestBody: A): Task[B] = {
@@ -222,7 +222,7 @@ case class QubesApiClient(
   }
 
   def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B]): Task[A] = {
-    implicit def implicitQubesApiClient = this
+    implicit def implicitQubesApiClient: QubesApiClient = this
     qubesKeyedMapper.fetch(key)
   }
 

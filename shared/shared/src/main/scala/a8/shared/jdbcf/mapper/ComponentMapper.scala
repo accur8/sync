@@ -23,7 +23,7 @@ trait ComponentMapper[A] extends Mapper[A] {
 
   def structuralEquality(linker: QueryDsl.Path, a: A)(implicit alias: PathCompiler): QueryDsl.Condition
   def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
-  val columnCount: Int
+  def columnCount: Int
   def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName,SqlString)]
 
 }

@@ -7,6 +7,8 @@ import cats.Monad
 import wvlet.log.{LogLevel, LogRecord, LogSource, Logger}
 import zio.{LogLevel => _, _}
 
+import scala.collection.mutable
+
 object LoggerF {
 
   object Pos {
@@ -37,27 +39,37 @@ object LoggerF {
   }
 
   def create(delegate: Logger): LoggerF = {
+
+
     new LoggerF {
+
+      val levelsMap: Map[LogLevel, (String, Cause[Any]) => UIO[Unit]] =
+        List(
+          (LogLevel.TRACE, {(msg: String,cause: Cause[Any]) => ZIO.logTraceCause(msg, cause)}),
+          (LogLevel.DEBUG, {(msg: String,cause: Cause[Any]) => ZIO.logDebugCause(msg, cause)}),
+          (LogLevel.INFO, {(msg: String,cause: Cause[Any]) => ZIO.logInfoCause(msg, cause)}),
+          (LogLevel.WARN, {(msg: String,cause: Cause[Any]) => ZIO.logWarningCause(msg, cause)}),
+          (LogLevel.ERROR, {(msg: String,cause: Cause[Any]) => ZIO.logErrorCause(msg, cause)}),
+        )
+          .toMap
 
       override protected def isEnabled(logLevel: LogLevel): Boolean =
         delegate.isEnabled(logLevel)
 
       override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit] = {
-        ZIO
-          .attemptBlocking {
-            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message, cause)
-            delegate.log(logRecord)
+        val resolvedMessage = {
+          cause match {
+            case None =>
+              message
+            case Some(th) =>
+              message + "\n" + th.stackTraceAsString.indent("        ")
           }
-          .catchAll(_ => ZIO.unit)
+        }
+        levelsMap(logLevel)(resolvedMessage, Cause.empty)
       }
 
       override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Throwable], pos: Pos): UIO[Unit] =
-        ZIO
-          .attemptBlocking {
-            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message + "\n" + cause.prettyPrint.indent("    ") , None)
-            delegate.log(logRecord)
-          }
-          .catchAll(_ => ZIO.unit)
+        levelsMap(logLevel)(message, cause)
 
     }
   }

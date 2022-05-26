@@ -16,7 +16,7 @@ import zio._
 object DocumentLoader {
 
   object RowToJsObj {
-    implicit val rowReader =
+    implicit val rowReader: RowReader[RowToJsObj] =
       new RowReader[RowToJsObj] {
         override def rawRead(row: Row, index: Int): (RowToJsObj, Int) =
           RowToJsObj(

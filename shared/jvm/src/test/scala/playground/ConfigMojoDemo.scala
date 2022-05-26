@@ -4,11 +4,11 @@ import a8.shared.ConfigMojo
 
 object ConfigMojoDemo extends App {
 
-  val cmd = ConfigMojo().apply("glen.database")
+  val cmd = ConfigMojo.root("glen.database")
 
   cmd.toString
 
-  println(ConfigMojo().apply("glen.database"))
-  println(ConfigMojo().apply("glen")("database"))
+  println(ConfigMojo.root("glen.database"))
+  println(ConfigMojo.root("glen")("database"))
 
 }

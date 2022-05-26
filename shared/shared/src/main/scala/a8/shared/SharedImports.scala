@@ -117,49 +117,49 @@ trait SharedImports
   implicit def sharedImportsZStreamOps[R,E,A](stream: zio.stream.ZStream[R,E,A]): ZStreamOps[R,E,A] =
     new ZStreamOps(stream)
 
-  implicit def sharedImportsStringOps(s: String) =
+  implicit def sharedImportsStringOps(s: String): a8.shared.ops.StringOps =
     new a8.shared.ops.StringOps(s)
 
-  implicit def matchOpsAnyRef[A <: AnyRef](a: A) =
+  implicit def matchOpsAnyRef[A <: AnyRef](a: A): AnyOps[A] =
     new AnyOps[A](a)
 
-  implicit def matchOpsAnyVal[A <: AnyVal](a: A) =
+  implicit def matchOpsAnyVal[A <: AnyVal](a: A): AnyOps[A] =
     new AnyOps[A](a)
 
-  implicit def sharedImportsIntOps(i: Int) =
+  implicit def sharedImportsIntOps(i: Int): IntOps =
     new IntOps(i)
 
-  implicit def sharedImportsOptionOps[A](o: Option[A]) =
+  implicit def sharedImportsOptionOps[A](o: Option[A]): OptionOps[A] =
     new OptionOps(o)
 
-  implicit def sharedImportsLocalDateTimeOps(localDateTime: LocalDateTime) =
+  implicit def sharedImportsLocalDateTimeOps(localDateTime: LocalDateTime): LocalDateTimeOps =
     new LocalDateTimeOps(localDateTime)
 
-  implicit def throwableOps(th: Throwable) =
+  implicit def throwableOps(th: Throwable): ThrowableOps =
     new ThrowableOps(th)
 
-  implicit def iterableOps[A](iterable: Iterable[A]) =
+  implicit def iterableOps[T, U[T] <: Iterable[T]](iterable: U[T]): IterableOps[T,U] =
     new IterableOps(iterable)
 
-  implicit def iteratorOps[A](iterator: Iterator[A]) =
+  implicit def iteratorOps[A](iterator: Iterator[A]): IteratorOps[A] =
     new IteratorOps[A](iterator)
 
-  implicit def readerOps(reader: java.io.Reader) =
+  implicit def readerOps(reader: java.io.Reader): ReaderOps =
     new ReaderOps(reader)
 
-  implicit def inputStreamOps(is: java.io.InputStream) =
+  implicit def inputStreamOps(is: java.io.InputStream): InputStreamOps =
     new InputStreamOps(is)
 
-  implicit def booleanOps(b: Boolean) =
+  implicit def booleanOps(b: Boolean): BooleanOps =
     new BooleanOps(b)
 
-  implicit def pathOps(p: Path) =
+  implicit def pathOps(p: Path): PathOps =
     new PathOps(p)
 
-  implicit def classOps[A](clazz: Class[A]) =
+  implicit def classOps[A](clazz: Class[A]): ClassOps[A] =
     new ClassOps(clazz)
 
-  implicit def toRunnable(fn: () => Unit) =
+  implicit def toRunnable(fn: () => Unit): Runnable =
     new Runnable() {
       def run() = fn()
     }
@@ -187,7 +187,7 @@ trait SharedImports
     }
   }
 
-  implicit def jsonCodecOps[A : JsonCodec](a: A) =
+  implicit def jsonCodecOps[A : JsonCodec](a: A): JsonCodecOps[A] =
     new JsonCodecOps(a)
 
   object json extends JsonImports

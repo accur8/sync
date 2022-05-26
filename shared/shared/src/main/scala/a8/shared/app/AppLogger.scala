@@ -7,8 +7,6 @@ import java.util.logging.Level
 
 trait AppLogger extends Logging { self: BootstrappedIOApp =>
 
-  val bootstrapConfig: BootstrapConfig
-
   lazy val bootstrapInit = {
     def configureLogLevels() = {
 

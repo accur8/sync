@@ -14,7 +14,8 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "2.13.6"
+val scala213LibVersion = "2.13.8"
+val scala3LibVersion = "3.1.2"
 val sbtA8Version = "1.2.0-20220113_1040"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
@@ -23,7 +24,9 @@ scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 publishTo in Global := sonatypePublishToBundle.value
 credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
-scalaVersion in Global := scalaLibVersion
+//crossScalaVersions in Global := Seq(scala213LibVersion, scala3LibVersion)
+crossScalaVersions in Global := Seq(scala3LibVersion)
+scalaVersion in Global := scala3LibVersion
 
 organization in Global := "io.accur8"
 
@@ -37,6 +40,7 @@ serverConnectionType in Global := ConnectionType.Local
 lazy val api =
   Common
     .jvmProject("a8-sync-api", file("api"), "api")
+    .settings( crossScalaVersions := Nil )
     .dependsOn(sharedJVM)
     .settings(
       libraryDependencies ++= Seq(
@@ -55,11 +59,10 @@ lazy val shared =
         "org.wvlet.airframe" %% "airframe-log" % "22.1.0",
         "org.typelevel" %% "cats-core" % "2.7.0",
         "org.typelevel" %% "case-insensitive" % "1.2.0",
-        "com.beachape" %%% "enumeratum" % "1.7.0",
         "com.lihaoyi" %%% "sourcecode" % "0.2.7",
         "org.typelevel" %% "case-insensitive" % "1.2.0",
         "com.softwaremill.sttp.model" %% "core" % "1.4.20",
-        "org.slf4j" % "slf4j-jdk14" % "2.0.0-alpha5",
+        "org.slf4j" % "slf4j-jdk14" % "2.0.0-alpha7",
         "org.scalactic" %% "scalactic" % "3.2.10",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
         "org.typelevel" %% "jawn-parser" % "1.3.2",
@@ -80,7 +83,7 @@ lazy val shared =
     )
     .jsSettings(
       libraryDependencies ++= Seq(
-        "org.scala-js" %%% "scalajs-dom" % "1.2.0",
+        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
       )
     )
 

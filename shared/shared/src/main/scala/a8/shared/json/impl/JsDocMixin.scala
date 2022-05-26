@@ -6,9 +6,6 @@ import a8.shared.json.ast._
 
 trait JsDocMixin { self: JsDoc =>
 
-  val value: JsVal
-  val parent: Option[(JsDoc, Either[String,Int])]
-
   def isEmpty: Boolean =
     value match {
       case JsNull | JsNothing =>

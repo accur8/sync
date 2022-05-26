@@ -28,7 +28,7 @@ object PollingStream {
   ): XStream[A] = {
     tailingStream(
       start = None,
-      pollFn = { _: Option[A] => finitePollFn },
+      pollFn = { (_: Option[A]) => finitePollFn },
       interval = interval,
     )
   }

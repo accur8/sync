@@ -29,7 +29,7 @@ object Batcher {
                 ZStream
                   .fromIterableZIO {
                     withSqlCtx(sql) {
-                      ps.executeBatch().toIterable
+                      ps.executeBatch().toList
                     }
                   }
               val header =
@@ -56,7 +56,7 @@ object Batcher {
 
 
 trait Batcher[A] {
-  val sql: CompiledSql
+  def sql: CompiledSql
   def execBatch(stream: XStream[A]): XStream[Int]
 }
 

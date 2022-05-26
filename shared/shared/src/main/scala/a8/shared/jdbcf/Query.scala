@@ -37,7 +37,7 @@ object Query {
       override def select: Task[Iterable[A]] =
         stream
           .run(ZSink.collectAll)
-          .map(_.toIterable)
+          .map(_.toList)
 
       override def unique: Task[A] =
         fetch

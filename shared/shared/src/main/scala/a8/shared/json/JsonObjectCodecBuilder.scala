@@ -1,8 +1,9 @@
 package a8.shared.json
 
 import a8.shared.Meta.{CaseClassParm, Generator}
-import a8.shared.SharedImports._
-import a8.shared.json.ast._
+import a8.shared.SharedImports.*
+import a8.shared.jdbcf.mapper.MapperBuilder.Parm
+import a8.shared.json.ast.*
 
 import java.util.regex.Pattern
 import scala.reflect.ClassTag
@@ -56,7 +57,7 @@ object JsonObjectCodecBuilder {
 
   case class JsonObjectCodecBuilderImpl[A : ClassTag,B](
     generator: Generator[A,B],
-    parms: Vector[Parm[A]] = Vector.empty,
+    parms: Vector[Parm[A]] = Vector.empty[Parm[A]],
     ignoredFields: Vector[IgnoredField] = Vector.empty,
     aliases: Vector[(String,String)] = Vector.empty,
   ) extends JsonObjectCodecBuilder[A,B] {

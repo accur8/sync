@@ -36,10 +36,10 @@ object MapperBuilder {
 
   sealed trait Parm[A] {
     def pairs(columnNamePrefix: ColumnName, row: A): Iterable[(ColumnName, SqlString)]
-    val name: String
-    val columnCount: Int
-    val ordinal: Int
-    val columnNames: Iterable[ColumnName]
+    def name: String
+    def columnCount: Int
+    def ordinal: Int
+    def columnNames: Iterable[ColumnName]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def rawRead(row: Row, index: Int): (Any, Int)
     def booleanOp(linker: QueryDsl.Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
@@ -65,7 +65,7 @@ object MapperBuilder {
       val columnName = ColumnName(columnNamePrefix.asString + parm.name)
       fieldHandler
         .materialize(columnName, conn, resolvedJdbcTable)
-        .map { materializedFieldHandler: FieldHandler[B] =>
+        .map { (materializedFieldHandler: FieldHandler[B]) =>
           FromCaseClassParm[A,B](parm, ordinal)(materializedFieldHandler)
         }
     }
@@ -81,7 +81,7 @@ object MapperBuilder {
   case class MapperBuilderImpl[A : ClassTag,B,PK](
     generator: Generator[A,B],
     primaryKey: Option[PrimaryKey[A,PK]] = None,
-    fields: Vector[Parm[A]] = Vector.empty,
+    fields: Vector[Parm[A]] = Vector.empty[Parm[A]],
     tableName: Option[TableName] = None
   ) extends MapperBuilder[A,B,PK] {
 

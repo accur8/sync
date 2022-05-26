@@ -17,7 +17,7 @@ import java.nio.file.Paths
 
 object ConfigMojo  {
 
-  private lazy val root: ConfigMojo = {
+  lazy val root: ConfigMojo = {
     val ch = CascadingHocon.loadConfigsInDirectory(Paths.get("./config/"), true, true)
     impl.ConfigMojoRoot(
       hoconValue = ch.config.root(),

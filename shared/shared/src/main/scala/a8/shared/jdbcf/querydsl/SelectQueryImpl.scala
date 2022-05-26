@@ -21,7 +21,7 @@ case class SelectQueryImpl[T,U](
   extends SelectQuery[T,U]
 {
 
-  implicit def implicitMapper = outerMapper
+  implicit def implicitMapper: TableMapper[T] = outerMapper
 
   def queryResolver =
     new QueryResolver
@@ -75,7 +75,7 @@ case class SelectQueryImpl[T,U](
     lazy val joinSql: Option[SqlString] =
       aliasesByJoin
         .filter(_._1.depth > 0)
-        .toIterable
+        .toVector
         .toNonEmpty
         .map {
           _.iterator

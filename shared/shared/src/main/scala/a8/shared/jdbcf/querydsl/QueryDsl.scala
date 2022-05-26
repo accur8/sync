@@ -99,7 +99,7 @@ object QueryDsl {
     OptionConstant(oc)
   }
 
-  implicit def valueToConstant[T: SqlStringer](value: T) = Constant(value)
+  implicit def valueToConstant[T: SqlStringer](value: T): Constant[T] = Constant(value)
 
   implicit def byteToConstant(value: Byte): Constant[Byte] = valueToConstant(value)
   implicit def shortToConstant(value: Short): Constant[Short] = valueToConstant(value)
@@ -153,8 +153,11 @@ object QueryDsl {
 
   object ops {
 
-    object eq extends AbstractOperator("=") with BooleanOperator
-    object ne extends AbstractOperator("<>") with BooleanOperator
+    val ne = Ne
+    val eq = Eq
+
+    object Eq extends AbstractOperator("=") with BooleanOperator
+    object Ne extends AbstractOperator("<>") with BooleanOperator
     object gt extends AbstractOperator(">") with BooleanOperator
     object ge extends AbstractOperator(">=") with BooleanOperator
     object lt extends AbstractOperator("<") with BooleanOperator
@@ -395,9 +398,9 @@ object QueryDsl {
     cond match {
       case se@ StructuralEquality(_, _, _) =>
         asSql(generateStructuralComparison(se))
-      case BooleanOperation(l, ops.ne, OptionConstant(None)) =>
+      case BooleanOperation(l, ops.Ne, OptionConstant(None)) =>
         exprAsSql(l) * ss.IsNotNull
-      case BooleanOperation(l, ops.eq, OptionConstant(None)) =>
+      case BooleanOperation(l, ops.Eq, OptionConstant(None)) =>
         exprAsSql(l) * ss.IsNull
       case Condition.TRUE =>
         ss.OneEqOne
@@ -442,7 +445,7 @@ object QueryDsl {
   }
 
   object OrderBy {
-    implicit def exprToOrderBy[T](f: Expr[T]) = OrderBy(f)
+    implicit def exprToOrderBy[T](f: Expr[T]): OrderBy = OrderBy(f)
   }
 
   case class OrderBy(expr: Expr[_], ascending: Boolean = true) {

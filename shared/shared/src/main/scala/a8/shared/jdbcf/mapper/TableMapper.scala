@@ -9,7 +9,7 @@ object TableMapper {
 
 trait TableMapper[A] extends ComponentMapper[A] { self =>
 
-  val tableName: TableName
+  def tableName: TableName
 
   def insertSql(row: A): SqlString
   def selectFieldsSql(alias: String): SqlString

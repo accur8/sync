@@ -57,7 +57,7 @@ object QubesMapper {
         }
 
     override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[Option[A]] = {
-      implicit def qm = this
+      implicit def qm: QubesMapperImpl[A, B] = this
       import SqlString._
       qubesApiClient
         .query[A](primaryKey.whereClause(key))

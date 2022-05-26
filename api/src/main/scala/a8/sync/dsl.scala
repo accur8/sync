@@ -95,14 +95,11 @@ object dsl {
 //    lazy val ci = CIString(unquoted)
 //  }
 
-  sealed abstract class TruncateAction(val logLevel: Option[LogLevel]) extends enumeratum.EnumEntry
-  object TruncateAction extends enumeratum.Enum[TruncateAction] {
-    val values = findValues
-
+  sealed abstract class TruncateAction(val logLevel: Option[LogLevel])
+  object TruncateAction {
     case object Error extends TruncateAction(Some(LogLevel.ERROR))
     case object Warn extends TruncateAction(Some(LogLevel.WARN))
     case object Auto extends TruncateAction(None)
-
   }
 
   case class Field(

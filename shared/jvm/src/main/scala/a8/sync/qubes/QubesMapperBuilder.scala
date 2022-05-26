@@ -11,8 +11,8 @@ import scala.reflect.ClassTag
 
 object QubesMapperBuilder {
 
-  def apply[A: ClassTag,B](generator: Generator[A,B])(implicit jsonTypedCodec: JsonTypedCodec[A, JsObj]): QubesMapperBuilder[A,B,Unit] =
-    QubesMapperBuilderImpl[A,B,Unit](generator)
+  def apply[A: ClassTag, B](generator: Generator[A,B])(implicit jsonTypedCodec: JsonTypedCodec[A, JsObj]): QubesMapperBuilder[A, B, Unit] =
+    QubesMapperBuilderImpl[A, B, Unit](generator)
 
 
   sealed trait Parm[A] {
@@ -59,7 +59,7 @@ object QubesMapperBuilder {
     generator: Generator[A,B],
     cubeName: Option[String] = None,
     appSpace: Option[String] = None,
-    parms: Vector[Parm[A]] = Vector.empty,
+    parms: Vector[Parm[A]] = Vector.empty[Parm[A]],
     primaryKey: Option[PrimaryKey[A,PK]] = None,
   )(
     implicit

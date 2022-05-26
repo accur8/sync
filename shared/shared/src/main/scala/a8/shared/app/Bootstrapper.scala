@@ -11,11 +11,11 @@ object Bootstrapper extends BootstrapperCompanionPlatform with BootstrapperCompa
 }
 
 trait Bootstrapper {
-  val logs: Iterable[String]
-  val rootConfig: JsVal
-  val bootstrapConfig: BootstrapConfig
-  val directoriesSearched: Iterable[Path]
-  val configFiles: Iterable[Path]
+  def logs: Iterable[String]
+  def rootConfig: JsVal
+  def bootstrapConfig: BootstrapConfig
+  def directoriesSearched: Iterable[Path]
+  def configFiles: Iterable[Path]
   def appConfig[A : JsonCodec : ClassTag]: A =
     rootConfig
       .toDoc("app")

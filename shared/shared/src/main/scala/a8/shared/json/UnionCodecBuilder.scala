@@ -51,7 +51,7 @@ object UnionCodecBuilder {
   }
 
   case class UnionCodecBuilderImpl[A](
-    types: Vector[UnionType[A]] = Vector.empty,
+    types: Vector[UnionType[A]] = Vector.empty[UnionType[A]],
     typeFieldName: String = "__type__"
   ) extends UnionCodecBuilder[A] {
 
