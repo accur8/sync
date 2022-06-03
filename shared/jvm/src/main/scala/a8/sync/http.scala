@@ -373,19 +373,20 @@ object http extends LoggingF {
                   request0.body(json.compactJson)
               }
 
-            logger.trace(s"${request.method.value} ${request.uri}")
             val startTime = java.lang.System.currentTimeMillis()
 
-            requestWithBody
-              .send(backend.delegate)
-              .map { response =>
-                val responseMetadata = ResponseMetadata(response)
-                logger.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-                response.body
-              }
-              .onError { error =>
-                loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
-              }
+            val effect =
+              requestWithBody
+                .send(backend.delegate)
+                .flatMap { response =>
+                  loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+                    .as(response.body)
+                }
+                .onError { error =>
+                  loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
+                }
+
+            loggerF.trace(s"${request.method.value} ${request.uri}") *> effect
 
           }
       }

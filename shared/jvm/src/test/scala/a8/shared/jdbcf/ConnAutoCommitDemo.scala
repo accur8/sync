@@ -34,10 +34,10 @@ object ConnAutoCommitDemo extends BootstrappedIOApp {
     }
   }
 
-  def deleteRows(connIO: Conn): Task[Int] = {
-    logger.info("Delete rows")
-    connIO.update(q"delete from keyvalue where createdbyuid = 'ConnDemo'")
-  }
+  def deleteRows(connIO: Conn): Task[Int] =
+    loggerF.info("Delete rows") *>
+      connIO.update(q"delete from keyvalue where createdbyuid = 'ConnDemo'")
+
 
   def doInserts(connIO: Conn): Task[Unit] = {
     import zio.durationInt

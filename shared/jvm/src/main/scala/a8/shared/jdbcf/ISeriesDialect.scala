@@ -64,15 +64,15 @@ object ISeriesDialect extends Dialect {
           }
         }
         .catchAll {
-          case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0551]") =>
-            logger.debug(s"not authorized to QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
-          case e: java.sql.SQLException if e.getMessage.contains("[SQL0551]") =>
-            logger.debug(s"not authorized to QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
-          case e: Exception =>
-            logger.debug(s"error querying QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
+          case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0551]") => (
+              loggerF.debug(s"not authorized to QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+                *> ZIO.succeed(None))
+          case e: java.sql.SQLException if e.getMessage.contains("[SQL0551]") => (
+            loggerF.debug(s"not authorized to QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+              *> ZIO.succeed(None))
+          case e: Exception => (
+            loggerF.debug(s"error querying QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+              *> ZIO.succeed(None))
           case th: Throwable =>
             ZIO.die(th)
         }
@@ -106,17 +106,17 @@ object ISeriesDialect extends Dialect {
         }
         .catchAll {
           case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0551]") =>
-            logger.debug(s"not authorized to qsys2${schemaSeparator}SYSPARTITIONINDEXES unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
+            (loggerF.debug(s"not authorized to qsys2${schemaSeparator}SYSPARTITIONINDEXES unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+              *> ZIO.succeed(None))
           case e: AS400JDBCSQLSyntaxErrorException if e.getMessage.contains("[SQL0204]") =>
-            logger.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
+            (loggerF.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+              *> ZIO.succeed(None))
           case e: java.sql.SQLException if e.getMessage.contains("[SQL0551]") =>
-            logger.debug(s"not authorized to qsys2${schemaSeparator}SYSPARTITIONINDEXES unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
+            (loggerF.debug(s"not authorized to qsys2${schemaSeparator}SYSPARTITIONINDEXES unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+              *> ZIO.succeed(None))
           case e: java.sql.SQLException if e.getMessage.contains("[SQL0204]") =>
-            logger.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
-            ZIO.succeed(None)
+            (loggerF.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
+              *> ZIO.succeed(None))
           case th: Throwable =>
             ZIO.die(th)
         }
