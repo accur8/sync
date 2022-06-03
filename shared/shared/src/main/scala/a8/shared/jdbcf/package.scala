@@ -3,11 +3,12 @@ package a8.shared
 
 import a8.shared.app.{Logging, LoggingF}
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, SQLException}
 import a8.shared.jdbcf.UnsafeResultSetOps._
 import zio._
 import zio.stream.ZStream
 import SharedImports._
+import a8.shared.jdbcf.SqlString.CompiledSql
 
 package object jdbcf extends LoggingF {
 
@@ -40,5 +41,20 @@ package object jdbcf extends LoggingF {
         )
       }
   }
+
+  def withSqlCtxT[R,A](sql: CompiledSql, effect: ZIO[R,Throwable,A]): ZIO[R,Throwable,A] =
+    (
+      loggerF.debug(s"running sql -- ${sql.value}")
+        *> effect
+      ) catchSome {
+      case e: java.sql.SQLException =>
+        throw new SQLException(s"error running -- ${sql.value} -- ${e.getMessage}", e.getSQLState, e.getErrorCode, e)
+    }
+
+  def withSqlCtx[A](sql: CompiledSql)(fn: =>A): Task[A] =
+    withSqlCtxT(
+      sql,
+      ZIO.attemptBlocking(fn),
+    )
 
 }

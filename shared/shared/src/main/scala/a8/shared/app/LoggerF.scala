@@ -51,7 +51,7 @@ object LoggerF {
           .catchAll(_ => ZIO.unit)
       }
 
-      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Throwable], pos: Pos): UIO[Unit] =
+      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any], pos: Pos): UIO[Unit] =
         ZIO
           .attemptBlocking {
             val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message + "\n" + cause.prettyPrint.indent("    ") , None)
@@ -75,7 +75,7 @@ abstract class LoggerF {
 
   protected def isEnabled(logLevel: LogLevel): Boolean
   protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit]
-  protected def impl(logLevel: LogLevel, message: String, cause: Cause[Throwable], pos: Pos): UIO[Unit]
+  protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any], pos: Pos): UIO[Unit]
 
   def error(message: String)(implicit pos: Pos): UIO[Unit] = {
     if ( isEnabled(LogLevel.ERROR) )
@@ -102,7 +102,7 @@ abstract class LoggerF {
     else
       ZIO.unit
 
-  def warn(message: String, cause: zio.Cause[Throwable])(implicit pos: Pos): UIO[Unit] = {
+  def warn(message: String, cause: zio.Cause[Any])(implicit pos: Pos): UIO[Unit] = {
     if ( isEnabled(LogLevel.WARN) )
       impl(LogLevel.WARN, message, cause, pos)
     else
@@ -127,7 +127,7 @@ abstract class LoggerF {
     else
       ZIO.unit
 
-  def debug(message: String, cause: zio.Cause[Throwable])(implicit pos: Pos): UIO[Unit] =
+  def debug(message: String, cause: zio.Cause[Any])(implicit pos: Pos): UIO[Unit] =
     if ( isEnabled(LogLevel.DEBUG) )
       impl(LogLevel.DEBUG, message, cause, pos)
     else

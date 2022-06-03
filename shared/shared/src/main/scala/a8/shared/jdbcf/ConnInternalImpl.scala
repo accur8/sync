@@ -3,7 +3,6 @@ package a8.shared.jdbcf
 
 import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, SQLException => JdbcSQLException, Statement => JStatement}
 import a8.shared.app.LoggingF
-import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.JdbcMetadata.JdbcTable
 import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
@@ -101,7 +100,11 @@ case class ConnInternalImpl(
 
   override def prepare(sql: SqlString): Resource[JdbcPreparedStatement] = {
     val resolvedSql = compile(sql)
-    scoped(withSqlCtx0[JdbcPreparedStatement](resolvedSql)(jdbcConn.prepareStatement(resolvedSql.value)))
+    withSqlCtx[JdbcPreparedStatement](
+      resolvedSql
+    )(
+      jdbcConn.prepareStatement(resolvedSql.value)
+    )
   }
 
   override def batcher[A : RowWriter](sql: SqlString): Batcher[A] =
