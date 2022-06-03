@@ -43,7 +43,7 @@ object MxQueryDslTest {
       }
     }
     
-    val queryDsl = new querydslp.QueryDsl[Widget, TableDsl](jdbcMapper, new TableDsl)
+    val queryDsl = new querydslp.QueryDsl[Widget, TableDsl, String](jdbcMapper, new TableDsl)
     
     def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[Widget, TableDsl] =
       queryDsl.query(whereFn)
@@ -133,7 +133,7 @@ object MxQueryDslTest {
     
     }
     
-    val queryDsl = new querydslp.QueryDsl[Container, TableDsl](jdbcMapper, new TableDsl)
+    val queryDsl = new querydslp.QueryDsl[Container, TableDsl, String](jdbcMapper, new TableDsl)
     
     def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[Container, TableDsl] =
       queryDsl.query(whereFn)

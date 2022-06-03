@@ -39,26 +39,37 @@ object LoggerF {
   def create(delegate: Logger): LoggerF = {
     new LoggerF {
 
+      @inline def toZioLogLevel(logLevel: LogLevel): zio.LogLevel = ???
+
       override protected def isEnabled(logLevel: LogLevel): Boolean =
         delegate.isEnabled(logLevel)
 
       override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit] = {
-        ZIO
-          .attemptBlocking {
-            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message, cause)
-            delegate.log(logRecord)
-          }
-          .catchAll(_ => ZIO.unit)
+        val zioLogLevel = toZioLogLevel(logLevel)
+        ZIO.logLevel(zioLogLevel) {
+          val causeSuffix =
+            cause match {
+              case None =>
+                ""
+              case Some(th) =>
+                "\n" + th.stackTraceAsString.indent("        ")
+            }
+          ZIO.log(message + causeSuffix)
+        }
       }
 
-      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any], pos: Pos): UIO[Unit] =
-        ZIO
-          .attemptBlocking {
-            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message + "\n" + cause.prettyPrint.indent("    ") , None)
-            delegate.log(logRecord)
-          }
-          .catchAll(_ => ZIO.unit)
-
+      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any], pos: Pos): UIO[Unit] = {
+        val zioLogLevel = toZioLogLevel(logLevel)
+        ZIO.logLevel(zioLogLevel) {
+          ZIO.logCause(message, cause)
+        }
+      }
+//        ZIO
+//          .attemptBlocking {
+//            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message + "\n" + cause.prettyPrint.indent("    ") , None)
+//            delegate.log(logRecord)
+//          }
+//          .catchAll(_ => ZIO.unit)
     }
   }
 
