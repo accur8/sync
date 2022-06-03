@@ -38,6 +38,8 @@ object MxDatabaseConfig {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[DatabaseConfig] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[DatabaseConfig] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[DatabaseConfig,parameters.type] =  {

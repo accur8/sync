@@ -1,8 +1,7 @@
 package a8.shared.jdbcf
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-import a8.shared.jdbcf.querydsl
-import a8.shared.jdbcf.querydsl.QueryDsl
+import a8.shared.jdbcf.{querydsl=>querydslp}
 
 /**
 
@@ -29,10 +28,10 @@ object Mxmodel {
         .buildMapper
     
     
-    class TableDsl(join: QueryDsl.Path) extends QueryDsl.Component[ResolvedTableName](join) {
-      val catalog = QueryDsl.field[Option[CatalogName]]("catalog", join)
-      val schema = QueryDsl.field[Option[SchemaName]]("schema", join)
-      val name = QueryDsl.field[TableName]("name", join)
+    class TableDsl(join: querydslp.QueryDsl.Path) extends querydslp.QueryDsl.Component[ResolvedTableName](join) {
+      val catalog = querydslp.QueryDsl.field[Option[CatalogName]]("catalog", join)
+      val schema = querydslp.QueryDsl.field[Option[SchemaName]]("schema", join)
+      val name = querydslp.QueryDsl.field[TableName]("name", join)
     
     }
     
@@ -48,6 +47,8 @@ object Mxmodel {
           .addField(_.name)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[ResolvedTableName] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[ResolvedTableName] = cats.Eq.fromUniversalEquals
     

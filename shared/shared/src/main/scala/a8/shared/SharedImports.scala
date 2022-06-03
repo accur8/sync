@@ -26,29 +26,63 @@ import scala.util.Try
 import cats.syntax
 import cats.instances
 import wvlet.log.Logger
+import zio.prelude._
 
 object SharedImports extends SharedImports
 
 trait SharedImports
-  extends AsJavaExtensions
-    with AsScalaExtensions
-    with syntax.AllSyntax
-    with syntax.AllSyntaxBinCompat0
-    with syntax.AllSyntaxBinCompat1
-    with syntax.AllSyntaxBinCompat2
-    with syntax.AllSyntaxBinCompat3
-    with syntax.AllSyntaxBinCompat4
-    with syntax.AllSyntaxBinCompat5
-    with syntax.AllSyntaxBinCompat6
-    with instances.AllInstances
-    with instances.AllInstancesBinCompat0
-    with instances.AllInstancesBinCompat1
-    with instances.AllInstancesBinCompat2
-    with instances.AllInstancesBinCompat3
-    with instances.AllInstancesBinCompat4
-    with instances.AllInstancesBinCompat5
-    with instances.AllInstancesBinCompat6
+  extends AssociativeSyntax
+  with AsJavaExtensions
+  with AsScalaExtensions
+  with AssociativeBothSyntax
+  with AssociativeComposeSyntax
+  with AssociativeEitherSyntax
+  with AssociativeFlattenSyntax
+  with BicovariantSyntax
+  with CommutativeBothSyntax
+  with CommutativeEitherSyntax
+  with ConstExports
+  with ContravariantSyntax
+  with CovariantSyntax
+  with DebugSyntax
+  with DivariantSyntax
+  with EqualSyntax
+  with ForEachSyntax
+  with HashSyntax
+  with IdExports
+  with IdentityBothSyntax
+  with IdentityEitherSyntax
+  with IdentitySyntax
+  with InvariantSyntax
+  with InverseSyntax
+  with NewtypeFExports
+  with NonEmptyForEachSyntax
+  with NonEmptyListSyntax
+  with NonEmptySetSyntax
+  with OrdSyntax
+  with PartialOrdSyntax
+  with ZNonEmptySetSyntax
+  with ZSetSyntax
+  with ZivariantSyntax
+//    with syntax.AllSyntax
+//    with syntax.AllSyntaxBinCompat0
+//    with syntax.AllSyntaxBinCompat1
+//    with syntax.AllSyntaxBinCompat2
+//    with syntax.AllSyntaxBinCompat3
+//    with syntax.AllSyntaxBinCompat4
+//    with syntax.AllSyntaxBinCompat5
+//    with syntax.AllSyntaxBinCompat6
+//    with instances.AllInstances
+//    with instances.AllInstancesBinCompat0
+//    with instances.AllInstancesBinCompat1
+//    with instances.AllInstancesBinCompat2
+//    with instances.AllInstancesBinCompat3
+//    with instances.AllInstancesBinCompat4
+//    with instances.AllInstancesBinCompat5
+//    with instances.AllInstancesBinCompat6
 {
+
+  import zio.prelude._
 
   type Resource[A] = zio.ZIO[zio.Scope,Throwable,A]
 
@@ -60,9 +94,6 @@ trait SharedImports
   val IsNonFatal = scala.util.control.NonFatal
 
   lazy val Utf8Charset: Charset = java.nio.charset.Charset.forName("UTF-8")
-
-  def some[A](a: A): Option[A] =
-    Some(a)
 
   object ParseBigInt {
     def unapply(s : String) : Option[BigInt] = try {
@@ -240,5 +271,10 @@ trait SharedImports
   ): ZioCollectOps[R, E, A, Collection] =
     new ZioCollectOps[R, E, A, Collection](in)
 
+
+  def none[A]: Option[A] = None
+  def some[A](a: A): Option[A] = Some(a)
+
+  implicit final def optionIdOps[A](a: A): OptionIdOps[A] = new OptionIdOps(a)
 
 }

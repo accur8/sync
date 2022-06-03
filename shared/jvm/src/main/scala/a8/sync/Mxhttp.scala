@@ -34,6 +34,8 @@ object Mxhttp {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[RetryConfig] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[RetryConfig] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[RetryConfig,parameters.type] =  {
@@ -93,6 +95,8 @@ object Mxhttp {
           .addField(_.headers)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[ResponseMetadata] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[ResponseMetadata] = cats.Eq.fromUniversalEquals
     

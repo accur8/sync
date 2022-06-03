@@ -30,6 +30,8 @@ object MxJsonTest {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[Person] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[Person] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Person,parameters.type] =  {
@@ -86,6 +88,8 @@ object MxJsonTest {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[Group] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[Group] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Group,parameters.type] =  {
@@ -140,6 +144,8 @@ object MxJsonTest {
           .addField(_.value)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[A] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[A] = cats.Eq.fromUniversalEquals
     

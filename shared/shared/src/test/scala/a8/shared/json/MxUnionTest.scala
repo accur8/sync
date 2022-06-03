@@ -31,6 +31,8 @@ object MxUnionTest {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[Foo1] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[Foo1] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Foo1,parameters.type] =  {

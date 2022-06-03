@@ -1,8 +1,7 @@
 package a8.shared.jdbcf
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-import a8.shared.jdbcf.querydsl
-import a8.shared.jdbcf.querydsl.QueryDsl
+import a8.shared.jdbcf.{querydsl=>querydslp}
 
 /**
 
@@ -32,6 +31,8 @@ object MxMaterializedMapperDemo {
           .addField(_.bar)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[JsonCC] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[JsonCC] = cats.Eq.fromUniversalEquals
     
@@ -88,18 +89,18 @@ object MxMaterializedMapperDemo {
         .buildKeyedTableMapper
     
     
-    class TableDsl(join: QueryDsl.Join = QueryDsl.RootJoin) {
-      val grOup = QueryDsl.field[Int]("grOup", join)
-      val name = QueryDsl.field[String]("name", join)
+    class TableDsl(join: querydslp.QueryDsl.Join = querydslp.QueryDsl.RootJoin) {
+      val grOup = querydslp.QueryDsl.field[Int]("grOup", join)
+      val name = querydslp.QueryDsl.field[String]("name", join)
     
     }
     
-    val queryDsl = new QueryDsl[BigBoo, TableDsl, Int](jdbcMapper, new TableDsl)
+    val queryDsl = new querydslp.QueryDsl[BigBoo, TableDsl](jdbcMapper, new TableDsl)
     
-    def query(whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[BigBoo, TableDsl] =
+    def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[BigBoo, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update(set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[TableDsl] =
+    def update(set: TableDsl => Iterable[querydslp.UpdateQuery.Assignment[_]]): querydslp.UpdateQuery[TableDsl] =
       queryDsl.update(set)
     
     
@@ -113,6 +114,8 @@ object MxMaterializedMapperDemo {
           .addField(_.name)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[BigBoo] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[BigBoo] = cats.Eq.fromUniversalEquals
     

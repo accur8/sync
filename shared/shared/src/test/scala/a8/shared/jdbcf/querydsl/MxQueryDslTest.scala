@@ -1,8 +1,7 @@
 package a8.shared.jdbcf.querydsl
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-import a8.shared.jdbcf.querydsl
-import a8.shared.jdbcf.querydsl.QueryDsl
+import a8.shared.jdbcf.{querydsl=>querydslp}
 
 /**
 
@@ -31,25 +30,25 @@ object MxQueryDslTest {
         .buildKeyedTableMapper
     
     
-    class TableDsl(join: QueryDsl.Join = QueryDsl.RootJoin) {
-      val id = QueryDsl.field[String]("id", join)
-      val name = QueryDsl.field[String]("name", join)
-      val containerId = QueryDsl.field[String]("containerId", join)
+    class TableDsl(join: querydslp.QueryDsl.Join = querydslp.QueryDsl.RootJoin) {
+      val id = querydslp.QueryDsl.field[String]("id", join)
+      val name = querydslp.QueryDsl.field[String]("name", join)
+      val containerId = querydslp.QueryDsl.field[String]("containerId", join)
       
       lazy val container: Container.TableDsl = {
-        val childJoin = QueryDsl.createJoin(join, "container", queryDsl.tableDsl, join=>new Container.TableDsl(join), Container.jdbcMapper) { (from,to) =>
+        val childJoin = querydslp.QueryDsl.createJoin(join, "container", queryDsl.tableDsl, join=>new Container.TableDsl(join), Container.jdbcMapper) { (from,to) =>
           from.containerId === to.id
         }
         new Container.TableDsl(childJoin)
       }
     }
     
-    val queryDsl = new QueryDsl[Widget, TableDsl, String](jdbcMapper, new TableDsl)
+    val queryDsl = new querydslp.QueryDsl[Widget, TableDsl](jdbcMapper, new TableDsl)
     
-    def query(whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[Widget, TableDsl] =
+    def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[Widget, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update(set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[TableDsl] =
+    def update(set: TableDsl => Iterable[querydslp.UpdateQuery.Assignment[_]]): querydslp.UpdateQuery[TableDsl] =
       queryDsl.update(set)
     
     
@@ -64,6 +63,8 @@ object MxQueryDslTest {
           .addField(_.containerId)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[Widget] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[Widget] = cats.Eq.fromUniversalEquals
     
@@ -124,20 +125,20 @@ object MxQueryDslTest {
         .buildKeyedTableMapper
     
     
-    class TableDsl(join: QueryDsl.Join = QueryDsl.RootJoin) {
-      val id = QueryDsl.field[String]("id", join)
-      val count = QueryDsl.field[Long]("count", join)
-      val name = QueryDsl.field[String]("name", join)
-      val address = new Address.TableDsl(QueryDsl.ComponentJoin("address", join))
+    class TableDsl(join: querydslp.QueryDsl.Join = querydslp.QueryDsl.RootJoin) {
+      val id = querydslp.QueryDsl.field[String]("id", join)
+      val count = querydslp.QueryDsl.field[Long]("count", join)
+      val name = querydslp.QueryDsl.field[String]("name", join)
+      val address = new Address.TableDsl(querydslp.QueryDsl.ComponentJoin("address", join))
     
     }
     
-    val queryDsl = new QueryDsl[Container, TableDsl, String](jdbcMapper, new TableDsl)
+    val queryDsl = new querydslp.QueryDsl[Container, TableDsl](jdbcMapper, new TableDsl)
     
-    def query(whereFn: TableDsl => QueryDsl.Condition): querydsl.SelectQuery[Container, TableDsl] =
+    def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[Container, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update(set: TableDsl => Iterable[querydsl.UpdateQuery.Assignment[_]]): querydsl.UpdateQuery[TableDsl] =
+    def update(set: TableDsl => Iterable[querydslp.UpdateQuery.Assignment[_]]): querydslp.UpdateQuery[TableDsl] =
       queryDsl.update(set)
     
     
@@ -153,6 +154,8 @@ object MxQueryDslTest {
           .addField(_.address)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[Container] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[Container] = cats.Eq.fromUniversalEquals
     
@@ -216,12 +219,12 @@ object MxQueryDslTest {
         .buildMapper
     
     
-    class TableDsl(join: QueryDsl.Path) extends QueryDsl.Component[Address](join) {
-      val line1 = QueryDsl.field[String]("line1", join)
-      val line2 = QueryDsl.field[String]("line2", join)
-      val city = QueryDsl.field[String]("city", join)
-      val state = QueryDsl.field[String]("state", join)
-      val zip = QueryDsl.field[String]("zip", join)
+    class TableDsl(join: querydslp.QueryDsl.Path) extends querydslp.QueryDsl.Component[Address](join) {
+      val line1 = querydslp.QueryDsl.field[String]("line1", join)
+      val line2 = querydslp.QueryDsl.field[String]("line2", join)
+      val city = querydslp.QueryDsl.field[String]("city", join)
+      val state = querydslp.QueryDsl.field[String]("state", join)
+      val zip = querydslp.QueryDsl.field[String]("zip", join)
     
     }
     
@@ -239,6 +242,8 @@ object MxQueryDslTest {
           .addField(_.zip)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[Address] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[Address] = cats.Eq.fromUniversalEquals
     

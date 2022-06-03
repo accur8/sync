@@ -45,7 +45,7 @@ object PathExpectation {
         if ( Files.exists(symLink, LinkOption.NOFOLLOW_LINKS) ) {
           if ( Files.isSymbolicLink(symLink) ) {
             val actualSymlinkContents = Files.readSymbolicLink(symLink)
-            if ( contents =!= actualSymlinkContents) {
+            if ( contents != actualSymlinkContents) {
               Files.delete(symLink)
               true
             } else {

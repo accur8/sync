@@ -39,6 +39,8 @@ object MxBootstrapConfig {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[BootstrapConfigDto] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[BootstrapConfigDto] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[BootstrapConfigDto,parameters.type] =  {

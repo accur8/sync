@@ -20,6 +20,9 @@ object LongValue {
             .map(apply)
       }
 
+    implicit lazy val zioEq: zio.prelude.Equal[A] =
+      zio.prelude.Equal.make((a, b) => a.value == b.value)
+
     implicit lazy val catsEq: cats.kernel.Eq[A] =
       cats.kernel.Eq.by[A,Long](_.value)
 
