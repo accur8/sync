@@ -1,10 +1,9 @@
 package a8.shared.jdbcf
 
-import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, SQLException => JdbcSQLException, Statement => JStatement}
+import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, Statement => JStatement}
 import a8.shared.SharedImports._
 import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.jdbcf.Conn.ConnInternal
-import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
@@ -20,20 +19,6 @@ import zio.stream.UStream
 object Conn extends Logging {
 
   object impl {
-
-    def withSqlCtx[A](sql: CompiledSql)(fn: =>A): Task[A] =
-      ZIO.attemptBlocking(
-        withSqlCtx0(sql)(fn)
-      )
-
-    def withSqlCtx0[A](sql: CompiledSql)(fn: =>A): A =
-      try {
-        logger.debug(s"running sql -- ${sql.value}")
-        fn
-      } catch {
-        case e: java.sql.SQLException =>
-          throw new JdbcSQLException(s"error running -- ${sql.value} -- ${e.getMessage}", e.getSQLState, e.getErrorCode, e)
-      }
 
     def makeResource(connFn: =>java.sql.Connection, mapperCache: MapperMaterializer, jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): ZIO[Scope,Throwable,Conn] = {
       val jdbcMetadata = JdbcMetadata.default

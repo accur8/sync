@@ -2,7 +2,6 @@ package a8.shared.jdbcf
 
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
-import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.SqlString.CompiledSql
 import zio._
 import zio.stream.{UStream, ZSink, ZStream}
@@ -23,14 +22,14 @@ object Query {
         val effect: ZIO[Scope, Throwable, XStream[A]] =
           conn
             .statement
-            .flatMap(st =>
-              Managed
-                .scoped[java.sql.ResultSet](withSqlCtx0(sql)(st.executeQuery(sql.value)))
+            .flatMap { st =>
+              val effect = Managed.scoped[java.sql.ResultSet](st.executeQuery(sql.value))
+              withSqlCtxT(sql, effect)
                 .map(rs =>
                   resultSetToStream(rs)
                     .map(reader.read)
                 )
-            )
+            }
         ZStream.unwrapScoped(effect)
       }
 

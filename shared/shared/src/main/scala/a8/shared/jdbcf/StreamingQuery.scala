@@ -1,8 +1,8 @@
 package a8.shared.jdbcf
 
 import a8.shared.SharedImports._
+import a8.shared.jdbcf
 import a8.shared.jdbcf.Conn.ConnInternal
-import a8.shared.jdbcf.Conn.impl.withSqlCtx0
 import a8.shared.jdbcf.SqlString.CompiledSql
 import zio.stream.ZStream
 
@@ -25,8 +25,8 @@ object StreamingQuery {
           .flatMap { st =>
             st.getConnection.setAutoCommit(false)
             st.setFetchSize(batchSize)
-            Managed
-              .scoped[java.sql.ResultSet](withSqlCtx0(sql)(st.executeQuery(sql.value)))
+            val effect = Managed.scoped[java.sql.ResultSet](st.executeQuery(sql.value))
+            withSqlCtxT(sql, effect)
               .map(rs =>
                 resultSetToStream(rs, batchSize)
                   .map(reader.read)

@@ -29,13 +29,13 @@ object QubesApiClientDemo extends BootstrappedIOApp {
   override def runT: Task[Unit] = {
     val result =
       for {
-        _ <- ZIO.attemptBlocking(logger.info("Starting application"))
-        _ <- ZIO.attemptBlocking(logger.info(s"Loaded config:\n${config.prettyJson}"))
+        _ <- loggerF.info("Starting application")
+        _ <- loggerF.info(s"Loaded config:\n${config.prettyJson}")
         _ <- process()
       } yield ()
     result
       .catchAll(th => ZIO.attemptBlocking(logger.error("Unhandled exception", th)))
-      .map(_ => logger.info("Run complete"))
+      .flatMap(_ => loggerF.info("Run complete"))
   }
 
   def process(): Task[Unit] =
