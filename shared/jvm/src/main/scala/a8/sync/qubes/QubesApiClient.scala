@@ -6,7 +6,7 @@ import a8.shared.jdbcf.SqlString
 import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, ast}
 import a8.shared.SharedImports._
-import a8.shared.app.Logging
+import a8.shared.app.{Logging, LoggingF}
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.sync.http.{Backend, Method, RequestProcessor, RetryConfig}
 import a8.sync.http
@@ -18,7 +18,7 @@ import zio.{durationInt => _, _}
 
 import scala.concurrent.duration.FiniteDuration
 
-object QubesApiClient extends Logging {
+object QubesApiClient extends LoggingF {
 
   object Config extends MxConfig {
     val fiveSeconds = 5.seconds
@@ -105,35 +105,31 @@ object QubesApiClient extends Logging {
     import wvlet.log.{ LogLevel => WvletLevel }
     new sttp.client3.logging.Logger[Task] {
       override def apply(sttpLevel: sttp.client3.logging.LogLevel, message: => String): Task[Unit] = {
-        ZIO.attemptBlocking {
-          sttpLevel match {
-            case LogLevel.Trace =>
-              logger.trace(message)
-            case LogLevel.Debug =>
-              logger.debug(message)
-            case LogLevel.Info =>
-              logger.info(message)
-            case LogLevel.Warn =>
-              logger.warn(message)
-            case LogLevel.Error =>
-              logger.error(message)
-          }
+        sttpLevel match {
+          case LogLevel.Trace =>
+            loggerF.trace(message)
+          case LogLevel.Debug =>
+            loggerF.debug(message)
+          case LogLevel.Info =>
+            loggerF.info(message)
+          case LogLevel.Warn =>
+            loggerF.warn(message)
+          case LogLevel.Error =>
+            loggerF.error(message)
         }
       }
       override def apply(sttpLevel: LogLevel, message: => String, t: Throwable): Task[Unit] = {
-        ZIO.attemptBlocking {
-          sttpLevel match {
-            case LogLevel.Trace =>
-              logger.trace(message, t)
-            case LogLevel.Debug =>
-              logger.debug(message, t)
-            case LogLevel.Info =>
-              logger.info(message, t)
-            case LogLevel.Warn =>
-              logger.warn(message, t)
-            case LogLevel.Error =>
-              logger.error(message, t)
-          }
+        sttpLevel match {
+          case LogLevel.Trace =>
+            loggerF.trace(message, t)
+          case LogLevel.Debug =>
+            loggerF.debug(message, t)
+          case LogLevel.Info =>
+            loggerF.info(message, t)
+          case LogLevel.Warn =>
+            loggerF.warn(message, t)
+          case LogLevel.Error =>
+            loggerF.error(message, t)
         }
       }
     }
@@ -173,14 +169,15 @@ case class QubesApiClient(
         baseRequest
           .subPath(subPath)
           .jsonBody(requestBody.toJsVal)
-      logger.trace(s"${request.method.value} ${request.uri}")
 
-      request.execWithString { responseBodyStr =>
-        ZIO.suspend {
-          json.parseF(responseBodyStr)
-            .map(jv => JsDoc(jv))
+      loggerF.trace(s"${request.method.value} ${request.uri}") *>
+      request
+        .execWithString { responseBodyStr =>
+          ZIO.suspend {
+            json.parseF(responseBodyStr)
+              .map(jv => JsDoc(jv))
+          }
         }
-      }
   }
 
   }

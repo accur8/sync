@@ -34,7 +34,7 @@ object QubesApiClientDemo extends BootstrappedIOApp {
         _ <- process()
       } yield ()
     result
-      .catchAll(th => ZIO.attemptBlocking(logger.error("Unhandled exception", th)))
+      .catchAll(th => loggerF.error("Unhandled exception", th))
       .flatMap(_ => loggerF.info("Run complete"))
   }
 
