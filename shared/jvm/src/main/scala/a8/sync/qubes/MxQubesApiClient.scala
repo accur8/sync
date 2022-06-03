@@ -39,6 +39,8 @@ object MxQubesApiClient {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[Config] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[Config] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Config,parameters.type] =  {
@@ -102,6 +104,8 @@ object MxQubesApiClient {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[QueryRequest] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[QueryRequest] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[QueryRequest,parameters.type] =  {
@@ -163,6 +167,8 @@ object MxQubesApiClient {
           .addField(_.appSpace)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[UpdateRowRequest] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[UpdateRowRequest] = cats.Eq.fromUniversalEquals
     
@@ -232,6 +238,8 @@ object MxQubesApiClient {
           .addField(_.keys)
       )
       .build
+    
+    implicit val zioEq: zio.prelude.Equal[UpdateRowResponse] = zio.prelude.Equal.default
     
     implicit val catsEq: cats.Eq[UpdateRowResponse] = cats.Eq.fromUniversalEquals
     

@@ -34,6 +34,9 @@ object Tid {
       t => t.value,
     )
 
+  implicit def zioEq[A]: zio.prelude.Equal[Tid[A]] =
+    zio.prelude.Equal.make((a, b) => a.value == b.value)
+
   implicit def catsEq[A]: cats.Eq[Tid[A]] = cats.Eq.fromUniversalEquals
 
   implicit def toSqlString[A](tid: Tid[A]): SqlString =

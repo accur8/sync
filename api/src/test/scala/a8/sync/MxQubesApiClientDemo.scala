@@ -40,6 +40,8 @@ object MxQubesApiClientDemo {
       )
       .build
     
+    implicit val zioEq: zio.prelude.Equal[UserGroup] = zio.prelude.Equal.default
+    
     implicit val catsEq: cats.Eq[UserGroup] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[UserGroup,parameters.type] =  {
