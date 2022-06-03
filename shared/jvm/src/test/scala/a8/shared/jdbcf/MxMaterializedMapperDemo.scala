@@ -95,7 +95,7 @@ object MxMaterializedMapperDemo {
     
     }
     
-    val queryDsl = new querydslp.QueryDsl[BigBoo, TableDsl](jdbcMapper, new TableDsl)
+    val queryDsl = new querydslp.QueryDsl[BigBoo, TableDsl, Int](jdbcMapper, new TableDsl)
     
     def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[BigBoo, TableDsl] =
       queryDsl.query(whereFn)
