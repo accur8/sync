@@ -39,12 +39,25 @@ object LoggerF {
   def create(delegate: Logger): LoggerF = {
     new LoggerF {
 
-      @inline def toZioLogLevel(logLevel: LogLevel): zio.LogLevel = ???
+      val logLevelMap: Map[LogLevel, zio.LogLevel] =
+        Map(
+          wvlet.log.LogLevel.DEBUG -> zio.LogLevel.Debug,
+          wvlet.log.LogLevel.ERROR -> zio.LogLevel.Error,
+          wvlet.log.LogLevel.INFO -> zio.LogLevel.Info,
+          wvlet.log.LogLevel.TRACE -> zio.LogLevel.Trace,
+          wvlet.log.LogLevel.WARN -> zio.LogLevel.Warning,
+          wvlet.log.LogLevel.ALL -> zio.LogLevel.All,
+          wvlet.log.LogLevel.OFF -> zio.LogLevel.None,
+        )
+
+      @inline def toZioLogLevel(logLevel: LogLevel): zio.LogLevel =
+        logLevelMap(logLevel)
 
       override protected def isEnabled(logLevel: LogLevel): Boolean =
         delegate.isEnabled(logLevel)
 
-      override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit] = {
+
+      override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable])(implicit trace: Trace): UIO[Unit] = {
         val zioLogLevel = toZioLogLevel(logLevel)
         ZIO.logLevel(zioLogLevel) {
           val causeSuffix =
@@ -58,7 +71,7 @@ object LoggerF {
         }
       }
 
-      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any], pos: Pos): UIO[Unit] = {
+      override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any])(implicit trace: Trace): UIO[Unit] = {
         val zioLogLevel = toZioLogLevel(logLevel)
         ZIO.logLevel(zioLogLevel) {
           ZIO.logCause(message, cause)
@@ -85,80 +98,80 @@ abstract class LoggerF {
   import wvlet.log.LogLevel
 
   protected def isEnabled(logLevel: LogLevel): Boolean
-  protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable], pos: Pos): UIO[Unit]
-  protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any], pos: Pos): UIO[Unit]
+  protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable])(implicit trace: Trace): UIO[Unit]
+  protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any])(implicit trace: Trace): UIO[Unit]
 
-  def error(message: String)(implicit pos: Pos): UIO[Unit] = {
+  def error(message: String)(implicit trace: Trace): UIO[Unit] = {
     if ( isEnabled(LogLevel.ERROR) )
-      impl(LogLevel.ERROR, message, None, pos)
+      impl(LogLevel.ERROR, message, None)
     else
       ZIO.unit
   }
 
-  def error(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
+  def error(message: String, cause: Throwable)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.ERROR) )
-      impl(LogLevel.ERROR, message, Some(cause), pos)
+      impl(LogLevel.ERROR, message, Some(cause))
     else
       ZIO.unit
 
-  def warn(message: String)(implicit pos: Pos): UIO[Unit] =
+  def warn(message: String)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.WARN) )
-      impl(LogLevel.WARN, message, None, pos)
+      impl(LogLevel.WARN, message, None)
     else
       ZIO.unit
 
-  def warn(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
+  def warn(message: String, cause: Throwable)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.WARN) )
-      impl(LogLevel.WARN, message, Some(cause), pos)
+      impl(LogLevel.WARN, message, Some(cause))
     else
       ZIO.unit
 
-  def warn(message: String, cause: zio.Cause[Any])(implicit pos: Pos): UIO[Unit] = {
+  def warn(message: String, cause: zio.Cause[Any])(implicit trace: Trace): UIO[Unit] = {
     if ( isEnabled(LogLevel.WARN) )
-      impl(LogLevel.WARN, message, cause, pos)
+      impl(LogLevel.WARN, message, cause)
     else
       ZIO.unit
   }
 
-  def info(message: String)(implicit pos: Pos): UIO[Unit] =
+  def info(message: String)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.INFO) )
-      impl(LogLevel.INFO, message, None, pos)
+      impl(LogLevel.INFO, message, None)
     else
       ZIO.unit
 
-  def info(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
+  def info(message: String, cause: Throwable)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.INFO) )
-      impl(LogLevel.INFO, message, Some(cause), pos)
+      impl(LogLevel.INFO, message, Some(cause))
     else
       ZIO.unit
 
-  def debug(message: String)(implicit pos: Pos): UIO[Unit] =
+  def debug(message: String)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.DEBUG) )
-      impl(LogLevel.DEBUG, message, None, pos)
+      impl(LogLevel.DEBUG, message, None)
     else
       ZIO.unit
 
-  def debug(message: String, cause: zio.Cause[Any])(implicit pos: Pos): UIO[Unit] =
+  def debug(message: String, cause: zio.Cause[Any])(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.DEBUG) )
-      impl(LogLevel.DEBUG, message, cause, pos)
+      impl(LogLevel.DEBUG, message, cause)
     else
       ZIO.unit
 
-  def debug(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
+  def debug(message: String, cause: Throwable)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.DEBUG) )
-      impl(LogLevel.DEBUG, message, Some(cause), pos)
+      impl(LogLevel.DEBUG, message, Some(cause))
     else
       ZIO.unit
 
-  def trace(message: String)(implicit pos: Pos): UIO[Unit] =
+  def trace(message: String)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.TRACE) )
-      impl(LogLevel.TRACE, message, None, pos)
+      impl(LogLevel.TRACE, message, None)
     else
       ZIO.unit
 
-  def trace(message: String, cause: Throwable)(implicit pos: Pos): UIO[Unit] =
+  def trace(message: String, cause: Throwable)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.TRACE) )
-      impl(LogLevel.TRACE, message, Some(cause), pos)
+      impl(LogLevel.TRACE, message, Some(cause))
     else
       ZIO.unit
 
