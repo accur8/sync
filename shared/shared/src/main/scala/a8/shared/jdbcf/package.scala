@@ -32,7 +32,7 @@ package object jdbcf extends LoggingF {
 
     ZStream.acquireReleaseWith(acquire)(release)
       .flatMap { _ =>
-        logger.warn("we are blocking here but ZIO hasn't given us a blocking option")
+//        logger.warn("we are blocking here but ZIO hasn't given us a blocking option")
         ZStream.blocking(
           ZStream.fromIterator(
             unsafe.resultSetToIterator(resultSet),
