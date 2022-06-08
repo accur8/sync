@@ -386,7 +386,7 @@ object http extends LoggingF {
                   loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
                 }
 
-            loggerF.debug(s"running request ${streamingRequestBody.map("(has streaming request body)").getOrElse("")}\n${request.curlCommand.indent("    ")}") *> effect
+            loggerF.debug(s"running request ${streamingRequestBody.nonEmpty.toOption("(has streaming request body)").getOrElse("")}\n${request.curlCommand.indent("    ")}") *> effect
 
           }
       }
