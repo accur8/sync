@@ -51,7 +51,7 @@ object QubesMapper {
       fetchOpt(key)
         .flatMap {
           case None =>
-            ZIO.die(new RuntimeException(s"no record ${key} found in ${cubeName}"))
+            ZIO.fail(new RuntimeException(s"no record ${key} found in ${cubeName}"))
           case Some(i) =>
             ZIO.succeed(i)
         }

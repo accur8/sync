@@ -46,7 +46,7 @@ trait JsValMixin { self: JsVal =>
     ZIO.suspend {
       JsonCodec[A].read(toDoc) match {
         case Left(re) =>
-          ZIO.die(re.asException)
+          ZIO.fail(re.asException)
         case Right(v) =>
           ZIO.succeed(v)
       }

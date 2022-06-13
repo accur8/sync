@@ -74,7 +74,7 @@ object ISeriesDialect extends Dialect {
             loggerF.debug(s"error querying QADBKFLD unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
               *> ZIO.succeed(None))
           case th: Throwable =>
-            ZIO.die(th)
+            ZIO.fail(th)
         }
     }
 
@@ -118,7 +118,7 @@ object ISeriesDialect extends Dialect {
             (loggerF.debug(s"qsys2${schemaSeparator}SYSPARTITIONINDEXES not found -- unable to get key fields for ${table} DDS defined tables -- ${e.getMessage}")
               *> ZIO.succeed(None))
           case th: Throwable =>
-            ZIO.die(th)
+            ZIO.fail(th)
         }
     }
 
@@ -160,7 +160,7 @@ object ISeriesDialect extends Dialect {
       .select
       .flatMap { rows =>
         if ( rows.isEmpty ) {
-          ZIO.die(new RuntimeException(s"unable to resolveTableName ${tableLocator} in ${conn.jdbcUrl}"))
+          ZIO.fail(new RuntimeException(s"unable to resolveTableName ${tableLocator} in ${conn.jdbcUrl}"))
         } else {
 
           val row = rows.toList.minBy(r => libraryList.indexOf(r._2).getOrElse(Integer.MAX_VALUE))

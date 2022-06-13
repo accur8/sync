@@ -70,7 +70,7 @@ object Mapper {
         resolvedColumn <-
           resolvedJdbcTable.columnsByName.get(columnNamePrefix) match {
             case None =>
-              ZIO.die(new RuntimeException(s"no column named ${columnNamePrefix} found in ${resolvedJdbcTable.resolvedTableName}"))
+              ZIO.fail(new RuntimeException(s"no column named ${columnNamePrefix} found in ${resolvedJdbcTable.resolvedTableName}"))
             case Some(rc) =>
               ZIO.succeed(rc)
           }

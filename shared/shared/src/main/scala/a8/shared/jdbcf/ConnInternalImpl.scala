@@ -51,7 +51,7 @@ case class ConnInternalImpl(
         case Some(a) =>
          ZIO.succeed(a)
         case None =>
-          ZIO.die(new RuntimeException(s"expected a single value and got none with whereClause = ${whereClause}"))
+          ZIO.fail(new RuntimeException(s"expected a single value and got none with whereClause = ${whereClause}"))
       }
 
   override def selectOpt[A: TableMapper](whereClause: SqlString): Task[Option[A]] =
@@ -63,7 +63,7 @@ case class ConnInternalImpl(
           case List(a) =>
            ZIO.succeed(Some(a))
           case l =>
-            ZIO.die(new RuntimeException(s"expected 0 or 1 value got ${l.size} with whereClase = ${whereClause} -- ${l}"))
+            ZIO.fail(new RuntimeException(s"expected 0 or 1 value got ${l.size} with whereClase = ${whereClause} -- ${l}"))
         }
       }
 
@@ -124,7 +124,7 @@ case class ConnInternalImpl(
         case true =>
           ZIO.unit
         case false =>
-          ZIO.die(new RuntimeException(s"ran update and expected 1 row to be affected and 0 rows were affected -- ${updateQuery}"))
+          ZIO.fail(new RuntimeException(s"ran update and expected 1 row to be affected and 0 rows were affected -- ${updateQuery}"))
       }
 
   def runSingleRowUpdateOpt(updateQuery: SqlString): Task[Boolean] =
@@ -135,7 +135,7 @@ case class ConnInternalImpl(
         case 0 =>
           ZIO.succeed(false) 
         case i =>
-          ZIO.die(new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${updateQuery}"))
+          ZIO.fail(new RuntimeException(s"ran update and expected 1 row to be affected and ${i} rows were affected -- ${updateQuery}"))
       }
 
   override def insertRow[A: TableMapper](row: A): Task[A] = {
@@ -214,7 +214,7 @@ case class ConnInternalImpl(
         case Some(row) =>
          ZIO.succeed(row)
         case None =>
-          ZIO.die(new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
+          ZIO.fail(new RuntimeException(s"expected a record with key ${key} in ${implicitly[TableMapper[A]].tableName}"))
       }
 
   override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[Option[A]] =

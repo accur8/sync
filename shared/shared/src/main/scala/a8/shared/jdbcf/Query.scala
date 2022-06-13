@@ -42,7 +42,7 @@ object Query {
         fetch
           .flatMap {
             case None =>
-              ZIO.die(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
+              ZIO.fail(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
             case Some(v) =>
               ZIO.succeed(v)
           }

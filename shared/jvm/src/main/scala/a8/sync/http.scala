@@ -186,7 +186,7 @@ object http extends LoggingF {
     def asInvalidHttpResponseStatusCode[A]: Task[A] = {
       responseBodyAsString
         .flatMap { body =>
-          ZIO.die(InvalidHttpResponseStatusCode(responseMetadata.statusCode, responseMetadata.statusText, body))
+          ZIO.fail(InvalidHttpResponseStatusCode(responseMetadata.statusCode, responseMetadata.statusText, body))
         }
     }
   }
