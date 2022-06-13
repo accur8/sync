@@ -85,9 +85,9 @@ object QubesApiClient extends LoggingF {
       } else {
         validationFailures match {
           case Some(jv) =>
-            ZIO.die(new RuntimeException(s"${ctx} - Qubes crud validation error: " + jv.compactJson))
+            ZIO.fail(new RuntimeException(s"${ctx} - Qubes crud validation error: " + jv.compactJson))
           case None =>
-            ZIO.die(new RuntimeException(s"${ctx} - Qubes crud error: " + errorMessage.getOrError("None")))
+            ZIO.fail(new RuntimeException(s"${ctx} - Qubes crud error: " + errorMessage.getOrError("None")))
         }
       }
     }
@@ -256,7 +256,7 @@ case class QubesApiClient(
       case 1 =>
         ZIO.unit
       case i =>
-        ZIO.die(new RuntimeException(s"expected to ${context} 1 row but affected ${i} rows instead -- ${implicitly[QubesMapper[A]].qualifiedName} ${row}"))
+        ZIO.fail(new RuntimeException(s"expected to ${context} 1 row but affected ${i} rows instead -- ${implicitly[QubesMapper[A]].qualifiedName} ${row}"))
     }
 
 }

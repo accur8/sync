@@ -122,7 +122,7 @@ case class SelectQueryImpl[T,U](
     fetchOpt
       .flatMap {
         case None =>
-          ZIO.die(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
+          ZIO.fail(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
         case Some(t) =>
           ZIO.succeed(t)
       }
@@ -135,7 +135,7 @@ case class SelectQueryImpl[T,U](
         case Vector(t) =>
           ZIO.succeed(Some(t))
         case v =>
-          ZIO.die(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
+          ZIO.fail(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
       }
 
   override def select(implicit conn: Conn): Task[Vector[T]] =

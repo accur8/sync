@@ -79,7 +79,7 @@ trait Row { outer =>
     if ( pf.isDefinedAt(v) )
       pf.apply(v)
     else
-      sys.error(s"unable to coerce ${v} into ${classTag[A].runtimeClass.getName}")
+      sys.error(s"unable to coerce ${v} ${v.getClass.getName} into ${classTag[A].runtimeClass.getName}")
   }
 
   def coerceByName[A : ClassTag](name: String)(pf: PartialFunction[AnyRef, A]): A =
