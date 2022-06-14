@@ -114,6 +114,13 @@ abstract class LoggerF {
     else
       ZIO.unit
 
+  def error(message: String, cause: zio.Cause[Any])(implicit trace: Trace): UIO[Unit] = {
+    if ( isEnabled(LogLevel.ERROR) )
+      impl(LogLevel.ERROR, message, cause)
+    else
+      ZIO.unit
+  }
+
   def warn(message: String)(implicit trace: Trace): UIO[Unit] =
     if ( isEnabled(LogLevel.WARN) )
       impl(LogLevel.WARN, message, None)
