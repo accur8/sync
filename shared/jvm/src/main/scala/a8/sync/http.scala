@@ -100,23 +100,23 @@ object http extends LoggingF {
 
     def formBody(fields: Iterable[(String,String)]): Request
 
-    def exec[F[_]](implicit processor: RequestProcessor): Task[String] =
+    def exec[F[_]](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
       processor.exec(this)
 
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor): Task[A] =
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(this, None, responseJson => json.readF[A](responseJson))
 
-    def execWithStreamResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
+    def execWithStreamResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStreamResponse[A](this, None, responseEffect)
 
-    def execWithString[F[_],A](effect: String=>Task[A])(implicit processor: RequestProcessor): Task[A] =
+    def execWithString[F[_],A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(this, None, effect)
 
     /**
      * implementer of the responseEffect function must raise errors into the F.
      * implementer is responsible for things like checking http status codes, etc, etc
      */
-    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
+    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execRaw[A](this, None, responseEffect)
 
     def curlCommand: String
@@ -134,19 +134,19 @@ object http extends LoggingF {
     def requestBody(requestBody: XStream[Byte]): StreamingRequest =
       copy(requestBody = Some(requestBody))
 
-    def exec(implicit processor: RequestProcessor): Task[String] =
+    def exec(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
       processor.exec(rawRequest, requestBody)
 
-    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
+    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execRaw[A](rawRequest, requestBody, responseEffect)
 
-    def execWithStreamingResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor): Task[A] =
+    def execWithStreamingResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStreamResponse[A](rawRequest, requestBody, responseEffect)
 
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor): Task[A] =
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(rawRequest, requestBody, responseJson => json.readF[A](responseJson))
 
-    def execWithEffect[A](effect: String=>Task[A])(implicit processor: RequestProcessor): Task[A] =
+    def execWithEffect[A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(rawRequest, requestBody, effect)
 
     def updateRawRequest(fn: Request => Request): StreamingRequest =
@@ -271,7 +271,7 @@ object http extends LoggingF {
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
       for {
-        sttpBackend <-HttpClientZioBackend.scoped()
+        sttpBackend <-sttp.client3.asynchttpclient.zio.AsyncHttpClientZioBackend.scoped()
         maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
         RequestProcessorImpl(retry, Backend(sttpBackend), maxConnectionSemaphore)

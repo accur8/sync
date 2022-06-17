@@ -64,7 +64,7 @@ lazy val shared =
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
         "org.typelevel" %% "jawn-parser" % "1.3.2",
         "org.typelevel" %% "jawn-ast" % "1.3.2",
-        "com.softwaremill.sttp.client3" %% "zio" % "3.6.1",
+        "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.6.1",
         "dev.zio" %% "zio-prelude" % "1.0.0-RC14"
       )
     )
