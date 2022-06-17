@@ -242,7 +242,7 @@ object http extends LoggingF {
 
     val backend: Backend
 
-    def exec(request: Request, streamingRequestBody: Option[XStream[Byte]] = None): Task[String]
+    def exec(request: Request, streamingRequestBody: Option[XStream[Byte]] = None)(implicit trace: Trace, loggerF: LoggerF): Task[String]
 
     /**
      * Will exec the request and map the response allowing for error's in the map'ing to
@@ -253,9 +253,9 @@ object http extends LoggingF {
      * may be json but is it the json you actually want).
      *
      */
-    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, effect: String => Task[A]): Task[A]
+    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
-    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
+    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
     /**
      *
@@ -263,7 +263,7 @@ object http extends LoggingF {
      * implementer is responsible for things like checking http status codes, etc, etc
      *
      */
-    def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A]): Task[A]
+    def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
   }
 
@@ -309,16 +309,16 @@ object http extends LoggingF {
       retryConfig: RetryConfig,
       backend: Backend,
       maxConnectionSemaphore: Semaphore
-    ) extends LoggingF
-      with RequestProcessor
+    )
+      extends RequestProcessor
     {
 
       lazy val defaultRetryPolicy = retryConfig.retryPolicy
 
-      override def exec(request: Request, streamingRequestBody: Option[XStream[Byte]]): Task[String] =
+      override def exec(request: Request, streamingRequestBody: Option[XStream[Byte]])(implicit trace: Trace, loggerF: LoggerF): Task[String] =
         execWithStringResponse(request, streamingRequestBody, s => ZIO.succeed(s))
 
-      override def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+      override def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         val retryPolicy =
           request
             .retryConfig
@@ -328,7 +328,7 @@ object http extends LoggingF {
       }
 
 
-      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], effect: String => Task[A]): Task[A] = {
+      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         def responseEffect(response: Response): Task[A] = {
           for {
             _ <- response.raiseResponseErrors
@@ -339,14 +339,14 @@ object http extends LoggingF {
         execRaw(request, streamingRequestBody, responseEffect)
       }
 
-      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         def wrappedResponseEffect(response: Response): Task[A] = {
           response.raiseResponseErrors *> responseEffect(response)
         }
         execRaw(request, streamingRequestBody, wrappedResponseEffect)
       }
 
-      def rawSingleExec[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A]): Task[A] = {
+      def rawSingleExec[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         maxConnectionSemaphore
           .withPermit {
 
