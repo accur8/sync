@@ -137,6 +137,9 @@ object JdbcMetadata {
         .getOrElse {
           jdbcColumn.nullable === ResultSetMetaData.columnNullable
         }
+    def qualifiedName =
+      s"${jdbcColumn.resolvedTableName.name.value.toString}/${name.value.toString}"
+
   }
 
 

@@ -139,9 +139,25 @@ object SqlString extends SqlStringLowPrio {
       }
 
     implicit val stringSqlStringer: SqlStringer[String] =
-      new SqlStringer[String] {
-        override def toSqlString(a: String): SqlString = a.escape
+      StringSqlStringer(Integer.MAX_VALUE)
+
+    case class StringSqlStringer(maxLength: Int, resolvedColumn: Option[ResolvedColumn] = None) extends SqlStringer[String] {
+
+      override def materialize(conn: Conn, resolvedColumn: ResolvedColumn): Task[SqlStringer[String]] =
+        ZIO.succeed(copy(maxLength = resolvedColumn.jdbcColumn.columnSize))
+
+      override def toSqlString(a: String): SqlString = {
+        val trimmed =
+          if ( a.length > maxLength ) {
+            logger.warn(s"trimming string from length ${a.length} to ${maxLength} for ${resolvedColumn.map(_.qualifiedName)}")
+            a.substring(0, maxLength)
+          } else {
+            a
+          }
+        trimmed.escape
       }
+
+    }
 
     implicit val optionStringStringer: SqlStringer[Option[String]] =
       new SqlStringer[Option[String]] {
