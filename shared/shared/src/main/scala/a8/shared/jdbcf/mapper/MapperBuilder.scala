@@ -42,9 +42,10 @@ object MapperBuilder {
     val ordinal: Int
     val columnNames: Iterable[ColumnName]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
+    def values(a: A): Vector[QueryDsl.Constant[_]]
+    def fields(path: QueryDsl.Path, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[_]]
     def rawRead(row: Row, index: Int): (Any, Int)
     def booleanOp(linker: QueryDsl.Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
-
     def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[Parm[A]]
 
   }
@@ -76,6 +77,12 @@ object MapperBuilder {
 
     def booleanOpB(linker: QueryDsl.Path, b: B, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition =
       fieldHandler.booleanOp(linker, name, b, columnNameResolver)
+
+    override def values(a: A): Vector[QueryDsl.Constant[_]] =
+      fieldHandler.values(parm.lens(a))
+
+    override def fields(path: Path, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[_]] =
+      fieldHandler.fieldExprs(path, name, columnNameResolver)
 
   }
 

@@ -7,6 +7,7 @@ import a8.shared.jdbcf.mapper.{ComponentMapper, KeyedTableMapper, TableMapper}
 import scala.language.{existentials, implicitConversions}
 import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
+import cats.data.Chain
 import zio.Task
 
 /*
@@ -80,7 +81,13 @@ object QueryDsl {
 
   case class IsNull(left: Expr[_], not: Boolean) extends Condition
 
-  case class StructuralEquality[A: ComponentMapper](linker: Path, component: Component[A], value: A) extends Condition {
+  case class StructuralEquality[A: ComponentMapper](linker: Path, component: Component[A], values: Iterable[A]) extends Condition {
+    val mapper = implicitly[ComponentMapper[A]]
+  }
+
+  case class InClause(left: IndexedSeq[Expr[_]], right: IndexedSeq[IndexedSeq[Expr[_]]]) extends Condition
+
+  case class StructuralInClause[A: ComponentMapper](linker: Path, component: Component[A], values: IndexedSeq[A]) extends Condition {
     val mapper = implicitly[ComponentMapper[A]]
   }
 
@@ -122,9 +129,6 @@ object QueryDsl {
   case class In[T: SqlStringer](left: Expr[T], set: Iterable[Constant[T]]) extends Condition
 
   case class Field[T: SqlStringer](name: String, join: Path, resolvedComponentName: Boolean) extends FieldExpr[T] {
-    if ( name.startsWith("addr") || name.startsWith("line") ) {
-      toString
-    }
   }
   case class NumericField[T: SqlStringer](name: String, join: Path, resolvedComponentName: Boolean) extends NumericExpr[T] with FieldExpr[T]
 
@@ -177,10 +181,18 @@ object QueryDsl {
     object FALSE extends Condition
   }
 
+  case class Parens(inside: Condition) extends Condition
+
   def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[_]] =
     cond match {
+      case ic@ InClause(left, right) =>
+        left.flatMap(fieldExprs) ++ right.flatMap(_.flatMap(fieldExprs))
+      case Parens(c) =>
+        fieldExprs(c)
       case se@ StructuralEquality(_, _, _) =>
         fieldExprs(generateStructuralComparison(se)(PathCompiler.empty))
+      case sic@ StructuralInClause(_, _, _) =>
+        fieldExprs(generateStructuralInClause(sic)(PathCompiler.empty))
       case Condition.TRUE =>
         IndexedSeq.empty
       case Condition.FALSE =>
@@ -385,17 +397,34 @@ object QueryDsl {
     def booleanOp(linker: QueryDsl.Path, a: A): QueryDsl.Condition
   }
 
-  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: PathCompiler): Condition = {
+  def generateStructuralComparison[A](structuralEquality: StructuralEquality[A])(implicit alias: PathCompiler): Condition =
     structuralEquality
       .mapper
-      .structuralEquality(structuralEquality.linker, structuralEquality.value)
-  }
+      .structuralEquality(structuralEquality.linker, structuralEquality.values)
+
+  def generateStructuralInClause[A](inClause: StructuralInClause[A])(implicit alias: PathCompiler): InClause =
+    inClause
+      .mapper
+      .inClause(inClause.linker, inClause.values)
 
   def asSql(cond: Condition)(implicit alias: PathCompiler): SqlString = {
     import SqlString._
     cond match {
+      case InClause(left, right) =>
+        def tupleup(values: IndexedSeq[Expr[_]]): SqlString =
+          values.size match {
+            case 1 =>
+              exprAsSql(values.head)
+            case _ =>
+              ss.LeftParen ~ values.map(l => exprAsSql(l.asInstanceOf[Expr[Any]])).mkSqlString(ss.CommaSpace) ~ ss.RightParen
+          }
+        tupleup(left) * ss.In * ss.LeftParen ~ right.map(tupleup).mkSqlString(CommaSpace) ~ ss.RightParen
+      case Parens(c) =>
+        ss.LeftParen ~ asSql(c) ~ ss.RightParen
       case se@ StructuralEquality(_, _, _) =>
         asSql(generateStructuralComparison(se))
+      case sic@ StructuralInClause(_, _, _) =>
+        asSql(generateStructuralInClause(sic))
       case BooleanOperation(l, Ops.NotEqual, OptionConstant(None)) =>
         exprAsSql(l) * ss.IsNotNull
       case BooleanOperation(l, Ops.Equal, OptionConstant(None)) =>
@@ -455,6 +484,10 @@ object QueryDsl {
 
   abstract class Component[A](join: QueryDsl.Path) {
     def ===(right: A)(implicit mapper: ComponentMapper[A]): Condition =
+      StructuralEquality(join, this, Iterable(right))
+    def in(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
+      StructuralInClause(join, this, right.toVector)
+    def in2(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, right)
   }
 

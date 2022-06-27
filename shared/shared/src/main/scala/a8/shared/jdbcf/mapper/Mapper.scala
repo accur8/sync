@@ -8,6 +8,7 @@ import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Path, PathCompiler, StructuralProperty}
 import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, RowWriter, SqlString}
 import a8.shared.SharedImports._
+import cats.data.Chain
 import zio._
 
 import java.sql.PreparedStatement
@@ -53,6 +54,8 @@ object Mapper {
     def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[FieldHandler[A]]
     val rowReader: RowReader[A]
     def booleanOp(linker: QueryDsl.Path, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
+    def fieldExprs(linker: QueryDsl.Path, name: String, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[_]]
+    def values(a: A): Vector[QueryDsl.Constant[_]]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName, SqlString)]
     val columnCount: Int
@@ -63,6 +66,15 @@ object Mapper {
       val rowReader: RowReader[A],
       val sqlStringer: SqlStringer[A]
   ) extends FieldHandler[A] {
+
+    override def fieldExprs(linker: Path, name: String, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.Field[_]] = {
+      import QueryDsl._
+      val resolvedName = columnNameResolver.quote(linker.columnName(ColumnName(name)))
+      Vector(Field(resolvedName.value, linker, true))
+    }
+
+    override def values(a: A): Vector[QueryDsl.Constant[_]] =
+      Vector(QueryDsl.Constant(a))
 
     override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[FieldHandler[A]] =
       for {
@@ -90,6 +102,13 @@ object Mapper {
 
   class ComponentFieldHandler[A](implicit componentMapper: ComponentMapper[A]) extends FieldHandler[A] {
 
+    override def fieldExprs(linker: Path, name: String, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[_]] = {
+      val componentLinker = ComponentJoin(name, linker)
+      componentMapper.fieldExprs(componentLinker)
+    }
+
+    override def values(a: A): Vector[QueryDsl.Constant[_]] =
+      ???
 
     override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[FieldHandler[A]] =
       componentMapper
@@ -104,7 +123,7 @@ object Mapper {
 
     override def booleanOp(linker: Path, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition = {
       val componentLinker = ComponentJoin(name, linker)
-      componentMapper.structuralEquality(componentLinker, a)
+      componentMapper.structuralEquality(componentLinker, Iterable(a))
     }
 
     def pairs(columnNamePrefix: ColumnName, a: A) =
