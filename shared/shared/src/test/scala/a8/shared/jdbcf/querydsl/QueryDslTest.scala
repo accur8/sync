@@ -78,7 +78,40 @@ class QueryDslTest extends AnyFunSuite {
     val actual = query.sqlString.compileToString
 
     assertResult(
-      "select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where aa.addressline1 = 'line1' and aa.addressline2 = 'line2' and aa.addresscity = 'city' and aa.addressstate = 'state' and aa.addresszip = 'zip'"
+      "select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where (aa.addressline1 = 'line1' and aa.addressline2 = 'line2' and aa.addresscity = 'city' and aa.addressstate = 'state' and aa.addresszip = 'zip')"
+    )(
+      actual
+    )
+
+  }
+
+  test("structural in clause") {
+
+    val address1 = Address("1line1", "1line2", "1city", "1state", "1zip")
+    val address2 = Address("2line1", "2line2", "2city", "2state", "2zip")
+
+    val query = Container.query(aa => aa.address in Iterable(address1,address2))
+
+    val actual = query.sqlString.compileToString
+
+    assertResult(
+      "select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where (aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip) in (('1line1', '1line2', '1city', '1state', '1zip'), ('2line1', '2line2', '2city', '2state', '2zip'))"
+    )(
+      actual
+    )
+
+  }
+  test("structural in2 clause") {
+
+    val address1 = Address("1line1", "1line2", "1city", "1state", "1zip")
+    val address2 = Address("2line1", "2line2", "2city", "2state", "2zip")
+
+    val query = Container.query(aa => aa.address in2 Iterable(address1,address2))
+
+    val actual = query.sqlString.compileToString
+
+    assertResult(
+      "select aa.id, aa.count, aa.name, aa.addressline1, aa.addressline2, aa.addresscity, aa.addressstate, aa.addresszip from Container as aa where (aa.addressline1 = '1line1' and aa.addressline2 = '1line2' and aa.addresscity = '1city' and aa.addressstate = '1state' and aa.addresszip = '1zip') or (aa.addressline1 = '2line1' and aa.addressline2 = '2line2' and aa.addresscity = '2city' and aa.addressstate = '2state' and aa.addresszip = '2zip')"
     )(
       actual
     )

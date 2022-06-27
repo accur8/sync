@@ -47,9 +47,10 @@ case class CaseClassMapper[A, PK](
 
   implicit val rowReaderA: RowReader[A] = this
 
-  lazy val fields = rawFields.sortBy(_.ordinal)
-
-
+  lazy val fields: Vector[Parm[A]] =
+    rawFields
+      .sortBy(_.ordinal)
+      .toVector
 
   // validate ordinals
   fields.zipWithIndex.find(t => t._1.ordinal != t._2) match {
@@ -75,10 +76,43 @@ case class CaseClassMapper[A, PK](
       .flatMap(_.columnNames)
       .map(cn => ColumnName(columnNamePrefix.value.toString + cn.value.toString))
 
-  override def structuralEquality(linker: QueryDsl.Path, a: A)(implicit alias: PathCompiler): QueryDsl.Condition =
+  override def structuralEquality(linker: QueryDsl.Path, values: Iterable[A])(implicit alias: PathCompiler): QueryDsl.Condition = {
+    values
+      .map { a =>
+        fields
+          .map(_.booleanOp(linker, a, columnNameResolver))
+          .reduceLeft((l,r) => QueryDsl.And(l,r))
+      }
+      .map { c =>
+        columnCount match {
+          case 1 =>
+            c
+          case _ =>
+            QueryDsl.Parens(c)
+        }
+      }
+      .reduceLeft((l,r) => QueryDsl.Or(l,r))
+  }
+
+  override def values(a: A): Vector[QueryDsl.Constant[_]] =
     fields
-      .map(_.booleanOp(linker, a, columnNameResolver))
-      .reduceLeft((l,r) => QueryDsl.And(l,r))
+      .flatMap(_.values(a))
+
+  override def fieldExprs(linker: QueryDsl.Path): Vector[QueryDsl.FieldExpr[_]] =
+    fields
+      .flatMap(_.fields(linker, columnNameResolver))
+
+  override def inClause(linker: QueryDsl.Path, values: Iterable[A])(implicit alias: PathCompiler): QueryDsl.InClause = {
+    val valueExprs =
+      values
+        .toVector
+        .map(v =>
+          fields
+            .flatMap(f => f.values(v))
+        )
+    QueryDsl.InClause(fieldExprs(linker), valueExprs)
+  }
+
 
   override def rawRead(row: Row, index: Int): (A, Int) = {
     var offset = 0
