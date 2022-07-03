@@ -97,6 +97,8 @@ object http extends LoggingF {
     def addQueryParm[A: ZStringer](name: String, value: A): Request
     def body[A](a: A)(implicit toBodyFn: A => Body): Request
     def method(m: Method): Request
+    def uri(uri: Uri): Request
+    def updateUri(updateFn: Uri=>Uri): Request
 
     def formBody(fields: Iterable[(String,String)]): Request
 
@@ -403,6 +405,8 @@ object http extends LoggingF {
 
       def uri(uri: Uri): RequestImpl = copy(uri = uri)
 
+      override def updateUri(updateFn: Uri => Uri): Request =
+        copy(uri = updateFn(uri))
 
       override def addHeader[A: ZStringer](name: String, value: A): Request =
         addHeader(name, ZStringer[A].toZString(value).toString)
