@@ -2,7 +2,7 @@ package a8.shared
 
 
 import a8.shared.json.JsonCodec
-import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
+import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, FiniteDurationOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
 import cats.data.Chain
 import sttp.model.{Uri, UriInterpolator}
 
@@ -275,6 +275,10 @@ trait SharedImports
   def none[A]: Option[A] = None
   def some[A](a: A): Option[A] = Some(a)
 
-  implicit final def optionIdOps[A](a: A): OptionIdOps[A] = new OptionIdOps(a)
+  implicit final def optionIdOps[A](a: A): OptionIdOps[A] =
+    new OptionIdOps(a)
+
+  implicit final def finiteDurationOps(fd: FiniteDuration): FiniteDurationOps =
+    new FiniteDurationOps(fd)
 
 }

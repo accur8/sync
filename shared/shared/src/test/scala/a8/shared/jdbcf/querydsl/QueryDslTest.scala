@@ -69,6 +69,91 @@ class QueryDslTest extends AnyFunSuite {
 
   }
 
+  test("or's and and's") {
+
+    val query = Widget.query(aa => (aa.id === "foo" and aa.container.id === "bar") or (aa.id === "foo" and aa.container.id === "bar") or (aa.id === "foo" and aa.container.id === "bar" and aa.id === "foo" and aa.container.id === "bar"))
+
+    val actual = query.sqlString.compileToString
+
+//    println("== actual ==")
+//    println(actual)
+
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where (aa.id = 'foo' and bb.id = 'bar') or (aa.id = 'foo' and bb.id = 'bar') or (aa.id = 'foo' and bb.id = 'bar' and aa.id = 'foo' and bb.id = 'bar')"
+    )(
+      actual
+    )
+
+  }
+
+  test("simple or's and and's with no parens") {
+
+    val query = Widget.query(aa => aa.id === "foo" and aa.container.id === "bar" or aa.id === "foo")
+
+    val actual = query.sqlString.compileToString
+
+//    println("== actual ==")
+//    println(actual)
+
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where (aa.id = 'foo' and bb.id = 'bar') or aa.id = 'foo'"
+    )(
+      actual
+    )
+
+  }
+
+  test("simple or's and and's with parens") {
+
+    val query = Widget.query(aa => aa.id === "foo" and (aa.container.id === "bar" or aa.id === "foo"))
+
+    val actual = query.sqlString.compileToString
+
+//    println("== actual ==")
+//    println(actual)
+
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' and (bb.id = 'bar' or aa.id = 'foo')"
+    )(
+      actual
+    )
+
+  }
+
+  test("all and's") {
+
+    val query = Widget.query(aa => aa.id === "foo" and aa.container.id === "bar" and aa.id === "foo" and aa.container.id === "bar" and aa.id === "foo")
+
+    val actual = query.sqlString.compileToString
+
+    println("== actual ==")
+    println(actual)
+
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' and bb.id = 'bar' and aa.id = 'foo' and bb.id = 'bar' and aa.id = 'foo'"
+    )(
+      actual
+    )
+
+  }
+
+  test("all or's") {
+
+    val query = Widget.query(aa => aa.id === "foo" or aa.container.id === "bar" or aa.id === "foo" or aa.container.id === "bar" or aa.id === "foo")
+
+    val actual = query.sqlString.compileToString
+
+    println("== actual ==")
+    println(actual)
+
+    assertResult(
+      "select aa.id, aa.name, aa.containerId from Widget as aa left join Container bb on aa.containerId = bb.id where aa.id = 'foo' or bb.id = 'bar' or aa.id = 'foo' or bb.id = 'bar' or aa.id = 'foo'"
+    )(
+      actual
+    )
+
+  }
+
   test("structural equality") {
 
     val address = Address("line1", "line2", "city", "state", "zip")

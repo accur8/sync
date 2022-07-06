@@ -1,7 +1,7 @@
 package a8.sync
 
 
-import a8.shared.{CompanionGen, ZString}
+import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp.{MxResponseMetadata, MxRetryConfig}
@@ -37,36 +37,12 @@ object http extends LoggingF {
     val noRetries = RetryConfig(0, 1.second, 1.minute)
   }
 
-//  type RetryPolicy = WithState[(Long, Long), Any, Any, (zio.Duration, Long)]
-  type RetryPolicy = Schedule[Any, Any, (zio.Duration, Long)]
-
   @CompanionGen
   case class RetryConfig(
-    count: Int,
+    maxRetries: Int,
     initialBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
-  ) {
-    lazy val retryPolicy: RetryPolicy = {
-      val exponential = Schedule.exponential(initialBackoff.toJava)
-      val retry = Schedule.recurs(count)
-      exponential && retry
-    }
-  }
-
-  def applyRetryPolicy[A](retryPolicy: RetryPolicy, context: String, effect: Task[A]): Task[A] =
-    for {
-      counter <- Ref.make(1)
-      a <-
-        effect
-          .onError { cause =>
-            for {
-              tryNumber <- counter.get
-              _ <- loggerF.debug(s"try number ${tryNumber} failed", cause)
-              _ <- counter.update(_ + 1)
-            } yield ()
-          }
-          .retry(retryPolicy)
-    } yield a
+  )
 
   case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String)
     extends Exception(s"${statusCode.code} ${statusText} -- ${responseBody}")
@@ -82,10 +58,12 @@ object http extends LoggingF {
     val body: Body
     val method: Method
     val headers: Map[String,String]
-
+    val followRedirects: Boolean
     val retryConfig: Option[RetryConfig]
 
     def subPath(subPath: Uri): Request
+    def appendPath(parts: ZString*): Request =
+      updateUri(_.addPath(parts.map(_.toString)))
 
     def withRetryConfig(retryConfig: RetryConfig): Request
 
@@ -100,59 +78,33 @@ object http extends LoggingF {
     def uri(uri: Uri): Request
     def updateUri(updateFn: Uri=>Uri): Request
 
+    def noFollowRedirects: Request
+    def applyEffect(fn: Request=>Task[Request]): Request
+
     def formBody(fields: Iterable[(String,String)]): Request
 
     def exec[F[_]](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
       processor.exec(this)
 
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStringResponse(this, None, responseJson => json.readF[A](responseJson))
+      processor.execWithStringResponse(this, responseJson => json.readF[A](responseJson))
 
     def execWithStreamResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStreamResponse[A](this, None, responseEffect)
+      processor.execWithStreamResponse[A](this, responseEffect)
 
     def execWithString[A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStringResponse(this, None, effect)
+      processor.execWithStringResponse(this, effect)
 
     /**
      * implementer of the responseEffect function must raise errors into the F.
      * implementer is responsible for things like checking http status codes, etc, etc
      */
     def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execRaw[A](this, None, responseEffect)
+      processor.execRaw[A](this, responseEffect)
 
     def curlCommand: String
 
-    def streamingBody(requestBody: XStream[Byte]): StreamingRequest =
-      StreamingRequest(this, Some(requestBody))
-
-    def streaming: StreamingRequest =
-      StreamingRequest(this)
-
-  }
-
-  case class StreamingRequest(rawRequest: Request, requestBody: Option[XStream[Byte]] = None) {
-
-    def requestBody(requestBody: XStream[Byte]): StreamingRequest =
-      copy(requestBody = Some(requestBody))
-
-    def exec(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
-      processor.exec(rawRequest, requestBody)
-
-    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execRaw[A](rawRequest, requestBody, responseEffect)
-
-    def execWithStreamingResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStreamResponse[A](rawRequest, requestBody, responseEffect)
-
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStringResponse(rawRequest, requestBody, responseJson => json.readF[A](responseJson))
-
-    def execWithEffect[A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStringResponse(rawRequest, requestBody, effect)
-
-    def updateRawRequest(fn: Request => Request): StreamingRequest =
-      copy(rawRequest = fn(rawRequest))
+    def streamingRequestBody(requestBody: XStream[Byte]): Request
 
   }
 
@@ -193,8 +145,11 @@ object http extends LoggingF {
     }
   }
 
-  object Method {
+  object Method extends StringValue.Companion[Method] {
     val GET = Method("GET")
+    val HEAD = Method("HEAD")
+    val DELETE = Method("DELETE")
+    val OPTIONS = Method("OPTIONS")
     val PATCH = Method("PATCH")
     val POST = Method("POST")
     val PUT = Method("PUT")
@@ -202,7 +157,7 @@ object http extends LoggingF {
 
   case class Method(
     value: String
-  )
+  ) extends StringValue
 
   object ResponseMetadata extends MxResponseMetadata {
 
@@ -244,7 +199,7 @@ object http extends LoggingF {
 
     val backend: Backend
 
-    def exec(request: Request, streamingRequestBody: Option[XStream[Byte]] = None)(implicit trace: Trace, loggerF: LoggerF): Task[String]
+    def exec(request: Request)(implicit trace: Trace, loggerF: LoggerF): Task[String]
 
     /**
      * Will exec the request and map the response allowing for error's in the map'ing to
@@ -255,9 +210,9 @@ object http extends LoggingF {
      * may be json but is it the json you actually want).
      *
      */
-    def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
+    def execWithStringResponse[A](request: Request, effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
-    def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
+    def execWithStreamResponse[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
     /**
      *
@@ -265,7 +220,7 @@ object http extends LoggingF {
      * implementer is responsible for things like checking http status codes, etc, etc
      *
      */
-    def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]] = None, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
+    def execRaw[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
   }
 
@@ -315,22 +270,75 @@ object http extends LoggingF {
       extends RequestProcessor
     {
 
-      lazy val defaultRetryPolicy = retryConfig.retryPolicy
+      override def exec(request: Request)(implicit trace: Trace, loggerF: LoggerF): Task[String] =
+        execWithStringResponse(request, s => ZIO.succeed(s))
 
-      override def exec(request: Request, streamingRequestBody: Option[XStream[Byte]])(implicit trace: Trace, loggerF: LoggerF): Task[String] =
-        execWithStringResponse(request, streamingRequestBody, s => ZIO.succeed(s))
-
-      override def execRaw[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
-        val retryPolicy =
-          request
-            .retryConfig
-            .map(_.retryPolicy)
-            .getOrElse(defaultRetryPolicy)
-        applyRetryPolicy(retryPolicy, request.uri.toString(), rawSingleExec(request, streamingRequestBody, responseEffect))
+      override def execRaw[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+        request match {
+          case r0: RequestImpl =>
+            run(r0, responseEffect)
+        }
       }
 
+      private def run[A](request: RequestImpl, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+        def runImpl(retryNumber: Int, backoff: FiniteDuration): Task[A] = {
+          val resolvedBackoff = List(backoff, retryConfig.maxBackoff).min
+          def processResponse(response: Response): Task[A] = {
 
-      override def execWithStringResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+//            lazy val isJsonResponse: Boolean =
+//              response
+//                .responseMetadata
+//                .headersByName
+//                .get(CIString("content-type"))
+//                .exists(_ === "application/json")
+
+            def retry(context: String): Task[A] = {
+              for {
+                _ <- loggerF.debug(s"${context} will retry in ${resolvedBackoff}")
+                _ <- ZIO.sleep(resolvedBackoff.toZio)
+                response <- runImpl(retryNumber + 1, resolvedBackoff * 2)
+              } yield response
+            }
+
+
+            response.responseMetadata.statusCode match {
+              case sc if sc.isSuccess =>
+                responseEffect(response)
+              case sc if sc.code === 429 =>
+                if (retryNumber > retryConfig.maxRetries) {
+                  retry(s"received 429 response ${response.responseMetadata}")
+                } else
+                  ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))
+//              case _ if isJsonResponse =>
+//                response
+//                  .responseBodyAsString
+//                  .flatMap(json.readF[ODataErrorResponse])
+//                  .catchAll(_ =>
+//                    IO.raiseError(new RuntimeException(s"invalid response -- ${response.responseMetadata}"))
+//                  )
+//                  .flatMap(od => IO.raiseError(ODataException(od.error)))
+              case sc =>
+                ZIO.fail(new RuntimeException(s"invalid response -- ${response.responseMetadata}"))
+            }
+          }
+
+          def trapHardError(th: Throwable): Task[A] =
+            if (retryNumber >= retryConfig.maxRetries) {
+              for {
+                _ <- loggerF.debug(s"attempt ${retryNumber+1} failed", th)
+                response <- runImpl(retryNumber + 1, resolvedBackoff * 2)
+              } yield response
+            } else {
+              ZIO.fail(th)
+            }
+
+          rawSingleExec(request, processResponse, trapHardError)
+
+        }
+        runImpl(0, retryConfig.initialBackoff)
+      }
+
+      override def execWithStringResponse[A](request: Request,  effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         def responseEffect(response: Response): Task[A] = {
           for {
             _ <- response.raiseResponseErrors
@@ -338,59 +346,84 @@ object http extends LoggingF {
             a <- effect(responseBodyAsString)
           } yield a
         }
-        execRaw(request, streamingRequestBody, responseEffect)
+        execRaw(request, responseEffect)
       }
 
-      override def execWithStreamResponse[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+      override def execWithStreamResponse[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         def wrappedResponseEffect(response: Response): Task[A] = {
           response.raiseResponseErrors *> responseEffect(response)
         }
-        execRaw(request, streamingRequestBody, wrappedResponseEffect)
+        execRaw(request, wrappedResponseEffect)
       }
 
-      def rawSingleExec[A](request: Request, streamingRequestBody: Option[XStream[Byte]], responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
-        maxConnectionSemaphore
-          .withPermit {
+      def rawSingleExec[A](rawRequest: RequestImpl, responseEffect: Response=>Task[A], catchAll: Throwable=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+        val rawRequest0: Task[Request] = ZIO.succeed(rawRequest: Request)
+        for {
+          request0 <- rawRequest.effects.foldLeft(rawRequest0)((r, effect) => r.flatMap(effect))
+          request = request0 match { case r0: RequestImpl => r0 }
+          response <-
+            maxConnectionSemaphore
+              .withPermit {
 
-            def wrappedEffect(stream: XStream[Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): Task[A] = {
-              val responseMetadata = ResponseMetadata(sttpResponseMetadata)
-              responseEffect(Response(responseMetadata, stream))
-            }
+                def wrappedEffect(stream: XStream[Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): Task[A] = {
+                  val responseMetadata = ResponseMetadata(sttpResponseMetadata)
+                  responseEffect(Response(responseMetadata, stream))
+                }
 
-            val request0: RequestT[Identity, A, Any with capabilities.Effect[Task] with ZioStreams] =
-              basicRequest
-                .method(sttp.model.Method(request.method.value), request.uri)
-                .headers(request.headers)
-                .response(client3.asStreamAlwaysWithMetadata(ZioStreams)(wrappedEffect))
+                type SttpRequest = RequestT[Identity, A, Any with capabilities.Effect[Task] with ZioStreams]
 
-            val requestWithBody: RequestT[Identity, A, Any with capabilities.Effect[Task] with ZioStreams] =
-              (streamingRequestBody, request.body) match {
-                case (Some(stream), _) =>
-                  request0.streamBody(ZioStreams)(stream)
-                case (_, Body.Empty) =>
-                  request0
-                case (_, Body.StringBody(content)) =>
-                  request0.body(content)
-                case (_, Body.JsonBody(json)) =>
-                  request0.body(json.compactJson)
+                def requestWithBody(r0: SttpRequest): SttpRequest =
+                  request.body match {
+                    case Body.StreamingBody(stream) =>
+                      r0.streamBody(ZioStreams)(stream)
+                    case Body.Empty =>
+                      r0
+                    case Body.StringBody(content) =>
+                      r0.body(content)
+                    case Body.JsonBody(json) =>
+                      r0.body(json.compactJson)
+                  }
+
+                val isStreamingRequestBody =
+                  request.body match {
+                    case Body.StreamingBody(_) =>
+                      true
+                    case _ =>
+                      false
+                  }
+
+                def requestWithFollowRedirects(r0: SttpRequest): SttpRequest =
+                  r0.followRedirects(request.followRedirects)
+
+                val request0: SttpRequest =
+                  basicRequest
+                    .method(sttp.model.Method(request.method.value), request.uri)
+                    .headers(request.headers)
+                    .response(client3.asStreamAlwaysWithMetadata(ZioStreams)(wrappedEffect))
+
+                val requestUpdaters: Vector[SttpRequest=>SttpRequest] =
+                  Vector(requestWithBody, requestWithFollowRedirects)
+
+                val resolvedSttpRequest = requestUpdaters.foldLeft(request0)((r0,fn) => fn(r0))
+
+                val startTime = java.lang.System.currentTimeMillis()
+
+                val effect =
+                  resolvedSttpRequest
+                    .send(backend.delegate)
+                    .flatMap { response =>
+                      loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+                        .as(response.body)
+                    }
+                    .onError { error =>
+                      loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
+                    }
+                    .catchAll(catchAll)
+
+                loggerF.debug(s"running request ${isStreamingRequestBody.toOption("(has streaming request body)").getOrElse("")}\n${request.curlCommand.indent("    ")}") *> effect
+
               }
-
-            val startTime = java.lang.System.currentTimeMillis()
-
-            val effect =
-              requestWithBody
-                .send(backend.delegate)
-                .flatMap { response =>
-                  loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-                    .as(response.body)
-                }
-                .onError { error =>
-                  loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
-                }
-
-            loggerF.debug(s"running request ${streamingRequestBody.nonEmpty.toOption("(has streaming request body)").getOrElse("")}\n${request.curlCommand.indent("    ")}") *> effect
-
-          }
+        } yield response
       }
 
     }
@@ -401,12 +434,25 @@ object http extends LoggingF {
       headers: Map[String, String] = Map.empty,
       method: Method = Method.GET,
       retryConfig: Option[RetryConfig] = None,
+      effects: Vector[Request=>Task[Request]] = Vector.empty,
+      followRedirects: Boolean = true,
     ) extends Request {
 
-      def uri(uri: Uri): RequestImpl = copy(uri = uri)
+
+      override def streamingRequestBody(requestBody: SharedImports.XStream[Byte]): Request =
+        copy(body = Body.StreamingBody(requestBody))
+
+      def uri(uri: Uri): RequestImpl =
+        copy(uri = uri)
 
       override def updateUri(updateFn: Uri => Uri): Request =
         copy(uri = updateFn(uri))
+
+      override def noFollowRedirects: Request =
+        copy(followRedirects = false)
+
+      override def applyEffect(fn: Request => Task[Request]): Request =
+        copy(effects = effects :+ fn)
 
       override def addHeader[A: ZStringer](name: String, value: A): Request =
         addHeader(name, ZStringer[A].toZString(value).toString)
@@ -415,23 +461,19 @@ object http extends LoggingF {
         copy(headers = headers + (name -> value))
 
       override def body[A](a: A)(implicit toBodyFn: A => Body): RequestImpl =
-        copy(
-          body = toBodyFn(a)
-        )
+        copy(body = toBodyFn(a))
 
       override def withRetryConfig(retryConfig: RetryConfig): Request =
         copy(retryConfig = retryConfig.some)
 
-      override def subPath(subPath: Uri): Request = {
+      override def subPath(subPath: Uri): Request =
         uri(uri.addPathSegments(subPath.pathSegments.segments))
-      }
 
-      override def jsonBody(json: JsVal): Request = {
+      override def jsonBody(json: JsVal): Request =
         addHeader("Content-Type", "application/json")
           .copy(
             body = Body.JsonBody(json),
           )
-      }
 
       override def addQueryParm[A: ZStringer](name: String, value: A): Request =
         addQueryParm(name, ZStringer[A].toZString(value).toString)
@@ -447,7 +489,7 @@ object http extends LoggingF {
           .concat(Chain.fromSeq(headers.toVector.map(h => s"  -H '${h._1}: ${h._2}'")))
           .concat(
             body match {
-              case Body.Empty =>
+              case Body.Empty | Body.StreamingBody(_) =>
                 Chain.empty[String]
               case Body.StringBody(b) =>
                 Chain.one(s"  --data '${b}'")
@@ -474,8 +516,6 @@ object http extends LoggingF {
       }
     }
 
-
-
   }
 
   sealed trait Body
@@ -483,6 +523,7 @@ object http extends LoggingF {
     case object Empty extends Body
     case class StringBody(content: String) extends Body
     case class JsonBody(content: JsVal) extends Body
+    case class StreamingBody(stream: XStream[Byte]) extends Body
   }
 
 }

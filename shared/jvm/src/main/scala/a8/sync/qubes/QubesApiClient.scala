@@ -25,7 +25,7 @@ object QubesApiClient extends LoggingF {
     val twentySeconds = 20.seconds
     val defaultRetryConfig =
       RetryConfig(
-        count = 0,
+        maxRetries = 0,
         initialBackoff = 2.seconds,
         maxBackoff = 10.seconds,
       )

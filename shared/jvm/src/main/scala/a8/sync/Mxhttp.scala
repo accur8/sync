@@ -28,7 +28,7 @@ object Mxhttp {
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[RetryConfig,a8.shared.json.ast.JsObj] =
       jsonCodecBuilder(
         a8.shared.json.JsonObjectCodecBuilder(generator)
-          .addField(_.count)
+          .addField(_.maxRetries)
           .addField(_.initialBackoff)
           .addField(_.maxBackoff)
       )
@@ -44,7 +44,7 @@ object Mxhttp {
     }
     
     object parameters {
-      lazy val count: CaseClassParm[RetryConfig,Int] = CaseClassParm[RetryConfig,Int]("count", _.count, (d,v) => d.copy(count = v), None, 0)
+      lazy val maxRetries: CaseClassParm[RetryConfig,Int] = CaseClassParm[RetryConfig,Int]("maxRetries", _.maxRetries, (d,v) => d.copy(maxRetries = v), None, 0)
       lazy val initialBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), None, 1)
       lazy val maxBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), None, 2)
     }
@@ -54,7 +54,7 @@ object Mxhttp {
     
       def rawConstruct(values: IndexedSeq[Any]): RetryConfig = {
         RetryConfig(
-          count = values(0).asInstanceOf[Int],
+          maxRetries = values(0).asInstanceOf[Int],
           initialBackoff = values(1).asInstanceOf[FiniteDuration],
           maxBackoff = values(2).asInstanceOf[FiniteDuration],
         )
@@ -62,7 +62,7 @@ object Mxhttp {
       def iterRawConstruct(values: Iterator[Any]): RetryConfig = {
         val value =
           RetryConfig(
-            count = values.next().asInstanceOf[Int],
+            maxRetries = values.next().asInstanceOf[Int],
             initialBackoff = values.next().asInstanceOf[FiniteDuration],
             maxBackoff = values.next().asInstanceOf[FiniteDuration],
           )
@@ -70,8 +70,8 @@ object Mxhttp {
            sys.error("")
         value
       }
-      def typedConstruct(count: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration): RetryConfig =
-        RetryConfig(count, initialBackoff, maxBackoff)
+      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration): RetryConfig =
+        RetryConfig(maxRetries, initialBackoff, maxBackoff)
     
     }
     
