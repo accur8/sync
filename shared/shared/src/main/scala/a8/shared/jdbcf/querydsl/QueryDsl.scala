@@ -229,13 +229,25 @@ object QueryDsl {
 
     def isComposite: Boolean = false
 
+    def isAnd = this.isInstanceOf[And]
+    def isOr= this.isInstanceOf[Or]
+
     def and(right: Condition): Condition =
-      And(this, right)
+      And(safeParens(this, true), safeParens(right, true))
 
     def or(right: Condition): Condition =
-      Or(this, right)
+      Or(safeParens(this, false), safeParens(right, false))
 
   }
+
+  private def safeParens(cond: Condition, and: Boolean): Condition =
+    if ( cond.isOr && and ) {
+      Parens(cond)
+    } else if ( cond.isAnd && !and ) {
+      Parens(cond)
+    } else {
+      cond
+    }
 
   object PathCompiler {
     case object empty extends PathCompiler {
