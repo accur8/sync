@@ -111,7 +111,7 @@ object http extends LoggingF {
     def execWithStreamResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStreamResponse[A](this, None, responseEffect)
 
-    def execWithString[F[_],A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
+    def execWithString[A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(this, None, effect)
 
     /**
