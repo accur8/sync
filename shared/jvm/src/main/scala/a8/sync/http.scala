@@ -323,18 +323,20 @@ object http extends LoggingF {
         standardResponseProcessorImpl(responseE, effect)
       }
 
+    lazy val retryableStatusCodes = Set(429, 500, 502)
+
     def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
       responseE match {
         case Left(th) =>
           loggerF.trace("throwable during request", th)
-            .as(ResponseAction.Retry[A](""))
+            .as(ResponseAction.Retry[A]("retry from throwable"))
         case Right(response) =>
           response.responseMetadata.statusCode match {
             case sc if sc.isSuccess =>
               effect(response)
                 .map(ResponseAction.Success.apply)
-            case sc if sc.code === 429 =>
-              ZIO.succeed(ResponseAction.Retry[A](s"429 received -- ${response.responseMetadata.compactJson}"))
+            case sc if retryableStatusCodes(sc.code) =>
+              ZIO.succeed(ResponseAction.Retry[A](s"http response ${sc.code} status received -- ${response.responseMetadata.compactJson}"))
             case sc =>
               ZIO.succeed(ResponseAction.Fail[A](s"unable to process status code ${sc}", response.responseMetadata.some))
           }
