@@ -171,14 +171,9 @@ case class QubesApiClient(
           .jsonBody(requestBody.toJsVal)
 
       loggerF.trace(s"${request.method.value} ${request.uri}") *>
-      request
-        .execWithString { responseBodyStr =>
-          ZIO.suspend {
-            json.parseF(responseBodyStr)
-              .map(jv => JsDoc(jv))
-          }
-        }
-  }
+        request
+          .execWithJsonResponse[JsDoc]
+    }
 
   }
   import impl._
