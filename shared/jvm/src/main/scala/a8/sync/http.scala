@@ -9,9 +9,10 @@ import sttp.model.{StatusCode, Uri}
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.{LoggerF, Logging, LoggingF}
-import a8.sync.http.Body
+import a8.sync.http.{Body, Response}
 import a8.sync.http.Body.StringBody
-import a8.sync.http.impl.RequestProcessorImpl
+import a8.sync.http.Request.ResponseAction
+import a8.sync.http.impl.{RequestImpl, RequestProcessorImpl, standardResponseProcessor}
 import cats.data.Chain
 import sttp.capabilities.zio.ZioStreams
 import sttp.client3.httpclient.zio.HttpClientZioBackend
@@ -29,10 +30,6 @@ import scala.jdk.DurationConverters._
 
 object http extends LoggingF {
 
-  case class Backend(
-    delegate: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets]
-  )
-
   object RetryConfig extends MxRetryConfig {
     val noRetries = RetryConfig(0, 1.second, 1.minute)
   }
@@ -44,12 +41,83 @@ object http extends LoggingF {
     maxBackoff: FiniteDuration,
   )
 
+  trait Backend {
+    def rawSingleExec(request: RequestImpl): ZIO[Scope,Throwable, Response]
+  }
+
+  case class SttpBackend(
+    sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets]
+  )
+    extends Backend
+  {
+    override def rawSingleExec(request: RequestImpl): ZIO[Scope, Throwable, Response] = {
+
+      type SttpRequest = RequestT[Identity, Response, capabilities.Effect[Task] with ZioStreams]
+
+      def requestWithBody(r0: SttpRequest): SttpRequest =
+        request.body match {
+          case Body.StreamingBody(stream) =>
+            r0.streamBody(ZioStreams)(stream)
+          case Body.Empty =>
+            r0
+          case Body.StringBody(content) =>
+            r0.body(content)
+          case Body.JsonBody(json) =>
+            r0.body(json.compactJson)
+        }
+
+      def requestWithFollowRedirects(r0: SttpRequest): SttpRequest =
+        r0.followRedirects(request.followRedirects)
+
+      val responseAs: ResponseAs[Response, ZioStreams] =
+        client3
+          .asStreamAlwaysUnsafe(ZioStreams)
+          .mapWithMetadata { (stream, sttpResponseMetadata) =>
+            Response(
+              ResponseMetadata(sttpResponseMetadata),
+              stream,
+            )
+          }
+
+      val request0: SttpRequest =
+        basicRequest
+          .method(sttp.model.Method(request.method.value), request.uri)
+          .headers(request.headers)
+          .response(responseAs)
+
+      val requestUpdaters: Vector[SttpRequest=>SttpRequest] =
+        Vector(requestWithBody, requestWithFollowRedirects)
+
+      val resolvedSttpRequest: SttpRequest = requestUpdaters.foldLeft(request0)((r0,fn) => fn(r0))
+
+      val startTime = java.lang.System.currentTimeMillis()
+
+      resolvedSttpRequest
+        .send(sttpBackend)
+        .flatMap { response =>
+          loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+            .as(response.body)
+        }
+        .onError { error =>
+          loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
+        }
+    }
+  }
+
   case class InvalidHttpResponseStatusCode(statusCode: StatusCode, statusText: String, responseBody: String)
     extends Exception(s"${statusCode.code} ${statusText} -- ${responseBody}")
 
   object Request {
     def apply(baseUri: Uri): Request =
       impl.RequestImpl(baseUri)
+
+    sealed trait ResponseAction[A]
+    object ResponseAction {
+      case class Success[A](value: A) extends ResponseAction[A]
+//      case class Redirect[A](location: Uri) extends ResponseAction[A]
+      case class Fail[A](message: String, responseMetadata: Option[ResponseMetadata]) extends ResponseAction[A]
+      case class Retry[A](context: String) extends ResponseAction[A]
+    }
   }
 
   sealed trait Request {
@@ -83,24 +151,23 @@ object http extends LoggingF {
 
     def formBody(fields: Iterable[(String,String)]): Request
 
-    def exec[F[_]](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
+    def execWithStringResponse(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
       processor.exec(this)
 
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(this, responseJson => json.readF[A](responseJson))
 
-    def execWithStreamResponse[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStreamResponse[A](this, responseEffect)
+    def execWithResponseEffect[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
+      processor.execWithResponseEffect[A](this, responseEffect)
 
-    def execWithString[A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
+    def execWithStringEffect[A](effect: String=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithStringResponse(this, effect)
 
     /**
-     * implementer of the responseEffect function must raise errors into the F.
-     * implementer is responsible for things like checking http status codes, etc, etc
+     * caller must supply a responseEffect that is responsible for things like checking http status codes, etc, etc
      */
-    def execRaw[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execRaw[A](this, responseEffect)
+    def execWithEffect[A](responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
+      processor.execWithEffect[A](this, responseEffect)
 
     def curlCommand: String
 
@@ -199,7 +266,8 @@ object http extends LoggingF {
 
     val backend: Backend
 
-    def exec(request: Request)(implicit trace: Trace, loggerF: LoggerF): Task[String]
+    def exec(request: Request)(implicit trace: Trace, loggerF: LoggerF): Task[String] =
+      execWithStringResponse(request, s => ZIO.succeed(s))
 
     /**
      * Will exec the request and map the response allowing for error's in the map'ing to
@@ -210,17 +278,25 @@ object http extends LoggingF {
      * may be json but is it the json you actually want).
      *
      */
-    def execWithStringResponse[A](request: Request, effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
+    def execWithStringResponse[A](request: Request,  effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+      def responseEffect(response: Response): Task[A] = {
+        for {
+          _ <- response.raiseResponseErrors
+          responseBodyAsString <- response.responseBodyAsString
+          a <- effect(responseBodyAsString)
+        } yield a
+      }
+      execWithEffect(request, standardResponseProcessor(responseEffect))
+    }
 
-    def execWithStreamResponse[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
+    def execWithResponseEffect[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+      def wrappedResponseEffect(response: Response): Task[A] = {
+        response.raiseResponseErrors *> responseEffect(response)
+      }
+      execWithEffect(request, standardResponseProcessor(wrappedResponseEffect))
+    }
 
-    /**
-     *
-     * implementer of the responseEffect function must raise errors into the F.
-     * implementer is responsible for things like checking http status codes, etc, etc
-     *
-     */
-    def execRaw[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A]
+    def execWithEffect[A](request: Request, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[A]
 
   }
 
@@ -231,7 +307,7 @@ object http extends LoggingF {
         sttpBackend <-sttp.client3.asynchttpclient.zio.AsyncHttpClientZioBackend.scoped()
         maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
-        RequestProcessorImpl(retry, Backend(sttpBackend), maxConnectionSemaphore)
+        RequestProcessorImpl(retry, SttpBackend(sttpBackend), maxConnectionSemaphore)
     }
 
 
@@ -241,6 +317,29 @@ object http extends LoggingF {
   }
 
   object impl {
+
+    def standardResponseProcessor[A](effect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Either[Throwable,Response]=>Task[ResponseAction[A]] =
+      { responseE =>
+        standardResponseProcessorImpl(responseE, effect)
+      }
+
+    def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
+      responseE match {
+        case Left(th) =>
+          loggerF.trace("throwable during request", th)
+            .as(ResponseAction.Retry[A](""))
+        case Right(response) =>
+          response.responseMetadata.statusCode match {
+            case sc if sc.isSuccess =>
+              effect(response)
+                .map(ResponseAction.Success.apply)
+            case sc if sc.code === 429 =>
+              ZIO.succeed(ResponseAction.Retry[A](s"429 received -- ${response.responseMetadata.compactJson}"))
+            case sc =>
+              ZIO.succeed(ResponseAction.Fail[A](s"unable to process status code ${sc}", response.responseMetadata.some))
+          }
+      }
+    }
 
     val contentTypeHeaderName = CIString("Content-Type")
 
@@ -270,93 +369,43 @@ object http extends LoggingF {
       extends RequestProcessor
     {
 
-      override def exec(request: Request)(implicit trace: Trace, loggerF: LoggerF): Task[String] =
-        execWithStringResponse(request, s => ZIO.succeed(s))
 
-      override def execRaw[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+      override def execWithEffect[A](request: Request, responseEffect: Either[Throwable, Response] => Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         request match {
           case r0: RequestImpl =>
-            run(r0, responseEffect)
+            runWithRetry(r0, responseEffect)
         }
       }
 
-      private def run[A](request: RequestImpl, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
-        def runImpl(retryNumber: Int, backoff: FiniteDuration): Task[A] = {
+      def runWithRetry[A](request: RequestImpl, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+        def impl(retryNumber: Int, backoff: FiniteDuration): Task[A] = {
           val resolvedBackoff = List(backoff, retryConfig.maxBackoff).min
-          def processResponse(response: Response): Task[A] = {
 
-//            lazy val isJsonResponse: Boolean =
-//              response
-//                .responseMetadata
-//                .headersByName
-//                .get(CIString("content-type"))
-//                .exists(_ === "application/json")
+          val rawSingleEffect =
+            rawSingleExec(request, responseEffect)
+              .flatMap {
+                case ResponseAction.Success(a) =>
+                  ZIO.succeed(a)
+                case ResponseAction.Retry(context) =>
+                  if (retryNumber <= retryConfig.maxRetries) {
+                    for {
+                      _ <- loggerF.debug(s"${context} will retry in ${resolvedBackoff}")
+                      _ <- ZIO.sleep(resolvedBackoff.toZio)
+                      responseValue <- impl(retryNumber + 1, resolvedBackoff * 2)
+                    } yield responseValue
+                  } else
+                    ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))
+                case ResponseAction.Fail(msg, rm) =>
+                  ZIO.fail(new RuntimeException(s"received ${rm.map(_.statusCode)} -- ${msg}"))
+              }
 
-            def retry(context: String): Task[A] = {
-              for {
-                _ <- loggerF.debug(s"${context} will retry in ${resolvedBackoff}")
-                _ <- ZIO.sleep(resolvedBackoff.toZio)
-                response <- runImpl(retryNumber + 1, resolvedBackoff * 2)
-              } yield response
-            }
-
-
-            response.responseMetadata.statusCode match {
-              case sc if sc.isSuccess =>
-                responseEffect(response)
-              case sc if sc.code === 429 =>
-                if (retryNumber > retryConfig.maxRetries) {
-                  retry(s"received 429 response ${response.responseMetadata}")
-                } else
-                  ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))
-//              case _ if isJsonResponse =>
-//                response
-//                  .responseBodyAsString
-//                  .flatMap(json.readF[ODataErrorResponse])
-//                  .catchAll(_ =>
-//                    IO.raiseError(new RuntimeException(s"invalid response -- ${response.responseMetadata}"))
-//                  )
-//                  .flatMap(od => IO.raiseError(ODataException(od.error)))
-              case sc =>
-                ZIO.fail(new RuntimeException(s"invalid response -- ${response.responseMetadata}"))
-            }
-          }
-
-          def trapHardError(th: Throwable): Task[A] =
-            if (retryNumber >= retryConfig.maxRetries) {
-              for {
-                _ <- loggerF.debug(s"attempt ${retryNumber+1} failed", th)
-                response <- runImpl(retryNumber + 1, resolvedBackoff * 2)
-              } yield response
-            } else {
-              ZIO.fail(th)
-            }
-
-          rawSingleExec(request, processResponse, trapHardError)
+          ZIO.scoped(rawSingleEffect)
 
         }
-        runImpl(0, retryConfig.initialBackoff)
+        impl(0, retryConfig.initialBackoff)
       }
 
-      override def execWithStringResponse[A](request: Request,  effect: String => Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
-        def responseEffect(response: Response): Task[A] = {
-          for {
-            _ <- response.raiseResponseErrors
-            responseBodyAsString <- response.responseBodyAsString
-            a <- effect(responseBodyAsString)
-          } yield a
-        }
-        execRaw(request, responseEffect)
-      }
-
-      override def execWithStreamResponse[A](request: Request, responseEffect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
-        def wrappedResponseEffect(response: Response): Task[A] = {
-          response.raiseResponseErrors *> responseEffect(response)
-        }
-        execRaw(request, wrappedResponseEffect)
-      }
-
-      def rawSingleExec[A](rawRequest: RequestImpl, responseEffect: Response=>Task[A], catchAll: Throwable=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
+      def rawSingleExec[A](rawRequest: RequestImpl, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Resource[ResponseAction[A]] = {
         val rawRequest0: Task[Request] = ZIO.succeed(rawRequest: Request)
         for {
           request0 <- rawRequest.effects.foldLeft(rawRequest0)((r, effect) => r.flatMap(effect))
@@ -364,64 +413,10 @@ object http extends LoggingF {
           response <-
             maxConnectionSemaphore
               .withPermit {
-
-                def wrappedEffect(stream: XStream[Byte], sttpResponseMetadata: sttp.model.ResponseMetadata): Task[A] = {
-                  val responseMetadata = ResponseMetadata(sttpResponseMetadata)
-                  responseEffect(Response(responseMetadata, stream))
-                }
-
-                type SttpRequest = RequestT[Identity, A, Any with capabilities.Effect[Task] with ZioStreams]
-
-                def requestWithBody(r0: SttpRequest): SttpRequest =
-                  request.body match {
-                    case Body.StreamingBody(stream) =>
-                      r0.streamBody(ZioStreams)(stream)
-                    case Body.Empty =>
-                      r0
-                    case Body.StringBody(content) =>
-                      r0.body(content)
-                    case Body.JsonBody(json) =>
-                      r0.body(json.compactJson)
-                  }
-
-                val isStreamingRequestBody =
-                  request.body match {
-                    case Body.StreamingBody(_) =>
-                      true
-                    case _ =>
-                      false
-                  }
-
-                def requestWithFollowRedirects(r0: SttpRequest): SttpRequest =
-                  r0.followRedirects(request.followRedirects)
-
-                val request0: SttpRequest =
-                  basicRequest
-                    .method(sttp.model.Method(request.method.value), request.uri)
-                    .headers(request.headers)
-                    .response(client3.asStreamAlwaysWithMetadata(ZioStreams)(wrappedEffect))
-
-                val requestUpdaters: Vector[SttpRequest=>SttpRequest] =
-                  Vector(requestWithBody, requestWithFollowRedirects)
-
-                val resolvedSttpRequest = requestUpdaters.foldLeft(request0)((r0,fn) => fn(r0))
-
-                val startTime = java.lang.System.currentTimeMillis()
-
-                val effect =
-                  resolvedSttpRequest
-                    .send(backend.delegate)
-                    .flatMap { response =>
-                      loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-                        .as(response.body)
-                    }
-                    .onError { error =>
-                      loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
-                    }
-                    .catchAll(catchAll)
-
-                loggerF.debug(s"running request ${isStreamingRequestBody.toOption("(has streaming request body)").getOrElse("")}\n${request.curlCommand.indent("    ")}") *> effect
-
+                backend
+                  .rawSingleExec(request)
+                  .either
+                  .flatMap(responseEffect)
               }
         } yield response
       }
@@ -518,12 +513,16 @@ object http extends LoggingF {
 
   }
 
-  sealed trait Body
+  sealed trait Body {
+    def isStream: Boolean = false
+  }
   object Body {
     case object Empty extends Body
     case class StringBody(content: String) extends Body
     case class JsonBody(content: JsVal) extends Body
-    case class StreamingBody(stream: XStream[Byte]) extends Body
+    case class StreamingBody(stream: XStream[Byte]) extends Body {
+      override def isStream: Boolean = true
+    }
   }
 
 }
