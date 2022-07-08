@@ -99,7 +99,7 @@ object http extends LoggingF {
             .as(response.body)
         }
         .onError { error =>
-          loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
+           loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
         }
     }
   }
@@ -115,10 +115,15 @@ object http extends LoggingF {
     object ResponseAction {
       case class Success[A](value: A) extends ResponseAction[A]
 //      case class Redirect[A](location: Uri) extends ResponseAction[A]
-      case class Fail[A](message: String, responseMetadata: Option[ResponseMetadata]) extends ResponseAction[A]
+      case class Fail[A](context: String, responseInfo: Option[ResponseInfo]) extends ResponseAction[A]
       case class Retry[A](context: String) extends ResponseAction[A]
     }
   }
+
+  case class ResponseInfo(
+    metadata: ResponseMetadata,
+    responseBody: String,
+  )
 
   sealed trait Request {
 
@@ -328,7 +333,7 @@ object http extends LoggingF {
     def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
       responseE match {
         case Left(th) =>
-          loggerF.trace("throwable during request", th)
+          loggerF.debug("throwable during request", th)
             .as(ResponseAction.Retry[A]("retry from throwable"))
         case Right(response) =>
           response.responseMetadata.statusCode match {
@@ -338,7 +343,11 @@ object http extends LoggingF {
             case sc if retryableStatusCodes(sc.code) =>
               ZIO.succeed(ResponseAction.Retry[A](s"http response ${sc.code} status received -- ${response.responseMetadata.compactJson}"))
             case sc =>
-              ZIO.succeed(ResponseAction.Fail[A](s"unable to process status code ${sc}", response.responseMetadata.some))
+              response
+                .responseBodyAsString
+                .map { responseBodyStr =>
+                  ResponseAction.Fail[A](s"unable to process status code ${sc}", ResponseInfo(response.responseMetadata, responseBodyStr).some)
+                }
           }
       }
     }
@@ -391,14 +400,15 @@ object http extends LoggingF {
                 case ResponseAction.Retry(context) =>
                   if (retryNumber <= retryConfig.maxRetries) {
                     for {
-                      _ <- loggerF.debug(s"${context} will retry in ${resolvedBackoff}")
+                      _ <- loggerF.info(s"${context} will retry in ${resolvedBackoff}")
                       _ <- ZIO.sleep(resolvedBackoff.toZio)
                       responseValue <- impl(retryNumber + 1, resolvedBackoff * 2)
                     } yield responseValue
-                  } else
+                  } else {
                     ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))
+                  }
                 case ResponseAction.Fail(msg, rm) =>
-                  ZIO.fail(new RuntimeException(s"received ${rm.map(_.statusCode)} -- ${msg}"))
+                  ZIO.fail(new RuntimeException(s"received ${rm.map(_.metadata.statusCode)} -- ${msg}"))
               }
 
           ZIO.scoped(rawSingleEffect)
@@ -412,6 +422,7 @@ object http extends LoggingF {
         for {
           request0 <- rawRequest.effects.foldLeft(rawRequest0)((r, effect) => r.flatMap(effect))
           request = request0 match { case r0: RequestImpl => r0 }
+          _ <- loggerF.debug(s"http request${if ( request.body.isStream ) "(with streaming request body)" else ""}\n${request.curlCommand.indent("    ")}")
           response <-
             maxConnectionSemaphore
               .withPermit {
