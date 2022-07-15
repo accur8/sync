@@ -4,7 +4,7 @@ package a8.sync
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
-import a8.sync.Mxhttp.{MxResponseMetadata, MxRetryConfig}
+import a8.sync.Mxhttp.{MxResponseInfo, MxResponseMetadata, MxRetryConfig}
 import sttp.model.{StatusCode, Uri}
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
@@ -120,6 +120,8 @@ object http extends LoggingF {
     }
   }
 
+  object ResponseInfo extends MxResponseInfo
+  @CompanionGen
   case class ResponseInfo(
     metadata: ResponseMetadata,
     responseBody: String,
@@ -346,7 +348,8 @@ object http extends LoggingF {
               response
                 .responseBodyAsString
                 .map { responseBodyStr =>
-                  ResponseAction.Fail[A](s"unable to process status code ${sc}", ResponseInfo(response.responseMetadata, responseBodyStr).some)
+                  val responseInfo = ResponseInfo(response.responseMetadata, responseBodyStr)
+                  ResponseAction.Fail[A](s"unable to process response ${responseInfo.compactJson}", responseInfo.some)
                 }
           }
       }
