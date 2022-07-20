@@ -39,7 +39,7 @@ object Conn extends Logging {
         DatabaseId(url.toString),
         url = url,
         user = user,
-        password = password,
+        password = DatabaseConfig.Password(password),
       )
     ConnFactory
       .resource(config)

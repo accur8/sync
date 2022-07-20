@@ -70,7 +70,10 @@ abstract class BootstrappedIOApp
     logger.debug(s"config files used ${bootstrapper.configFiles.map(_.toRealPath()).mkString(" ")}")
     logger.debug(s"directories searched ${bootstrapper.directoriesSearched.mkString(" ")}")
     logger.debug(s"bootstrap config is ${bootstrapper.bootstrapConfig}")
-    logger.debug(s"using config ${bootstrapper.rootConfig.prettyJson}")
+
+    if (bootstrapConfig.logAppConfig) {
+      logger.debug(s"using config ${bootstrapper.rootConfig.prettyJson}")
+    }
 
     def loadDriver(className: String): Unit = {
       try {

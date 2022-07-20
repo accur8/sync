@@ -14,7 +14,7 @@ object ConnAutoCommitDemo extends BootstrappedIOApp {
       DatabaseId("test"),
       uri"jdbc:postgresql://localhost:5432/qubes",
       "",
-      "",
+      DatabaseConfig.Password(""),
     )
 
 
