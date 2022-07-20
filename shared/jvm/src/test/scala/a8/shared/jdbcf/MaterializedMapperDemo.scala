@@ -17,7 +17,7 @@ object MaterializedMapperDemo extends ZIOAppDefault {
       id = DatabaseId("demo"),
       url = unsafeParseUri("jdbc:hsqldb:mem:demo"),
       user = "SA",
-      password = "",
+      password = DatabaseConfig.Password(""),
     )
 
   object JsonCC extends MxJsonCC {

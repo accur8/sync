@@ -32,7 +32,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryImpl {
       val temp = new HikariDataSource()
       temp.setJdbcUrl(jdbcUrlStr)
       temp.setUsername(user)
-      temp.setPassword(password)
+      temp.setPassword(password.value)
       temp.setIdleTimeout(2.minutes.toMillis)
       temp.setMaxLifetime(1.hour.toMillis)
       temp.setMinimumIdle(minIdle)
