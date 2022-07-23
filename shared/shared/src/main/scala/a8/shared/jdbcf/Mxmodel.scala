@@ -1,8 +1,5 @@
 package a8.shared.jdbcf
 
-import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-import a8.shared.jdbcf.{querydsl=>querydslp}
-
 /**
 
   WARNING THIS IS GENERATED CODE.  DO NOT EDIT.
@@ -14,6 +11,9 @@ import a8.shared.jdbcf.{querydsl=>querydslp}
 //====
 
 //====
+
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+import a8.shared.jdbcf.{querydsl=>querydslp}
 
 
 object Mxmodel {

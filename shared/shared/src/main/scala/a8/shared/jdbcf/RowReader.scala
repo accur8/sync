@@ -99,6 +99,8 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
 
   implicit lazy val boolean: RowReader[Boolean] =
     singleColumnReader[Boolean] {
+      case i: java.lang.Integer =>
+        i != 0
       case s: String =>
         s.toLowerCase match {
           case "y" | "true" | "yes" | "1" =>

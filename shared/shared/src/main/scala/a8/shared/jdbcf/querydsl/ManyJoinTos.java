@@ -4,9 +4,6 @@ import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-@Repeatable(ManyJoinTos.class)
-public @interface JoinTo {
-    String name();
-    String expr();
-    String to();
+public @interface ManyJoinTos {
+    JoinTo[] value();
 }

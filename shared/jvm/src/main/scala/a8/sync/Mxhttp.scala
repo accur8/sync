@@ -1,8 +1,5 @@
 package a8.sync
 
-import a8.shared.Meta.{CaseClassParm, Constructors, Generator}
-
-
 /**
 
   WARNING THIS IS GENERATED CODE.  DO NOT EDIT.
@@ -18,6 +15,9 @@ import a8.sync.http.RetryConfig
 import scala.concurrent.duration.FiniteDuration
 import a8.sync.http.ResponseMetadata
 //====
+
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+
 
 
 object Mxhttp {
