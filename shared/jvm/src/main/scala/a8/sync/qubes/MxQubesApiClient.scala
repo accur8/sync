@@ -1,8 +1,5 @@
 package a8.sync.qubes
 
-import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-
-
 /**
 
   WARNING THIS IS GENERATED CODE.  DO NOT EDIT.
@@ -21,6 +18,9 @@ import a8.sync.qubes.QubesApiClient._
 import a8.shared.json.ast.{JsDoc, JsObj}
 
 //====
+
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+
 
 
 object MxQubesApiClient {

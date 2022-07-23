@@ -1,8 +1,5 @@
 package a8.shared.json
 
-import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-
-
 /**
 
   WARNING THIS IS GENERATED CODE.  DO NOT EDIT.
@@ -14,6 +11,9 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 //====
 import JsonTest._
 //====
+
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+
 
 
 object MxJsonTest {

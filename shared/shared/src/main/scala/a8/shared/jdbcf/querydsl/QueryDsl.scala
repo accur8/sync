@@ -134,6 +134,8 @@ object QueryDsl {
 
   case class Concat(left: Expr[_], right: Expr[_]) extends Expr[String]
 
+  case class Opt[A : SqlStringer](expr: Expr[A]) extends Expr[Option[A]]
+
   case class UnaryOperation[T: SqlStringer](op: UnaryOperator, value: Expr[T]) extends Expr[T]
   case class NumericOperation[T: SqlStringer](left: Expr[T], op: NumericOperator, right: Expr[T]) extends NumericExpr[T]
 
@@ -211,6 +213,8 @@ object QueryDsl {
 
   def fieldExprs(expr: Expr[_]): IndexedSeq[FieldExpr[_]] =
     expr match {
+      case Opt(e) =>
+        fieldExprs(e)
       case fe: FieldExpr[_] =>
         IndexedSeq(fe)
       case _: Constant[_] =>
@@ -344,6 +348,9 @@ object QueryDsl {
     def ===(value: Expr[T]): Condition =
       BooleanOperation(this, Ops.Equal, value)
 
+    def =:=(value: Expr[Option[T]]): Condition =
+      BooleanOperation(Opt(this), Ops.Equal, value)
+
     def eq_(value: Expr[T]): Condition =
       BooleanOperation(this, Ops.Equal, value)
 
@@ -373,6 +380,9 @@ object QueryDsl {
 
     def asc = OrderBy(this, true)
     def desc = OrderBy(this, false)
+
+    def opt: Expr[Option[T]] =
+      Opt(this)
 
   }
 
@@ -469,6 +479,8 @@ object QueryDsl {
         else
           compiler.prefix(fe.join) + fe.name
       a ~ DialectQuotedIdentifier(name)
+    case Opt(e) =>
+      exprAsSql(e)
     case OptionConstant(Some(c)) =>
       exprAsSql(c)
     case constant: Constant[T] =>
