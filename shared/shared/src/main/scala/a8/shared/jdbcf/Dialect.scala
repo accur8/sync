@@ -3,7 +3,7 @@ package a8.shared.jdbcf
 import a8.shared.Chord
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey}
-import a8.shared.jdbcf.SqlString.{AbstractEscaper, DefaultJdbcEscaper, Escaper, RawSqlString}
+import a8.shared.jdbcf.SqlString.{DefaultEscaper, DefaultJdbcEscaper, Escaper, RawSqlString}
 import sttp.model.Uri
 import UnsafeResultSetOps._
 import a8.shared.SharedImports._
@@ -57,7 +57,7 @@ trait Dialect {
           escaper0 <-
             ZIO.attemptBlocking {
               val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
-              new AbstractEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {}
+              new DefaultEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {}
             }
         } yield escaper0
       }
@@ -77,30 +77,43 @@ trait Dialect {
     /**
    * will do a case insensitive lookup
    */
-  def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] =
-    conn.asInternal.withInternalConn { jdbcConn =>
-      jdbcConn
-        .getMetaData
-        .getTables(
-          tableLocator.metadataCatalog,
-          tableLocator.metadataSchema,
-          tableLocator.metadataTable,
-          null
-        )
-        .runAsIterator( iter =>
-          iter
-            .take(1)
-            .map { row =>
-              ResolvedTableName(
-                row.opt[CatalogName]("TABLE_CAT"),
-                row.opt[SchemaName]("TABLE_SCHEM"),
-                row.get[TableName]("TABLE_NAME"),
-              )
+  def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] = {
+    for {
+      resolveTableTask <-
+        conn.asInternal.withInternalConn { jdbcConn =>
+          jdbcConn
+            .getMetaData
+            .getTables(
+              tableLocator.metadataCatalog,
+              tableLocator.metadataSchema,
+              tableLocator.metadataTable,
+              null
+            )
+            .runAsIterator { iter =>
+              val foundTables =
+                iter
+                  .map { row =>
+                    ResolvedTableName(
+                      row.opt[CatalogName]("TABLE_CAT"),
+                      row.opt[SchemaName]("TABLE_SCHEM"),
+                      row.get[TableName]("TABLE_NAME"),
+                    )
+                  }
+                  .toVector
+
+              resolveTableNameImpl(tableLocator, conn, foundTables)
+
             }
-            .toList
-            .head
-        )
-    }
+        }
+      rtn <- resolveTableTask
+    } yield rtn
+  }
+
+  def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): Task[ResolvedTableName] =
+    ZIO.succeed(
+      foundTables.head
+    )
+
 
   def primaryKeys(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcPrimaryKey]] = {
     val locator = table.asLocator

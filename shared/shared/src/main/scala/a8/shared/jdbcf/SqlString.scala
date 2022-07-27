@@ -240,7 +240,7 @@ object SqlString extends SqlStringLowPrio {
     def unsafeSqlQuotedIdentifier(identifier: String): String
   }
 
-  class AbstractEscaper(identifierQuoteStr: String, keywordSet: KeywordSet, defaultCaseFn: String=>Boolean) extends Escaper {
+  class DefaultEscaper(identifierQuoteStr: String, keywordSet: KeywordSet, defaultCaseFn: String=>Boolean) extends Escaper {
 
     override def unsafeSqlEscapeStringValue(value: String): String =
       "'" + value.replace("'","''") + "'"
@@ -257,7 +257,7 @@ object SqlString extends SqlStringLowPrio {
 
   }
 
-  object DefaultJdbcEscaper extends AbstractEscaper("\"", KeywordSet.default, _ => false)
+  object DefaultJdbcEscaper extends DefaultEscaper("\"", KeywordSet.default, _ => false)
 
   object NoopEscaper extends Escaper {
     override def unsafeSqlEscapeStringValue(value: String): String =
