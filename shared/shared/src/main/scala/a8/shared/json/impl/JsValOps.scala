@@ -77,7 +77,7 @@ object JsValOps {
                       jarr
                         .values
                         .iterator
-                        .filterNot(_.actualValue == JsNothing)
+                        .filterNot(_ == JsNothing)
                         .map(v => impl(v)),
                     commaNewLineCh,
                   )
@@ -95,7 +95,7 @@ object JsValOps {
                     jobj
                       .values
                       .iterator
-                      .filterNot(_._2.actualValue == JsNothing)
+                      .filterNot(_._2 == JsNothing)
                       .map(t => toEscapedJsonChord(t._1) ~ colonSpaceCh ~ impl(t._2)),
                   commaNewLineCh,
                 )
@@ -131,7 +131,7 @@ object JsValOps {
               jarr
                 .values
                 .iterator
-                .filterNot(_.actualValue == JsNothing)
+                .filterNot(_ == JsNothing)
                 .map(v => toCompactJsonChord(v, sortKeys)),
             Chord.comma,
           ) ~
@@ -147,7 +147,7 @@ object JsValOps {
                   .toList
                   .sortBy(_._1)
                   .iterator
-                  .filterNot(_._2.actualValue == JsNothing)
+                  .filterNot(_._2 == JsNothing)
                   .map(t => toEscapedJsonChord(t._1) ~ colonCh ~ toCompactJsonChord(t._2, sortKeys)),
               Chord.comma,
             ) ~
@@ -159,7 +159,7 @@ object JsValOps {
                 jobj
                   .values
                   .iterator
-                  .filterNot(_._2.actualValue == JsNothing)
+                  .filterNot(_._2 == JsNothing)
                   .map(t => toEscapedJsonChord(t._1) ~ colonCh ~ toCompactJsonChord(t._2,sortKeys)),
               Chord.comma,
             ) ~

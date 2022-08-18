@@ -2,7 +2,7 @@ package a8.shared.json
 
 
 import a8.shared.SingleArgConstructor
-import a8.shared.json.impl.{JawnFacade, JsDocMixin, JsValMixin}
+import a8.shared.json.impl.{HasJsValOps, JawnFacade, JsDocMixin}
 import org.typelevel.jawn.Facade
 
 import language.implicitConversions
@@ -10,15 +10,35 @@ import scala.util.Try
 
 object ast {
 
+  object HasJsVal {
+    implicit def hasJsValOps(hjsv: HasJsVal): HasJsValOps =
+      new HasJsValOps(hjsv)
+  }
+  sealed trait HasJsVal {
+    def actualJsVal: JsVal
+  }
+
   object JsVal {
     implicit def jawnFacade: Facade[JsVal] = JawnFacade
+    implicit val equal = zio.prelude.Equal.default[JsVal]
   }
-  sealed trait JsVal extends JsValMixin
+
+  sealed trait JsVal extends HasJsVal {
+    override def actualJsVal: JsVal = this
+  }
 
   object JsDoc {
     val empty = JsDoc(JsNothing, None)
+
+    implicit val codec: JsonCodec[JsDoc] =
+      new JsonCodec[JsDoc] {
+        override def write(jsd: JsDoc): JsVal = jsd.value
+        override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, JsDoc] = Right(doc)
+      }
   }
-  case class JsDoc(value: JsVal, parent: Option[(JsDoc, Either[String,Int])] = None) extends JsVal with JsDocMixin
+  case class JsDoc(value: JsVal, parent: Option[(JsDoc, Either[String,Int])] = None) extends HasJsVal with JsDocMixin {
+    override def actualJsVal = value
+  }
 
   case object JsNothing extends JsVal
   case object JsNull extends JsVal
@@ -64,6 +84,10 @@ object ast {
         case false =>
           JsFalse
       }
+
+    def unapply(value: JsBool): Option[Boolean] =
+      Some(value.value)
+
   }
   sealed trait JsBool extends JsVal {
     val value: Boolean

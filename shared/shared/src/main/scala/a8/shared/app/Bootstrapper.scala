@@ -19,5 +19,6 @@ trait Bootstrapper {
   def appConfig[A : JsonCodec : ClassTag]: A =
     rootConfig
       .toDoc("app")
+      .value
       .unsafeAs[A]
 }

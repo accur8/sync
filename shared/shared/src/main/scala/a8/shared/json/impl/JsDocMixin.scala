@@ -5,7 +5,6 @@ import a8.shared.json.ReadError.SingleReadError
 import a8.shared.json.ast._
 
 trait JsDocMixin { self: JsDoc =>
-
   def isEmpty: Boolean =
     value match {
       case JsNull | JsNothing =>
@@ -55,5 +54,33 @@ trait JsDocMixin { self: JsDoc =>
         }
     }
   }
+//
+//  def apply(name: String): JsDoc = {
+//    val selectedValue =
+//      value match {
+//        case jobj: JsObj =>
+//          jobj
+//            .values
+//            .get(name)
+//            .getOrElse(JsNothing)
+//        case _ =>
+//          JsNothing
+//      }
+//    JsDoc(selectedValue, Some(this -> Left(name)))
+//  }
+//
+//  def apply(index: Int): JsDoc = {
+//    val selectedValue =
+//      value match {
+//        case jarr: JsArr =>
+//          if (index >= 0 && index <= jarr.values.size)
+//            jarr.values(index)
+//          else
+//            JsNothing
+//        case _ =>
+//          JsNothing
+//      }
+//    JsDoc(selectedValue, Some(this -> Right(index)))
+//  }
 
 }

@@ -5,26 +5,19 @@ import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, ReadError}
 import zio.{Task, ZIO}
 
-trait JsValMixin { self: JsVal =>
+class HasJsValOps(private val self: HasJsVal) extends AnyVal {
 
-  def actualValue: JsVal =
-    self match {
-      case jsd: JsDoc =>
-        jsd.value
-      case _ =>
-        self
-    }
-
-  def toDoc: JsDoc =
+  def toDoc: JsDoc = {
     self match {
       case jsd: JsDoc =>
         jsd
-      case jv =>
-        JsDoc(jv, None)
+      case _ =>
+        JsDoc(self.actualJsVal, None)
     }
+  }
 
   def asObject: Option[JsObj] =
-    actualValue match {
+    self.actualJsVal match {
       case jo: JsObj =>
         Some(jo)
       case _ =>
@@ -54,21 +47,21 @@ trait JsValMixin { self: JsVal =>
 
   def compactPrintSortedKeys: String =
     JsValOps
-      .toCompactJsonChord(self, false)
+      .toCompactJsonChord(self.actualJsVal, true)
       .toString
 
   def compactJson: String =
     JsValOps
-      .toCompactJsonChord(self, false)
+      .toCompactJsonChord(self.actualJsVal, false)
       .toString
 
   def prettyJson: String =
     JsValOps
-      .toPrettyJsonChord(self)
+      .toPrettyJsonChord(self.actualJsVal)
       .toString
 
   def asStr: Option[String] =
-    actualValue match {
+    self.actualJsVal match {
       case JsStr(s) =>
         Some(s)
       case _ =>
@@ -76,7 +69,7 @@ trait JsValMixin { self: JsVal =>
     }
 
   def asNum: Option[BigDecimal] =
-    actualValue match {
+    self.actualJsVal match {
       case JsNum(bd) =>
         Some(bd)
       case _ =>
@@ -84,7 +77,7 @@ trait JsValMixin { self: JsVal =>
     }
 
   def asArr: List[JsVal] =
-    actualValue match {
+    self.actualJsVal match {
       case jsa: JsArr =>
         jsa.values
       case _ =>
@@ -93,7 +86,7 @@ trait JsValMixin { self: JsVal =>
 
   def apply(name: String): JsDoc = {
     val selectedValue =
-      self.toDoc.value match {
+      self.actualJsVal match {
         case jobj: JsObj =>
           jobj
             .values
@@ -107,7 +100,7 @@ trait JsValMixin { self: JsVal =>
 
   def apply(index: Int): JsDoc = {
     val selectedValue =
-      self.toDoc.value match {
+      self.actualJsVal match {
         case jarr: JsArr =>
           if ( index >= 0 && index <= jarr.values.size )
             jarr.values(index)

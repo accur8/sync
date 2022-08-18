@@ -173,9 +173,9 @@ trait JsonTypedCodecs {
       v => BigDecimal(v),
     )
 
-  implicit lazy val jsDoc: JsonTypedCodec[JsDoc,JsDoc] =
-    new JsonTypedCodec[JsDoc,JsDoc] {
-      override def write(a: JsDoc): JsDoc = a
+  implicit lazy val jsDoc: JsonTypedCodec[JsDoc,JsVal] =
+    new JsonTypedCodec[JsDoc,JsVal] {
+      override def write(a: JsDoc): JsVal = a.value
       override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, JsDoc] = Right(doc)
     }
 
