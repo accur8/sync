@@ -161,8 +161,15 @@ object http extends LoggingF {
     def execWithStringResponse(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
       processor.exec(this)
 
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
-      processor.execWithStringResponse(this, responseJson => json.readF[A](responseJson))
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] = {
+
+      def parseJson(jsonStr: String): Task[A] =
+        json
+          .readF[A](jsonStr)
+          .onError(_ => loggerF.debug(s"unable to parse json response -- ${jsonStr}"))
+
+      processor.execWithStringResponse(this, parseJson)
+    }
 
     def execWithResponseEffect[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
       processor.execWithResponseEffect[A](this, responseEffect)
