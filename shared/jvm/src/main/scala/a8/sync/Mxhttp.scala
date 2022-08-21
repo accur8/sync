@@ -107,7 +107,7 @@ object Mxhttp {
     
     object parameters {
       lazy val metadata: CaseClassParm[ResponseInfo,ResponseMetadata] = CaseClassParm[ResponseInfo,ResponseMetadata]("metadata", _.metadata, (d,v) => d.copy(metadata = v), None, 0)
-      lazy val responseBody: CaseClassParm[ResponseInfo,String] = CaseClassParm[ResponseInfo,String]("responseBody", _.responseBody, (d,v) => d.copy(responseBody = v), None, 1)
+      lazy val responseBody: CaseClassParm[ResponseInfo,Option[String]] = CaseClassParm[ResponseInfo,Option[String]]("responseBody", _.responseBody, (d,v) => d.copy(responseBody = v), None, 1)
     }
     
     
@@ -116,20 +116,20 @@ object Mxhttp {
       def rawConstruct(values: IndexedSeq[Any]): ResponseInfo = {
         ResponseInfo(
           metadata = values(0).asInstanceOf[ResponseMetadata],
-          responseBody = values(1).asInstanceOf[String],
+          responseBody = values(1).asInstanceOf[Option[String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ResponseInfo = {
         val value =
           ResponseInfo(
             metadata = values.next().asInstanceOf[ResponseMetadata],
-            responseBody = values.next().asInstanceOf[String],
+            responseBody = values.next().asInstanceOf[Option[String]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(metadata: ResponseMetadata, responseBody: String): ResponseInfo =
+      def typedConstruct(metadata: ResponseMetadata, responseBody: Option[String]): ResponseInfo =
         ResponseInfo(metadata, responseBody)
     
     }

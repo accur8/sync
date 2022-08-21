@@ -15,7 +15,7 @@ import a8.shared.jdbcf.MaterializedMapperDemo.JsonCC
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-import a8.shared.jdbcf.{querydsl=>querydslp}
+import a8.shared.jdbcf
 
 
 object MxMaterializedMapperDemo {
@@ -80,7 +80,7 @@ object MxMaterializedMapperDemo {
   
   trait MxBigBoo {
   
-    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[BigBoo,Int] =
+    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[BigBoo,(Int)] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
         .addField(_.grOup)
         .addField(_.name)    
@@ -89,18 +89,18 @@ object MxMaterializedMapperDemo {
         .buildKeyedTableMapper
     
     
-    class TableDsl(join: querydslp.QueryDsl.Join = querydslp.QueryDsl.RootJoin) {
-      val grOup = querydslp.QueryDsl.field[Int]("grOup", join)
-      val name = querydslp.QueryDsl.field[String]("name", join)
+    class TableDsl(join: jdbcf.querydsl.QueryDsl.Join = jdbcf.querydsl.QueryDsl.RootJoin) {
+      val grOup = jdbcf.querydsl.QueryDsl.field[Int]("grOup", join)
+      val name = jdbcf.querydsl.QueryDsl.field[String]("name", join)
     
     }
     
-    val queryDsl = new querydslp.QueryDsl[BigBoo, TableDsl, Int](jdbcMapper, new TableDsl)
+    val queryDsl = new jdbcf.querydsl.QueryDsl[BigBoo, TableDsl, Int](jdbcMapper, new TableDsl)
     
-    def query(whereFn: TableDsl => querydslp.QueryDsl.Condition): querydslp.SelectQuery[BigBoo, TableDsl] =
+    def query(whereFn: TableDsl => jdbcf.querydsl.QueryDsl.Condition): jdbcf.querydsl.SelectQuery[BigBoo, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update(set: TableDsl => Iterable[querydslp.UpdateQuery.Assignment[_]]): querydslp.UpdateQuery[TableDsl] =
+    def update(set: TableDsl => Iterable[jdbcf.querydsl.UpdateQuery.Assignment[_]]): jdbcf.querydsl.UpdateQuery[TableDsl] =
       queryDsl.update(set)
     
     

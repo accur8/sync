@@ -13,7 +13,7 @@ package a8.shared.jdbcf
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
-import a8.shared.jdbcf.{querydsl=>querydslp}
+import a8.shared.jdbcf
 
 
 object Mxmodel {
@@ -28,10 +28,10 @@ object Mxmodel {
         .buildMapper
     
     
-    class TableDsl(join: querydslp.QueryDsl.Path) extends querydslp.QueryDsl.Component[ResolvedTableName](join) {
-      val catalog = querydslp.QueryDsl.field[Option[CatalogName]]("catalog", join)
-      val schema = querydslp.QueryDsl.field[Option[SchemaName]]("schema", join)
-      val name = querydslp.QueryDsl.field[TableName]("name", join)
+    class TableDsl(join: jdbcf.querydsl.QueryDsl.Path) extends jdbcf.querydsl.QueryDsl.Component[ResolvedTableName](join) {
+      val catalog = jdbcf.querydsl.QueryDsl.field[Option[CatalogName]]("catalog", join)
+      val schema = jdbcf.querydsl.QueryDsl.field[Option[SchemaName]]("schema", join)
+      val name = jdbcf.querydsl.QueryDsl.field[TableName]("name", join)
     
     }
     

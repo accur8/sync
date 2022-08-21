@@ -1,6 +1,7 @@
 package a8.shared
 
 
+import a8.shared.app.LoggerF
 import a8.shared.json.JsonCodec
 import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, FiniteDurationOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
 import cats.data.Chain
@@ -26,6 +27,7 @@ import scala.util.Try
 import cats.syntax
 import cats.instances
 import wvlet.log.Logger
+import zio.Trace
 import zio.prelude._
 
 object SharedImports extends SharedImports
@@ -280,5 +282,18 @@ trait SharedImports
 
   implicit final def finiteDurationOps(fd: FiniteDuration): FiniteDurationOps =
     new FiniteDurationOps(fd)
+
+  implicit class TaskOps[R, A](effect: zio.ZIO[R, Throwable, A]) {
+    /**
+     * Will log and swallow any errors
+     */
+    def logVoid(implicit loggerF: LoggerF, trace: Trace): zio.URIO[R, Unit] =
+      effect
+        .catchAll(th =>
+          loggerF.warn("fatal error catching, logging and swallowing", th)
+        )
+        .map(_ => ())
+
+  }
 
 }

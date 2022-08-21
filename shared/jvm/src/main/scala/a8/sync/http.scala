@@ -2,7 +2,7 @@ package a8.sync
 
 
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
-import a8.shared.json.JsonCodec
+import a8.shared.json.{JsonCodec, ReadError}
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp.{MxResponseInfo, MxResponseMetadata, MxRetryConfig}
 import sttp.model.{StatusCode, Uri}
@@ -12,14 +12,14 @@ import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.sync.http.{Body, Response}
 import a8.sync.http.Body.StringBody
 import a8.sync.http.Request.ResponseAction
-import a8.sync.http.impl.{RequestImpl, RequestProcessorImpl, standardResponseProcessor}
+import a8.sync.http.impl.{RequestImpl, RequestProcessorImpl, standardResponseActionProcessor, standardResponseProcessor}
 import cats.data.Chain
 import sttp.capabilities.zio.ZioStreams
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
 import sttp.client3.{Identity, RequestT, ResponseAs, basicRequest}
-import zio.Schedule.WithState
+import zio.Schedule.{WithState, succeed}
 import zio.{durationInt => _, _}
 import zio.stream.{ZPipeline, ZSink}
 
@@ -46,13 +46,14 @@ object http extends LoggingF {
   }
 
   case class SttpBackend(
-    sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets]
+    sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets],
+    replayableStreamFactory: ReplayableStream.Factory
   )
     extends Backend
   {
     override def rawSingleExec(request: RequestImpl): ZIO[Scope, Throwable, Response] = {
 
-      type SttpRequest = RequestT[Identity, Response, capabilities.Effect[Task] with ZioStreams]
+      type SttpRequest = RequestT[Identity, (XStream[Byte], ResponseMetadata), capabilities.Effect[Task] with ZioStreams]
 
       def requestWithBody(r0: SttpRequest): SttpRequest =
         request.body match {
@@ -69,14 +70,11 @@ object http extends LoggingF {
       def requestWithFollowRedirects(r0: SttpRequest): SttpRequest =
         r0.followRedirects(request.followRedirects)
 
-      val responseAs: ResponseAs[Response, ZioStreams] =
+      val responseAs: ResponseAs[(XStream[Byte], ResponseMetadata), ZioStreams] =
         client3
           .asStreamAlwaysUnsafe(ZioStreams)
           .mapWithMetadata { (stream, sttpResponseMetadata) =>
-            Response(
-              ResponseMetadata(sttpResponseMetadata),
-              stream,
-            )
+            stream -> ResponseMetadata(sttpResponseMetadata)
           }
 
       val request0: SttpRequest =
@@ -95,8 +93,18 @@ object http extends LoggingF {
       resolvedSttpRequest
         .send(sttpBackend)
         .flatMap { response =>
-          loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-            .as(response.body)
+          //
+          replayableStreamFactory
+            .makeReplayable(response.body._1)
+            .map { replayableStream =>
+              Response(
+                response.body._2,
+                replayableStream,
+              )
+            }
+            .tap { _ =>
+              loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+            }
         }
         .onError { error =>
            loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
@@ -120,11 +128,21 @@ object http extends LoggingF {
     }
   }
 
+  object JsonResponseOptions {
+    implicit val default = JsonResponseOptions()
+  }
+  case class JsonResponseOptions(
+    logJsonResponseBody: Boolean = false,
+    retryJsonParseErrors: Boolean = false,
+    retryJsonCodecErrors: Boolean = false,
+    responseValidator: JsVal => UIO[ResponseAction[JsVal]] = jsv => ZIO.succeed(ResponseAction.Success(jsv)),
+  )
+
   object ResponseInfo extends MxResponseInfo
   @CompanionGen
   case class ResponseInfo(
     metadata: ResponseMetadata,
-    responseBody: String,
+    responseBody: Option[String],
   )
 
   sealed trait Request {
@@ -161,14 +179,61 @@ object http extends LoggingF {
     def execWithStringResponse(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
       processor.exec(this)
 
-    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] = {
+    def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, trace: Trace, loggerF: LoggerF): Task[A] = {
 
-      def parseJson(jsonStr: String): Task[A] =
-        json
-          .readF[A](jsonStr)
-          .onError(_ => loggerF.debug(s"unable to parse json response -- ${jsonStr}"))
+      // some mildly unruly code because all of the JsonResponseOptions come together here
+      def responseEffect(response: Response): Task[ResponseAction[A]] = {
+        response
+          .responseBodyAsString
+          .flatMap { responseBodyStr =>
 
-      processor.execWithStringResponse(this, parseJson)
+            def nonSuccessfulResponse(retry: Boolean, error: ReadError): ResponseAction[A] = {
+              if (jsonResponseOptions.retryJsonParseErrors) {
+                ResponseAction.Retry(error.prettyMessage)
+              } else {
+                ResponseAction.Fail(error.prettyMessage, ResponseInfo(response.responseMetadata, responseBodyStr.some).some)
+              }
+            }
+
+
+            val responseActionEffect: Task[ResponseAction[A]] =
+              json.parse(responseBodyStr) match {
+                case Left(parseError) =>
+                  ZIO.succeed(
+                    nonSuccessfulResponse(jsonResponseOptions.retryJsonParseErrors, parseError)
+                  )
+                case Right(unvalidatedJsv) =>
+                  jsonResponseOptions
+                    .responseValidator(unvalidatedJsv)
+                    .map {
+                      case r@ ResponseAction.Retry(_) =>
+                        ResponseAction.Retry(r.context)
+                      case f@ ResponseAction.Fail(_, _) =>
+                        ResponseAction.Fail(f.context, f.responseInfo)
+                      case ResponseAction.Success(validatedJsv) =>
+                        JsonCodec[A].read(validatedJsv.toDoc) match {
+                          case Left(readError) =>
+                            nonSuccessfulResponse(jsonResponseOptions.retryJsonCodecErrors, readError)
+                          case Right(a) =>
+                            // happy path yay we made it
+                            ResponseAction.Success(a)
+                        }
+                    }
+
+              }
+            for {
+              _ <-
+                if (jsonResponseOptions.logJsonResponseBody) {
+                  loggerF.debug(s"response body --\n${responseBodyStr}")
+                } else {
+                  ZIO.unit
+                }
+              ra <- responseActionEffect
+            } yield ra
+          }
+      }
+
+      execWithEffect(standardResponseActionProcessor(responseEffect))
     }
 
     def execWithResponseEffect[A](responseEffect: Response=>Task[A])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
@@ -321,7 +386,7 @@ object http extends LoggingF {
         sttpBackend <-sttp.client3.asynchttpclient.zio.AsyncHttpClientZioBackend.scoped()
         maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
-        RequestProcessorImpl(retry, SttpBackend(sttpBackend), maxConnectionSemaphore)
+        RequestProcessorImpl(retry, SttpBackend(sttpBackend, ???), maxConnectionSemaphore)
     }
 
 
@@ -334,12 +399,16 @@ object http extends LoggingF {
 
     def standardResponseProcessor[A](effect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Either[Throwable,Response]=>Task[ResponseAction[A]] =
       { responseE =>
-        standardResponseProcessorImpl(responseE, effect)
+        standardResponseProcessorImpl(responseE, effect.map(_.map(ResponseAction.Success(_))))
       }
+
+    def standardResponseActionProcessor[A](effect: Response => Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Either[Throwable, Response] => Task[ResponseAction[A]] = { responseE =>
+      standardResponseProcessorImpl(responseE, effect)
+    }
 
     lazy val retryableStatusCodes = Set(429, 500, 502)
 
-    def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[A])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
+    def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
       responseE match {
         case Left(th) =>
           loggerF.debug("throwable during request", th)
@@ -348,14 +417,13 @@ object http extends LoggingF {
           response.responseMetadata.statusCode match {
             case sc if sc.isSuccess =>
               effect(response)
-                .map(ResponseAction.Success.apply)
             case sc if retryableStatusCodes(sc.code) =>
               ZIO.succeed(ResponseAction.Retry[A](s"http response ${sc.code} status received -- ${response.responseMetadata.compactJson}"))
             case sc =>
               response
                 .responseBodyAsString
                 .map { responseBodyStr =>
-                  val responseInfo = ResponseInfo(response.responseMetadata, responseBodyStr)
+                  val responseInfo = ResponseInfo(response.responseMetadata, responseBodyStr.some)
                   ResponseAction.Fail[A](s"unable to process response ${responseInfo.compactJson}", responseInfo.some)
                 }
           }
