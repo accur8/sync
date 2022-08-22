@@ -132,7 +132,7 @@ object http extends LoggingF {
     implicit val default = JsonResponseOptions()
   }
   case class JsonResponseOptions(
-    logJsonResponseBody: Boolean = false,
+    logJsonResponseBody: Boolean = true,
     retryJsonParseErrors: Boolean = false,
     retryJsonCodecErrors: Boolean = false,
     responseValidator: JsVal => UIO[ResponseAction[JsVal]] = jsv => ZIO.succeed(ResponseAction.Success(jsv)),
