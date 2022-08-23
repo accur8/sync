@@ -47,7 +47,7 @@ object http extends LoggingF {
 
   case class SttpBackend(
     sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets],
-    replayableStreamFactory: ReplayableStream.Factory
+//    replayableStreamFactory: ReplayableStream.Factory
   )
     extends Backend
   {
@@ -93,18 +93,18 @@ object http extends LoggingF {
       resolvedSttpRequest
         .send(sttpBackend)
         .flatMap { response =>
-          //
-          replayableStreamFactory
-            .makeReplayable(response.body._1)
-            .map { replayableStream =>
+//          replayableStreamFactory
+//            .makeReplayable(response.body._1)
+//            .map { replayableStream =>
+//            }
+//            .tap { _ =>
+          loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+            .as(
               Response(
                 response.body._2,
-                replayableStream,
+                response.body._1,
               )
-            }
-            .tap { _ =>
-              loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
-            }
+            )
         }
         .onError { error =>
            loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
@@ -386,7 +386,7 @@ object http extends LoggingF {
         sttpBackend <-sttp.client3.asynchttpclient.zio.AsyncHttpClientZioBackend.scoped()
         maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
-        RequestProcessorImpl(retry, SttpBackend(sttpBackend, ???), maxConnectionSemaphore)
+        RequestProcessorImpl(retry, SttpBackend(sttpBackend), maxConnectionSemaphore)
     }
 
 

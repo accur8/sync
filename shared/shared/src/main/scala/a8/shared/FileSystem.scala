@@ -33,13 +33,23 @@ object FileSystem {
     def \(fileName: String): File = file(fileName)
     def \\(subdirName: String): Directory = subdir(subdirName)
 
+    /**
+     * makes sure the directory exists
+     * @return
+     */
+    def resolve: Directory = {
+      if ( !exists() )
+        makeDirectories()
+      this
+    }
+
     def makeDirectories(): Unit
     def makeDirectory(): Unit
     def subdirs(): Iterable[Directory]
     def entries(): Iterable[Path]
     def files(): Iterable[File]
     def deleteChildren(): Unit
-    def file(subdirName: String): File
+    def file(filename: String): File
     def subdir(subdirName: String): Directory
 
   }

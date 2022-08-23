@@ -22,6 +22,8 @@ abstract class BootstrappedIOApp
 
     val infos =
       List(
+        "org.apache.parquet",
+        "org.apache.hadoop",
         "a8.wsjdbc.client",
         "sun",
         "jdk",

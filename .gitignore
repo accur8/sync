@@ -31,3 +31,4 @@ config/
 .bsp
 .vscode
 .direnv
+temp

@@ -25,27 +25,30 @@ object PostgresDialect extends Dialect {
     val schemaPart = tableLocator.schemaName.map(s=>q" and schemaname = ${s.asString.escape}").getOrElse(q"")
     val sql = q"""
 SELECT
-    tablename,
+    null,
     schemaname,
-    false
+    tablename,
+    'table'
   FROM
     pg_catalog.pg_tables
   WHERE
     lower(tablename) = ${tableName.asLowerCaseStringValue}${schemaPart}
 UNION
   SELECT
-     viewname,
+     null,
      schemaname,
-     true
+     viewname,
+     'view'
    FROM
      pg_catalog.pg_views
    WHERE
      lower(viewname) = ${tableName.asLowerCaseStringValue}${schemaPart}
 UNION
  SELECT
-     matviewname,
+     null,
      schemaname,
-     true
+     matviewname,
+     'matview'
    FROM
      pg_catalog.pg_matviews
    WHERE

@@ -16,6 +16,7 @@ val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "2.13.6"
 val sbtA8Version = "1.2.0-20220113_1040"
+val zioVersion = "2.0.1"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -39,6 +40,7 @@ lazy val api =
     .jvmProject("a8-sync-api", file("api"), "api")
     .dependsOn(sharedJVM)
     .settings(
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "net.sf.jt400" % "jt400" % "10.7",
         "com.zaxxer" % "HikariCP" % "4.0.3",
@@ -51,6 +53,7 @@ lazy val shared =
   Common
     .crossProject("a8-sync-shared", file("shared"), "shared")
     .settings(
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "org.wvlet.airframe" %% "airframe-log" % "22.1.0",
         "org.typelevel" %% "cats-core" % "2.7.0",
@@ -65,7 +68,12 @@ lazy val shared =
         "org.typelevel" %% "jawn-parser" % "1.3.2",
         "org.typelevel" %% "jawn-ast" % "1.3.2",
         "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.6.1",
-        "dev.zio" %% "zio-prelude" % "1.0.0-RC14"
+        "dev.zio" %%% "zio-prelude" % "1.0.0-RC15",
+        "dev.zio" %%% "zio" % zioVersion,
+        "dev.zio" %%% "zio-streams" % zioVersion,
+        "dev.zio" %%% "zio-test" % zioVersion % Test,
+        "dev.zio" %%% "zio-test-sbt" % zioVersion % Test,
+        "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test
       )
     )
     .jvmSettings(
@@ -81,7 +89,7 @@ lazy val shared =
     )
     .jsSettings(
       libraryDependencies ++= Seq(
-        "org.scala-js" %%% "scalajs-dom" % "1.2.0",
+        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
       )
     )
 
@@ -94,7 +102,7 @@ lazy val root =
     .settings( publish := {} )
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
     .aggregate(api)
-    .aggregate(sharedJS)
+//    .aggregate(sharedJS)
     .aggregate(sharedJVM)
 
 
