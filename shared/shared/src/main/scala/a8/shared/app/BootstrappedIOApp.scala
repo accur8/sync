@@ -22,11 +22,13 @@ abstract class BootstrappedIOApp
 
     val infos =
       List(
+        "javax.xml",
         "org.apache.parquet",
         "org.apache.hadoop",
         "a8.wsjdbc.client",
         "sun",
         "jdk",
+        "com.sun.xml.bind",
         "org.apache.http",
         "org.apache.pulsar.client.impl.ProducerImpl",
         "org.apache.pulsar.client.impl.PersistentAcknowledgmentsGroupingTracker",

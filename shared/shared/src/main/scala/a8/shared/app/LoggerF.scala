@@ -93,7 +93,7 @@ object LoggerF {
  * many of these methods are implemented to perform well as distinct from being as concise / DRY as possible
  *
  */
-abstract class LoggerF {
+trait LoggerF {
 
   import wvlet.log.LogLevel
 
