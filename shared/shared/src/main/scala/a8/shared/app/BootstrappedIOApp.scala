@@ -46,6 +46,7 @@ abstract class BootstrappedIOApp
         "jakarta",
         "org.asynchttpclient",
         "software.amazon.awssdk",
+        "net.snowflake.client",
       ) map { n =>
         n -> LogLevel.INFO
       }
