@@ -101,14 +101,21 @@ abstract class BootstrappedIOApp
 
 
   final override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
-    (
+    val effect =
       for {
         _ <- appInit
         _ <- runT
       } yield ()
-    ).catchAll(th =>
-      loggerF.error("fatal error ending app", th)
-    )
+
+    val loggingLayer = SyncZLogger.slf4jLayer(zio.LogLevel.Debug)
+
+    effect
+      .catchAll(th =>
+        loggerF.error("fatal error ending app", th)
+      )
+      .provideLayer(loggingLayer)
+      .provideLayer(zio.logging.removeDefaultLoggers)
+
   }
 
 

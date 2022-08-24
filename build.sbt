@@ -71,6 +71,8 @@ lazy val shared =
         "dev.zio" %%% "zio-prelude" % "1.0.0-RC15",
         "dev.zio" %%% "zio" % zioVersion,
         "dev.zio" %%% "zio-streams" % zioVersion,
+        "dev.zio" %% "zio-logging" % "2.1.0",
+        "dev.zio" %% "zio-logging-slf4j" % "2.1.0",
         "dev.zio" %%% "zio-test" % zioVersion % Test,
         "dev.zio" %%% "zio-test-sbt" % zioVersion % Test,
         "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test

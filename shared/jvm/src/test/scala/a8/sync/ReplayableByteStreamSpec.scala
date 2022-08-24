@@ -5,7 +5,7 @@ import a8.shared.FileSystem
 import a8.shared.app.BootstrapConfig.TempDir
 import a8.sync.ReplayableStream.Factory
 import zio.stream.ZStream
-import zio.{Ref, ZIO, ZLayer}
+import zio.{Ref, Scope, ULayer, ZIO, ZLayer}
 import zio.test._
 import a8.shared.SharedImports._
 
@@ -13,9 +13,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 object ReplayableByteStreamSpec extends ZIOSpecDefault {
 
-  val tempDirLayer = ZLayer.succeed(TempDir(FileSystem.dir("temp")))
+  val tempDirLayer: ULayer[TempDir] = ZLayer.succeed(TempDir(FileSystem.dir("temp")))
 
-  def newStream(length: Int) =ZStream.fromIterable((0 to length).map(_.toByte))
+  def newStream(length: Int) = ZStream.fromIterable((0 to length).map(_.toByte))
 
   def spec =
     suite("ReplayableByteStreamSpec")(
@@ -39,12 +39,12 @@ object ReplayableByteStreamSpec extends ZIOSpecDefault {
     )
 
 
-  def runTest(length: Int) = {
+  def runTest(length: Int): ZIO[Any, Throwable, TestResult] = {
     val sourceStream = newStream(length)
     val counter = new AtomicInteger()
     val streamCountingHead = ZIO.attempt(counter.incrementAndGet()).zstreamExec
     val countedStream = streamCountingHead ++ sourceStream
-    val effect =
+    val effect: ZIO[Factory with Scope, Throwable, TestResult] =
       for {
         replayableStream <- ReplayableStream(countedStream)
         baseLine <- sourceStream.runCollect
@@ -60,6 +60,7 @@ object ReplayableByteStreamSpec extends ZIOSpecDefault {
       .scoped(effect)
       .provideLayer(Factory.live)
       .provideLayer(tempDirLayer)
+
   }
 
 

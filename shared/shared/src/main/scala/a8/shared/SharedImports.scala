@@ -296,4 +296,54 @@ trait SharedImports
 
   }
 
+  def correlateJob0[R, E, A](context: String, details: Option[String] = None)(job: zio.ZIO[R, E, A])(implicit trace: Trace, loggerF: LoggerF): zio.ZIO[R, Nothing, Unit] = {
+
+    val wrappedJob =
+      for {
+        _ <- loggerF.debug(s"job started - ${context}${details.map(" - " + _).getOrElse("")}")
+        started = System.currentTimeMillis()
+        result <- job
+        _ <- loggerF.debug(s"job completed in ${System.currentTimeMillis() - started}ms - ${context}")
+      } yield result
+
+    val wrappedJobWithErrorsLogged: zio.ZIO[R, Nothing, Unit] =
+      wrappedJob
+        .catchAllCause(cause =>
+          loggerF.debug(s"job error will get rethrown - ${context}", cause)
+        )
+        .as(())
+        .uninterruptible
+
+    for {
+      _ <- zio.ZIO.unit
+      jobId = UUID.randomUUID().toString.replace("-", "").substring(0, 12)
+      result <- zio.ZIO.logAnnotate("job", jobId)(wrappedJobWithErrorsLogged)
+    } yield result
+
+  }
+
+  def correlateJob[R, E, A](context: String, details: Option[String] = None)(job: zio.ZIO[R, E, A])(implicit trace: Trace, loggerF: LoggerF): zio.ZIO[R, E, A] = {
+
+    val wrappedJob =
+      for {
+        _ <- loggerF.debug(s"job started - ${context}${details.map(" - " + _).getOrElse("")}")
+        started = System.currentTimeMillis()
+        result <- job
+        _ <- loggerF.debug(s"job completed in ${System.currentTimeMillis() - started}ms - ${context}")
+      } yield result
+
+    val wrappedJobWithErrorsLogged =
+      wrappedJob
+        .onError(cause =>
+          loggerF.warn(s"job error will get rethrown - ${context}", cause)
+        )
+        .uninterruptible
+
+    for {
+      _ <- zio.ZIO.unit
+      jobId = UUID.randomUUID().toString.replace("-", "").substring(0, 12)
+      result <- zio.ZIO.logAnnotate("job", jobId)(wrappedJobWithErrorsLogged)
+    } yield result
+  }
+
 }
