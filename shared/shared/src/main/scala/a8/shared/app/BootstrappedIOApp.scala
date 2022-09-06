@@ -110,9 +110,14 @@ abstract class BootstrappedIOApp
     val loggingLayer = SyncZLogger.slf4jLayer(zio.LogLevel.Debug)
 
     effect
-      .catchAll(th =>
-        loggerF.error("fatal error ending app", th)
-      )
+      .onExit {
+        case Exit.Success(_) =>
+          loggerF.info("natural shutdown")
+        case Exit.Failure(cause) if cause.isInterruptedOnly =>
+          loggerF.info(s"shutdown because of interruption only", cause)
+        case Exit.Failure(cause) =>
+          loggerF.warn(s"shutdown because of failure/interruption", cause)
+      }
       .provideLayer(loggingLayer)
       .provideLayer(zio.logging.removeDefaultLoggers)
 
