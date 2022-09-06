@@ -118,7 +118,7 @@ trait JsonTypedCodecs {
             Right(bd)
           case JsStr(s) =>
             try {
-              Right(BigDecimal(s))
+              Right(BigDecimal(s.replace("_", "")))
             } catch {
               case IsNonFatal(_) =>
                 doc.errorL(s"expected ${typeInfo.name}")
@@ -164,6 +164,12 @@ trait JsonTypedCodecs {
   implicit lazy val int: JsonTypedCodec[Int, JsNum] =
     bigDecimal.dimap2[Int](
       _.toIntExact,
+      v => BigDecimal(v),
+    )
+
+  implicit lazy val double: JsonTypedCodec[Double, JsNum] =
+    bigDecimal.dimap2[Double](
+      _.toDouble,
       v => BigDecimal(v),
     )
 

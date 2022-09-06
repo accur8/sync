@@ -9,6 +9,8 @@ import zio.stream.ZStream
 import scala.reflect.ClassTag
 import SharedImports.jsonCodecOps
 
+import java.util.UUID
+
 class ZioOps[R, E, A](effect: zio.ZIO[R,E,A])(implicit trace: Trace) {
 
   def catchAllAndLog(implicit loggerF: LoggerF, trace: Trace): ZIO[R,Nothing,Unit] =
@@ -27,30 +29,59 @@ class ZioOps[R, E, A](effect: zio.ZIO[R,E,A])(implicit trace: Trace) {
   def zstreamFlat[B](implicit trace: Trace, evidence: A <:< ZStream[R,E,B]) =
     zstreamEval.flatten
 
-//  def withJsonContext[A: JsonCodec: ClassTag](a: A)(implicit loggerF: LoggerF, trace: Trace): zio.ZIO[R,E,A] = {
-//    val ct = implicitly[ClassTag[A]]
-//    lazy val context = s"${ct.runtimeClass.getSimpleName} ${a.compactJson}"
-//    val wrappedEffect =
-//      effect
-//        .onError(cause =>
-//          loggerF.warn(s"error -- ${context}", cause)
-//        )
-//    (
-//      loggerF.debug(s"start ${ct.runtimeClass.getName} ${a.compactJson}")
-//        *> wrappedEffect
-//      )
-//  }
+  final def asZIO[R1 <: R, E1 >: E, B](that: => ZIO[R1, E1, B])(implicit trace: Trace): ZIO[R1, E1, B] =
+    effect.flatMap(_ => that)
 
-  // ???
-//  def logError(implicit loggerF: LoggerF, trace: Trace, causeHandler: CauseHandler[A]): ZStream[R,E,Nothing] =
-//    effect
-//      .onError(cause =>
-//        causeHandler.prepareForLogs(cause) match {
-//          case Right(th) =>
-//            loggerF.warn("logging and passing through error", th)
-//          case Left(msg) =>
-//            loggerF.warn(s"logging and passing through error -- ${msg}")
-//        }
-//      )
+  def correlateWith0(context: String, details: Option[String] = None)(implicit trace: Trace, loggerF: LoggerF): zio.ZIO[R, Nothing, Unit] = {
+
+    import java.lang.System
+
+    val wrappedJob =
+      for {
+        _ <- loggerF.debug(s"job started - ${context}${details.map(" - " + _).getOrElse("")}")
+        started = System.currentTimeMillis()
+        result <- effect *> loggerF.debug("")
+        _ <- loggerF.debug(s"job completed in ${System.currentTimeMillis() - started}ms - ${context}")
+      } yield result
+
+    val wrappedJobWithErrorsLogged: zio.ZIO[R, Nothing, Unit] =
+      wrappedJob
+        .catchAllCause(cause =>
+          loggerF.debug(s"job error will get rethrown - ${context}", cause)
+        )
+        .as(())
+
+    for {
+      _ <- zio.ZIO.unit
+      jobId = UUID.randomUUID().toString.replace("-", "").substring(0, 12)
+      result <- zio.ZIO.logAnnotate("job", jobId)(wrappedJobWithErrorsLogged)
+    } yield result
+
+  }
+
+  def correlateWith(context: String, details: Option[String] = None)(implicit trace: Trace, loggerF: LoggerF): zio.ZIO[R, E, A] = {
+
+    import java.lang.System
+
+    val wrappedJob =
+      for {
+        _ <- loggerF.debug(s"job started - ${context}${details.map(" - " + _).getOrElse("")}")
+        started = System.currentTimeMillis()
+        result <- effect
+        _ <- loggerF.debug(s"job completed in ${System.currentTimeMillis() - started}ms - ${context}")
+      } yield result
+
+    val wrappedJobWithErrorsLogged =
+      wrappedJob
+        .onError(cause =>
+          loggerF.warn(s"job error will get rethrown - ${context}", cause)
+        )
+
+    for {
+      _ <- zio.ZIO.unit
+      jobId = UUID.randomUUID().toString.replace("-", "").substring(0, 12)
+      result <- zio.ZIO.logAnnotate("job", jobId)(wrappedJobWithErrorsLogged)
+    } yield result
+  }
 
 }

@@ -77,5 +77,12 @@ object ConnFactoryImpl {
 
 
 trait ConnFactoryImpl {
+
+  lazy val layer: ZLayer[DatabaseConfig, Throwable, ConnFactory] =
+    ZLayer.scoped(
+      ZIO.service[DatabaseConfig].flatMap(resource)
+    )
+
   def resource(databaseConfig: DatabaseConfig): ZIO[Scope,Throwable,ConnFactory]
+
 }

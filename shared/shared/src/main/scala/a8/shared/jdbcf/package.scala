@@ -42,14 +42,18 @@ package object jdbcf extends LoggingF {
       }
   }
 
-  def withSqlCtxT[R,A](sql: CompiledSql, effect: ZIO[R,Throwable,A]): ZIO[R,Throwable,A] =
-    (
-      loggerF.debug(s"running sql -- ${sql.value}")
-        *> effect
-      ) catchSome {
-      case e: java.sql.SQLException =>
-        throw new SQLException(s"error running -- ${sql.value} -- ${e.getMessage}", e.getSQLState, e.getErrorCode, e)
-    }
+  def withSqlCtxT[R,A](sql: CompiledSql, effect: ZIO[R,Throwable,A]): ZIO[R,Throwable,A] = {
+    val loggedEffect =
+      for {
+        _ <- loggerF.debug(s"running sql -- ${sql.value}")
+        a <- effect
+      } yield a
+    loggedEffect
+      .catchSome {
+        case e: java.sql.SQLException =>
+          ZIO.fail(new SQLException(s"error running -- ${sql.value} -- ${e.getMessage}", e.getSQLState, e.getErrorCode, e))
+      }
+  }
 
   def withSqlCtx[A](sql: CompiledSql)(fn: =>A): Task[A] =
     withSqlCtxT(
