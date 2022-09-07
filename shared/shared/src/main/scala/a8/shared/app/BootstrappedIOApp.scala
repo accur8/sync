@@ -4,12 +4,13 @@ package a8.shared.app
 import a8.shared.SharedImports._
 import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempDir, WorkDir}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
+import a8.shared.json.JsonCodec
 import wvlet.log.LogLevel
-import zio.{Scope, ZIO, ZIOAppArgs, ZLayer}
+import zio.{Scope, Tag, ZIO, ZIOAppArgs, ZLayer}
 
 object BootstrappedIOApp {
 
-  type BootstrapEnv = TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
+  type BootstrapEnv = Bootstrapper with TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
 
 }
 
@@ -106,8 +107,7 @@ abstract class BootstrappedIOApp
 
   object layers {
     lazy val appName = ZLayer.succeed(resolvedAppName)
-    lazy val bootstrapper = Bootstrapper.layer
-    lazy val bootstrapConfig = bootstrapper.project(_.bootstrapConfig)
+    lazy val bootstrapConfig = Bootstrapper.layer.project(_.bootstrapConfig)
 
     lazy val tempDir = bootstrapConfig.project(_.tempDir)
     lazy val cacheDir = bootstrapConfig.project(_.cacheDir)
@@ -119,6 +119,13 @@ abstract class BootstrappedIOApp
 
   }
 
+  def appConfig[A : JsonCodec]: zio.ZIO[Bootstrapper, Throwable, A] =
+    for {
+      bootstrapper <- zservice[Bootstrapper]
+      config <- bootstrapper.appConfig[A]
+    } yield config
+
+  def appConfigLayer[A: Tag: JsonCodec] = ZLayer(appConfig[A])
 
   def runT: zio.ZIO[BootstrapEnv with zio.ZIOAppArgs with Scope with ZIOAppArgs, Throwable, Unit]
 
@@ -147,9 +154,9 @@ abstract class BootstrappedIOApp
               loggerF.warn(s"shutdown because of failure/interruption", cause)
           }
           .provide(
+            Bootstrapper.layer,
             ZLayer.succeed(scope),
             ZLayer.succeed(appArgs),
-            layers.bootstrapper,
             layers.appName,
             layers.logsDir,
             layers.tempDir,

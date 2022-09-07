@@ -12,6 +12,7 @@ import a8.shared.ConfigMojoOps.impl.{ConfigMojoEmpty, ConfigMojoRoot, ConfigMojo
 import a8.shared.json.JsonCodec
 import a8.shared.json.ast.JsVal
 import com.typesafe.config.{ConfigMergeable, ConfigValue}
+import zio.{Task, ZIO}
 
 import java.nio.file.Paths
 
@@ -145,6 +146,16 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
         sys.error(s"no value at ${path}")
     }
   }
+
+  def asF[A: ConfigMojoOps.Reads]: Task[A] =
+    asReadResult[A] match {
+      case ReadResult.Value(v) =>
+        zsucceed(v)
+      case ReadResult.Error(msg) =>
+        zfail(new RuntimeException(s"error at ${path} -- ${msg}"))
+      case ReadResult.NoValue() =>
+        zfail(new RuntimeException(s"no value at ${path}"))
+    }
 
   def asReadResult[A : ConfigMojoOps.Reads]: ReadResult[A] = {
     val reads = implicitly[ConfigMojoOps.Reads[A]]

@@ -91,8 +91,8 @@ class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
           )
         }
 
-        override def appConfig[A: JsonCodec : ClassTag]: A =
-          configMojo.app.as[A]
+        override def appConfig[A: JsonCodec]: Task[A] =
+          configMojo.app.asF[A]
       }
     }
 
