@@ -8,6 +8,7 @@ import a8.shared.app.MxBootstrapConfig.MxBootstrapConfigDto
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
 import wvlet.log.LogLevel
+import zio.{Scope, ZIO, ZLayer}
 
 
 /*
@@ -74,6 +75,28 @@ object BootstrapConfig {
 
   case class TempDir(unresolved: Directory) extends DirectoryValue
 
+  object WorkDir extends LoggingF {
+
+    val layer: ZLayer[TempDir with Scope, Throwable, WorkDir] = ZLayer(live)
+
+    val live: ZIO[TempDir with Scope, Throwable, WorkDir] = {
+      for {
+        tempDir <- zservice[TempDir]
+        workDir <-
+          ZIO.acquireRelease(
+            ZIO.attempt(WorkDir(tempDir.unresolved.subdir(FileSystem.fileSystemCompatibleTimestamp())))
+          )(
+            workDir =>
+              ZIO.attemptBlocking {
+                if ( workDir.unresolved.exists() )
+                  workDir.unresolved.delete()
+              }.logVoid
+          )
+      } yield workDir
+    }
+  }
+  case class WorkDir(unresolved: Directory) extends DirectoryValue
+
   case class DataDir(unresolved: Directory) extends DirectoryValue
 
   trait DirectoryValue {
@@ -97,4 +120,7 @@ case class BootstrapConfig(
   cacheDir: CacheDir,
   dataDir: DataDir,
   defaultLogLevel: LogLevel,
-) extends NamedToString
+  appArgs: zio.ZIOAppArgs,
+) extends NamedToString { self =>
+
+}

@@ -9,78 +9,91 @@ import a8.shared.json.{JsonCodec, ast}
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
 import a8.shared.json.ast.JsDoc
+import zio.{Task, ZIO, ZIOAppArgs, ZLayer}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
 class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
-  override def apply(appName: BootstrapConfig.AppName): Bootstrapper = {
 
-    val configMojoRoot = ConfigMojo().mojoRoot
-    val configMojo = configMojoRoot(appName.value)
+  override val layer: ZLayer[AppName with ZIOAppArgs, Throwable, Bootstrapper] =
+    ZLayer(live)
 
-    val bootstrapLogs = mutable.Buffer[String]()
 
-    new Bootstrapper {
+  val live: ZIO[AppName with ZIOAppArgs, Throwable, Bootstrapper] = {
 
-      override lazy val logs = bootstrapLogs.toList
+    for {
+      appName <- zservice[AppName]
+      args <- zservice[ZIOAppArgs]
+    } yield {
 
-      override lazy val rootConfig: ast.JsVal =
-        HoconOps.impl.toJsVal(configMojo.hoconValue)
+      val configMojoRoot = ConfigMojo().mojoRoot
+      val configMojo = configMojoRoot(appName.value)
 
-      override lazy val directoriesSearched: Iterable[Path] =
-        configMojoRoot.root.directoriesChecked
+      val bootstrapLogs = mutable.Buffer[String]()
 
-      override lazy val configFiles: Iterable[Path] =
-        configMojoRoot.root.sources
+      new Bootstrapper {
 
-      override lazy val bootstrapConfig: BootstrapConfig = {
+        override lazy val logs = bootstrapLogs.toList
 
-        val globalBootstrapDto =
-          (configMojoRoot("global_bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
-            case ReadResult.NoValue() =>
-              BootstrapConfig.BootstrapConfigDto()
-            case ReadResult.Value(v) =>
-              v
-            case ReadResult.Error(msg) =>
-              sys.error(msg)
-          }).copy(source = Some("config.hocon - global_bootstrap"))
+        override lazy val rootConfig: ast.JsVal =
+          HoconOps.impl.toJsVal(configMojo.hoconValue)
 
-        val bootstrapConfigPropertyName = appName.value + ".bootstrap"
-        val bootstrapDto =
-          (configMojo("bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
-            case ReadResult.NoValue() =>
-              BootstrapConfig.BootstrapConfigDto()
-            case ReadResult.Value(v) =>
-              v
-            case ReadResult.Error(msg) =>
-              sys.error(msg)
-          }).copy(source = Some("config.hocon - " + bootstrapConfigPropertyName))
+        override lazy val directoriesSearched: Iterable[Path] =
+          configMojoRoot.root.directoriesChecked
 
-        val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, bootstrapDto)
+        override lazy val configFiles: Iterable[Path] =
+          configMojoRoot.root.sources
 
-        bootstrapLogs.append(s"bootstrap chain = ${dtoChain.mkString("List(\n  ", ",\n  ", ",\n)")}")
+        override lazy val bootstrapConfig: BootstrapConfig = {
 
-        val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
-//        bootstrapLogs.append(s"resolved dto ${resolvedDto}")
+          val globalBootstrapDto =
+            (configMojoRoot("global_bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
+              case ReadResult.NoValue() =>
+                BootstrapConfig.BootstrapConfigDto()
+              case ReadResult.Value(v) =>
+                v
+              case ReadResult.Error(msg) =>
+                sys.error(msg)
+            }).copy(source = Some("config.hocon - global_bootstrap"))
 
-        BootstrapConfig(
-          appName = resolvedDto.appName.getOrElse(appName),
-          consoleLogging = resolvedDto.consoleLogging.get,
-          colorConsole = resolvedDto.colorConsole.get,
-          fileLogging = resolvedDto.fileLogging.get,
-          logAppConfig = resolvedDto.logAppConfig.get,
-          logsDir = LogsDir(FileSystem.dir(resolvedDto.logsDir.get)),
-          tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),
-          cacheDir = CacheDir(FileSystem.dir(resolvedDto.cacheDir.get)),
-          dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
-          defaultLogLevel = wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
-        )
+          val bootstrapConfigPropertyName = appName.value + ".bootstrap"
+          val bootstrapDto =
+            (configMojo("bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
+              case ReadResult.NoValue() =>
+                BootstrapConfig.BootstrapConfigDto()
+              case ReadResult.Value(v) =>
+                v
+              case ReadResult.Error(msg) =>
+                sys.error(msg)
+            }).copy(source = Some("config.hocon - " + bootstrapConfigPropertyName))
+
+          val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, bootstrapDto)
+
+          bootstrapLogs.append(s"bootstrap chain = ${dtoChain.mkString("List(\n  ", ",\n  ", ",\n)")}")
+
+          val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
+          //        bootstrapLogs.append(s"resolved dto ${resolvedDto}")
+
+          BootstrapConfig(
+            appName = resolvedDto.appName.getOrElse(appName),
+            consoleLogging = resolvedDto.consoleLogging.get,
+            colorConsole = resolvedDto.colorConsole.get,
+            fileLogging = resolvedDto.fileLogging.get,
+            logAppConfig = resolvedDto.logAppConfig.get,
+            logsDir = LogsDir(FileSystem.dir(resolvedDto.logsDir.get)),
+            tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),
+            cacheDir = CacheDir(FileSystem.dir(resolvedDto.cacheDir.get)),
+            dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
+            defaultLogLevel = wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
+            appArgs = args,
+          )
+        }
+
+        override def appConfig[A: JsonCodec : ClassTag]: A =
+          configMojo.app.as[A]
       }
-
-      override def appConfig[A : JsonCodec : ClassTag]: A =
-        configMojo.app.as[A]
     }
 
   }

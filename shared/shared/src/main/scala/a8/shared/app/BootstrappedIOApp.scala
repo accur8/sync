@@ -2,13 +2,20 @@ package a8.shared.app
 
 
 import a8.shared.SharedImports._
-import a8.shared.app.BootstrapConfig.AppName
+import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempDir, WorkDir}
+import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import wvlet.log.LogLevel
-import zio._
+import zio.{Scope, ZIO, ZIOAppArgs, ZLayer}
+
+object BootstrappedIOApp {
+
+  type BootstrapEnv = TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
+
+}
+
 
 abstract class BootstrappedIOApp
-  extends ZIOAppDefault
-    with AppLogger
+  extends zio.ZIOAppDefault
     with LoggingF
 {
 
@@ -61,67 +68,99 @@ abstract class BootstrappedIOApp
   lazy val resolvedAppName: AppName =
     AppName(java.lang.System.getProperty("appname", defaultAppName))
 
-  lazy val bootstrapper = Bootstrapper(resolvedAppName)
-  lazy val bootstrapConfig = bootstrapper.bootstrapConfig
+  def appInit: zio.ZIO[Bootstrapper, Throwable, Unit] =
+    for {
+      bootstrapper <- zservice[Bootstrapper]
+      _ <-
+        zio.ZIO.attempt {
 
-  def appInit: Task[Unit] = ZIO.attempt {
+          bootstrapper.logs.foreach(m => logger.debug(m))
 
-    // make sure bootstrap is complete
-    bootstrapInit
+          logger.debug(s"config prefix is ${bootstrapper.bootstrapConfig.appName.value}")
+          logger.debug(s"config files used ${bootstrapper.configFiles.map(_.toRealPath()).mkString(" ")}")
+          logger.debug(s"directories searched ${bootstrapper.directoriesSearched.mkString(" ")}")
+          logger.debug(s"bootstrap config is ${bootstrapper.bootstrapConfig}")
 
-    bootstrapper.logs.foreach(m => logger.debug(m))
+          if (bootstrapper.bootstrapConfig.logAppConfig) {
+            logger.debug(s"using config ${bootstrapper.rootConfig.prettyJson}")
+          }
 
-    logger.debug(s"config prefix is ${bootstrapper.bootstrapConfig.appName.value}")
-    logger.debug(s"config files used ${bootstrapper.configFiles.map(_.toRealPath()).mkString(" ")}")
-    logger.debug(s"directories searched ${bootstrapper.directoriesSearched.mkString(" ")}")
-    logger.debug(s"bootstrap config is ${bootstrapper.bootstrapConfig}")
+          def loadDriver(className: String): Unit = {
+            try {
+              Class.forName(className)
+                .getConstructor()
+                .newInstance()
+              logger.debug(s"loaded jdbc driver ${className}")
+            } catch {
+              case th: Throwable =>
+            }
+          }
 
-    if (bootstrapConfig.logAppConfig) {
-      logger.debug(s"using config ${bootstrapper.rootConfig.prettyJson}")
-    }
+          loadDriver("org.postgresql.Driver")
+          loadDriver("com.ibm.as400.access.AS400JDBCDriver")
+          loadDriver("a8.wsjdbc.Driver")
 
-    def loadDriver(className: String): Unit = {
-      try {
-        Class.forName(className)
-          .getConstructor()
-          .newInstance()
-        logger.debug(s"loaded jdbc driver ${className}")
-      } catch {
-        case th: Throwable =>
-      }
-    }
-    loadDriver("org.postgresql.Driver")
-    loadDriver("com.ibm.as400.access.AS400JDBCDriver")
-    loadDriver("a8.wsjdbc.Driver")
-
-  }
-
-
-  def runT: Task[Unit]
+        }
+    } yield ()
 
 
-  final override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
-    val effect =
-      for {
-        _ <- appInit
-        _ <- runT
-      } yield ()
+  object layers {
+    lazy val appName = ZLayer.succeed(resolvedAppName)
+    lazy val bootstrapper = Bootstrapper.layer
+    lazy val bootstrapConfig = bootstrapper.project(_.bootstrapConfig)
 
-    val loggingLayer = SyncZLogger.slf4jLayer(zio.LogLevel.Debug)
+    lazy val tempDir = bootstrapConfig.project(_.tempDir)
+    lazy val cacheDir = bootstrapConfig.project(_.cacheDir)
+    lazy val logsDir = bootstrapConfig.project(_.logsDir)
+    lazy val dataDir = bootstrapConfig.project(_.dataDir)
+    lazy val appArgs = bootstrapConfig.project(_.appArgs)
 
-    effect
-      .onExit {
-        case Exit.Success(_) =>
-          loggerF.info("natural shutdown")
-        case Exit.Failure(cause) if cause.isInterruptedOnly =>
-          loggerF.info(s"shutdown because of interruption only", cause)
-        case Exit.Failure(cause) =>
-          loggerF.warn(s"shutdown because of failure/interruption", cause)
-      }
-      .provideLayer(loggingLayer)
-      .provideLayer(zio.logging.removeDefaultLoggers)
+    lazy val workDir = WorkDir.layer
 
   }
+
+
+  def runT: zio.ZIO[BootstrapEnv with zio.ZIOAppArgs with Scope with ZIOAppArgs, Throwable, Unit]
+
+
+  final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
+    zservice[ZIOAppArgs]
+      .zip(zservice[Scope])
+      .flatMap { case (appArgs, scope) =>
+
+        val effect =
+          for {
+            _ <- AppLogger.configure(initialLogLevels)
+            _ <- appInit
+            _ <- ZIO.scoped(runT)
+          } yield ()
+
+        val loggingLayer = SyncZLogger.slf4jLayer(zio.LogLevel.Debug)
+
+        effect
+          .onExit {
+            case zio.Exit.Success(_) =>
+              loggerF.info("natural shutdown")
+            case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
+              loggerF.info(s"shutdown because of interruption only", cause)
+            case zio.Exit.Failure(cause) =>
+              loggerF.warn(s"shutdown because of failure/interruption", cause)
+          }
+          .provide(
+            ZLayer.succeed(scope),
+            ZLayer.succeed(appArgs),
+            layers.bootstrapper,
+            layers.appName,
+            layers.logsDir,
+            layers.tempDir,
+            layers.dataDir,
+            layers.cacheDir,
+            layers.workDir,
+            layers.bootstrapConfig,
+            loggingLayer,
+            zio.logging.removeDefaultLoggers,
+          )
+      }
 
 
 }

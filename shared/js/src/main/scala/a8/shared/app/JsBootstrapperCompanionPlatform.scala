@@ -1,5 +1,8 @@
 package a8.shared.app
+import zio.ZLayer
 
 trait JsBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
-  override def apply(appName: BootstrapConfig.AppName): Bootstrapper = ???
+
+  override val layer: ZLayer[BootstrapConfig.AppName, Throwable, Bootstrapper] = ???
+
 }
