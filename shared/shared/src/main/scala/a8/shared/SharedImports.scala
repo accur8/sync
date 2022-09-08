@@ -27,7 +27,7 @@ import scala.util.Try
 import cats.syntax
 import cats.instances
 import wvlet.log.Logger
-import zio.{Task, Trace, UIO, URIO, ZIO}
+import zio.{Tag, Task, Trace, UIO, ULayer, URIO, ZIO, ZLayer}
 import zio.prelude._
 
 object SharedImports extends SharedImports
@@ -282,6 +282,9 @@ trait SharedImports
   def zfail[A](a: A)(implicit trace: Trace): ZIO[Any, A, Nothing] = zio.ZIO.fail(a)
   def zservice[A: zio.Tag](implicit trace: Trace): URIO[A, A] = zio.ZIO.service[A]
   def zattempt[A](code: => A)(implicit trace: Trace): Task[A] = zio.ZIO.attempt(code)
+  def zsuspend[R,A](code: => ZIO[R,Throwable,A])(implicit trace: Trace): ZIO[R,Throwable,A] = zio.ZIO.suspend(code)
+
+  def zl_succeed[A: Tag](a: A): ULayer[A] = ZLayer.succeed(a)
 
   type &[+A, +B] = A with B
 

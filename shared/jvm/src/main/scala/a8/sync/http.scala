@@ -4,7 +4,7 @@ package a8.sync
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
 import a8.shared.json.{JsonCodec, ReadError}
 import a8.shared.json.ast.JsVal
-import a8.sync.Mxhttp.{MxResponseInfo, MxResponseMetadata, MxRetryConfig}
+import a8.sync.Mxhttp._
 import sttp.model.{StatusCode, Uri}
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
@@ -39,6 +39,14 @@ object http extends LoggingF {
     maxRetries: Int,
     initialBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
+  )
+
+  object RequestProcessorConfig extends MxRequestProcessorConfig
+
+  @CompanionGen
+  case class RequestProcessorConfig(
+    retry: RetryConfig,
+    maxConnections: Int,
   )
 
   trait Backend {
@@ -380,6 +388,14 @@ object http extends LoggingF {
   }
 
   object RequestProcessor {
+
+    lazy val layer =
+      ZLayer(
+        for {
+          config <- zservice[RequestProcessorConfig]
+          requestProcessor <- asResource(config.retry, config.maxConnections)
+        } yield requestProcessor
+      )
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
       for {

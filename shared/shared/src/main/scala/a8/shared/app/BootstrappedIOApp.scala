@@ -10,7 +10,7 @@ import zio.{Scope, Tag, ZIO, ZIOAppArgs, ZLayer}
 
 object BootstrappedIOApp {
 
-  type BootstrapEnv = Bootstrapper with TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
+  type BootstrapEnv = Scope with ZIOAppArgs with Bootstrapper with TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
 
 }
 
@@ -127,7 +127,7 @@ abstract class BootstrappedIOApp
 
   def appConfigLayer[A: Tag: JsonCodec] = ZLayer(appConfig[A])
 
-  def runT: zio.ZIO[BootstrapEnv with zio.ZIOAppArgs with Scope with ZIOAppArgs, Throwable, Unit]
+  def runT: zio.ZIO[BootstrapEnv, Throwable, Unit]
 
 
   final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =

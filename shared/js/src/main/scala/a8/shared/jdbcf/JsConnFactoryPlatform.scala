@@ -3,6 +3,8 @@ package a8.shared.jdbcf
 
 import zio._
 
-trait JsConnFactoryPlatform extends ConnFactoryImpl {
-  override def resource(databaseConfig: DatabaseConfig): ZIO[Scope, Throwable, ConnFactory] = ???
+trait JsConnFactoryPlatform extends ConnFactoryCompanion {
+
+  override val constructor: ZIO[DatabaseConfig with Scope, Throwable, ConnFactory] = ???
+
 }

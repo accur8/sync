@@ -5,7 +5,7 @@ import a8.shared.SharedImports._
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import zio._
 
-object ConnFactoryImpl {
+object ConnFactoryCompanion {
 
   object MapperMaterializer {
     object noop extends MapperMaterializer {
@@ -76,13 +76,14 @@ object ConnFactoryImpl {
 }
 
 
-trait ConnFactoryImpl {
+trait ConnFactoryCompanion {
 
-  lazy val layer: ZLayer[DatabaseConfig, Throwable, ConnFactory] =
-    ZLayer.scoped(
-      ZIO.service[DatabaseConfig].flatMap(resource)
-    )
+  lazy val layer: ZLayer[DatabaseConfig with Scope, Throwable, ConnFactory] =
+    ZLayer(constructor)
 
-  def resource(databaseConfig: DatabaseConfig): ZIO[Scope,Throwable,ConnFactory]
+  val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory]
+
+  def resource(databaseConfig: DatabaseConfig): Resource[ConnFactory] =
+    constructor.provideSome(ZLayer.succeed(databaseConfig))
 
 }

@@ -4,7 +4,7 @@ import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManage
 import a8.shared.SharedImports._
 import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.jdbcf.Conn.ConnInternal
-import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
+import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.PostgresDialect.self
@@ -33,7 +33,7 @@ object Conn extends Logging {
     url: Uri,
     user: String,
     password: String
-  ): Resource[Conn] = {
+  ): Resource[Conn] = ZIO.suspend {
     val config =
       DatabaseConfig(
         DatabaseId(url.toString),
@@ -42,8 +42,9 @@ object Conn extends Logging {
         password = DatabaseConfig.Password(password),
       )
     ConnFactory
-      .resource(config)
+      .constructor
       .flatMap(_.connR)
+      .provideSome(ZLayer.succeed(config))
   }
 
   def toConn(

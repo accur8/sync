@@ -8,7 +8,7 @@ import sttp.model.Uri
 import javax.sql.DataSource
 import zio._
 
-object ConnFactory extends ConnFactoryPlatform with ConnFactoryImpl {
+object ConnFactory extends ConnFactoryPlatform with ConnFactoryCompanion {
 }
 
 trait ConnFactory {

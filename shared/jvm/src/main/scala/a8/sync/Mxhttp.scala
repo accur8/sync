@@ -9,11 +9,9 @@ package a8.sync
 */
 
 //====
-import a8.sync.http.ResponseInfo
-import a8.sync.http.RetryConfig
+import a8.sync.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
 
 import scala.concurrent.duration.FiniteDuration
-import a8.sync.http.ResponseMetadata
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -78,6 +76,64 @@ object Mxhttp {
     
     
     lazy val typeName = "RetryConfig"
+  
+  }
+  
+  
+  
+  
+  trait MxRequestProcessorConfig {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RequestProcessorConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RequestProcessorConfig,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[RequestProcessorConfig,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.retry)
+          .addField(_.maxConnections)
+      )
+      .build
+    
+    implicit val zioEq: zio.prelude.Equal[RequestProcessorConfig] = zio.prelude.Equal.default
+    
+    implicit val catsEq: cats.Eq[RequestProcessorConfig] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[RequestProcessorConfig,parameters.type] =  {
+      val constructors = Constructors[RequestProcessorConfig](2, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val retry: CaseClassParm[RequestProcessorConfig,RetryConfig] = CaseClassParm[RequestProcessorConfig,RetryConfig]("retry", _.retry, (d,v) => d.copy(retry = v), None, 0)
+      lazy val maxConnections: CaseClassParm[RequestProcessorConfig,Int] = CaseClassParm[RequestProcessorConfig,Int]("maxConnections", _.maxConnections, (d,v) => d.copy(maxConnections = v), None, 1)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): RequestProcessorConfig = {
+        RequestProcessorConfig(
+          retry = values(0).asInstanceOf[RetryConfig],
+          maxConnections = values(1).asInstanceOf[Int],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): RequestProcessorConfig = {
+        val value =
+          RequestProcessorConfig(
+            retry = values.next().asInstanceOf[RetryConfig],
+            maxConnections = values.next().asInstanceOf[Int],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(retry: RetryConfig, maxConnections: Int): RequestProcessorConfig =
+        RequestProcessorConfig(retry, maxConnections)
+    
+    }
+    
+    
+    lazy val typeName = "RequestProcessorConfig"
   
   }
   

@@ -10,7 +10,7 @@ import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
-import a8.shared.jdbcf.ConnFactoryImpl.MapperMaterializer
+import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
 import zio._
 import zio.stream.UStream
 
