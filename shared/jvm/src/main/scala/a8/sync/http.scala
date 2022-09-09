@@ -406,7 +406,7 @@ object http extends LoggingF {
     }
 
 
-    def apply(retry: RetryConfig, backend: Backend, maxConnectionSemaphore: Semaphore) =
+    def apply(retry: RetryConfig, backend: Backend, maxConnectionSemaphore: Semaphore): RequestProcessor =
       RequestProcessorImpl(retry, backend, maxConnectionSemaphore)
 
   }
