@@ -422,7 +422,7 @@ object http extends LoggingF {
       standardResponseProcessorImpl(responseE, effect)
     }
 
-    lazy val retryableStatusCodes = Set(429, 500, 502)
+    lazy val retryableStatusCodes = Set(429, 500, 502, 503, 504)
 
     def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
       responseE match {
