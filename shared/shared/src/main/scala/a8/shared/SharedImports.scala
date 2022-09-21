@@ -259,7 +259,7 @@ trait SharedImports
   implicit def uriOps(uri: Uri): UriOps =
     new UriOps(uri)
 
-  implicit def implicitZioOps[R, E, A](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
+  implicit def implicitZioOps[R, E, A: Tag](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
     new ZioOps(effect)
 
   implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope with R,E,A]): ScopedZioOps[R,E,A] =

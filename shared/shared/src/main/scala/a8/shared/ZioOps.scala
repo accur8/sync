@@ -13,7 +13,7 @@ import java.util.UUID
 
 class ZioOps[R, E, A](effect: zio.ZIO[R,E,A])(implicit trace: Trace) {
 
-  def toLayer: ZLayer[R, E, A] = ZLayer(effect)
+  def toLayer(implicit tag: Tag[A]): ZLayer[R, E, A] = ZLayer(effect)
 
   def catchAllAndLog(implicit loggerF: LoggerF, trace: Trace): ZIO[R,Nothing,Unit] =
     effect

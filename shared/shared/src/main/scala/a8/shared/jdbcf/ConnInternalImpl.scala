@@ -198,7 +198,7 @@ case class ConnInternalImpl(
     } yield rows
   }
 
-  override def streamingSelectRows[A: TableMapper](whereClause: SqlString): XStream[A] = {
+  override def streamingSelectRows[A: TableMapper: Tag](whereClause: SqlString): XStream[A] = {
     mapperMaterializer
       .materialize(implicitly[TableMapper[A]])
       .zstreamEval

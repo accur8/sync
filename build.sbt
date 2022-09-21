@@ -16,7 +16,7 @@ val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "2.13.6"
 val sbtA8Version = "1.2.0-20220113_1040"
-val zioVersion = "2.0.1"
+val zioVersion = "2.0.2"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -67,7 +67,7 @@ lazy val shared =
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
         "org.typelevel" %% "jawn-parser" % "1.3.2",
         "org.typelevel" %% "jawn-ast" % "1.3.2",
-        "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.7.6",
+        "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.0",
         "dev.zio" %%% "zio-prelude" % "1.0.0-RC15",
         "dev.zio" %%% "zio" % zioVersion,
         "dev.zio" %%% "zio-streams" % zioVersion,

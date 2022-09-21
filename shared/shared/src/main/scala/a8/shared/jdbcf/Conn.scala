@@ -100,7 +100,7 @@ trait Conn {
   def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[A]
 
   def selectRows[A : TableMapper](whereClause: SqlString): Task[Iterable[A]]
-  def streamingSelectRows[A : TableMapper](whereClause: SqlString): XStream[A]
+  def streamingSelectRows[A : TableMapper: Tag](whereClause: SqlString): XStream[A]
 
   def selectOne[A : TableMapper](whereClause: SqlString): Task[A]
   def selectOpt[A : TableMapper](whereClause: SqlString): Task[Option[A]]

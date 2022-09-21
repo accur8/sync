@@ -33,7 +33,7 @@ object PollingStream {
     )
   }
 
-  def fromIterable[A](
+  def fromIterable[A: Tag](
     finitePollFn: =>Task[Iterable[A]],
     pauseOnEmpty: Duration,
     onFailure: Throwable=>XStream[A],
