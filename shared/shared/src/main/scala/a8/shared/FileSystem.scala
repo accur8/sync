@@ -64,7 +64,8 @@ object FileSystem {
     def appendWithOutputStream[A](fn: OutputStream => A): A
     def withOutputStream[A](fn: OutputStream => A): A
     def withPrintStream[A](fn: PrintStream => A): A
-    def size: Long
+    def size(): Long
+    def lastModified(): Long
 
     def readAsString(): String = {
       withReader(_.readFully())
@@ -256,11 +257,14 @@ object FileSystem {
     override def exists(): Boolean =
       nioPath.toFile.exists()
 
-    override def size: Long =
+    override def size(): Long =
       nioPath.toFile.length()
 
     override def write(content: String): Unit =
       withPrintStream(_.print(content))
+
+    override def lastModified(): Long =
+      nioPath.toFile.lastModified()
 
     override def withInputStream[A](fn: InputStream => A): A = {
       val is = new FileInputStream(nioPath.toFile)

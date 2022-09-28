@@ -4,9 +4,12 @@ package a8.shared.app
 import a8.shared.SharedImports._
 import a8.shared.app.BootstrapConfig.{AppName, WorkDir}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
-import zio._
+import zio.stream.ZStream
+import zio.{ZIO, ZIOAppArgs}
 
-object BootstrappedIOAppDemo extends BootstrappedIOApp {
+import scala.concurrent.duration.DurationInt
+
+object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
 
 //  lazy val loggerIO2 = LoggerF.create
 
@@ -21,9 +24,17 @@ object BootstrappedIOAppDemo extends BootstrappedIOApp {
       appName <- zservice[AppName]
       workDir <- zservice[WorkDir]
       appArgs <- zservice[ZIOAppArgs]
-      _ <- ZIO.debug(s"appArgs: $appArgs")
-      _ <- ZIO.debug(s"appName: $appName")
-      _ <- ZIO.debug(s"workDir: $workDir")
+      _ <- loggerF.info(s"appArgs: $appArgs")
+      _ <- loggerF.info(s"appName: $appName")
+      _ <- loggerF.info(s"workDir: $workDir")
+      _ <-
+        ZStream
+          .fromIterable(1 to Integer.MAX_VALUE)
+          .mapZIO { i =>
+            loggerF.info(s"hello $i")
+              .asZIO(ZIO.sleep(zio.Duration.fromSeconds(1)))
+          }
+          .runDrain
     } yield ()
 
 

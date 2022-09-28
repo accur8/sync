@@ -55,6 +55,8 @@ object unsafe {
 
   def coerceToJsVal(a: AnyRef): JsVal = {
     a match {
+      case None =>
+        JsNull
       case s: String =>
         JsStr(s)
       case null =>

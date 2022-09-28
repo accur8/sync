@@ -14,7 +14,7 @@ import zio.{Task, ZIO, ZIOAppArgs, ZLayer}
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
+trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
 
   override val layer: ZLayer[AppName with ZIOAppArgs, Throwable, Bootstrapper] =
@@ -88,6 +88,8 @@ class JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
             dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
             defaultLogLevel = wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
             appArgs = args,
+            logLevels = resolvedDto.logLevels,
+            configFilePollInterval = resolvedDto.configFilePollInterval.get,
           )
         }
 

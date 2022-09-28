@@ -6,7 +6,8 @@ import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempD
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.shared.json.JsonCodec
 import wvlet.log.LogLevel
-import zio.{Scope, Tag, ZIO, ZIOAppArgs, ZLayer}
+import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
+import a8.shared.SharedImports._
 
 object BootstrappedIOApp {
 
@@ -129,15 +130,21 @@ abstract class BootstrappedIOApp
 
   def runT: zio.ZIO[BootstrapEnv, Throwable, Unit]
 
-
   final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
     zservice[ZIOAppArgs]
       .zip(zservice[Scope])
       .flatMap { case (appArgs, scope) =>
-
         val effect =
           for {
-            _ <- AppLogger.configure(initialLogLevels)
+            bootstrapper <- zservice[Bootstrapper]
+            _ <- AppLogger.configure(initialLogLevels ++ bootstrapper.bootstrapConfig.resolvedLogLevels)
+            _ <- {
+              if (bootstrapper.bootstrapConfig.invalidLogLevels.nonEmpty) {
+                loggerF.warn(s"invalid log levels ${bootstrapper.bootstrapConfig.invalidLogLevels.mkString(" ")}")
+              } else {
+                zunit
+              }
+            }
             _ <- appInit
             _ <- ZIO.scoped(runT)
           } yield ()

@@ -3,19 +3,34 @@ package a8.shared.app
 import a8.shared.FileSystem.Directory
 import a8.shared.{CompanionGen, FileSystem, NamedToString, StringValue}
 import a8.shared.app.BootstrapConfig._
-import a8.shared.app.MxBootstrapConfig.MxBootstrapConfigDto
+import a8.shared.app.MxBootstrapConfig._
 
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
 import wvlet.log.LogLevel
-import zio.{Scope, ZIO, ZLayer}
+import zio.{Duration, Scope, ZIO, ZLayer}
+
+import scala.concurrent.duration.FiniteDuration
 
 
 /*
- *  + app will have a default name which will be it's default prefix
- *  + can override the default prefix w/ ?????
+ *  + app will have a default AppName which will be it's default prefix
+ *  + can override the default AppName with the appname System property
  */
 object BootstrapConfig {
+
+  object LogLevelConfig extends MxLogLevelConfig {
+  }
+  @CompanionGen
+  case class LogLevelConfig(
+    name: String,
+    level: String,
+  ) {
+    lazy val resolvedLevel =
+      LogLevel
+        .values
+        .find(_.name =:= level)
+  }
 
   object BootstrapConfigDto extends MxBootstrapConfigDto {
 
@@ -30,6 +45,8 @@ object BootstrapConfig {
         dataDir = "data".toSome,
         tempDir = "temp".toSome,
         defaultLogLevel = LogLevel.DEBUG.name.toSome,
+        logLevels = Vector.empty,
+        configFilePollInterval = 1.minute.some,
       ).copy(source = Some("default"))
 
     val empty =
@@ -50,7 +67,9 @@ object BootstrapConfig {
     cacheDir: Option[String] = None,
     dataDir: Option[String] = None,
     defaultLogLevel: Option[String] = None,
-  ) extends NamedToString {
+    logLevels: Vector[LogLevelConfig] = Vector.empty,
+    configFilePollInterval: Option[FiniteDuration] = None,
+) extends NamedToString {
     def +(right: BootstrapConfigDto): BootstrapConfigDto =
       BootstrapConfigDto(
         appName = right.appName.orElse(appName),
@@ -58,11 +77,13 @@ object BootstrapConfig {
         colorConsole = right.colorConsole.orElse(colorConsole),
         fileLogging = right.fileLogging.orElse(fileLogging),
         logAppConfig = right.logAppConfig.orElse(logAppConfig),
-        logsDir = right.logsDir.orElse(logsDir),
-        tempDir = right.tempDir.orElse(tempDir),
-        cacheDir = right.cacheDir.orElse(cacheDir),
-        dataDir = right.dataDir.orElse(dataDir),
-        defaultLogLevel = right.defaultLogLevel.orElse(defaultLogLevel),
+        logsDir = right.logsDir orElse logsDir,
+        tempDir = right.tempDir orElse tempDir,
+        cacheDir = right.cacheDir orElse cacheDir,
+        dataDir = right.dataDir orElse dataDir,
+        defaultLogLevel = right.defaultLogLevel orElse defaultLogLevel,
+        logLevels = logLevels ++ right.logLevels,
+        configFilePollInterval = configFilePollInterval orElse right.configFilePollInterval,
       )
   }
 
@@ -119,8 +140,27 @@ case class BootstrapConfig(
   tempDir: TempDir,
   cacheDir: CacheDir,
   dataDir: DataDir,
-  defaultLogLevel: LogLevel,
   appArgs: zio.ZIOAppArgs,
+  defaultLogLevel: wvlet.log.LogLevel,
+  logLevels: Vector[LogLevelConfig],
+  configFilePollInterval: FiniteDuration,
 ) extends NamedToString { self =>
+
+  lazy val invalidLogLevels =
+    logLevels
+      .flatMap { ll =>
+        ll.resolvedLevel match {
+          case None =>
+            Some(ll)
+          case _ =>
+            None
+        }
+      }
+
+  lazy val resolvedLogLevels =
+    for {
+      ll <- logLevels
+      level <- ll.resolvedLevel
+    } yield ll.name -> level
 
 }

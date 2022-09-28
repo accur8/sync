@@ -14,11 +14,20 @@ import a8.sync.qubes.MxQubesApiClient._
 import sttp.client3._
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
-import zio.{durationInt => _, _}
+import zio.{& => _,durationInt => _, _}
 
 import scala.concurrent.duration.FiniteDuration
 
 object QubesApiClient extends LoggingF {
+
+  lazy val layer = ZLayer(constructor)
+
+  lazy val constructor: ZIO[Scope & Config, Throwable, QubesApiClient] = {
+    for {
+      config <- zservice[Config]
+      client <- asResource(config)
+    } yield client
+  }
 
   object Config extends MxConfig {
     val fiveSeconds = 5.seconds
@@ -99,42 +108,6 @@ object QubesApiClient extends LoggingF {
       .asResource(retry = config.retry, maxConnections = config.maximumSimultaneousHttpConnections)
       .map(rp => QubesApiClient(config, rp))
   }
-
-  def sttpLogger: sttp.client3.logging.Logger[Task] = {
-    import sttp.client3.logging.{ LogLevel => SttpLevel }
-    import wvlet.log.{ LogLevel => WvletLevel }
-    new sttp.client3.logging.Logger[Task] {
-      override def apply(sttpLevel: sttp.client3.logging.LogLevel, message: => String): Task[Unit] = {
-        sttpLevel match {
-          case LogLevel.Trace =>
-            loggerF.trace(message)
-          case LogLevel.Debug =>
-            loggerF.debug(message)
-          case LogLevel.Info =>
-            loggerF.info(message)
-          case LogLevel.Warn =>
-            loggerF.warn(message)
-          case LogLevel.Error =>
-            loggerF.error(message)
-        }
-      }
-      override def apply(sttpLevel: LogLevel, message: => String, t: Throwable): Task[Unit] = {
-        sttpLevel match {
-          case LogLevel.Trace =>
-            loggerF.trace(message, t)
-          case LogLevel.Debug =>
-            loggerF.debug(message, t)
-          case LogLevel.Info =>
-            loggerF.info(message, t)
-          case LogLevel.Warn =>
-            loggerF.warn(message, t)
-          case LogLevel.Error =>
-            loggerF.error(message, t)
-        }
-      }
-    }
-  }
-
 
 }
 
