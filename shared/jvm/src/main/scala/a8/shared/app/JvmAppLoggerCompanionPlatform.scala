@@ -6,7 +6,6 @@ import a8.shared.SharedImports._
 import a8.shared.app.BootstrapConfig.AppName
 import wvlet.log.{LogLevel, LogRotationHandler, Logger}
 import zio.{Chunk, Duration, Scope, Task, ZIO, ZLayer}
-import zio.nio.file.{WatchKey, WatchService, Watchable}
 import zio.stream.ZStream
 
 import java.io.IOException
