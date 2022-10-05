@@ -191,33 +191,33 @@ case class QubesApiClient(
     qubesKeyedMapper.fetch(key)
   }
 
-  def insert[A : QubesMapper](row: A): Task[Unit] =
+  def insert[A : QubesMapper](row: A): Task[A] =
     processResponse(
       "insert",
       row,
       lowlevel.insert(implicitly[QubesMapper[A]].insertReq(row))
-    )
+    ).as(row)
 
-  def update[A : QubesMapper](row: A): Task[Unit] =
+  def update[A : QubesMapper](row: A): Task[A] =
     processResponse(
       "update",
       row,
       lowlevel.update(implicitly[QubesMapper[A]].updateReq(row))
-    )
+    ).as(row)
 
-  def upsert[A : QubesMapper](row: A): Task[Unit] =
+  def upsert[A : QubesMapper](row: A): Task[A] =
     processResponse(
       "upsert",
       row,
       lowlevel.upsert(implicitly[QubesMapper[A]].updateReq(row))
-    )
+    ).as(row)
 
-  def delete[A : QubesMapper](row: A): Task[Unit] =
+  def delete[A : QubesMapper](row: A): Task[A] =
     processResponse(
       "delete",
       row,
       lowlevel.delete(implicitly[QubesMapper[A]].deleteReq(row))
-    )
+    ).as(row)
 
   protected def processResponse[A : QubesMapper](context: String, row: A, f: Task[UpdateRowResponse]): Task[Unit] =
     f.flatMap(_.asF(context)).flatMap {
