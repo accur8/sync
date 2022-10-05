@@ -38,17 +38,7 @@ object Query {
           .run(ZSink.collectAll)
           .map(values => values: Iterable[A])
 
-      override def unique: Task[A] =
-        fetch
-          .flatMap {
-            case None =>
-              ZIO.fail(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
-            case Some(v) =>
-              ZIO.succeed(v)
-          }
-
-
-      override def fetch: Task[Option[A]] =
+      override def fetchOpt: Task[Option[A]] =
         stream
           .take(1)
           .run(ZSink.last)
@@ -63,8 +53,14 @@ trait Query[A] { query =>
   val sql: CompiledSql
   val reader: RowReader[A]
   def select: Task[Iterable[A]]
-  def unique: Task[A]
   def fetchOpt: Task[Option[A]]
-  def fetch: Task[A]
+  def fetch: Task[A] =
+    fetchOpt
+      .flatMap {
+        case None =>
+          ZIO.fail(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
+        case Some(v) =>
+          ZIO.succeed(v)
+      }
 }
 

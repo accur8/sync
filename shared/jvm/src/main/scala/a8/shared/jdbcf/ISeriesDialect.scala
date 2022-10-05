@@ -83,7 +83,7 @@ object ISeriesDialect extends Dialect {
       val sql = sql"""select COLUMN_NAMES from qsys2${schemaSeparator}SYSPARTITIONINDEXES where table_name = ${table.name.asString.escape} and index_type = 'PHYSICAL'${schemaClause}"""
       conn
         .query[String](sql)
-        .fetch
+        .fetchOpt
         .map {
           case Some(columnNamesStr) if columnNamesStr.isNotBlank =>
             Some(

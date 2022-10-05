@@ -57,7 +57,7 @@ UNION
 
     conn
       .query[ResolvedTableName](sql)
-      .unique
+      .fetch
 
   }
 
