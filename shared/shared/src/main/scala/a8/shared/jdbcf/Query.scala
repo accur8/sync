@@ -64,6 +64,7 @@ trait Query[A] { query =>
   val reader: RowReader[A]
   def select: Task[Iterable[A]]
   def unique: Task[A]
-  def fetch: Task[Option[A]]
+  def fetchOpt: Task[Option[A]]
+  def fetch: Task[A]
 }
 
