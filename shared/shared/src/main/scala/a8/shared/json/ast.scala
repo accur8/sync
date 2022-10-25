@@ -38,6 +38,13 @@ object ast {
   }
   case class JsDoc(value: JsVal, parent: Option[(JsDoc, Either[String,Int])] = None) extends HasJsVal with JsDocMixin {
     override def actualJsVal = value
+    def removeField(fieldName: String): JsDoc =
+      value match {
+        case jso: JsObj =>
+          copy(value = jso.removeField(fieldName))
+        case _ =>
+          this
+      }
   }
 
   case object JsNothing extends JsVal

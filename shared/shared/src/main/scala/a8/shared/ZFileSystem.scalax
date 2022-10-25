@@ -1,34 +1,42 @@
 package a8.shared
 
+import a8.shared.SharedImports._
+import a8.shared.ops.IteratorOps
+import zio.{Task, ZIO}
 
-import java.io.{FileInputStream, FileOutputStream, FileReader, InputStream, OutputStream, PrintStream, Reader}
+import java.io._
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, LinkOption, Paths, Path => NioPath}
 import java.time.LocalDateTime
-import SharedImports._
-import a8.shared.ops.IteratorOps
-
 import scala.util.Try
 
-object FileSystem {
+object ZFileSystem {
 
-  lazy val userHome: Directory = dir(System.getProperty("user.home"))
+  lazy val userHome: Task[Directory] = dir(System.getProperty("user.home"))
 
   trait Path {
     def name: String
-    def canonicalPath: String
-    def exists(): Boolean
-    def moveTo(d: Directory): Unit
-    def copyTo(d: Directory): Unit
-    def relativeTo(directory: Directory): String = directory.asNioPath.relativize(asNioPath).toString
-    def asNioPath: NioPath
+    def canonicalPath: Task[String]
+    def absolutePath: Task[String]
+    def exists: Task[Boolean]
+    def moveTo(d: Directory): Task[Unit]
+    def copyTo(d: Directory): Task[Unit]
+    def relativeTo(directory: Directory): Task[String] =
+      for {
+        nioDir <- directory.asNioPath
+        nioThis <- asNioPath
+        result <- zioDefer(nioDir.relativize(nioThis).toString)
+      } yield result
+    def asNioPath: Task[NioPath]
     def kind: String
-    def delete(): Unit
-    override def toString = canonicalPath
+    def delete: Task[Unit]
+    def parentOpt: Task[Option[Directory]]
+    protected def realToString: String
+    override def toString = realToString
   }
 
   trait Directory extends Path {
-    def parentOpt: Option[Directory]
+    def parentOpt: Task[Option[Directory]]
 
     def \(fileName: String): File = file(fileName)
     def \\(subdirName: String): Directory = subdir(subdirName)
@@ -37,18 +45,19 @@ object FileSystem {
      * makes sure the directory exists
      * @return
      */
-    def resolve: Directory = {
-      if ( !exists() )
-        makeDirectories()
-      this
-    }
+    def resolve: Task[Directory] =
+      for {
+        e <- exists
+        _ <-
+          if (e) zunit else makeDirectories
+      } yield this
 
-    def makeDirectories(): Unit
-    def makeDirectory(): Unit
-    def subdirs(): Iterable[Directory]
-    def entries(): Iterable[Path]
-    def files(): Iterable[File]
-    def deleteChildren(): Unit
+    def makeDirectories: Task[Unit]
+    def makeDirectory: Task[Unit]
+    def subdirs: XStream[Directory]
+    def entries: XStream[Path]
+    def files: XStream[File]
+    def deleteChildren: Task[Unit]
     def file(filename: String): File
     def subdir(subdirName: String): Directory
 
@@ -57,21 +66,21 @@ object FileSystem {
   trait File extends Path {
 
     def parent: Directory
-    def write(content: String): Unit
-    def write(is: InputStream): Unit
-    def withInputStream[A](fn: InputStream => A): A
-    def withReader[A](fn: Reader => A): A
-    def appendWithOutputStream[A](fn: OutputStream => A): A
-    def withOutputStream[A](fn: OutputStream => A): A
-    def withPrintStream[A](fn: PrintStream => A): A
-    def size(): Long
-    def lastModified(): Long
+    def write(content: String): Task[Unit]
+    def write(is: InputStream): Task[Unit]
+    def withInputStream[A](fn: InputStream => A): Task[A]
+    def withReader[A](fn: Reader => A): Task[A]
+    def appendWithOutputStream[A](fn: OutputStream => A): Task[A]
+    def withOutputStream[A](fn: OutputStream => A): Task[A]
+    def withPrintStream[A](fn: PrintStream => A): Task[A]
+    def size: Task[Long]
+    def lastModified: Task[Long]
 
-    def readAsString(): String = {
+    def readAsString: Task[String] = {
       withReader(_.readFully())
     }
 
-    def readBytes(): Array[Byte] = {
+    def readBytes: Task[Array[Byte]] = {
       withInputStream(_.readAllBytes())
     }
 
@@ -79,55 +88,63 @@ object FileSystem {
      * reads the file as a string if it exists
      * returns None if it doesn't exist
      */
-    def readAsStringOpt(): Option[String] =
-      exists()
-        .toOption(readAsString())
+    def readAsStringOpt: Task[Option[String]] =
+      for {
+        e <- exists
+        result <-
+          if (e) readAsString.map(_.some)
+          else zsucceed(None)
+      } yield result
 
-    def copyTo(target: File): Unit = {
-      import java.nio.file.{Files, Paths}
+    def copyTo(target: File): Task[Unit] = zioDefer {
       import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+      import java.nio.file.{Files, Paths}
       import language.implicitConversions
-      implicit def toNioPath(path: Path): NioPath = Paths.get(path.canonicalPath)
-      Files.copy(this, target, REPLACE_EXISTING)
+      for {
+        thisPath <- asNioPath
+        targetPath <- target.asNioPath
+        _ <- zioDefer(Files.copy(thisPath, targetPath, REPLACE_EXISTING))
+      } yield ()
     }
   }
 
-  def dir(path: String): Directory = {
+  def dir(path: String): Task[Directory] = {
     val startingPath = Paths.get(path)
-    realize(startingPath) match {
+    realize(startingPath)
+      .flatMap {
       case Right(d: Directory) =>
-        d
+        zsucceed(d)
       case Right(p) =>
-        sys.error(s"expected a directory got a ${p.kind} -- ${p}")
+        ZIO.fail(new RuntimeException(s"expected a directory got a ${p.kind} -- ${p}"))
       case Left(np) =>
-        new DirectoryImpl(np)
-
+        zsucceed(new DirectoryImpl(np))
     }
   }
 
-  def file(path: String): File = {
-    realize(Paths.get(path)) match {
+  def file(path: String): Task[File] = {
+    realize(Paths.get(path))
+      .flatMap {
       case Right(f: File) =>
-        f
+        zsucceed(f)
       case Left(np) =>
-        new FileImpl(np)
+        zsucceed(new FileImpl(np))
       case Right(p) =>
-        sys.error(s"expected a file got a ${p.kind} -- ${p}")
+        ZIO.fail(new RuntimeException(s"expected a file got a ${p.kind} -- ${p}"))
     }
   }
 
-  def fromNioPath(nioPath: NioPath): Option[Path] =
+  def fromNioPath(nioPath: NioPath): Task[Option[Path]] =
     realize(nioPath)
-      .toOption
+      .map(_.toOption)
 
   /**
    * returns a path of the correct type if it exists otherwise None
    */
-  def path(path: String): Option[Path] =
+  def path(path: String): Task[Option[Path]] =
     realize(Paths.get(path))
-      .toOption
+      .map(_.toOption)
 
-  private def realize(path: NioPath): Either[NioPath,Path] = {
+  private def realize(path: NioPath): Task[Either[NioPath,Path]] = zioDefer {
     if ( path.exists() )
       new RealizedNioPath(path.toRealPath(LinkOption.NOFOLLOW_LINKS))
         .resolvePath()
@@ -378,13 +395,13 @@ object FileSystem {
     override def makeDirectory(): Unit =
       Files.createDirectory(nioPath)
 
-    override def subdirs(): Iterable[Directory] =
-      entries()
+    override def subdirs: XStream[Directory] =
+      entries
         .collect {
           case d: Directory => d
         }
 
-    override def entries(): Iterable[Path] = {
+    override def entries: XStream[Path] = {
       Files
         .list(nioPath)
         .iterator()
@@ -393,27 +410,30 @@ object FileSystem {
         .to(Iterable)
     }
 
-    override def files(): Iterable[File] =
-      entries()
+    override def files: XStream[File] =
+      entries
         .collect {
           case f: File => f
         }
 
 
-    override def deleteChildren(): Unit = {
-      entries()
-        .foreach(_.delete())
+    override def deleteChildren: Task[Unit] = {
+      entries
+        .foreach(_.delete)
     }
 
-    override def delete(): Unit = {
-      deleteChildren()
+    override def delete: Task[Unit] = {
+      deleteChildren
       nioPath.toFile.delete()
     }
 
-    override def copyTo(d: Directory): Unit = {
-      val targetDir = d.subdir(name)
-      targetDir.makeDirectory()
-      entries().foreach(_.copyTo(targetDir))
+
+    override def copyTo(d: Directory): Task[Unit] = {
+      for {
+        targetDir <- zioDefer(d.subdir(name))
+        _ <- targetDir.makeDirectories
+        _ <- entries.foreach(_.copyTo(targetDir))
+      } yield ()
     }
 
     override def exists(): Boolean = {
@@ -425,5 +445,19 @@ object FileSystem {
     }
 
   }
+
+  def zioDefer[A](thunk: => A): Task[A] =
+    zio.ZIO
+      .attemptBlocking(
+        scala.util.Try(
+          thunk
+        )
+      )
+      .flatMap {
+        case scala.util.Success(v) =>
+          zsucceed(v)
+        case scala.util.Failure(th) =>
+          zfail(th)
+      }
 
 }

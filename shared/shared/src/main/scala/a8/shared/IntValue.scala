@@ -1,6 +1,5 @@
 package a8.shared
 
-
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
 import SqlString._
@@ -8,12 +7,12 @@ import a8.shared.ZString.ZStringer
 
 import language.implicitConversions
 
-object LongValue {
+object IntValue {
 
-  abstract class Companion[A <: LongValue] extends NumberValue.Companion[A, Long]
+  abstract class Companion[A <: IntValue] extends NumberValue.Companion[A, Int]
 
 }
 
-trait LongValue extends NumberValue[Long] {
-  val value: Long
+trait IntValue extends NumberValue[Int] {
+  val value: Int
 }
