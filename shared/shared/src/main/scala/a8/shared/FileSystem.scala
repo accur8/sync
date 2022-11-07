@@ -385,12 +385,16 @@ object FileSystem {
         }
 
     override def entries(): Iterable[Path] = {
-      Files
-        .list(nioPath)
-        .iterator()
-        .asScala
-        .flatMap(p => unsafeRealize(p).resolvePath().toOption) // ??? this could be optimized to house the provide the parent path
-        .to(Iterable)
+      if ( exists() ) {
+        Files
+          .list(nioPath)
+          .iterator()
+          .asScala
+          .flatMap(p => unsafeRealize(p).resolvePath().toOption) // ??? this could be optimized to house the provide the parent path
+          .to(Iterable)
+      } else {
+        Iterable.empty
+      }
     }
 
     override def files(): Iterable[File] =
@@ -406,8 +410,10 @@ object FileSystem {
     }
 
     override def delete(): Unit = {
-      deleteChildren()
-      nioPath.toFile.delete()
+      if ( exists() ) {
+        deleteChildren()
+        nioPath.toFile.delete()
+      }
     }
 
     override def copyTo(d: Directory): Unit = {
