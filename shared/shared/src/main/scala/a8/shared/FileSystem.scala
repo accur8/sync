@@ -17,6 +17,7 @@ object FileSystem {
   trait Path {
     def name: String
     def canonicalPath: String
+    def absolutePath: String
     def exists(): Boolean
     def moveTo(d: Directory): Unit
     def copyTo(d: Directory): Unit
@@ -181,13 +182,20 @@ object FileSystem {
 
   private abstract class PathImpl(
     val asNioPath: java.nio.file.Path,
-  ) {
+  ) { self: Path =>
 
     lazy val name: String =
       asNioPath.getFileName.toString
 
+    def absolutePath: String =
+      asNioPath
+        .toAbsolutePath()
+        .toString
+
     def canonicalPath: String =
-      asNioPath.toString
+      asNioPath
+        .toRealPath()
+        .toString
 
     def attributes(): BasicFileAttributes =
       readAttributes(asNioPath)
@@ -195,10 +203,10 @@ object FileSystem {
     override def equals(obj: Any): Boolean =
       obj match {
         case p: Path =>
-          p.canonicalPath === canonicalPath
+          p.absolutePath === absolutePath
       }
 
-    override lazy val hashCode = canonicalPath.hashCode
+    override lazy val hashCode = absolutePath.hashCode
 
   }
 

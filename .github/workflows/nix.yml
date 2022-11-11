@@ -1,23 +1,35 @@
+# Location: .github/workflows/nix.yml
 name: Nix
 on:
-  # Run after merges or pushes to master
+  # Only build on pushes to master, pull-requests, and manual triggers.
+  # This is the best setup for open-source projects. For private projects,
+  # `push: {}` is enough.
   push:
     branches:
       - master
-  # Run on pull-requests
   pull_request:
-  # Allow to trigger the run manually
   workflow_dispatch:
 jobs:
   build:
     strategy:
       matrix:
+        # This is used to trigger the Nix builds on multiple OSes. This is
+        # mostly useful if you have developers using MacOS.
+        # NOTE: MacOS minutes cost 10x more than Linux minutes on private repos. Public repos are free.
         os:
-          # - macos-latest
+          - macos-latest
           - ubuntu-20.04
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v16
-        # Test that the nix-shell is working
-      - run: nix-shell --run "echo OK"
+      - uses: actions/checkout@v3
+        # This installs Nix in the VM
+      - uses: cachix/install-nix-action@v18
+        # This configures nix to use the cachix cache, and automatically
+        # pushes all the changed files. It's safe to remove that step
+      - uses: cachix/cachix-action@v12
+        with:
+          name: your-cache
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      # And your commands at the end
+      - run: nix-shell --run "sbt -Djline.terminal=jline.UnsupportedTerminal clean compile test:compile"
+      - run: nix-shell --run "sbt -Djline.terminal=jline.UnsupportedTerminal clean test"
