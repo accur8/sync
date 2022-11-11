@@ -17,7 +17,7 @@ jobs:
         # mostly useful if you have developers using MacOS.
         # NOTE: MacOS minutes cost 10x more than Linux minutes on private repos. Public repos are free.
         os:
-          - macos-latest
+#          - macos-latest
           - ubuntu-20.04
     runs-on: ${{ matrix.os }}
     steps:

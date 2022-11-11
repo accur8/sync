@@ -57,7 +57,18 @@ object ReplayableByteStreamSpec extends ZIOSpecDefault {
       }
 
     ZIO
-      .scoped(effect)
+      .scoped(
+        effect
+          .either
+          .flatMap {
+            case Left(e) =>
+//              e.printStackTrace()
+              ZIO.fail(e)
+            case Right(b) =>
+//              println(b)
+              zsucceed(b)
+          }
+      )
       .provideLayer(Factory.live)
       .provideLayer(tempDirLayer)
 

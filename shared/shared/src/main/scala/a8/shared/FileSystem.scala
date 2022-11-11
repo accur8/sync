@@ -189,13 +189,13 @@ object FileSystem {
 
     def absolutePath: String =
       asNioPath
-        .toAbsolutePath()
-        .toString
+        .toFile
+        .getAbsolutePath
 
     def canonicalPath: String =
       asNioPath
-        .toRealPath()
-        .toString
+        .toFile
+        .getCanonicalPath
 
     def attributes(): BasicFileAttributes =
       readAttributes(asNioPath)
