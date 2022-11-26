@@ -157,9 +157,9 @@ object FileSystem {
         .toOption {
           val attributes = readAttributes(nioPath)
           if ( attributes.isRegularFile ) {
-            new FileImpl(nioPath, None)
+            new FileImpl(nioPath)
           } else if ( attributes.isDirectory ) {
-            new DirectoryImpl(nioPath, None)
+            new DirectoryImpl(nioPath)
           } else if ( attributes.isSymbolicLink ) {
             new SymlinkImpl(nioPath)
           } else if ( attributes.isOther ) {
@@ -247,8 +247,7 @@ object FileSystem {
   }
 
   private class FileImpl(
-    nioPath: java.nio.file.Path,
-    preloadedParent: Option[Directory] = None,
+    nioPath: java.nio.file.Path
   )
     extends PathImpl(nioPath)
     with File
@@ -257,7 +256,7 @@ object FileSystem {
     override def kind: String = "file"
 
     override lazy val parent: Directory =
-      preloadedParent.getOrElse(new DirectoryImpl(nioPath.getParent))
+      new DirectoryImpl(nioPath.getParent)
 
     override def delete(): Unit =
       Files.delete(nioPath)
@@ -355,8 +354,7 @@ object FileSystem {
 
 
   private class DirectoryImpl(
-    nioPath: NioPath,
-    preloadedParent: Option[Directory] = None,
+    nioPath: NioPath
   )
     extends PathImpl(nioPath)
     with Directory
@@ -365,26 +363,25 @@ object FileSystem {
     override def kind: String = "dir"
 
     override def parentOpt: Option[Directory] =
-      preloadedParent
-        .orElse {
-          Option(nioPath.getParent)
-            .map(p => new DirectoryImpl(p))
-        }
+      Option(nioPath.getParent)
+        .map(p => new DirectoryImpl(p))
 
     override def file(fileName: String): File =
-      new FileImpl(nioPath.resolve(fileName).toAbsolutePath, Some(this))
+      new FileImpl(nioPath.resolve(fileName).toAbsolutePath)
 
     override def subdir(subdirName: String): Directory =
-      new DirectoryImpl(nioPath.resolve(subdirName).toAbsolutePath, Some(this))
+      new DirectoryImpl(nioPath.resolve(subdirName).toAbsolutePath)
 
     override def moveTo(d: Directory): Unit =
       Files.move(asNioPath, d.subdir(name).asNioPath)
 
     override def makeDirectories(): Unit =
-      Files.createDirectories(nioPath)
+      if ( !nioPath.toFile.isDirectory )
+        Files.createDirectories(nioPath)
 
     override def makeDirectory(): Unit =
-      Files.createDirectory(nioPath)
+      if ( !nioPath.toFile.isDirectory )
+        Files.createDirectory(nioPath)
 
     override def subdirs(): Iterable[Directory] =
       entries()
