@@ -10,6 +10,7 @@ object JsValOps {
     val colonCh = Chord.str(":")
     val colonSpaceCh = Chord.str(": ")
     val leftBracketCh = Chord.str("[")
+    val emptyArrayCh = Chord.str("[]")
     val rightBracketCh = Chord.str("]")
     val leftCurlyCh = Chord.str("{")
     val rightCurlyCh = Chord.str("}")
@@ -67,6 +68,8 @@ object JsValOps {
           nullCh
         case JsNothing =>
           nothingCh
+        case jarr: JsArr if jarr.values.isEmpty =>
+          emptyArrayCh
         case jarr: JsArr =>
           (
             leftBracketCh
