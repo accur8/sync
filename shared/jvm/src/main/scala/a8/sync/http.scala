@@ -501,7 +501,7 @@ object http extends LoggingF {
                   } else {
                     ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))
                   }
-                case ResponseAction.Fail(msg, rm) =>
+                case f@ ResponseAction.Fail(msg, rm) =>
                   ZIO.fail(new RuntimeException(s"received ${rm.map(_.metadata.statusCode)} -- ${msg}"))
               }
 

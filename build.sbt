@@ -16,7 +16,8 @@ val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "2.13.6"
 val sbtA8Version = "1.2.0-20220113_1040"
-val zioVersion = "2.0.2"
+val zioVersion = "2.0.5"
+val zioLoggingVersion = "2.1.5"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -38,22 +39,34 @@ serverConnectionType in Global := ConnectionType.Local
 lazy val api =
   Common
     .jvmProject("a8-sync-api", file("api"), "api")
-    .dependsOn(sharedJVM)
+    .dependsOn(shared)
     .settings(
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "net.sf.jt400" % "jt400" % "10.7",
         "com.zaxxer" % "HikariCP" % "4.0.3",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
+        "dev.zio" %%% "zio" % zioVersion,
       )
     )
 
 
 lazy val shared =
   Common
-    .crossProject("a8-sync-shared", file("shared"), "shared")
+    .jvmProject("a8-sync-shared", file("shared"), "shared")
+//    .crossProject("a8-sync-shared", file("shared"), "shared")
     .settings(
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      Compile / unmanagedSourceDirectories :=
+        Seq(
+          baseDirectory.value / "jvm" / "src" / "main" / "scala",
+          baseDirectory.value / "shared" / "src" / "main" / "scala",
+        ),
+      Test / unmanagedSourceDirectories :=
+        Seq(
+          baseDirectory.value / "jvm" / "src" / "test" / "scala",
+          baseDirectory.value / "shared" / "src" / "test" / "scala",
+        ),
       libraryDependencies ++= Seq(
         "org.wvlet.airframe" %% "airframe-log" % "22.1.0",
         "org.typelevel" %% "cats-core" % "2.7.0",
@@ -61,25 +74,25 @@ lazy val shared =
         "com.beachape" %%% "enumeratum" % "1.7.0",
         "com.lihaoyi" %%% "sourcecode" % "0.2.7",
         "org.typelevel" %% "case-insensitive" % "1.2.0",
-        "com.softwaremill.sttp.model" %% "core" % "1.4.20",
-        "org.slf4j" % "slf4j-jdk14" % "2.0.0-alpha5",
+        "com.softwaremill.sttp.model" %% "core" % "1.5.3",
+        "org.slf4j" % "slf4j-jdk14" % "2.0.5",
         "org.scalactic" %% "scalactic" % "3.2.10",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
         "org.typelevel" %% "jawn-parser" % "1.3.2",
         "org.typelevel" %% "jawn-ast" % "1.3.2",
-        "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.0",
-        "dev.zio" %%% "zio-prelude" % "1.0.0-RC15",
+        "dev.zio" %%% "zio-prelude" % "1.0.0-RC16",
         "dev.zio" %%% "zio" % zioVersion,
         "dev.zio" %%% "zio-streams" % zioVersion,
-        "dev.zio" %% "zio-logging" % "2.1.0",
-        "dev.zio" %% "zio-logging-slf4j" % "2.1.0",
+        "dev.zio" %%% "zio-logging" % zioLoggingVersion,
         "dev.zio" %%% "zio-test" % zioVersion % Test,
         "dev.zio" %%% "zio-test-sbt" % zioVersion % Test,
-        "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test
-      )
-    )
-    .jvmSettings(
-      libraryDependencies ++= Seq(
+        "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test,
+//      )
+//    )
+//    .jvmSettings(
+//      libraryDependencies ++= Seq(
+        "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.5",
+        "dev.zio" %% "zio-logging-slf4j" % zioLoggingVersion,
         "org.hsqldb" % "hsqldb" % "2.6.1",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
         "org.postgresql" % "postgresql" % "42.3.4",
@@ -89,14 +102,14 @@ lazy val shared =
         "com.sun.mail" % "jakarta.mail" % "2.0.1",
       )
     )
-    .jsSettings(
-      libraryDependencies ++= Seq(
-        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
-      )
-    )
+//    .jsSettings(
+//      libraryDependencies ++= Seq(
+//        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+//      )
+//    )
 
-lazy val sharedJVM = shared.jvm
-lazy val sharedJS = shared.js
+//lazy val sharedJVM = shared.jvm
+//lazy val sharedJS = shared.js
 
 
 lazy val root =
@@ -104,9 +117,9 @@ lazy val root =
     .settings( publish := {} )
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
     .aggregate(api)
-//    .aggregate(sharedJS)
-    .aggregate(sharedJVM)
-
+//    .aggregate(shared.js)
+//    .aggregate(sharedJVM)
+    .aggregate(shared)
 
 
    

@@ -277,6 +277,7 @@ trait SharedImports
   def none[A]: Option[A] = None
   def some[A](a: A): Option[A] = Some(a)
 
+  def zblock[A](fn: =>A)(implicit trace: Trace): Task[A] = ZIO.attemptBlocking(fn)
   def zunit: UIO[Unit] = zio.ZIO.unit
   def zsucceed[A](a: A)(implicit trace: Trace): ZIO[Any, Nothing, A] = zio.ZIO.succeed(a)
   def zfail[A](a: A)(implicit trace: Trace): ZIO[Any, A, Nothing] = zio.ZIO.fail(a)
