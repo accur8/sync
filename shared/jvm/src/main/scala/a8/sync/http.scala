@@ -54,7 +54,7 @@ object http extends LoggingF {
   }
 
   case class SttpBackend(
-    sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams with capabilities.WebSockets],
+    sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams],
 //    replayableStreamFactory: ReplayableStream.Factory
   )
     extends Backend
@@ -399,7 +399,7 @@ object http extends LoggingF {
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
       for {
-        sttpBackend <-sttp.client3.asynchttpclient.zio.AsyncHttpClientZioBackend.scoped()
+        sttpBackend <-sttp.client3.armeria.zio.ArmeriaZioBackend.scoped()
         maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
         RequestProcessorImpl(retry, SttpBackend(sttpBackend), maxConnectionSemaphore)

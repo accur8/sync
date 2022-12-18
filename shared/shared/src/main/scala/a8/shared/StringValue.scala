@@ -7,48 +7,21 @@ import a8.shared.ZString.{HasZString, ZStringer}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
 
 import language.implicitConversions
+import scala.reflect.ClassTag
 
 object StringValue {
 
-  abstract class Companion[A <: StringValue] {
+  abstract class Companion[A <: StringValue] extends AbstractStringValueCompanion[A] {
 
-    implicit val fromString: FromString[A] =
-      new FromString[A] {
-        override def fromString(value: String): Option[A] =
-          Some(apply(value))
-      }
 
-    implicit lazy val zioEq: zio.prelude.Equal[A] =
-      zio.prelude.Equal.make((a, b) => a.value == b.value)
+    override def valueToString(a: A): String = a.value
 
-    implicit lazy val catsEq: cats.kernel.Eq[A] =
-      cats.kernel.Eq.by[A,String](_.value)
-
-    implicit lazy val jsonCodec: JsonCodec[A] =
-      jsonTypedCodec.asJsonCodec
-
-    implicit lazy val jsonTypedCodec: JsonTypedCodec[A, ast.JsStr] =
-      JsonCodec.string.dimap[A](
-        apply _,
-        _.value.toString,
-      )
-
-    implicit val rowReader: RowReader[A] = RowReader.stringReader.map(s => apply(s.trim))
-    implicit val rowWriter: RowWriter[A] = RowWriter.stringWriter.mapWriter[A](_.value)
-
-    implicit def toSqlString(a: A): SqlString =
-      SqlString.escapedString(a.value)
+    override def valueFromString(s: String): A = apply(s)
 
     def apply(value: String): A
 
     def unapply(value: String): Option[A] =
       Some(apply(value))
-
-    implicit val zstringer: ZStringer[A] =
-      new ZStringer[A] {
-        override def toZString(a: A): ZString =
-          a.value
-      }
 
   }
 

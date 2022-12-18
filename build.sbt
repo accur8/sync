@@ -91,7 +91,8 @@ lazy val shared =
 //    )
 //    .jvmSettings(
 //      libraryDependencies ++= Seq(
-        "com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.5",
+        "com.softwaremill.sttp.client3" %% "armeria-backend-zio" % "3.8.5",
+//"com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.5",
         "dev.zio" %% "zio-logging-slf4j" % zioLoggingVersion,
         "org.hsqldb" % "hsqldb" % "2.6.1",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
