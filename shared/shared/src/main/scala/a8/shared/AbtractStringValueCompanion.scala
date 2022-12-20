@@ -45,7 +45,7 @@ abstract class AbstractStringValueCompanion[A] {
   implicit val zstringer: ZStringer[A] =
     new ZStringer[A] {
       override def toZString(a: A): ZString =
-        a.value
+        ZString.str(valueToString(a))
     }
 
 }

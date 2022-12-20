@@ -77,7 +77,7 @@ trait JsonPackageObjectApi {
               case Right(a) =>
                 zsucceed(a)
               case Left(e) =>
-                zfail(throw new RuntimeException(z"error parsing json from ${file}", e))
+                zfail(new RuntimeException(z"error parsing json from ${file}", e))
             }
 
       }

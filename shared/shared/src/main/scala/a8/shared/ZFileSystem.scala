@@ -48,11 +48,6 @@ object ZFileSystem {
     override def valueFromString(s: String): Directory = ZFileSystem.dir(s)
   }
 
-  trait HasParent { self: Path =>
-    def parentOpt: Option[Directory] = parent.some
-    def parent = new DirectoryImpl(asNioPath)
-  }
-
   trait Directory extends Path {
 
     def parentOpt: Option[Directory]
@@ -95,6 +90,12 @@ object ZFileSystem {
 
   }
 
+  trait HasParent {
+    self: Path =>
+    def parentOpt: Option[Directory] = parent.some
+    def parent = new DirectoryImpl(asNioPath.getParent)
+  }
+
   object File extends AbstractStringValueCompanion[File] {
     override def valueToString(a: File): String = a.absolutePath
     override def valueFromString(s: String): File = ZFileSystem.file(s)
@@ -103,11 +104,18 @@ object ZFileSystem {
   trait File extends Path with HasParent {
 
     def parent: Directory
-    def write(content: String): Z[Unit] = ZIO.writeFile(asNioPath, content)
+    def write(content: String): Z[Unit] =
+      parent.resolve
+        .asZIO(
+          ZIO.writeFile(asNioPath, content)
+        )
 
     def write(is: =>java.io.InputStream): Z[Long] =
-      ZStream.fromInputStream(is)
-        .run(ZSink.fromFile(asNioPath.toFile))
+      parent.resolve
+        .asZIO(
+          ZStream.fromInputStream(is)
+            .run(ZSink.fromFile(asNioPath.toFile))
+        )
 
     def size: Z[Long] = zblock(asNioPath.toFile.length())
     def lastModified: Z[Long] = zblock(asNioPath.toFile.lastModified())

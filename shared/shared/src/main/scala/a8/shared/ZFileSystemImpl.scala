@@ -77,9 +77,12 @@ object ZFileSystemImpl {
       )
 
     override def writeTarget(target: String): Z[Unit] =
-      zblock(
-        Files.createSymbolicLink(asNioPath, Paths.get(target))
-      )
+      parent.makeDirectories
+        .asZIO(
+          zblock(
+            Files.createSymbolicLink(asNioPath, Paths.get(target))
+          )
+        )
 
     override def asFile: File =
       file(path)
@@ -139,8 +142,8 @@ object ZFileSystemImpl {
 
 
   class DirectoryImpl(
-                       nioPath: NioPath
-                     )
+    nioPath: NioPath
+  )
     extends PathImpl(nioPath)
       with Directory {
 

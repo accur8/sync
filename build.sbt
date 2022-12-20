@@ -35,6 +35,8 @@ versionScheme in Global := Some("strict")
 
 serverConnectionType in Global := ConnectionType.Local
 
+resolvers += MavenCache("local-maven", file("/Users/glen/code/accur8/versions/m2-local-repo"))
+
 
 lazy val api =
   Common
@@ -46,7 +48,6 @@ lazy val api =
         "net.sf.jt400" % "jt400" % "10.7",
         "com.zaxxer" % "HikariCP" % "4.0.3",
         "org.scalatest" %% "scalatest" % "3.2.10" % "test",
-        "dev.zio" %%% "zio" % zioVersion,
       )
     )
 
