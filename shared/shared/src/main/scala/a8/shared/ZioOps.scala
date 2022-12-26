@@ -86,4 +86,30 @@ class ZioOps[R, E, A](effect: zio.ZIO[R,E,A])(implicit trace: Trace) {
     } yield result
   }
 
+
+  def traceC(context: String)(implicit loggerF: LoggerF, trace: Trace): ZIO[R, E, A] =
+    loggerF.trace(s"start ${context}")
+      .flatMap(_ => effect)
+      .flatMap { v =>
+        loggerF.trace(s"success ${context} -- ${v}")
+          .as(v)
+      }
+      .onError { cause =>
+        loggerF.trace(s"error ${context}", cause)
+      }
+
+  def jsonTrace(implicit jsonCodec: JsonCodec[A], loggerF: LoggerF, trace: Trace): zio.ZIO[R,E,A] =
+    jsonTraceC("")
+
+  def jsonTraceC(context: String)(implicit jsonCodec: JsonCodec[A], loggerF: LoggerF, trace: Trace): zio.ZIO[R, E, A] =
+    loggerF.trace(s"start ${context}")
+      .flatMap(_ => effect)
+      .flatMap { v =>
+        loggerF.trace(s"success ${context} -- ${v.compactJson}")
+          .as(v)
+      }
+      .onError { cause =>
+        loggerF.trace(s"error ${context}", cause)
+      }
+
 }
