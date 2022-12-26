@@ -23,6 +23,7 @@ object SyncZLogger {
       Leveler(LogLevel.Info, _.isInfoEnabled()),
       Leveler(LogLevel.Warning, _.isWarnEnabled()),
       Leveler(LogLevel.Error, _.isErrorEnabled()),
+      Leveler(LogLevel.Fatal, _.isErrorEnabled()),
     )
 
   val levelersByLogLevel =
@@ -33,6 +34,7 @@ object SyncZLogger {
     zioTrace: String,
     loggerName: String,
     slf4jLogger: org.slf4j.Logger,
+    wvletLogger: wvlet.log.Logger,
   ) {
     val fileName =
       zioTrace.indexOf("(") match {
@@ -81,7 +83,7 @@ object SyncZLogger {
                     .headOption
                     .getOrElse(traceStr)
                     .intern()
-                val cl = CachedLogger(traceStr, loggerName, LoggerFactory.getLogger(loggerName))
+                val cl = CachedLogger(traceStr, loggerName, LoggerFactory.getLogger(loggerName), wvlet.log.Logger(loggerName))
                 cachedLoggers += (trace -> cl)
                 cl
             }
@@ -143,13 +145,48 @@ object SyncZLogger {
           }
 
           import cachedLogger.slf4jLogger
+//          import cachedLogger.wvletLogger
+//          val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
+//          if (wvletLogger.isEnabled(wvletLogLevel)) {
+//            try logLevel match {
+//              case LogLevel.Trace   =>
+//                wvletLogger.trace(message)
+//              case LogLevel.Debug   =>
+//                wvletLogger.debug(message)
+//              case LogLevel.Info    =>
+//                wvletLogger.info(message)
+//              case LogLevel.Warning =>
+//                wvletLogger.warn(message)
+//              case LogLevel.Error   =>
+//                wvletLogger.error(message)
+//              case LogLevel.Fatal   =>
+//                wvletLogger.error(message)
+//              case LogLevel.None    =>
+//              case _                =>
+//            } finally {
+//  //            previous.foreach(MDC.setContextMap)
+//            }
+//          }
 
           try logLevel match {
-            case LogLevel.Debug   => if (slf4jLogger.isDebugEnabled) slf4jLogger.debug(message)
-            case LogLevel.Info    => if (slf4jLogger.isInfoEnabled) slf4jLogger.info(message)
-            case LogLevel.Warning => if (slf4jLogger.isWarnEnabled) slf4jLogger.warn(message)
-            case LogLevel.Error   => if (slf4jLogger.isErrorEnabled) slf4jLogger.error(message)
-            case LogLevel.Fatal   => if (slf4jLogger.isErrorEnabled) slf4jLogger.error(message)
+            case LogLevel.Trace   =>
+              if (slf4jLogger.isTraceEnabled)
+                slf4jLogger.trace(message)
+            case LogLevel.Debug   =>
+              if (slf4jLogger.isDebugEnabled)
+                slf4jLogger.debug(message)
+            case LogLevel.Info    =>
+              if (slf4jLogger.isInfoEnabled)
+                slf4jLogger.info(message)
+            case LogLevel.Warning =>
+              if (slf4jLogger.isWarnEnabled)
+                slf4jLogger.warn(message)
+            case LogLevel.Error   =>
+              if (slf4jLogger.isErrorEnabled)
+                slf4jLogger.error(message)
+            case LogLevel.Fatal   =>
+              if (slf4jLogger.isErrorEnabled)
+                slf4jLogger.error(message)
             case LogLevel.None    => ()
             case _                => ()
           } finally {

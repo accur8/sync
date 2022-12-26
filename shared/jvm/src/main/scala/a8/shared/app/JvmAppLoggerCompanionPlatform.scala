@@ -30,11 +30,15 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
 
       def configureLogLevels(): Unit = {
 
-        Logger.setDefaultLogLevel(bootstrapConfig.defaultLogLevel)
+        if ( bootstrapConfig.defaultLogLevel == LogLevel.TRACE )
+          Logger.setDefaultLogLevel(LogLevel.ALL)
+        else
+          Logger.setDefaultLogLevel(bootstrapConfig.defaultLogLevel)
+
 
         initialLogLevels
           .foreach { case (name, level) =>
-            Logger(name).setLogLevel(level)
+            LoggerF.impl.setLogLevel(name, level)
           }
 
       }
@@ -149,7 +153,7 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
         .flatMap { bootstrapConfig =>
           ZIO.attemptBlocking {
             bootstrapConfig.resolvedLogLevels.foreach { case (name, level) =>
-              Logger(name).setLogLevel(level)
+              LoggerF.impl.setLogLevel(name, level)
             }
           }
         }

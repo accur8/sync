@@ -253,13 +253,15 @@ object ZFileSystemImpl {
     override def copyTo(d: Directory): Z[Unit] = {
       val targetDir = d.subdir(name)
       targetDir
-        .makeDirectory
+        .makeDirectories
         .asZIO {
           entries
-            .map(
-              _.map(e => e.copyTo(targetDir)).sequence
+            .flatMap(
+              _.map(e => e.copyTo(targetDir))
+                .sequence
             )
         }
+        .as(())
     }
 
     override def exists: Z[Boolean] =

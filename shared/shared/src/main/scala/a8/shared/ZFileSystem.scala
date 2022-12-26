@@ -71,9 +71,9 @@ object ZFileSystem {
       exists
         .flatMap {
           case true =>
-            makeDirectories
-          case false =>
             zunit
+          case false =>
+            makeDirectories
         }
         .as(this)
 
@@ -105,13 +105,15 @@ object ZFileSystem {
 
     def parent: Directory
     def write(content: String): Z[Unit] =
-      parent.resolve
+      parent
+        .resolve
         .asZIO(
           ZIO.writeFile(asNioPath, content)
         )
 
     def write(is: =>java.io.InputStream): Z[Long] =
-      parent.resolve
+      parent
+        .resolve
         .asZIO(
           ZStream.fromInputStream(is)
             .run(ZSink.fromFile(asNioPath.toFile))

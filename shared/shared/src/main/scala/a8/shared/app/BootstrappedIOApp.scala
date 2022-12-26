@@ -126,6 +126,8 @@ abstract class BootstrappedIOApp
       config <- bootstrapper.appConfig[A]
     } yield config
 
+  def defaultZioLogLevel = zio.LogLevel.Debug
+
   def appConfigLayer[A: Tag: JsonCodec] = ZLayer(appConfig[A])
 
   def runT: zio.ZIO[BootstrapEnv, Throwable, Unit]
@@ -149,7 +151,7 @@ abstract class BootstrappedIOApp
             _ <- ZIO.scoped(runT)
           } yield ()
 
-        val loggingLayer = SyncZLogger.slf4jLayer(zio.LogLevel.Debug)
+        val loggingLayer = SyncZLogger.slf4jLayer(defaultZioLogLevel)
 
         effect
           .onExit {

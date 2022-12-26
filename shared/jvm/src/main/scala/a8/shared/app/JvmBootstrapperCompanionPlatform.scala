@@ -9,6 +9,7 @@ import a8.shared.json.{JsonCodec, ast}
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
 import a8.shared.json.ast.JsDoc
+import wvlet.log.LogLevel
 import zio.{Task, ZIO, ZIOAppArgs, ZLayer}
 
 import scala.collection.mutable
@@ -76,6 +77,22 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
           val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
           //        bootstrapLogs.append(s"resolved dto ${resolvedDto}")
 
+          val defaultLogLevel = {
+
+            def find(nameOpt: Option[String]): Option[LogLevel] = {
+              nameOpt
+                .map(_.toLowerCase)
+                .map { defaultLogLevelName =>
+                  wvlet.log.LogLevel.values.find(_.name.toLowerCase == defaultLogLevelName).get
+                }
+            }
+
+            find(Option(System.getProperty("defaultLogLevel")))
+              .orElse(find(resolvedDto.defaultLogLevel))
+              .get
+
+          }
+
           BootstrapConfig(
             appName = resolvedDto.appName.getOrElse(appName),
             consoleLogging = resolvedDto.consoleLogging.get,
@@ -86,7 +103,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
             tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),
             cacheDir = CacheDir(FileSystem.dir(resolvedDto.cacheDir.get)),
             dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
-            defaultLogLevel = wvlet.log.LogLevel.values.find(_.name.toLowerCase == resolvedDto.defaultLogLevel.get.toLowerCase).get,
+            defaultLogLevel = defaultLogLevel,
             appArgs = args,
             logLevels = resolvedDto.logLevels,
             configFilePollInterval = resolvedDto.configFilePollInterval.get,

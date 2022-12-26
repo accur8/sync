@@ -9,6 +9,40 @@ import zio.{LogLevel => _, _}
 
 object LoggerF {
 
+  object impl {
+
+    /**
+     * set log level so that TRACE works from slf4j since when using java.util.logging as the
+     * underlying logger slf4j treats trait as jul.Level.FINEST where wvlet treats it as jul.Level.FINER
+     */
+    def setLogLevel(loggerName: String, level: LogLevel): Unit = {
+      val ll = if ( level == LogLevel.TRACE ) LogLevel.ALL else level
+      Logger(loggerName).setLogLevel(ll)
+    }
+
+    val logLevelMap: Map[LogLevel, zio.LogLevel] =
+      Map(
+        wvlet.log.LogLevel.DEBUG -> zio.LogLevel.Debug,
+        wvlet.log.LogLevel.ERROR -> zio.LogLevel.Error,
+        wvlet.log.LogLevel.INFO -> zio.LogLevel.Info,
+        wvlet.log.LogLevel.TRACE -> zio.LogLevel.Trace,
+        wvlet.log.LogLevel.WARN -> zio.LogLevel.Warning,
+        wvlet.log.LogLevel.ALL -> zio.LogLevel.All,
+        wvlet.log.LogLevel.OFF -> zio.LogLevel.None,
+      )
+
+    val zioLogLevelMap =
+      logLevelMap
+        .map(t => t._2 -> t._1)
+
+    @inline def fromZioLogLevel(zioLogLevel: zio.LogLevel): LogLevel =
+      zioLogLevelMap(zioLogLevel)
+
+    @inline def toZioLogLevel(logLevel: LogLevel): zio.LogLevel =
+      logLevelMap(logLevel)
+
+  }
+
   object Pos {
     implicit def implicitPos(
       implicit
@@ -39,26 +73,12 @@ object LoggerF {
   def create(delegate: Logger): LoggerF = {
     new LoggerF {
 
-      val logLevelMap: Map[LogLevel, zio.LogLevel] =
-        Map(
-          wvlet.log.LogLevel.DEBUG -> zio.LogLevel.Debug,
-          wvlet.log.LogLevel.ERROR -> zio.LogLevel.Error,
-          wvlet.log.LogLevel.INFO -> zio.LogLevel.Info,
-          wvlet.log.LogLevel.TRACE -> zio.LogLevel.Trace,
-          wvlet.log.LogLevel.WARN -> zio.LogLevel.Warning,
-          wvlet.log.LogLevel.ALL -> zio.LogLevel.All,
-          wvlet.log.LogLevel.OFF -> zio.LogLevel.None,
-        )
-
-      @inline def toZioLogLevel(logLevel: LogLevel): zio.LogLevel =
-        logLevelMap(logLevel)
-
       override protected def isEnabled(logLevel: LogLevel): Boolean =
         delegate.isEnabled(logLevel)
 
 
       override protected def impl(logLevel: LogLevel, message: String, cause: Option[Throwable])(implicit trace: Trace): UIO[Unit] = {
-        val zioLogLevel = toZioLogLevel(logLevel)
+        val zioLogLevel = LoggerF.impl.toZioLogLevel(logLevel)
         ZIO.logLevel(zioLogLevel) {
           val causeSuffix =
             cause match {
@@ -72,7 +92,7 @@ object LoggerF {
       }
 
       override protected def impl(logLevel: LogLevel, message: String, cause: Cause[Any])(implicit trace: Trace): UIO[Unit] = {
-        val zioLogLevel = toZioLogLevel(logLevel)
+        val zioLogLevel = LoggerF.impl.toZioLogLevel(logLevel)
         ZIO.logLevel(zioLogLevel) {
           ZIO.logCause(message, cause)
         }
