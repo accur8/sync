@@ -68,8 +68,8 @@ object SyncZLogger {
         annotations: Map[String, String]
       ): Unit = {
 
-        if ( logLevel.ordinal >= minLevel.ordinal ) {
-//        formatLogger(trace, fiberId, logLevel, message, cause, context, spans, annotations).foreach { message =>
+        if (logLevel.ordinal >= minLevel.ordinal) {
+          //        formatLogger(trace, fiberId, logLevel, message, cause, context, spans, annotations).foreach { message =>
 
           val cachedLogger: CachedLogger =
             cachedLoggers.get(trace) match {
@@ -88,13 +88,13 @@ object SyncZLogger {
                 cl
             }
 
-//          var previous = none[util.Map[String, String]]
+          //          var previous = none[util.Map[String, String]]
           def message: String = {
 
-//            if (annotations.nonEmpty) {
-//              previous = Some(Option(MDC.getCopyOfContextMap).getOrElse(java.util.Collections.emptyMap[String, String]()))
-//              MDC.setContextMap(annotations.asJava)
-//            }
+            //            if (annotations.nonEmpty) {
+            //              previous = Some(Option(MDC.getCopyOfContextMap).getOrElse(java.util.Collections.emptyMap[String, String]()))
+            //              MDC.setContextMap(annotations.asJava)
+            //            }
 
             val sb = new StringBuilder()
 
@@ -106,9 +106,9 @@ object SyncZLogger {
                   sb.append("f")
                   sb.append(id)
                   sb.append(" ")
-                case FiberId.Composite(l,r) =>
+                case FiberId.Composite(l, r) =>
                   sb.append("f")
-                  List(l,r).foreach { fiberId =>
+                  List(l, r).foreach { fiberId =>
                     sb.append("_")
                     sb.append(fiberId)
                   }
@@ -123,14 +123,14 @@ object SyncZLogger {
                   sb.append(j)
                   sb.append(" ")
                 case _ =>
-                  // noop
+                // noop
               }
             }
 
             sb.append("| ")
             sb.append(textMessage())
 
-            {  // cause
+            { // cause
               if (!cause.isEmpty) {
                 val indent = "        "
                 sb.append("\n")
@@ -145,53 +145,54 @@ object SyncZLogger {
           }
 
           import cachedLogger.slf4jLogger
-//          import cachedLogger.wvletLogger
-//          val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
-//          if (wvletLogger.isEnabled(wvletLogLevel)) {
-//            try logLevel match {
-//              case LogLevel.Trace   =>
-//                wvletLogger.trace(message)
-//              case LogLevel.Debug   =>
-//                wvletLogger.debug(message)
-//              case LogLevel.Info    =>
-//                wvletLogger.info(message)
-//              case LogLevel.Warning =>
-//                wvletLogger.warn(message)
-//              case LogLevel.Error   =>
-//                wvletLogger.error(message)
-//              case LogLevel.Fatal   =>
-//                wvletLogger.error(message)
-//              case LogLevel.None    =>
-//              case _                =>
-//            } finally {
-//  //            previous.foreach(MDC.setContextMap)
-//            }
-//          }
-
-          try logLevel match {
-            case LogLevel.Trace   =>
-              if (slf4jLogger.isTraceEnabled)
-                slf4jLogger.trace(message)
-            case LogLevel.Debug   =>
-              if (slf4jLogger.isDebugEnabled)
-                slf4jLogger.debug(message)
-            case LogLevel.Info    =>
-              if (slf4jLogger.isInfoEnabled)
-                slf4jLogger.info(message)
-            case LogLevel.Warning =>
-              if (slf4jLogger.isWarnEnabled)
-                slf4jLogger.warn(message)
-            case LogLevel.Error   =>
-              if (slf4jLogger.isErrorEnabled)
-                slf4jLogger.error(message)
-            case LogLevel.Fatal   =>
-              if (slf4jLogger.isErrorEnabled)
-                slf4jLogger.error(message)
-            case LogLevel.None    => ()
-            case _                => ()
-          } finally {
-//            previous.foreach(MDC.setContextMap)
+          import cachedLogger.wvletLogger
+          val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
+          if (wvletLogger.isEnabled(wvletLogLevel)) {
+            try logLevel match {
+              case LogLevel.Trace =>
+                wvletLogger.trace(message)
+              case LogLevel.Debug =>
+                wvletLogger.debug(message)
+              case LogLevel.Info =>
+                wvletLogger.info(message)
+              case LogLevel.Warning =>
+                wvletLogger.warn(message)
+              case LogLevel.Error =>
+                wvletLogger.error(message)
+              case LogLevel.Fatal =>
+                wvletLogger.error(message)
+              case LogLevel.None =>
+              case _ =>
+            } finally {
+              //            previous.foreach(MDC.setContextMap)
+            }
           }
+
+          //          try logLevel match {
+          //            case LogLevel.Trace   =>
+          //              if (slf4jLogger.isTraceEnabled)
+          //                slf4jLogger.trace(message)
+          //            case LogLevel.Debug   =>
+          //              if (slf4jLogger.isDebugEnabled)
+          //                slf4jLogger.debug(message)
+          //            case LogLevel.Info    =>
+          //              if (slf4jLogger.isInfoEnabled)
+          //                slf4jLogger.info(message)
+          //            case LogLevel.Warning =>
+          //              if (slf4jLogger.isWarnEnabled)
+          //                slf4jLogger.warn(message)
+          //            case LogLevel.Error   =>
+          //              if (slf4jLogger.isErrorEnabled)
+          //                slf4jLogger.error(message)
+          //            case LogLevel.Fatal   =>
+          //              if (slf4jLogger.isErrorEnabled)
+          //                slf4jLogger.error(message)
+          //            case LogLevel.None    => ()
+          //            case _                => ()
+          //          } finally {
+          ////            previous.foreach(MDC.setContextMap)
+          //          }
+          //        }
         }
       }
     }
