@@ -87,7 +87,11 @@ class ZioOps[R, E, A](effect: zio.ZIO[R,E,A])(implicit trace: Trace) {
   }
 
 
-  def traceC(context: String)(implicit loggerF: LoggerF, trace: Trace): ZIO[R, E, A] =
+  /**
+   * wraps the effect to log the start of the effect and
+   * it's success value and/or its error value
+   */
+  def trace(context: String)(implicit loggerF: LoggerF, trace: Trace): ZIO[R, E, A] =
     loggerF.trace(s"start ${context}")
       .flatMap(_ => effect)
       .flatMap { v =>
@@ -98,9 +102,32 @@ class ZioOps[R, E, A](effect: zio.ZIO[R,E,A])(implicit trace: Trace) {
         loggerF.trace(s"error ${context}", cause)
       }
 
+  /**
+   * wraps the effect to log the start of the effect and
+   * it's success without the value and/or its error value
+   */
+  def trace0(context: String)(implicit loggerF: LoggerF, trace: Trace): ZIO[R, E, A] =
+    loggerF.trace(s"start ${context}")
+      .flatMap(_ => effect)
+      .flatMap { v =>
+        loggerF.trace(s"success ${context}")
+          .as(v)
+      }
+      .onError { cause =>
+        loggerF.trace(s"error ${context}", cause)
+      }
+
+  /**
+   * wraps the effect to log the start of the effect and
+   * it's success value (as compact json) and/or its error value
+   */
   def jsonTrace(implicit jsonCodec: JsonCodec[A], loggerF: LoggerF, trace: Trace): zio.ZIO[R,E,A] =
     jsonTraceC("")
 
+  /**
+   * wraps the effect to log context and the start of the effect and
+   * it's success value (as compact json) and/or its error value
+   */
   def jsonTraceC(context: String)(implicit jsonCodec: JsonCodec[A], loggerF: LoggerF, trace: Trace): zio.ZIO[R, E, A] =
     loggerF.trace(s"start ${context}")
       .flatMap(_ => effect)
