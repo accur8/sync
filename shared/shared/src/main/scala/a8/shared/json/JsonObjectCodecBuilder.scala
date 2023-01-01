@@ -13,7 +13,7 @@ object JsonObjectCodecBuilder {
   sealed trait Parm[A] {
     val name: String
     def write(a: A): JsVal
-    def read(jsonDoc: JsDoc): Either[ReadError,Any]
+    def read(jsonDoc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError,Any]
     def addAliases(aliases: Iterable[String]): Parm[A]
     val extraAliases: Iterable[String]
     lazy val resolvedAliases = name.toSome ++ extraAliases.filter(_ != name)
@@ -29,7 +29,7 @@ object JsonObjectCodecBuilder {
     override def write(a: A): JsVal =
       jsonCodec.write(parm.lens(a))
 
-    override def read(jsonDoc: JsDoc): Either[ReadError,Any] =
+    override def read(jsonDoc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError,Any] =
       jsonCodec.read(jsonDoc, parm.default)
 
     override def addAliases(aliases: Iterable[String]): Parm[A] =

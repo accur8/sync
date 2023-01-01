@@ -1,10 +1,11 @@
 package a8.shared.json.impl
 
-import a8.shared.json.ReadError
+import a8.shared.json.{JsonReadOptions, ReadError}
 import a8.shared.json.ReadError.SingleReadError
 import a8.shared.json.ast._
 
 trait JsDocMixin { self: JsDoc =>
+
   def isEmpty: Boolean =
     value match {
       case JsNull | JsNothing =>
@@ -25,8 +26,8 @@ trait JsDocMixin { self: JsDoc =>
         sys.error(s"don't know how to handle ${t}")
     }
 
-  def error(message: String): ReadError = SingleReadError(message, this)
-  def errorL(message: String): Left[ReadError,Nothing] = Left(error(message))
+  def error(message: String)(implicit readOptions: JsonReadOptions): ReadError = SingleReadError(readOptions.contextedMessage(message), this)
+  def errorL(message: String)(implicit readOptions: JsonReadOptions): Left[ReadError,Nothing] = Left(error(message))
 
   def isRoot = parent.isEmpty
 

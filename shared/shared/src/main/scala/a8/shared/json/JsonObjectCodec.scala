@@ -9,6 +9,7 @@ import cats.{Eval, Foldable}
 import zio.Chunk
 import a8.shared.SharedImports._
 import a8.shared.app.Logging
+import a8.shared.json.JsonReadOptions.UnusedFieldsInfo
 
 import scala.reflect.ClassTag
 
@@ -94,25 +95,28 @@ class JsonObjectCodec[A](
                     v
                 }
               }
-          val unusedFields = jo.values.filter(f => !parmsByName.contains(f._1) && !ignoreField(f._1))
-          lazy val success = Right(constructors.iterRawConstruct(valuesIterator))
+          val unusedFields: Map[String, ast.JsVal] = jo.values.filter(f => !parmsByName.contains(f._1) && !ignoreField(f._1))
+          def success = Right(constructors.iterRawConstruct(valuesIterator))
           if ( unusedFields.isEmpty ) {
             success
           } else {
             import JsonReadOptions.UnusedFieldAction._
-            lazy val message = s"json object @ ${doc.path} marshalling to ${classTag.runtimeClass.getName} has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")}) -- ${jo.compactJson}"
-            readOptions.unusedFieldAction match {
-              case Fail =>
-                doc.errorL(message)
-              case LogWarning =>
-                logger.warn(message)
-                success
-              case LogDebug =>
-                logger.debug(message)
-                success
-              case Ignore =>
-                success
+            def message = {
+              val prefix =
+                doc.parent.map(_ => s"json object @ ${doc.path}").getOrElse("root json object")
+              s"${prefix} marshalling to ${classTag.runtimeClass.getName} has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")}) -- ${jo.compactJson}"
             }
+            readOptions.unusedFieldAction(
+              UnusedFieldsInfo(
+                doc = doc,
+                successFn = () => success,
+                errorFn = () => doc.errorL(message),
+                unusedFields = unusedFields,
+                messageFn = () => message,
+                logger = logger,
+                sourceContext = readOptions.context,
+              )
+            )
           }
         } catch {
           case ReadErrorException(re) =>

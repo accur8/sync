@@ -9,7 +9,7 @@ import a8.shared.ConfigMojoOps.ReadResult.NoValue
 import scala.language.dynamics
 import SharedImports._
 import a8.shared.ConfigMojoOps.impl.{ConfigMojoEmpty, ConfigMojoRoot, ConfigMojoValue}
-import a8.shared.json.JsonCodec
+import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.ast.JsVal
 import com.typesafe.config.{ConfigMergeable, ConfigValue}
 import zio.{Task, ZIO}

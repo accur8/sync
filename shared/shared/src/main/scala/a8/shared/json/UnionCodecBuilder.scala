@@ -20,7 +20,7 @@ object UnionCodecBuilder {
     override def isInstanceOf(a: Any): Boolean =
       classTag.runtimeClass.isInstance(a)
 
-    override def read(doc: ast.JsDoc): Either[ReadError, A] =
+    override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
       jsonTypedCodec.read(doc)
 
     override def write(a: A): JsObj =
@@ -34,7 +34,7 @@ object UnionCodecBuilder {
     override def isInstanceOf(a: Any): Boolean =
       a == singleton
 
-    override def read(doc: ast.JsDoc): Either[ReadError, A] =
+    override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
       Right(singleton)
 
     override def write(a: A): JsObj =
@@ -43,7 +43,7 @@ object UnionCodecBuilder {
   }
 
   sealed trait UnionType[A] {
-    def read(doc: ast.JsDoc): Either[ReadError, A]
+    def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A]
     def write(a: A): JsObj
     def isInstanceOf(a: Any): Boolean
     val name: Option[String]
