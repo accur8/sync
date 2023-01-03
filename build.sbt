@@ -96,6 +96,7 @@ lazy val shared =
 //"com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.5",
         "dev.zio" %% "zio-logging-slf4j" % zioLoggingVersion,
         "org.hsqldb" % "hsqldb" % "2.6.1",
+        "dev.zio" % "zio-cache_2.13" % "0.2.1",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
         "org.postgresql" % "postgresql" % "42.3.4",
         "mysql" % "mysql-connector-java" % "8.0.28",
