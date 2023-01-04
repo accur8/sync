@@ -18,8 +18,13 @@ object ReadError {
 
 sealed trait ReadError {
 
-  def withContext(context: String): ReadError =
-    ContextedReadError(context, this)
+  def withContext(context: Option[String]): ReadError =
+    context match {
+      case Some(ctx) =>
+        ContextedReadError(ctx, this)
+      case None =>
+        this
+    }
 
   def asException = ReadErrorException(this)
 
