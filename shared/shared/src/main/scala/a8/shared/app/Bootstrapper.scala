@@ -19,7 +19,7 @@ trait Bootstrapper {
   val configFiles: Iterable[Path]
   def appConfig[A : JsonCodec]: Task[A] =
     rootConfig
-      .toDoc("app")
+      .toRootDoc("app")
       .value
       .asF[A]
 }

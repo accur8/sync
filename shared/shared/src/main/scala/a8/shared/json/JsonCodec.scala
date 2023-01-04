@@ -24,7 +24,7 @@ object JsonCodec extends JsonCodecs {
 
   class JsonCodecOps[A: JsonCodec](private val a: A) {
     def toJsVal: JsVal = JsonCodec[A].write(a)
-    def toJsDoc: JsDoc = toJsVal.toDoc
+    def toJsRootDoc: JsDoc = toJsVal.toRootDoc
     def compactJson: String = JsValOps.toCompactJsonChord(toJsVal, false).toString
     def prettyJson: String = JsValOps.toPrettyJsonChord(toJsVal).toString
   }

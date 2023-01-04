@@ -2,7 +2,7 @@ package a8.shared.json
 
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.json.ast.JsDoc
-import wvlet.log.Logger
+import wvlet.log.{LogLevel, Logger}
 
 
 object JsonReadOptions {
@@ -14,7 +14,6 @@ object JsonReadOptions {
     unusedFields: Map[String, ast.JsVal],
     messageFn: () => String,
     logger: Logger,
-    sourceContext: Option[String],
   )
 
   trait UnusedFieldAction {
@@ -45,12 +44,10 @@ object JsonReadOptions {
   }
 
   implicit val default: JsonReadOptions =
-    JsonReadOptions(None, UnusedFieldAction.LogWarning)
+    JsonReadOptions(UnusedFieldAction.LogWarning)
 
 }
 
 
-case class JsonReadOptions(context: Option[String] = None, unusedFieldAction: UnusedFieldAction) {
-  def contextedMessage(message: String): String =
-    context.map(_ + " - ").getOrElse("") + message
-}
+case class JsonReadOptions(unusedFieldAction: UnusedFieldAction)
+

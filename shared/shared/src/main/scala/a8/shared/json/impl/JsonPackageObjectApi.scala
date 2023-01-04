@@ -20,7 +20,7 @@ trait JsonPackageObjectApi {
         case jso: JsObj =>
           Right(jso)
         case jsv =>
-          Left(SingleReadError("expected a json object", jsv.toDoc))
+          Left(SingleReadError("expected a json object", jsv.toRootDoc))
       }
 
   def parse(jsonStr: String): Either[ReadError,JsVal] =

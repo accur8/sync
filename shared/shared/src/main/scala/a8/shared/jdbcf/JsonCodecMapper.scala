@@ -17,12 +17,12 @@ class JsonCodecMapper[A : JsonCodec] extends SqlStringer[A] with RowReader[A] {
     } yield
       new SqlStringer[A] {
         override def toSqlString(a: A): SqlString =
-          delegate.toSqlString(a.toJsDoc)
+          delegate.toSqlString(a.toJsRootDoc)
       }
   }
 
   override def toSqlString(a: A): SqlString =
-    SqlStringer.jsDocSqlStringer.toSqlString(a.toJsDoc)
+    SqlStringer.jsDocSqlStringer.toSqlString(a.toJsRootDoc)
 
   /**
    * returns the value and the number of values read

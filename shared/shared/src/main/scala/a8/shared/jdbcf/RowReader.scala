@@ -139,7 +139,7 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
         case None =>
           JsDoc.empty
         case Some(jsonStr) =>
-          json.unsafeParse(jsonStr).toDoc
+          json.unsafeParse(jsonStr).toRootDoc
       }
 }
 

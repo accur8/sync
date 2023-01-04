@@ -2,6 +2,7 @@ package a8.shared.json
 
 
 import a8.shared.SingleArgConstructor
+import a8.shared.json.ast.JsDoc.JsDocRoot
 import a8.shared.json.impl.{HasJsValOps, JawnFacade, JsDocMixin}
 import org.typelevel.jawn.Facade
 
@@ -28,23 +29,64 @@ object ast {
   }
 
   object JsDoc {
-    val empty = JsDoc(JsNothing, None)
+    val empty: JsDoc = JsDocRoot(JsNothing)
 
     implicit val codec: JsonCodec[JsDoc] =
       new JsonCodec[JsDoc] {
         override def write(jsd: JsDoc): JsVal = jsd.value
         override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, JsDoc] = Right(doc)
       }
+
+    case class JsDocRoot(value: JsVal) extends JsDoc {
+      override def root: JsDocRoot = this
+      override def parentOpt: Option[JsDoc] = None
+      override def isRoot: Boolean = true
+      override def path: String = ""
+      override def actualJsVal: JsVal = value
+      override def withValue(value: JsVal): JsDoc = copy(value = value)
+    }
+
+    case class JsDocPath(value: JsVal, parentDoc: JsDoc, pathInParent: Either[String,Int]) extends JsDoc {
+      override def root: JsDocRoot = parentDoc.root
+      override def actualJsVal: JsVal = value
+      override def isRoot: Boolean = false
+      override def path: String = {
+        def suffix(prefixNameWithDot: Boolean) =
+          pathInParent match {
+            case Left(n) =>
+              if (prefixNameWithDot)
+                "." + n
+              else
+                n
+            case Right(i) =>
+              "[" + i + "]"
+          }
+        parentDoc match {
+          case _: JsDocRoot =>
+            suffix(false)
+          case _ =>
+            parentDoc.path + suffix(true)
+        }
+      }
+
+      override def parentOpt: Option[JsDoc] = Some(parentDoc)
+      override def withValue(value: JsVal): JsDoc = copy(value = value)
+    }
+
   }
-  case class JsDoc(value: JsVal, parent: Option[(JsDoc, Either[String,Int])] = None) extends HasJsVal with JsDocMixin {
-    override def actualJsVal = value
-    def removeField(fieldName: String): JsDoc =
+  sealed trait JsDoc extends HasJsVal with JsDocMixin {
+    def root: JsDocRoot
+    def parentOpt: Option[JsDoc]
+    val value: JsVal
+    def withValue(value: JsVal): JsDoc
+    def removeField(fieldName: String): JsDoc = {
       value match {
         case jso: JsObj =>
-          copy(value = jso.removeField(fieldName))
+          withValue(jso.removeField(fieldName))
         case _ =>
           this
       }
+    }
   }
 
   case object JsNothing extends JsVal

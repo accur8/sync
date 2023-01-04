@@ -103,7 +103,7 @@ class JsonObjectCodec[A](
             import JsonReadOptions.UnusedFieldAction._
             def message = {
               val prefix =
-                doc.parent.map(_ => s"json object @ ${doc.path}").getOrElse("root json object")
+                doc.parentOpt.map(_ => s"json object @ ${doc.path}").getOrElse("root json object")
               s"${prefix} marshalling to ${classTag.runtimeClass.getName} has the following unused fields (${unusedFields.map(_._1).mkString(" ")}) valid field names are (${parms.map(_.name).mkString(" ")}) -- ${jo.compactJson}"
             }
             readOptions.unusedFieldAction(
@@ -114,7 +114,6 @@ class JsonObjectCodec[A](
                 unusedFields = unusedFields,
                 messageFn = () => message,
                 logger = logger,
-                sourceContext = readOptions.context,
               )
             )
           }

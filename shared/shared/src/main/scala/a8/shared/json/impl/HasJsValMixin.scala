@@ -1,18 +1,25 @@
 package a8.shared.json.impl
 
 
+import a8.shared.json.ast.JsDoc.{JsDocPath, JsDocRoot}
 import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, ReadError}
 import zio.{Task, ZIO}
 
+object HasJsValOps {
+  case class JsonWarningsLogLevel()
+}
+
 class HasJsValOps(private val self: HasJsVal) extends AnyVal {
 
-  def toDoc: JsDoc = {
+  def toRootDoc: JsDocRoot = JsDocRoot(self.actualJsVal)
+
+  private def toDoc: JsDoc = {
     self match {
       case jsd: JsDoc =>
         jsd
       case _ =>
-        JsDoc(self.actualJsVal, None)
+        JsDocRoot(self.actualJsVal)
     }
   }
 
@@ -95,7 +102,7 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
         case _ =>
           JsNothing
       }
-    JsDoc(selectedValue, Some(toDoc -> Left(name)))
+    JsDocPath(selectedValue, toDoc, Left(name))
   }
 
   def apply(index: Int): JsDoc = {
@@ -109,7 +116,7 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
         case _ =>
           JsNothing
       }
-    JsDoc(selectedValue, Some(toDoc -> Right(index)))
+    JsDocPath(selectedValue, toDoc, Right(index))
   }
 
 }

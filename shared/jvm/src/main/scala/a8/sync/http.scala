@@ -219,7 +219,7 @@ object http extends LoggingF {
                       case f@ ResponseAction.Fail(_, _) =>
                         ResponseAction.Fail(f.context, f.responseInfo)
                       case ResponseAction.Success(validatedJsv) =>
-                        JsonCodec[A].read(validatedJsv.toDoc) match {
+                        JsonCodec[A].read(validatedJsv.toRootDoc) match {
                           case Left(readError) =>
                             nonSuccessfulResponse(jsonResponseOptions.retryJsonCodecErrors, readError)
                           case Right(a) =>

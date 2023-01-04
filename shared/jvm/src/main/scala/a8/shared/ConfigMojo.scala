@@ -65,7 +65,7 @@ object ConfigMojoOps {
     implicit def reads[A : JsonCodec]: Reads[A] =
       apply[A] { value =>
         val jsv = HoconOps.impl.toJsVal(value)
-        JsonCodec[A].read(jsv.toDoc) match {
+        JsonCodec[A].read(jsv.toRootDoc) match {
           case Right(value) =>
             ReadResult.Value(value)
           case Left(re) =>

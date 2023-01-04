@@ -116,7 +116,11 @@ object DynamicJson {
     def asJsVal: JsVal =
       wrappedValue
 
-    def asJsDoc = asJsVal.toDoc
+    /**
+     * TODO not ideal, ideally we turn this into a JsDocPath so we preserve the path info
+     * @return
+     */
+    def asJsDoc: JsDoc = asJsVal.toRootDoc
 
     def asJsObj: JsObj =
       wrappedValue.asInstanceOf[JsObj]
