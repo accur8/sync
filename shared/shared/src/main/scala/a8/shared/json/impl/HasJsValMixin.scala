@@ -4,10 +4,10 @@ package a8.shared.json.impl
 import a8.shared.json.ast.JsDoc.{JsDocPath, JsDocRoot}
 import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, ReadError}
+import wvlet.log.LogLevel
 import zio.{Task, ZIO}
 
 object HasJsValOps {
-  case class JsonWarningsLogLevel()
 }
 
 class HasJsValOps(private val self: HasJsVal) extends AnyVal {
