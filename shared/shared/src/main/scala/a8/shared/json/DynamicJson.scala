@@ -5,6 +5,7 @@ import a8.shared.json.ast._
 
 import scala.language.dynamics
 import a8.shared.SharedImports._
+import a8.shared.json.JsonReader.JsonReaderOptions
 
 object DynamicJson {
 
@@ -217,7 +218,7 @@ object DynamicJson {
     def error(msg: String) =
       sys.error(msg)
 
-    def as[A : JsonCodec]: A =
+    def as[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): A =
       wrappedValue.unsafeAs[A]
 
   }

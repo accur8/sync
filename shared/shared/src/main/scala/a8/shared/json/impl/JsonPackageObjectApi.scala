@@ -3,10 +3,12 @@ package a8.shared.json.impl
 import a8.shared.ZFileSystem
 import a8.shared.json.ReadError.{ParseError, SingleReadError}
 import a8.shared.json.ast.{JsObj, JsVal}
-import a8.shared.json.{JsonCodec, ReadError}
+import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
 import org.typelevel.jawn.Parser
 import zio._
 import a8.shared.SharedImports._
+import a8.shared.json.JsonReader.JsonReaderOptions
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 
 trait JsonPackageObjectApi {
 
@@ -35,7 +37,7 @@ trait JsonPackageObjectApi {
       .parseFromString[JsVal](jsonStr)
       .get
 
-  def unsafeRead[A : JsonCodec](jsonStr: String): A =
+  def unsafeRead[A : JsonCodec](jsonStr: String)(implicit jsonReaderOptions: JsonReaderOptions): A =
     read[A](jsonStr) match {
       case Left(re) =>
         throw re.asException
@@ -48,10 +50,9 @@ trait JsonPackageObjectApi {
       parse(jsonStr)
     )
 
-  def readF[A : JsonCodec](jsonStr: String): Task[A] =
-    fromDeferredEither(
-      read[A](jsonStr)
-    )
+  def readF[A : JsonCodec](jsonStr: String)(implicit jsonReaderZOptions: ZJsonReaderOptions): Task[A] =
+    ZJsonReader[A]
+      .read(jsonStr)
 
   protected def fromDeferredEither[A](eitherFn: => Either[ReadError,A]): Task[A] =
     ZIO.fromEither(
@@ -60,11 +61,11 @@ trait JsonPackageObjectApi {
         .map(_.asException)
     )
 
-  def read[A : JsonCodec](jsonStr: String): Either[ReadError,A] =
+  def read[A : JsonCodec](jsonStr: String)(implicit jsonReaderOptions: JsonReaderOptions): Either[ReadError,A] =
     parse(jsonStr)
       .flatMap(_.as[A])
 
-  def fromFile[A: JsonCodec](file: ZFileSystem.File): Task[A] =
+  def fromFile[A: JsonCodec](file: ZFileSystem.File)(implicit jsonReaderZOptions: ZJsonReaderOptions): Task[A] =
     file
       .readAsStringOpt
       .flatMap {

@@ -3,6 +3,7 @@ package a8.sync.qubes
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString._
 import a8.shared.jdbcf.{SqlString, TableName}
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.{JsonObjectCodec, JsonTypedCodec}
 import a8.shared.json.ast.JsObj
 import a8.sync.qubes.QubesApiClient.{QueryRequest, UpdateRowRequest}
@@ -47,7 +48,7 @@ object QubesMapper {
     }
 
 
-    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[A] =
+    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: ZJsonReaderOptions): Task[A] =
       fetchOpt(key)
         .flatMap {
           case None =>
@@ -56,7 +57,7 @@ object QubesMapper {
             ZIO.succeed(i)
         }
 
-    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient): Task[Option[A]] = {
+    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: ZJsonReaderOptions): Task[Option[A]] = {
       implicit def qm = this
       import SqlString._
       qubesApiClient

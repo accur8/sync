@@ -8,13 +8,14 @@ import a8.shared.json.{JsonCodec, ast}
 import a8.shared.SharedImports._
 import a8.shared.app.{Logging, LoggingF}
 import a8.shared.jdbcf.SqlString.SqlStringer
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.sync.http.{Backend, Method, RequestProcessor, RetryConfig}
 import a8.sync.http
 import a8.sync.qubes.MxQubesApiClient._
 import sttp.client3._
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
-import zio.{& => _,durationInt => _, _}
+import zio.{& => _, durationInt => _, _}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -170,14 +171,14 @@ case class QubesApiClient(
 
   }
 
-  def fullQuery[A : JsonCodec](query: SqlString): Task[Iterable[A]] = {
+  def fullQuery[A : JsonCodec](query: SqlString)(implicit jsonReaderOptions: ZJsonReaderOptions): Task[Iterable[A]] = {
     executeA[QueryRequest,JsDoc](uri"api/query", QueryRequest(query = query.toString))
       .flatMap { jsonDoc =>
         jsonDoc("data").value.asF[Iterable[A]]
       }
   }
 
-  def query[A : QubesMapper](whereClause: SqlString): Task[Iterable[A]] = {
+  def query[A : QubesMapper](whereClause: SqlString)(implicit jsonReaderOptions: ZJsonReaderOptions): Task[Iterable[A]] = {
     val qm = implicitly[QubesMapper[A]]
     import qm.codecA
     executeA[QueryRequest,JsDoc](uri"api/query", qm.queryReq(whereClause))
@@ -186,7 +187,7 @@ case class QubesApiClient(
       }
   }
 
-  def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B]): Task[A] = {
+  def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B], jsonReaderOptions: ZJsonReaderOptions): Task[A] = {
     implicit def implicitQubesApiClient = this
     qubesKeyedMapper.fetch(key)
   }

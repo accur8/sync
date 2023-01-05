@@ -6,6 +6,7 @@ import java.io.File
 import scala.io.Source
 import java.nio.file.Files
 import a8.shared.SharedImports._
+import a8.shared.json.JsonReader.JsonReaderOptions
 
 object FileUtil {
 
@@ -24,10 +25,10 @@ object FileUtil {
     Files.writeString(file.toPath, contents)
   }
 
-  def resolveCaseClass[A](jsonStr: String)(implicit decoder: JsonCodec[A]): A =
+  def resolveCaseClass[A](jsonStr: String)(implicit decoder: JsonCodec[A], jsonReaderOptions: JsonReaderOptions): A =
     json.unsafeRead[A](jsonStr)
 
-  def loadJsonFile[A](file: File)(implicit decoder: JsonCodec[A]): A =
+  def loadJsonFile[A](file: File)(implicit decoder: JsonCodec[A], jsonReaderOptions: JsonReaderOptions): A =
     try {
       if ( file.exists() ) {
         val str = readFile(file)

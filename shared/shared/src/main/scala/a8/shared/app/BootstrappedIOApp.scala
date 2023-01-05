@@ -8,6 +8,7 @@ import a8.shared.json.JsonCodec
 import wvlet.log.LogLevel
 import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
 import a8.shared.SharedImports._
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 
 object BootstrappedIOApp {
 
@@ -120,7 +121,7 @@ abstract class BootstrappedIOApp
 
   }
 
-  def appConfig[A : JsonCodec]: zio.ZIO[Bootstrapper, Throwable, A] =
+  def appConfig[A : JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): zio.ZIO[Bootstrapper, Throwable, A] =
     for {
       bootstrapper <- zservice[Bootstrapper]
       config <- bootstrapper.appConfig[A]
@@ -128,7 +129,7 @@ abstract class BootstrappedIOApp
 
   def defaultZioLogLevel = zio.LogLevel.Debug
 
-  def appConfigLayer[A: Tag: JsonCodec] = ZLayer(appConfig[A])
+  def appConfigLayer[A: Tag: JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions) = ZLayer(appConfig[A])
 
   def runT: zio.ZIO[BootstrapEnv, Throwable, Unit]
 

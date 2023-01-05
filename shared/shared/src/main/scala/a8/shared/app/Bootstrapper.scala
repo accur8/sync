@@ -2,6 +2,7 @@ package a8.shared.app
 
 import a8.shared.FileSystem.File
 import a8.shared.json.JsonCodec
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsVal
 import zio.Task
 
@@ -17,7 +18,7 @@ trait Bootstrapper {
   val bootstrapConfig: BootstrapConfig
   val directoriesSearched: Iterable[Path]
   val configFiles: Iterable[Path]
-  def appConfig[A : JsonCodec]: Task[A] =
+  def appConfig[A : JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): Task[A] =
     rootConfig
       .toRootDoc("app")
       .value

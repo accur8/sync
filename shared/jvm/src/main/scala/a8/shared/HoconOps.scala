@@ -2,13 +2,13 @@ package a8.shared
 
 
 import java.nio.file.Path
-
 import scala.reflect.ClassTag
 import com.typesafe.config._
 
 import scala.language.implicitConversions
 import SharedImports._
 import a8.shared.json.JsonCodec
+import a8.shared.json.JsonReader.JsonReaderOptions
 import a8.shared.json.ast._
 
 
@@ -83,12 +83,12 @@ trait HoconOps {
   implicit def implicitConfigOps(config: Config): ConfigOps = new ConfigOps(config)
   class ConfigOps(private val config: Config) {
 
-    def read[A : JsonCodec : ClassTag]: A = {
+    def read[A : JsonCodec : ClassTag](implicit jsonReaderOptions: JsonReaderOptions): A = {
       val jsv = impl.toJsVal(config.root)
       jsv.unsafeAs[A]
     }
 
-    def readPath[A : JsonCodec : ClassTag](path: String): A = {
+    def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       val jsv = impl.toJsVal(config.getValue(path))
       jsv.unsafeAs[A]
     }
@@ -102,10 +102,10 @@ trait HoconOps {
 
     def asJsValue = impl.toJsVal(configValue)
 
-    def read[A : JsonCodec : ClassTag]: A =
+    def read[A : JsonCodec : ClassTag](implicit jsonReaderOptions: JsonReaderOptions): A =
       asJsValue.unsafeAs[A]
 
-    def readPath[A : JsonCodec : ClassTag](path: String): A = {
+    def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       configValue match {
         case co: ConfigObject =>
           co.toConfig.readPath[A](path)

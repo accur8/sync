@@ -84,14 +84,18 @@ trait JsonCodecs {
 
   implicit def tuple2[A : JsonCodec, B : JsonCodec]: JsonCodec[(A,B)] =
     new JsonCodec[(A, B)] {
+
+      val jsonCodecA = implicitly[JsonCodec[A]]
+      val jsonCodecB = implicitly[JsonCodec[B]]
+
       override def write(t: (A, B)): JsVal =
         ast.JsArr(List(t._1.toJsVal, t._2.toJsVal))
 
       override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, (A, B)] = {
-        doc(0)
-          .as[A]
+        jsonCodecA
+          .read(doc(0))
           .flatMap { a =>
-            doc(1).as[B].map(a -> _)
+            jsonCodecB.read(doc(1)).map(a -> _)
           }
       }
     }

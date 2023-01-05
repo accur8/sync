@@ -2,6 +2,7 @@ package a8.sync
 
 
 import a8.shared.json.JsonCodec
+import a8.shared.json.JsonReader.JsonReaderOptions
 
 import java.nio.file.{Path, Paths}
 
@@ -12,7 +13,7 @@ object Utils {
     val defaultFilename = "config.json"
     val defaultLookupDirs = Vector(Paths.get("config"), Paths.get(""))
 
-    def load[A : JsonCodec](filename: String = defaultFilename, lookupDirs: Vector[Path] = defaultLookupDirs): A = {
+    def load[A : JsonCodec](filename: String = defaultFilename, lookupDirs: Vector[Path] = defaultLookupDirs)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       val files = lookupDirs.map(_.resolve(filename).toFile)
       files.find(_.exists()) match {
         case Some(configFile) =>

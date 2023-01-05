@@ -1,9 +1,11 @@
 package a8.shared.json.impl
 
 
+import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsDoc.{JsDocPath, JsDocRoot}
 import a8.shared.json.ast._
-import a8.shared.json.{JsonCodec, ReadError}
+import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
 import wvlet.log.LogLevel
 import zio.{Task, ZIO}
 
@@ -31,7 +33,7 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
         None
     }
 
-  def unsafeAs[A : JsonCodec]: A =
+  def unsafeAs[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): A =
     as[A] match {
       case Left(re) =>
         throw re.asException
@@ -39,18 +41,17 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
         a
     }
 
-  def as[A : JsonCodec]: Either[ReadError,A] =
-    JsonCodec[A].read(toDoc)
-
-  def asF[A: JsonCodec]: Task[A] =
-    ZIO.suspend {
-      JsonCodec[A].read(toDoc) match {
-        case Left(re) =>
-          ZIO.fail(re.asException)
-        case Right(v) =>
-          ZIO.succeed(v)
-      }
+  def as[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): Either[ReadError,A] =
+    JsonReader[A].readResult(self.actualJsVal) match {
+      case ReadResult.Success(a, _, _, _) =>
+        Right(a)
+      case ReadResult.Error(re, _, _) =>
+        Left(re)
     }
+
+  def asF[A: JsonCodec](implicit jsonReaderZOptions: ZJsonReaderOptions): Task[A] =
+    ZJsonReader[A]
+      .read(self.actualJsVal)
 
   def compactPrintSortedKeys: String =
     JsValOps

@@ -3,13 +3,14 @@ package a8.shared.jdbcf
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.JsonCodec
+import a8.shared.json.JsonReader.JsonReaderOptions
 
 object JsonCodecMapper {
-  def apply[A: JsonCodec]: JsonCodecMapper[A] =
+  def apply[A: JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): JsonCodecMapper[A] =
     new JsonCodecMapper[A]
 }
 
-class JsonCodecMapper[A : JsonCodec] extends SqlStringer[A] with RowReader[A] {
+class JsonCodecMapper[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions) extends SqlStringer[A] with RowReader[A] {
 
   override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): zio.Task[SqlStringer[A]] = {
     for {

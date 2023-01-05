@@ -2,13 +2,15 @@ package a8.sync
 
 
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
-import a8.shared.json.{JsonCodec, ReadError}
+import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp._
 import sttp.model.{StatusCode, Uri}
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.{LoggerF, Logging, LoggingF}
+import a8.shared.json.JsonReader.ReadResult
+import a8.shared.json.ZJsonReader.{ZJsonReaderOptions, ZJsonSource}
 import a8.sync.http.{Body, Response}
 import a8.sync.http.Body.StringBody
 import a8.sync.http.Request.ResponseAction
@@ -19,8 +21,9 @@ import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
 import sttp.client3.{Identity, RequestT, ResponseAs, basicRequest}
+import wvlet.log.LogLevel
 import zio.Schedule.{WithState, succeed}
-import zio.{durationInt => _, _}
+import zio.{LogLevel => _, durationInt => _, _}
 import zio.stream.{ZPipeline, ZSink}
 
 import java.net.URLEncoder
@@ -109,6 +112,7 @@ object http extends LoggingF {
           loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
             .as(
               Response(
+                request,
                 response.body._2,
                 response.body._1,
               )
@@ -144,6 +148,7 @@ object http extends LoggingF {
     retryJsonParseErrors: Boolean = false,
     retryJsonCodecErrors: Boolean = false,
     responseValidator: JsVal => UIO[ResponseAction[JsVal]] = jsv => ZIO.succeed(ResponseAction.Success(jsv)),
+    jsonWarningsLogLevel: LogLevel = LogLevel.DEBUG,
   )
 
   object ResponseInfo extends MxResponseInfo
@@ -189,6 +194,13 @@ object http extends LoggingF {
 
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, trace: Trace, loggerF: LoggerF): Task[A] = {
 
+      implicit val jsonReaderOptions =
+        if ( jsonResponseOptions.jsonWarningsLogLevel == LogLevel.OFF) {
+          ZJsonReaderOptions.NoLogWarnings
+        } else {
+          ZJsonReaderOptions.LogWarnings(jsonResponseOptions.jsonWarningsLogLevel, trace, loggerF)
+        }
+
       // some mildly unruly code because all of the JsonResponseOptions come together here
       def responseEffect(response: Response): Task[ResponseAction[A]] = {
         response
@@ -219,15 +231,14 @@ object http extends LoggingF {
                       case f@ ResponseAction.Fail(_, _) =>
                         ResponseAction.Fail(f.context, f.responseInfo)
                       case ResponseAction.Success(validatedJsv) =>
-                        JsonCodec[A].read(validatedJsv.toRootDoc) match {
-                          case Left(readError) =>
-                            nonSuccessfulResponse(jsonResponseOptions.retryJsonCodecErrors, readError)
-                          case Right(a) =>
+                        JsonReader[A].readResult(validatedJsv.toRootDoc) match {
+                          case rre: ReadResult.Error[_] =>
+                            nonSuccessfulResponse(jsonResponseOptions.retryJsonCodecErrors, rre.readError)
+                          case ReadResult.Success(a, _, _, _) =>
                             // happy path yay we made it
                             ResponseAction.Success(a)
                         }
                     }
-
               }
             for {
               _ <-
@@ -263,6 +274,7 @@ object http extends LoggingF {
   }
 
   case class Response(
+    request: Request,
     responseMetadata: ResponseMetadata,
     responseBody: XStream[Byte],
   ) {
@@ -282,9 +294,12 @@ object http extends LoggingF {
         asInvalidHttpResponseStatusCode
       }
 
-    def jsonResponseBody[A : JsonCodec]: Task[A] =
+    def jsonResponseBody[A : JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): Task[A] =
       responseBodyAsString
-        .flatMap(json.readF[A])
+        .flatMap { jsonStr =>
+          val jsonSource: ZJsonSource = jsonStr
+          ZJsonReader[A].read(jsonSource.withContext(s"response from ${request.uri}".some))
+        }
 
     def responseBodyAsString: Task[String] =
       responseBody

@@ -8,6 +8,8 @@ import a8.shared.json.{JsonCodec, ast}
 
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
+import a8.shared.json.JsonReader.JsonReaderOptions
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsDoc
 import wvlet.log.LogLevel
 import zio.{Task, ZIO, ZIOAppArgs, ZLayer}
@@ -110,7 +112,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
           )
         }
 
-        override def appConfig[A: JsonCodec]: Task[A] =
+        override def appConfig[A: JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): Task[A] =
           configMojo.app.asF[A]
       }
     }

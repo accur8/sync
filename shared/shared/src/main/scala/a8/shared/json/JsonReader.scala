@@ -4,8 +4,10 @@ package a8.shared.json
 import a8.shared.{FileSystem, HoconOps, ZFileSystem}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.SharedImports._
-import a8.shared.app.LoggerF
-import a8.shared.json.JsonReader.{JsonSource, ReadResult, ZJsonSource}
+import a8.shared.app.{LoggerF, Logging}
+import a8.shared.app.LoggerF.Pos
+import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
+import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ast.JsDoc.JsDocRoot
 import a8.shared.json.ast.{JsDoc, JsVal}
@@ -17,27 +19,22 @@ import scala.io.Source
 import scala.util.Try
 import scala.language.implicitConversions
 
-object JsonReader {
+object JsonReader extends Logging { outer =>
 
   def apply[A: JsonCodec]: JsonReader[A] = new JsonReaderImpl[A]
 
   implicit def jsonReader[A : JsonCodec]: JsonReader[A] =
     JsonReader[A]
 
-  sealed trait ReadResult[A] {
-    def valueOpt: Option[A] = None
-    val warnings: Vector[String]
-    def allWarningsMessage(context: Option[String]): Option[String] = {
+
+  object ReadResult {
+    def allWarningsMessage(context: Option[String], warnings: Vector[String]): Option[String] = {
       warnings
         .toNonEmpty
         .map { warnings0 =>
           s"warnings marshalling json from source ${context.getOrElse("")}\n${warnings0.mkString("\n").indent("    ")}"
         }
     }
-
-  }
-
-  object ReadResult {
 
     case class Success[A](value: A, warnings: Vector[String], doc: JsDoc, resolvedContext: Option[String]) extends ReadResult[A] {
       override def valueOpt: Option[A] = Some(value)
@@ -49,55 +46,19 @@ object JsonReader {
 
   }
 
+  sealed trait ReadResult[A] {
+    def valueOpt: Option[A] = None
+    val warnings: Vector[String]
+    def allWarningsMessage(context: Option[String]): Option[String] =
+      ReadResult.allWarningsMessage(context, warnings)
+  }
+
   private case class JsonReaderImpl[A](overrideContext: Option[String] = None)(implicit jsonCodec: JsonCodec[A]) extends JsonReader[A] {
 
     override def withOverrideContext(overrideContext: String): JsonReader[A] =
       copy(overrideContext = Some(overrideContext))
 
-    override def readZ(zsource: ZJsonSource): ZIO[Any, ReadErrorException, A] = {
-      val resolvedContext = resolveContext(zsource.context)
-      zsource
-        .jsdoc
-        .either
-        .flatMap {
-          case Left(re) =>
-            zfail(re.asException)
-          case Right(jsd) =>
-            impl(jsd, resolvedContext) match {
-              case ReadResult.Success(a, _, _, _) =>
-                zsucceed(a)
-              case ReadResult.Error(re, _, _) =>
-                zfail(re.asException)
-            }
-        }
-    }
-
-    override def readLogWarningsZ(zsource: ZJsonSource, logLevel: LogLevel = LogLevel.WARN)(implicit trace: Trace, loggerF: LoggerF): UIO[ReadResult[A]] = {
-      readResultZ(zsource)
-        .flatMap { readResult =>
-          val logEffect =
-            readResult
-              .allWarningsMessage(zsource.context)
-              .map { msg =>
-                loggerF.log(logLevel, msg, None)
-              }
-              .getOrElse(zunit)
-          logEffect
-            .as(readResult)
-        }
-    }
-
-    override def readLogWarnings(source: JsonSource, logLevel: LogLevel = LogLevel.WARN)(implicit logger: Logger, pos: LoggerF.Pos): ReadResult[A] = {
-      val readResult = this.readResult(source)
-      readResult
-        .allWarningsMessage(source.context)
-        .foreach { msg =>
-          logger.log(logLevel, pos.asLogSource, msg)
-        }
-      readResult
-    }
-
-    override def readResult(source: JsonSource): ReadResult[A] = {
+    override def readResult(source: JsonSource)(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
       val resolvedContext = resolveContext(source.context)
       source.jsdoc match {
         case Left(re) =>
@@ -110,23 +71,10 @@ object JsonReader {
     def resolveContext(sourceContext: Option[String]): Option[String] =
       overrideContext.orElse(sourceContext)
 
-    override def readResultZ(zsource: ZJsonSource): UIO[ReadResult[A]] = {
-      def resolvedContext = resolveContext(zsource.context)
-      zsource
-        .jsdoc
-        .either
-        .map {
-          case Left(re) =>
-            ReadResult.Error(re.withContext(resolvedContext), Vector.empty, None)
-          case Right(jsd) =>
-            impl(jsd, resolvedContext)
-        }
-    }
-
     /**
      * this will throw ReadErrorException's on error
      */
-    override def read(source: JsonSource): A =
+    override def read(source: JsonSource)(implicit jsonReaderOptions: JsonReaderOptions): A =
       readResult(source) match {
         case ReadResult.Success(a, _, _, _) =>
           a
@@ -134,7 +82,7 @@ object JsonReader {
           throw re.asException
       }
 
-    def impl(doc: JsDoc, resolvedContext: Option[String]): ReadResult[A] = {
+    def impl(doc: JsDoc, resolvedContext: Option[String])(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
 
       val warnings = mutable.Buffer[String]()
 
@@ -151,7 +99,20 @@ object JsonReader {
           unusedFieldAction,
         )
 
-      jsonCodec.read(doc)(readOptions) match {
+      val readResult = jsonCodec.read(doc)(readOptions)
+
+      if ( warnings.nonEmpty ) {
+        jsonReaderOptions match {
+          case JsonReaderOptions.NoLogWarnings =>
+          // noop
+          case lw: JsonReaderOptions.LogWarnings =>
+            ReadResult
+              .allWarningsMessage(resolvedContext, warnings.toVector)
+              .foreach(lw.logMessage)
+        }
+      }
+
+      readResult match {
         case Right(v) =>
           ReadResult.Success(v, warnings.toVector, doc, resolvedContext)
         case Left(re) =>
@@ -163,6 +124,15 @@ object JsonReader {
   }
 
   object JsonSource {
+
+    def apply(context: String, jsdoc: JsDoc): JsonSource = {
+      val c0 = context.some
+      val j0 = Right(jsdoc)
+      new JsonSource {
+        override def context: Option[String] = c0
+        override def jsdoc: Either[ReadError, JsDoc] = j0
+      }
+    }
 
     implicit def hoconToSource(hoconConfig: com.typesafe.config.Config): JsonSource =
       new JsonSource {
@@ -211,35 +181,33 @@ object JsonReader {
         override def jsdoc: Either[ReadError, JsDoc] = Right(jsdoc0)
       }
 
-    implicit def zfileToZSource(file: ZFileSystem.File): ZJsonSource =
-      new ZJsonSource {
-        override def context = file.absolutePath.some
-
-        override def jsdoc: ZIO[Any, ReadError, JsDoc] =
-          file
-            .readAsStringOpt
-            .either
-            .flatMap {
-              case Left(e) =>
-                zfail(ReadError.UnexpectedException(e))
-              case Right(None) =>
-                zfail(ReadError.SourceNotFoundError(file.absolutePath))
-              case Right(Some(jsonStr)) =>
-                ZIO.fromEither(json.parse(jsonStr).map(_.toRootDoc))
-            }
-      }
+    case class OverrideContextJsonSource(overrideContext: Option[String], jsonSource: JsonSource) extends JsonSource {
+      def context: Option[String] = overrideContext.orElse(jsonSource.context)
+      override def jsdoc: Either[ReadError, JsDoc] = jsonSource.jsdoc
+    }
 
   }
 
   trait JsonSource {
+    def withContext(context: Option[String]): JsonSource = OverrideContextJsonSource(context, this)
     def context: Option[String]
     def jsdoc: Either[ReadError, JsDoc]
   }
 
-  trait ZJsonSource {
-    def context: Option[String]
-    def jsdoc: ZIO[Any, ReadError, JsDoc]
+  object JsonReaderOptions {
+
+    implicit def jsonReaderOptions(implicit logLevel: LogLevel = LogLevel.WARN, pos: Pos, logger: Logger = outer.logger): JsonReaderOptions =
+      LogWarnings(logLevel, pos, logger)
+
+    case class LogWarnings(logLevel: LogLevel = LogLevel.WARN, pos: Pos, logger: Logger) extends JsonReaderOptions {
+      def logMessage(msg: String): Unit =
+        logger.log(logLevel, pos.asLogSource, msg)
+    }
+
+    case object NoLogWarnings extends JsonReaderOptions
+
   }
+  sealed trait JsonReaderOptions
 
 }
 
@@ -247,15 +215,10 @@ trait JsonReader[A] {
 
   def withOverrideContext(overrideContext: String): JsonReader[A]
 
-  def readZ(zsource: ZJsonSource): ZIO[Any,ReadErrorException,A]
-  def readResultZ(zsource: ZJsonSource): UIO[ReadResult[A]]
-  def readLogWarningsZ(zsource: ZJsonSource, logLevel: LogLevel = LogLevel.WARN)(implicit trace: Trace, loggerF: LoggerF): UIO[ReadResult[A]]
-
   /**
    * this will throw ReadErrorException's on error
    */
-  def read(source: JsonSource): A
-  def readResult(source: JsonSource): ReadResult[A]
-  def readLogWarnings(source: JsonSource, logLevel: LogLevel = LogLevel.WARN)(implicit logger: Logger, pos: LoggerF.Pos): ReadResult[A]
+  def read(source: JsonSource)(implicit jsonReaderOptions: JsonReaderOptions): A
+  def readResult(source: JsonSource)(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A]
 
 }
