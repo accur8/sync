@@ -12,11 +12,9 @@ package a8.sync.qubes
 import a8.sync.qubes.QubesApiClient.Config
 import sttp.model.Uri
 import a8.sync.http.RetryConfig
-
 import scala.concurrent.duration.FiniteDuration
 import a8.sync.qubes.QubesApiClient._
 import a8.shared.json.ast.{JsDoc, JsObj}
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

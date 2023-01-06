@@ -10,7 +10,6 @@ package a8.shared.jdbcf.querydsl
 
 //====
 import a8.shared.jdbcf.querydsl.QueryDslTest._
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

@@ -10,7 +10,6 @@ package a8.sync
 
 //====
 import a8.sync.QubesApiClientDemo.UserGroup
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

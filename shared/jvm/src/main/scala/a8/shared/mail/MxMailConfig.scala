@@ -9,7 +9,7 @@ package a8.shared.mail
 */
 
 //====
-
+import _root_.scala // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

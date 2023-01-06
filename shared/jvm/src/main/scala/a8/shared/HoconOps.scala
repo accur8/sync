@@ -7,8 +7,8 @@ import com.typesafe.config._
 
 import scala.language.implicitConversions
 import SharedImports._
-import a8.shared.json.JsonCodec
-import a8.shared.json.JsonReader.JsonReaderOptions
+import a8.shared.json.{JsonCodec, JsonReader}
+import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
 import a8.shared.json.ast._
 
 
@@ -16,21 +16,54 @@ object HoconOps extends HoconOps
 
 trait HoconOps {
 
+  def parseHocon(hocon: String, syntax: ConfigSyntax = ConfigSyntax.CONF, origin: Option[String] = None): Config = {
 
-
-  def parseHocon(hocon: String, syntax: ConfigSyntax = ConfigSyntax.CONF): Config = {
-
-    val parseOptions =
+    def baseParseOptions =
       ConfigParseOptions.
         defaults.
         setAllowMissing(false).
         setSyntax(syntax)
+
+    val parseOptions =
+      origin match {
+        case None =>
+          baseParseOptions
+        case Some(d) =>
+          baseParseOptions.setOriginDescription(d)
+      }
 
     ConfigFactory.parseString(hocon, parseOptions)
 
   }
 
   object impl {
+
+    def internalRead[A: JsonCodec](configValue: ConfigValue)(implicit jsonReaderOptions: JsonReaderOptions): A = {
+      internalReadResult[A](configValue) match {
+        case ReadResult.Success(a, _, _, _) =>
+          a
+        case error: ReadResult.Error[A] =>
+          throw error.readError.asException
+      }
+    }
+
+    def internalReadResult[A: JsonCodec](configValue: ConfigValue)(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
+      JsonReader[A].readResult(configValue) match {
+        case s: ReadResult.Success[A] =>
+          s
+        case error: ReadResult.Error[A] =>
+          if ( configValue == CascadingHocon.emptyConfigObject ) {
+            JsonReader[A].readResult(JsNothing) match {
+              case s: ReadResult.Success[A] =>
+                s
+              case _ =>
+                error
+            }
+          } else {
+            error
+          }
+      }
+    }
 
     def loadConfig(file: Path): Config = {
       val config = ConfigFactory.parseFile(file.toFile)
@@ -83,32 +116,26 @@ trait HoconOps {
   implicit def implicitConfigOps(config: Config): ConfigOps = new ConfigOps(config)
   class ConfigOps(private val config: Config) {
 
-    def read[A : JsonCodec : ClassTag](implicit jsonReaderOptions: JsonReaderOptions): A = {
-      val jsv = impl.toJsVal(config.root)
-      jsv.unsafeAs[A]
+    def read[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): A = {
+      HoconOps.impl.internalRead[A](config.root)
     }
 
-    def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
-      val jsv = impl.toJsVal(config.getValue(path))
-      jsv.unsafeAs[A]
+    def readPath[A : JsonCodec](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
+      HoconOps.impl.internalRead[A](config.getValue(path))
     }
-
-
 
   }
 
   implicit def implicitConfigValueOps(configValue: ConfigValue): ConfigValueOps = new ConfigValueOps(configValue)
   class ConfigValueOps(private val configValue: ConfigValue) {
 
-    def asJsValue = impl.toJsVal(configValue)
-
     def read[A : JsonCodec : ClassTag](implicit jsonReaderOptions: JsonReaderOptions): A =
-      asJsValue.unsafeAs[A]
+      HoconOps.impl.internalRead[A](configValue)
 
     def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       configValue match {
         case co: ConfigObject =>
-          co.toConfig.readPath[A](path)
+          HoconOps.impl.internalRead[A](configValue)
       }
     }
 

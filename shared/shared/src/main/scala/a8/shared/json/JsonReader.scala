@@ -9,7 +9,7 @@ import a8.shared.app.LoggerF.Pos
 import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
-import a8.shared.json.ast.JsDoc.JsDocRoot
+import a8.shared.json.ast.JsDoc.{JsDocRoot, empty}
 import a8.shared.json.ast.{JsDoc, JsVal}
 import wvlet.log.{LogLevel, LogSource, Logger}
 import zio.{Trace, UIO, ZIO}
@@ -36,17 +36,21 @@ object JsonReader extends Logging { outer =>
         }
     }
 
-    case class Success[A](value: A, warnings: Vector[String], doc: JsDoc, resolvedContext: Option[String]) extends ReadResult[A] {
+    case class Success[A](value: A, warnings: Vector[String] = Vector.empty, doc: JsDoc = JsDoc.empty, resolvedContext: Option[String] = None) extends ReadResult[A] {
+      override def map[B](fn: A => B): ReadResult[B] =
+        copy(value = fn(value))
       override def valueOpt: Option[A] = Some(value)
     }
 
-    case class Error[A](readError: ReadError, warnings: Vector[String], doc: Option[JsDoc]) extends ReadResult[A] {
+    case class Error[A](readError: ReadError, warnings: Vector[String] = Vector.empty, doc: Option[JsDoc] = None) extends ReadResult[A] {
+      override def map[B](fn: A => B): ReadResult[B] = this.asInstanceOf[ReadResult[B]]
       override def valueOpt: Option[A] = None
     }
 
   }
 
   sealed trait ReadResult[A] {
+    def map[B](fn: A=>B): ReadResult[B]
     def valueOpt: Option[A] = None
     val warnings: Vector[String]
     def allWarningsMessage(context: Option[String]): Option[String] =
@@ -134,9 +138,16 @@ object JsonReader extends Logging { outer =>
       }
     }
 
+    implicit def configValueToSource(hoconConfigValue: com.typesafe.config.ConfigValue): JsonSource =
+      new JsonSource {
+        override def context = Option(hoconConfigValue.origin().description()).map("hocon - " + _)
+        override def jsdoc: Either[ReadError, JsDoc] =
+          Right(JsDocRoot(HoconOps.impl.toJsVal(hoconConfigValue)))
+      }
+
     implicit def hoconToSource(hoconConfig: com.typesafe.config.Config): JsonSource =
       new JsonSource {
-        override def context = None
+        override def context = Option(hoconConfig.origin().description()).map("hocon - " + _)
         override def jsdoc: Either[ReadError, JsDoc] =
           Right(JsDocRoot(HoconOps.impl.toJsVal(hoconConfig.root)))
       }
@@ -194,14 +205,23 @@ object JsonReader extends Logging { outer =>
     def jsdoc: Either[ReadError, JsDoc]
   }
 
+  object JsonWarningLogLevel {
+    val Off = JsonWarningLogLevel(LogLevel.OFF)
+    val Trace = JsonWarningLogLevel(LogLevel.TRACE)
+    val Debug = JsonWarningLogLevel(LogLevel.DEBUG)
+    val Warn = JsonWarningLogLevel(LogLevel.WARN)
+    implicit val Default = Warn
+  }
+  case class JsonWarningLogLevel(logLevel: LogLevel)
+
   object JsonReaderOptions {
 
-    implicit def jsonReaderOptions(implicit logLevel: LogLevel = LogLevel.WARN, pos: Pos, logger: Logger = outer.logger): JsonReaderOptions =
+    implicit def jsonReaderOptions(implicit logLevel: JsonWarningLogLevel, pos: Pos, logger: Logger = outer.logger): JsonReaderOptions =
       LogWarnings(logLevel, pos, logger)
 
-    case class LogWarnings(logLevel: LogLevel = LogLevel.WARN, pos: Pos, logger: Logger) extends JsonReaderOptions {
+    case class LogWarnings(logLevel: JsonWarningLogLevel, pos: Pos, logger: Logger) extends JsonReaderOptions {
       def logMessage(msg: String): Unit =
-        logger.log(logLevel, pos.asLogSource, msg)
+        logger.log(logLevel.logLevel, pos.asLogSource, msg)
     }
 
     case object NoLogWarnings extends JsonReaderOptions

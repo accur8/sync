@@ -3,11 +3,17 @@ package a8.shared
 
 import java.nio.file.{Path, Paths}
 import HoconOps._
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigMergeable, ConfigObject, ConfigOrigin, ConfigRenderOptions, ConfigValue, ConfigValueType}
 import SharedImports._
 import a8.shared.app.Logging
+import io.micrometer.core.instrument.simple.SimpleConfig
+
+import java.net.URL
+import java.util
 
 object CascadingHocon extends Logging {
+
+  lazy val emptyConfigObject: ConfigObject = emptyHocon.root()
 
   lazy val emptyHocon: Config = parseHocon("")
 

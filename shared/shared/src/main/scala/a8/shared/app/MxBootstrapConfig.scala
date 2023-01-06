@@ -11,9 +11,7 @@ package a8.shared.app
 //====
 import a8.shared.app.BootstrapConfig._
 import zio.Duration
-
 import scala.concurrent.duration.FiniteDuration
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

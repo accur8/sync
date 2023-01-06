@@ -10,7 +10,6 @@ package a8.sync
 
 //====
 import a8.sync.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
-
 import scala.concurrent.duration.FiniteDuration
 //====
 

@@ -1,6 +1,5 @@
 package a8.shared.app
 
-import a8.shared.ConfigMojoOps.ReadResult
 import a8.shared.{ConfigMojo, FileSystem, HoconOps}
 import a8.shared.FileSystem.Directory
 import a8.shared.app.BootstrapConfig._
@@ -8,7 +7,7 @@ import a8.shared.json.{JsonCodec, ast}
 
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports._
-import a8.shared.json.JsonReader.JsonReaderOptions
+import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsDoc
 import wvlet.log.LogLevel
@@ -53,23 +52,19 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
           val globalBootstrapDto =
             (configMojoRoot("global_bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
-              case ReadResult.NoValue() =>
-                BootstrapConfig.BootstrapConfigDto()
-              case ReadResult.Value(v) =>
+              case ReadResult.Success(v, _, _, _) =>
                 v
-              case ReadResult.Error(msg) =>
-                sys.error(msg)
+              case ReadResult.Error(re, _, _) =>
+                sys.error(re.prettyMessage)
             }).copy(source = Some("config.hocon - global_bootstrap"))
 
           val bootstrapConfigPropertyName = appName.value + ".bootstrap"
           val bootstrapDto =
             (configMojo("bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
-              case ReadResult.NoValue() =>
-                BootstrapConfig.BootstrapConfigDto()
-              case ReadResult.Value(v) =>
+              case ReadResult.Success(v, _, _, _) =>
                 v
-              case ReadResult.Error(msg) =>
-                sys.error(msg)
+              case ReadResult.Error(re, _, _) =>
+                sys.error(re.prettyMessage)
             }).copy(source = Some("config.hocon - " + bootstrapConfigPropertyName))
 
           val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, bootstrapDto)

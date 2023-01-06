@@ -11,7 +11,6 @@ package a8.shared.jdbcf
 //====
 import sttp.model.Uri
 import a8.shared.jdbcf.DatabaseConfig.{DatabaseId, Password}
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

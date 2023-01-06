@@ -2,15 +2,17 @@ package a8.shared
 
 
 
-import a8.shared.ConfigMojoOps.{ReadResult, impl}
+import a8.shared.ConfigMojoOps.impl
 import com.typesafe.{config => hocon}
-import a8.shared.ConfigMojoOps.ReadResult.NoValue
 
 import scala.language.dynamics
 import SharedImports._
+import a8.shared
 import a8.shared.ConfigMojoOps.impl.{ConfigMojoEmpty, ConfigMojoRoot, ConfigMojoValue}
-import a8.shared.json.{JsonCodec, JsonReader}
-import a8.shared.json.ast.JsVal
+import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
+import a8.shared.json.ZJsonReader.ZJsonReaderOptions
+import a8.shared.json.{JsonCodec, JsonReader, ReadError}
+import a8.shared.json.ast.{JsDoc, JsNothing, JsVal}
 import com.typesafe.config.{ConfigMergeable, ConfigValue}
 import zio.{Task, ZIO}
 
@@ -33,72 +35,6 @@ object ConfigMojo  {
 
 
 object ConfigMojoOps {
-
-  sealed trait ReadResult[A] {
-    def valueOpt: Option[A] = None
-  }
-  object ReadResult {
-    case class Value[A](v: A) extends ReadResult[A] {
-      override def valueOpt: Option[A] = Some(v)
-    }
-    case class Error[A](msg: String) extends ReadResult[A]
-    case class NoValue[A]() extends ReadResult[A]
-  }
-
-  trait Reads[A] {
-    def read(value: Option[hocon.ConfigValue]): ReadResult[A]
-  }
-
-  object Reads {
-
-    def apply[A](fn: hocon.ConfigValue => ReadResult[A]): Reads[A] =
-      new Reads[A] {
-        def read(value: Option[hocon.ConfigValue]): ReadResult[A] =
-          value match {
-            case None =>
-              ReadResult.NoValue()
-            case Some(cv) =>
-              fn(cv)
-          }
-      }
-
-    implicit def reads[A : JsonCodec]: Reads[A] =
-      apply[A] { value =>
-        val jsv = HoconOps.impl.toJsVal(value)
-        JsonCodec[A].read(jsv.toRootDoc) match {
-          case Right(value) =>
-            ReadResult.Value(value)
-          case Left(re) =>
-            ReadResult.Error(re.prettyMessage)
-        }
-      }
-
-    implicit val readsJsVal: Reads[JsVal] =
-      apply[JsVal] { value =>
-        val jsv = HoconOps.impl.toJsVal(value)
-        ReadResult.Value(jsv)
-      }
-
-    implicit def optionReads[A](implicit readsA: Reads[A]): Reads[Option[A]] =
-      new Reads[Option[A]] {
-        def read(value: Option[hocon.ConfigValue]): ReadResult[Option[A]] = {
-          def impl(rr: ReadResult[Option[A]]): ReadResult[Option[A]] = rr
-          value
-            .map { v =>
-              readsA.read(value) match {
-                case ReadResult.Value(v) =>
-                  ReadResult.Value(some(v))
-                case ReadResult.NoValue() =>
-                  ReadResult.Value(none[A])
-                case ReadResult.Error(msg) =>
-                  ReadResult.Error[Option[A]](msg)
-              }
-            }
-            .getOrElse(ReadResult.Value(none[A]))
-        }
-      }
-
-  }
 
   object impl {
 
@@ -136,30 +72,32 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
   }
   import __internal__._
 
-  def as[A : ConfigMojoOps.Reads]: A = {
+  def as[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): A = {
     outer.asReadResult[A] match {
-      case ReadResult.Value(v) =>
+      case ReadResult.Success(v, _, _, _) =>
         v
-      case ReadResult.Error(msg) =>
-        sys.error(s"error at ${path} -- ${msg}")
-      case ReadResult.NoValue() =>
-        sys.error(s"no value at ${path}")
+      case ReadResult.Error(re, _, _) =>
+        sys.error(re.prettyMessage)
     }
   }
 
-  def asF[A: ConfigMojoOps.Reads]: Task[A] =
+  def asF[A: JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): Task[A] =
     asReadResult[A] match {
-      case ReadResult.Value(v) =>
+      case ReadResult.Success(v, _, _, _) =>
         zsucceed(v)
-      case ReadResult.Error(msg) =>
-        zfail(new RuntimeException(s"error at ${path} -- ${msg}"))
-      case ReadResult.NoValue() =>
-        zfail(new RuntimeException(s"no value at ${path}"))
+      case ReadResult.Error(re, _, _) =>
+        zfail(re.asException)
     }
 
-  def asReadResult[A : ConfigMojoOps.Reads]: ReadResult[A] = {
-    val reads = implicitly[ConfigMojoOps.Reads[A]]
-    reads.read(hoconValueOpt)
+  def asReadResult[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
+    hoconValueOpt match {
+      case Some(hoconValue) =>
+        HoconOps.impl.internalReadResult[A](hoconValue)
+      case None =>
+        JsonReader[A]
+          .withOverrideContext(s"reading ${path} of ${root.map(_.config.origin().description()).getOrElse("unknown")}")
+          .readResult(JsNothing)
+    }
   }
 
   def selectDynamic(name: String) = apply(name)
@@ -207,7 +145,7 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
     }
 
   override def toString: String =
-    s"${path} => ${as[JsVal].prettyJson}"
+    s"${path} => ${as[JsDoc].prettyJson}"
 
 }
 

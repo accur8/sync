@@ -11,7 +11,6 @@ package a8.shared.jdbcf
 //====
 import a8.shared.jdbcf.MaterializedMapperDemo.BigBoo
 import a8.shared.jdbcf.MaterializedMapperDemo.JsonCC
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
