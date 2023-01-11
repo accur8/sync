@@ -89,16 +89,8 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
         zfail(re.asException)
     }
 
-  def asReadResult[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
-    hoconValueOpt match {
-      case Some(hoconValue) =>
-        HoconOps.impl.internalReadResult[A](hoconValue)
-      case None =>
-        JsonReader[A]
-          .withOverrideContext(s"reading ${path} of ${root.map(_.config.origin().description()).getOrElse("unknown")}")
-          .readResult(JsNothing)
-    }
-  }
+  def asReadResult[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] =
+    HoconOps.impl.internalReadResult[A](hoconValueOpt.getOrElse(CascadingHocon.emptyConfigObject))
 
   def selectDynamic(name: String) = apply(name)
 
