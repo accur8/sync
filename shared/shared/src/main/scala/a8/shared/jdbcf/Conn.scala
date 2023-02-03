@@ -76,6 +76,8 @@ object Conn extends Logging {
     def tableMetadata(tableLocator: TableLocator, useCache: Boolean): Task[ResolvedJdbcTable] =
       jdbcMetadata.tableMetadata(tableLocator, this, useCache)
 
+    def materializedMapper[A,PK](implicit keyedTableMapper: KeyedTableMapper[A,PK]): Task[KeyedTableMapper.Materialized[A,PK]]
+
   }
 
 }

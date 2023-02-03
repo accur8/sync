@@ -3,7 +3,7 @@ package a8.shared.jdbcf.mapper
 
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.{Conn, SqlString}
-import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
+import a8.shared.jdbcf.mapper.KeyedTableMapper.{Materialized, UpsertResult}
 import zio._
 
 object KeyedTableMapper {
@@ -13,6 +13,8 @@ object KeyedTableMapper {
     case object Update extends UpsertResult
     case object Insert extends UpsertResult
   }
+
+  case class Materialized[A,PK](value: KeyedTableMapper[A,PK])
 
 }
 
@@ -26,11 +28,13 @@ trait KeyedTableMapper[A, PK] extends TableMapper[A] {
 
   override def materializeTableMapper(implicit conn: Conn): Task[TableMapper[A]] =
     materializeKeyedTableMapper
+      .map(_.value)
       .map {
         case tm: TableMapper[A] =>
           tm
       }
 
-  def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper[A,PK]]
+  def materializeKeyedTableMapper(implicit conn: Conn): Task[Materialized[A,PK]]
+//  def materializeKeyedTableMapper(implicit conn: Conn): Task[Materialized[A,PK]]
 
 }

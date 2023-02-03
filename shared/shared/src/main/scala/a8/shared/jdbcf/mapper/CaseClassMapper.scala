@@ -127,7 +127,7 @@ case class CaseClassMapper[A, PK](
     constructorFn(valuesIterator) -> offset
   }
 
-  lazy val resolvedColumnNames =
+  lazy val resolvedColumnNames: Seq[DialectQuotedIdentifier] =
     fields
       .flatMap(_.columnNames)
       .map(columnNameResolver.quote)
@@ -161,7 +161,7 @@ case class CaseClassMapper[A, PK](
     primaryKey.whereClause(key, columnNameResolver)
 
   override def updateSql(row: A, extraWhere: Option[SqlString]): SqlString = {
-    val valuePairs = pairs(RootColumnNamePrefix, row)
+    val valuePairs = materializedPairs(RootColumnNamePrefix, row)
     val whereSuffix =
       extraWhere match {
         case None =>
@@ -179,14 +179,19 @@ case class CaseClassMapper[A, PK](
     selectSql(keyToWhereClause(key))
 
   override def pairs(columnNamePrefix: ColumnName, row: A): Iterable[(ColumnName, SqlString)] =
-    fields.flatMap(_.pairs(columnNamePrefix, row))
+    fields
+      .flatMap(_.pairs(columnNamePrefix, row))
+
+  def materializedPairs(columnNamePrefix: ColumnName, row: A): Iterable[(DialectQuotedIdentifier, SqlString)] =
+    pairs(columnNamePrefix, row)
+      .map(t => columnNameResolver.quote(t._1) -> t._2)
 
   override def insertSql(row: A): SqlString = {
-    val valuePairs = pairs(RootColumnNamePrefix, row)
+    val valuePairs = materializedPairs(RootColumnNamePrefix, row)
     sql"insert into ${tableName} (${valuePairs.map(_._1).mkSqlString(Comma)}) values(${valuePairs.map(_._2).mkSqlString(SqlString.Comma)})"
   }
 
-  override def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper[A, PK]] = {
+  override def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper.Materialized[A, PK]] = {
     def columnNameResolver0(tableMeta: ResolvedJdbcTable) = {
       val mappedColumnNames: Map[ColumnName, DialectQuotedIdentifier] =
         tableMeta
@@ -217,11 +222,15 @@ case class CaseClassMapper[A, PK](
             parm.materialize(columnNamePrefix, conn, resolvedJdbcTable)
           }
           .sequence
-    } yield
-      copy(
-        rawFields = materializedRawFields,
-        columnNameResolver = columnNameResolver,
+    } yield {
+      KeyedTableMapper.Materialized(
+        copy(
+          tableName = tableName.name,
+          rawFields = materializedRawFields,
+          columnNameResolver = columnNameResolver,
+        )
       )
+    }
   }
 
 }

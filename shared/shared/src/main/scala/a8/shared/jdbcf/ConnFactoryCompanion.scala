@@ -9,24 +9,24 @@ object ConnFactoryCompanion {
 
   object MapperMaterializer {
     object noop extends MapperMaterializer {
-      override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper[A, B]] =
-        ZIO.succeed(ktm)
+      override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper.Materialized[A, B]] =
+        ZIO.succeed(KeyedTableMapper.Materialized(ktm))
       override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] =
         ZIO.succeed(tm)
     }
   }
 
   abstract class MapperMaterializer {
-    def materialize[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]]
+    def materialize[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]]
     def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]]
   }
 
   class MapperMaterializerImpl(
-    cacheRef: Ref[Map[KeyedTableMapper[_,_],KeyedTableMapper[_,_]]],
+    cacheRef: Ref[Map[KeyedTableMapper[_,_],KeyedTableMapper.Materialized[_,_]]],
     connFactory: ConnFactory,
   ) extends MapperMaterializer {
 
-    def materializeImpl[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]] =
+    def materializeImpl[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]] =
       ZIO
         .scoped {
           connFactory
@@ -36,14 +36,14 @@ object ConnFactoryCompanion {
             )
         }
 
-    def create[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]] =
+    def create[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]] =
       for {
         cache <- cacheRef.get
         materialized <- materializeImpl(ktm)
         _ <- cacheRef.update(_ + (ktm -> materialized))
       } yield materialized
 
-    def fetchOrCreate[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper[A,B]] = {
+    def fetchOrCreate[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]] = {
       for {
         cache <- cacheRef.get
         materialized <- {
@@ -51,19 +51,20 @@ object ConnFactoryCompanion {
             case None =>
               create(ktm)
             case Some(m) =>
-              ZIO.succeed(m.asInstanceOf[KeyedTableMapper[A,B]])
+              ZIO.succeed(m.asInstanceOf[KeyedTableMapper.Materialized[A,B]])
           }
         }
       } yield materialized
     }
 
-    override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper[A, B]] =
+    override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper.Materialized[A, B]] =
       fetchOrCreate(ktm)
 
     override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] = {
       tm match {
         case ktm: KeyedTableMapper[A,_] =>
           fetchOrCreate(ktm)
+            .map(_.value)
             .map {
               case mtm: TableMapper[A] =>
                 mtm

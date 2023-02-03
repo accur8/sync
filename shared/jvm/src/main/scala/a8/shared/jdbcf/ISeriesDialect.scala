@@ -122,17 +122,22 @@ object ISeriesDialect extends Dialect {
         }
     }
 
-    import cats.syntax._
-    val result: OptionT[Task, Vector[JdbcPrimaryKey]] = ??? // OptionT(attempt1) <+> OptionT(attempt2) <+> OptionT(attempt3)
-
-    result
-      .value
-      .map {
-        case None =>
-          Vector.empty
-        case Some(v) =>
-          v
-      }
+    attempt1.flatMap {
+      case Some(v) =>
+        zsucceed(v)
+      case None =>
+        attempt2.flatMap {
+          case Some(v) =>
+            zsucceed(v)
+          case None =>
+            attempt3.flatMap {
+              case Some(v) =>
+                zsucceed(v)
+              case None =>
+                zsucceed(Vector.empty)
+            }
+        }
+    }
 
   }
 

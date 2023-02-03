@@ -166,7 +166,7 @@ case class ConnInternalImpl(
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
       row <-
-        runSingleRowUpdate(mapper.updateSql(auditedRow))
+        runSingleRowUpdate(mapper.value.updateSql(auditedRow))
           .as(auditedRow)
     } yield row
   }
@@ -176,7 +176,7 @@ case class ConnInternalImpl(
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
       rowUpdated <-
-        runSingleRowUpdateOpt(mapper.updateSql(auditedRow, where.some))
+        runSingleRowUpdateOpt(mapper.value.updateSql(auditedRow, where.some))
     } yield rowUpdated.toOption(auditedRow)
   }
 
@@ -184,7 +184,7 @@ case class ConnInternalImpl(
     for {
       mapper <- mapperMaterializer.materialize(implicitly[KeyedTableMapper[A, B]])
       row <-
-        runSingleRowUpdate(mapper.deleteSql(mapper.key(row)))
+        runSingleRowUpdate(mapper.value.deleteSql(mapper.value.key(row)))
           .as(row)
     } yield row
   }
@@ -226,4 +226,6 @@ case class ConnInternalImpl(
   override def rollback: Task[Unit] =
     ZIO.attemptBlocking(jdbcConn.rollback())
 
+  override def materializedMapper[A, PK](implicit keyedTableMapper: KeyedTableMapper[A, PK]): Task[KeyedTableMapper.Materialized[A, PK]] =
+    mapperMaterializer.materialize(keyedTableMapper)
 }

@@ -49,7 +49,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
       val dialect = Dialect(databaseConfig.url)
       for {
         ds <- Managed.resource(createDs)
-        cacheRef <- zio.Ref.make(Map.empty[KeyedTableMapper[_, _], KeyedTableMapper[_, _]])
+        cacheRef <- zio.Ref.make(Map.empty[KeyedTableMapper[_, _], KeyedTableMapper.Materialized[_, _]])
         escaper <- dialect.escaper(connR(ds))
       } yield
         new ConnFactory {
