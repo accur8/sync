@@ -43,18 +43,47 @@ object QubesMapperBuilder {
     }
   }
 
-  case class CompositePrimaryKey2[A,B : JsonCodec : SqlStringer, C : JsonCodec : SqlStringer](
-    parmB: CaseClassParm[A,B],
-    parmC: CaseClassParm[A,C],
-  ) extends PrimaryKey[A,(B,C)] {
+  case class CompositePrimaryKey2[A,PK1 : JsonCodec : SqlStringer, PK2 : JsonCodec : SqlStringer](
+    parm1: CaseClassParm[A,PK1],
+    parm2: CaseClassParm[A,PK2],
+  ) extends PrimaryKey[A,(PK1,PK2)] {
     import SqlString._
-    val sqlStringerB = implicitly[SqlStringer[B]]
-    val sqlStringerC = implicitly[SqlStringer[C]]
-    override def whereClause(key: (B, C)): SqlString = {
-      sql"${parmB.name.identifier} = ${sqlStringerB.toSqlString(key._1)} and ${parmC.name.identifier} = ${sqlStringerC.toSqlString(key._2)}"
+    val sqlStringer1 = implicitly[SqlStringer[PK1]]
+    val sqlStringer2 = implicitly[SqlStringer[PK2]]
+    override def whereClause(key: (PK1, PK2)): SqlString = {
+      sql"${parm1.name.identifier} = ${sqlStringer1.toSqlString(key._1)} and ${parm2.name.identifier} = ${sqlStringer2.toSqlString(key._2)}"
     }
   }
 
+  case class CompositePrimaryKey3[A,PK1 : JsonCodec : SqlStringer, PK2 : JsonCodec : SqlStringer, PK3 : JsonCodec : SqlStringer](
+    parm1: CaseClassParm[A,PK1],
+    parm2: CaseClassParm[A,PK2],
+    parm3: CaseClassParm[A,PK3],
+  ) extends PrimaryKey[A,(PK1,PK2,PK3)] {
+    import SqlString._
+    val sqlStringer1 = implicitly[SqlStringer[PK1]]
+    val sqlStringer2 = implicitly[SqlStringer[PK2]]
+    val sqlStringer3 = implicitly[SqlStringer[PK3]]
+    override def whereClause(key: (PK1, PK2, PK3)): SqlString = {
+      sql"${parm1.name.identifier} = ${sqlStringer1.toSqlString(key._1)} and ${parm2.name.identifier} = ${sqlStringer2.toSqlString(key._2)} and ${parm3.name.identifier} = ${sqlStringer3.toSqlString(key._3)}"
+    }
+  }
+
+  case class CompositePrimaryKey4[A,PK1 : JsonCodec : SqlStringer, PK2 : JsonCodec : SqlStringer, PK3 : JsonCodec : SqlStringer, PK4 : JsonCodec : SqlStringer](
+    parm1: CaseClassParm[A,PK1],
+    parm2: CaseClassParm[A,PK2],
+    parm3: CaseClassParm[A,PK3],
+    parm4: CaseClassParm[A,PK4],
+  ) extends PrimaryKey[A,(PK1,PK2,PK3,PK4)] {
+    import SqlString._
+    val sqlStringer1 = implicitly[SqlStringer[PK1]]
+    val sqlStringer2 = implicitly[SqlStringer[PK2]]
+    val sqlStringer3 = implicitly[SqlStringer[PK3]]
+    val sqlStringer4 = implicitly[SqlStringer[PK4]]
+    override def whereClause(key: (PK1, PK2, PK3, PK4)): SqlString = {
+      sql"${parm1.name.identifier} = ${sqlStringer1.toSqlString(key._1)} and ${parm2.name.identifier} = ${sqlStringer2.toSqlString(key._2)} and ${parm3.name.identifier} = ${sqlStringer3.toSqlString(key._3)} and ${parm4.name.identifier} = ${sqlStringer4.toSqlString(key._4)}"
+    }
+  }
   case class QubesMapperBuilderImpl[A : ClassTag, B, PK](
     generator: Generator[A,B],
     cubeName: Option[String] = None,
@@ -67,9 +96,7 @@ object QubesMapperBuilder {
   )
     extends QubesMapperBuilder[A,B,PK]
   {
-
-
-
+    
     override def cubeName(cubeName: String): QubesMapperBuilder[A, B, PK] =
       copy(cubeName = Some(cubeName))
 
@@ -79,10 +106,19 @@ object QubesMapperBuilder {
     override def addField[C : JsonCodec](fn: B => CaseClassParm[A, C]): QubesMapperBuilder[A, B, PK] =
       copy(parms = parms :+ CaseClassParmParm[A,C](fn(generator.caseClassParameters)))
 
-
-    override def compositePrimaryKey2[C: JsonCodec : SqlStringer, D: JsonCodec: SqlStringer](fn: B => (CaseClassParm[A, C], CaseClassParm[A, D])): QubesMapperBuilder[A, B, (C, D)] = {
+    override def compositePrimaryKey2[PK1: JsonCodec : SqlStringer, PK2: JsonCodec: SqlStringer](fn: B => (CaseClassParm[A, PK1], CaseClassParm[A, PK2])): QubesMapperBuilder[A, B, (PK1, PK2)] = {
       val t = fn(generator.caseClassParameters)
       copy(primaryKey = Some(CompositePrimaryKey2(t._1, t._2)))
+    }
+
+    override def compositePrimaryKey3[PK1: JsonCodec : SqlStringer, PK2: JsonCodec : SqlStringer, PK3: JsonCodec : SqlStringer](fn: B => (CaseClassParm[A, PK1], CaseClassParm[A, PK2], CaseClassParm[A, PK3])): QubesMapperBuilder[A, B, (PK1, PK2, PK3)] = {
+      val t = fn(generator.caseClassParameters)
+      copy(primaryKey = Some(CompositePrimaryKey3(t._1, t._2, t._3)))
+    }
+
+    override def compositePrimaryKey4[PK1: JsonCodec : SqlStringer, PK2: JsonCodec : SqlStringer, PK3: JsonCodec : SqlStringer, PK4: JsonCodec : SqlStringer](fn: B => (CaseClassParm[A, PK1], CaseClassParm[A, PK2], CaseClassParm[A, PK3], CaseClassParm[A, PK4])): QubesMapperBuilder[A, B, (PK1, PK2, PK3, PK4)] = {
+      val t = fn(generator.caseClassParameters)
+      copy(primaryKey = Some(CompositePrimaryKey4(t._1, t._2, t._3, t._4)))
     }
 
     override def singlePrimaryKey[C: JsonCodec : SqlStringer](fn: B => CaseClassParm[A, C]): QubesMapperBuilder[A, B, C] =
@@ -107,8 +143,10 @@ trait QubesMapperBuilder[A,B,PK] {
   def cubeName(cubeName: String): QubesMapperBuilder[A,B,PK]
   def appSpace(appSpace: String): QubesMapperBuilder[A,B,PK]
   def addField[C : JsonCodec](fn: B => CaseClassParm[A,C]): QubesMapperBuilder[A,B,PK]
-  def singlePrimaryKey[C : JsonCodec : SqlStringer](fn: B => CaseClassParm[A,C]): QubesMapperBuilder[A,B,C]
-  def compositePrimaryKey2[C : JsonCodec : SqlStringer, D : JsonCodec : SqlStringer](fn: B => (CaseClassParm[A,C], CaseClassParm[A,D])): QubesMapperBuilder[A,B,(C,D)]
+  def singlePrimaryKey[PK : JsonCodec : SqlStringer](fn: B => CaseClassParm[A,PK]): QubesMapperBuilder[A,B,PK]
+  def compositePrimaryKey2[PK1 : JsonCodec : SqlStringer, PK2 : JsonCodec : SqlStringer](fn: B => (CaseClassParm[A,PK1], CaseClassParm[A,PK2])): QubesMapperBuilder[A,B,(PK1,PK2)]
+  def compositePrimaryKey3[PK1 : JsonCodec : SqlStringer, PK2 : JsonCodec : SqlStringer, PK3 : JsonCodec : SqlStringer](fn: B => (CaseClassParm[A,PK1], CaseClassParm[A,PK2], CaseClassParm[A,PK3])): QubesMapperBuilder[A,B,(PK1,PK2,PK3)]
+  def compositePrimaryKey4[PK1 : JsonCodec : SqlStringer, PK2 : JsonCodec : SqlStringer, PK3 : JsonCodec : SqlStringer, PK4 : JsonCodec : SqlStringer](fn: B => (CaseClassParm[A,PK1], CaseClassParm[A,PK2], CaseClassParm[A,PK3], CaseClassParm[A,PK4])): QubesMapperBuilder[A,B,(PK1,PK2,PK3,PK4)]
   def build: QubesKeyedMapper[A,PK]
 
 }

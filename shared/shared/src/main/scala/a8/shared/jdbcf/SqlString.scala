@@ -19,6 +19,12 @@ object SqlString extends SqlStringLowPrio {
   val Comma = keyword(",")
   val CommaSpace = keyword(", ")
   val Space = keyword(" ")
+  val LeftParen = keyword("(")
+  val RightParen = keyword(")")
+  val OrWs = keyword(" or ")
+
+  def parens(sql: SqlString): SqlString =
+    CompositeSqlString(Iterable(LeftParen, sql, RightParen))
 
   case object Empty extends SqlString
   case class RawSqlString(sqlSafeValue: String) extends SqlString

@@ -103,9 +103,24 @@ object MapperBuilder {
     }
 
     override def compositePrimaryKey2[PK1: FieldHandler, PK2: FieldHandler](fn: B => (CaseClassParm[A, PK1], CaseClassParm[A, PK2])): MapperBuilder[A, B, (PK1, PK2)] = {
-      val parm0 = FromCaseClassParm(fn(generator.caseClassParameters)._1, fields.size)
-      val parm1 = FromCaseClassParm(fn(generator.caseClassParameters)._2, fields.size)
-      copy(primaryKey = Some(CompositePrimaryKey(parm0, parm1)))
+      val parm1 = FromCaseClassParm(fn(generator.caseClassParameters)._1, fields.size)
+      val parm2 = FromCaseClassParm(fn(generator.caseClassParameters)._2, fields.size)
+      copy(primaryKey = Some(CompositePrimaryKey2(parm1, parm2)))
+    }
+
+    override def compositePrimaryKey3[PK1: FieldHandler, PK2: FieldHandler, PK3: FieldHandler](fn: B => (CaseClassParm[A, PK1], CaseClassParm[A, PK2], CaseClassParm[A, PK3])): MapperBuilder[A, B, (PK1, PK2, PK3)] = {
+      val parm1 = FromCaseClassParm(fn(generator.caseClassParameters)._1, fields.size)
+      val parm2 = FromCaseClassParm(fn(generator.caseClassParameters)._2, fields.size)
+      val parm3 = FromCaseClassParm(fn(generator.caseClassParameters)._3, fields.size)
+      copy(primaryKey = Some(CompositePrimaryKey3(parm1, parm2, parm3)))
+    }
+
+    override def compositePrimaryKey4[PK1: FieldHandler, PK2: FieldHandler, PK3: FieldHandler, PK4: FieldHandler](fn: B => (CaseClassParm[A, PK1], CaseClassParm[A, PK2], CaseClassParm[A, PK3], CaseClassParm[A, PK4])): MapperBuilder[A, B, (PK1, PK2, PK3, PK4)] = {
+      val parm1 = FromCaseClassParm(fn(generator.caseClassParameters)._1, fields.size)
+      val parm2 = FromCaseClassParm(fn(generator.caseClassParameters)._2, fields.size)
+      val parm3 = FromCaseClassParm(fn(generator.caseClassParameters)._3, fields.size)
+      val parm4 = FromCaseClassParm(fn(generator.caseClassParameters)._4, fields.size)
+      copy(primaryKey = Some(CompositePrimaryKey4(parm1, parm2, parm3, parm4)))
     }
 
     override def addField[F: FieldHandler](fn: B => CaseClassParm[A, F]): MapperBuilder[A, B, PK] = {
@@ -175,17 +190,65 @@ object MapperBuilder {
     }
   }
 
-  case class CompositePrimaryKey[A, B1, B2](
-    parm0: FromCaseClassParm[A,B1],
-    parm1: FromCaseClassParm[A,B2],
+  case class CompositePrimaryKey2[A, PK1, PK2](
+    parm1: FromCaseClassParm[A,PK1],
+    parm2: FromCaseClassParm[A,PK2],
   )
-    extends PrimaryKey[A,(B1,B2)]
+    extends PrimaryKey[A,(PK1,PK2)]
   {
-    override def key(a: A): (B1,B2) = parm0.parm.lens(a) -> parm1.parm.lens(a)
-    override val columnNames = parm0.columnNames ++ parm1.columnNames
-    override def whereClause(key: (B1, B2), columnNameResolver: ColumnNameResolver): SqlString = ???
+    override def key(a: A): (PK1,PK2) = parm1.parm.lens(a) -> parm2.parm.lens(a)
+    override val columnNames = parm1.columnNames ++ parm2.columnNames
+    override def whereClause(key: (PK1, PK2), columnNameResolver: ColumnNameResolver): SqlString = {
+      import implicits._
+      val cond1 = parm1.booleanOpB(QueryDsl.RootJoin, key._1, columnNameResolver)
+      val cond2 = parm2.booleanOpB(QueryDsl.RootJoin, key._2, columnNameResolver)
+      val condition = QueryDsl.And(cond1, cond2)
+      val ss = QueryDsl.asSql(condition)
+      ss
+    }
   }
 
+  case class CompositePrimaryKey3[A, PK1, PK2, PK3](
+    parm1: FromCaseClassParm[A,PK1],
+    parm2: FromCaseClassParm[A,PK2],
+    parm3: FromCaseClassParm[A,PK3],
+  )
+    extends PrimaryKey[A,(PK1,PK2,PK3)]
+  {
+    override def key(a: A): (PK1,PK2,PK3) = (parm1.parm.lens(a), parm2.parm.lens(a), parm3.parm.lens(a))
+    override val columnNames = parm1.columnNames ++ parm2.columnNames ++ parm3.columnNames
+    override def whereClause(key: (PK1, PK2, PK3), columnNameResolver: ColumnNameResolver): SqlString = {
+      import implicits._
+      val cond1 = parm1.booleanOpB(QueryDsl.RootJoin, key._1, columnNameResolver)
+      val cond2 = parm2.booleanOpB(QueryDsl.RootJoin, key._2, columnNameResolver)
+      val cond3 = parm3.booleanOpB(QueryDsl.RootJoin, key._3, columnNameResolver)
+      val condition = QueryDsl.And(cond1, QueryDsl.And(cond2, cond3))
+      val ss = QueryDsl.asSql(condition)
+      ss
+    }
+  }
+
+  case class CompositePrimaryKey4[A, PK1, PK2, PK3, PK4](
+    parm1: FromCaseClassParm[A,PK1],
+    parm2: FromCaseClassParm[A,PK2],
+    parm3: FromCaseClassParm[A,PK3],
+    parm4: FromCaseClassParm[A,PK4],
+  )
+    extends PrimaryKey[A,(PK1,PK2,PK3,PK4)]
+  {
+    override def key(a: A): (PK1,PK2,PK3,PK4) = (parm1.parm.lens(a), parm2.parm.lens(a), parm3.parm.lens(a), parm4.parm.lens(a))
+    override val columnNames = parm1.columnNames ++ parm2.columnNames ++ parm3.columnNames ++ parm4.columnNames
+    override def whereClause(key: (PK1, PK2, PK3, PK4), columnNameResolver: ColumnNameResolver): SqlString = {
+      import implicits._
+      val cond1 = parm1.booleanOpB(QueryDsl.RootJoin, key._1, columnNameResolver)
+      val cond2 = parm2.booleanOpB(QueryDsl.RootJoin, key._2, columnNameResolver)
+      val cond3 = parm3.booleanOpB(QueryDsl.RootJoin, key._3, columnNameResolver)
+      val cond4 = parm4.booleanOpB(QueryDsl.RootJoin, key._4, columnNameResolver)
+      val condition = QueryDsl.And(cond1, QueryDsl.And(cond2, QueryDsl.And(cond3, cond4)))
+      val ss = QueryDsl.asSql(condition)
+      ss
+    }
+  }
 
   object AuditProvider {
     implicit def noop[A]: AuditProvider[A] =
@@ -215,8 +278,8 @@ trait MapperBuilder[A,B,PK] {
 //  def addField[F: Mapper](fn: B => CaseClassParm[A,F]): MapperBuilder[A,B,PK]
   def singlePrimaryKey[PK1: FieldHandler](fn: B => CaseClassParm[A,PK1]): MapperBuilder[A,B,PK1]
   def compositePrimaryKey2[PK1: FieldHandler, PK2: FieldHandler](fn: B => (CaseClassParm[A,PK1], CaseClassParm[A,PK2])): MapperBuilder[A,B,(PK1,PK2)]
-//  def primaryKey2[PK1: RowReader, PK2: RowReader](fn1: B => CaseClassParm[A,PK1], fn2: B => CaseClassParm[A,PK1]): MapperBuilder[A,B,(PK1,PK2)]
-//  def primaryKey3[PK1: RowReader, PK2: RowReader, PK3: RowReader](fn1: B => CaseClassParm[A,PK1], fn2: B => CaseClassParm[A,PK1], fn3: B => CaseClassParm[A,PK3]): MapperBuilder[A,B,(PK1,PK2,PK3)]
+  def compositePrimaryKey3[PK1: FieldHandler, PK2: FieldHandler, PK3: FieldHandler](fn: B => (CaseClassParm[A,PK1], CaseClassParm[A,PK2], CaseClassParm[A,PK3])): MapperBuilder[A,B,(PK1,PK2,PK3)]
+  def compositePrimaryKey4[PK1: FieldHandler, PK2: FieldHandler, PK3: FieldHandler, PK4: FieldHandler](fn: B => (CaseClassParm[A,PK1], CaseClassParm[A,PK2], CaseClassParm[A,PK3], CaseClassParm[A,PK4])): MapperBuilder[A,B,(PK1,PK2,PK3,PK4)]
   def buildMapper: ComponentMapper[A]
   def buildTableMapper(implicit auditProvider: AuditProvider[A]): TableMapper[A]
   def buildKeyedTableMapper(implicit auditProvider: AuditProvider[A]): KeyedTableMapper[A,PK]

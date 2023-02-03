@@ -16,13 +16,13 @@ object KeyedTableMapper {
 
 }
 
-trait KeyedTableMapper[A, B] extends TableMapper[A] {
+trait KeyedTableMapper[A, PK] extends TableMapper[A] {
 
-  def keyToWhereClause(key: B): SqlString
+  def keyToWhereClause(key: PK): SqlString
   def updateSql(row: A, extraWhere: Option[SqlString] = None): SqlString
-  def deleteSql(key: B): SqlString
-  def fetchSql(key: B): SqlString
-  def key(row: A): B
+  def deleteSql(key: PK): SqlString
+  def fetchSql(key: PK): SqlString
+  def key(row: A): PK
 
   override def materializeTableMapper(implicit conn: Conn): Task[TableMapper[A]] =
     materializeKeyedTableMapper
@@ -31,6 +31,6 @@ trait KeyedTableMapper[A, B] extends TableMapper[A] {
           tm
       }
 
-  def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper[A,B]]
+  def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper[A,PK]]
 
 }

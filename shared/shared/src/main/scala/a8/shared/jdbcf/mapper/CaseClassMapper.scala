@@ -157,9 +157,8 @@ case class CaseClassMapper[A, PK](
   override def selectSql(whereClause: SqlString): SqlString =
     sql"${selectFromAndWhere}${whereClause}"
 
-  def keyToWhereClause(key: PK): SqlString =
+  override def keyToWhereClause(key: PK): SqlString =
     primaryKey.whereClause(key, columnNameResolver)
-
 
   override def updateSql(row: A, extraWhere: Option[SqlString]): SqlString = {
     val valuePairs = pairs(RootColumnNamePrefix, row)
