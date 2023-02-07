@@ -218,7 +218,10 @@ case class ConnInternalImpl(
       }
 
   override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[Option[A]] =
-    selectOpt(keyedMapper.keyToWhereClause(key))
+    materializedMapper[A,B].flatMap { mm =>
+      implicit val km = mm.value
+      selectOpt(km.keyToWhereClause(key))(km)
+    }
 
   override def commit: Task[Unit] =
     ZIO.attemptBlocking(jdbcConn.commit())
