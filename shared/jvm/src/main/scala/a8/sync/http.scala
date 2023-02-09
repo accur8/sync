@@ -315,9 +315,10 @@ object http extends LoggingF {
   }
 
   object Method extends StringValue.Companion[Method] {
+    val DELETE = Method("DELETE")
     val GET = Method("GET")
     val HEAD = Method("HEAD")
-    val DELETE = Method("DELETE")
+    val MOVE = Method("MOVE")
     val OPTIONS = Method("OPTIONS")
     val PATCH = Method("PATCH")
     val POST = Method("POST")
@@ -414,7 +415,7 @@ object http extends LoggingF {
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
       for {
-        sttpBackend <-sttp.client3.armeria.zio.ArmeriaZioBackend.scoped()
+        sttpBackend <-sttp.client3.httpclient.zio.HttpClientZioBackend.scoped()
         maxConnectionSemaphore <- Semaphore.make(maxConnections)
       } yield
         RequestProcessorImpl(retry, SttpBackend(sttpBackend), maxConnectionSemaphore)

@@ -6,7 +6,6 @@ import HoconOps._
 import com.typesafe.config.{Config, ConfigMergeable, ConfigObject, ConfigOrigin, ConfigRenderOptions, ConfigValue, ConfigValueType}
 import SharedImports._
 import a8.shared.app.Logging
-import io.micrometer.core.instrument.simple.SimpleConfig
 
 import java.net.URL
 import java.util
