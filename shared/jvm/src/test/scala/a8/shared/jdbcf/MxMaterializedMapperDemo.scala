@@ -79,7 +79,7 @@ object MxMaterializedMapperDemo {
   
   trait MxBigBoo {
   
-    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[BigBoo,(Int)] =
+    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[BigBoo,Int] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
         .addField(_.grOup)
         .addField(_.name)    

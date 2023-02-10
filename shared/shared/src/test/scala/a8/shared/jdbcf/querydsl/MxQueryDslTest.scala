@@ -20,7 +20,7 @@ object MxQueryDslTest {
   
   trait MxWidget {
   
-    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[Widget,(String)] =
+    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[Widget,String] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
         .addField(_.id)
         .addField(_.name)
@@ -114,7 +114,7 @@ object MxQueryDslTest {
   
   trait MxContainer {
   
-    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[Container,(String)] =
+    implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[Container,String] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
         .addField(_.id)
         .addField(_.count)

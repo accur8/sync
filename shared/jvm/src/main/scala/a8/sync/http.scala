@@ -36,21 +36,26 @@ object http extends LoggingF {
   object RetryConfig extends MxRetryConfig {
     val noRetries = RetryConfig(0, 1.second, 1.minute)
   }
-
   @CompanionGen
   case class RetryConfig(
-    maxRetries: Int,
-    initialBackoff: FiniteDuration,
-    maxBackoff: FiniteDuration,
+    maxRetries: Int = 5,
+    initialBackoff: FiniteDuration = 1.second,
+    maxBackoff: FiniteDuration = 1.minute,
   )
 
-  object RequestProcessorConfig extends MxRequestProcessorConfig
+  object RequestProcessorConfig extends MxRequestProcessorConfig {
+    val noRetries = RequestProcessorConfig(0, 1.second, 1.minute)
+  }
 
   @CompanionGen
   case class RequestProcessorConfig(
-    retry: RetryConfig,
-    maxConnections: Int,
-  )
+    maxRetries: Int = 5,
+    initialBackoff: FiniteDuration = 1.second,
+    maxBackoff: FiniteDuration = 1.minute,
+    maxConnections: Int = 50,
+  ) {
+    lazy val retryConfig = RetryConfig(maxRetries, initialBackoff, maxBackoff)
+  }
 
   trait Backend {
     def rawSingleExec(request: RequestImpl): ZIO[Scope,Throwable, Response]
@@ -409,21 +414,21 @@ object http extends LoggingF {
       ZLayer(
         for {
           config <- zservice[RequestProcessorConfig]
-          requestProcessor <- asResource(config.retry, config.maxConnections)
+          requestProcessor <- asResource(config.retryConfig, config.maxConnections)
         } yield requestProcessor
       )
 
-    def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
+    def asResource(config: RequestProcessorConfig): Resource[RequestProcessor] = {
       for {
-        sttpBackend <-sttp.client3.httpclient.zio.HttpClientZioBackend.scoped()
-        maxConnectionSemaphore <- Semaphore.make(maxConnections)
+        sttpBackend <- sttp.client3.httpclient.zio.HttpClientZioBackend.scoped()
+        maxConnectionSemaphore <- Semaphore.make(config.maxConnections)
       } yield
-        RequestProcessorImpl(retry, SttpBackend(sttpBackend), maxConnectionSemaphore)
+        RequestProcessorImpl(config, SttpBackend(sttpBackend), maxConnectionSemaphore)
     }
 
-
-    def apply(retry: RetryConfig, backend: Backend, maxConnectionSemaphore: Semaphore): RequestProcessor =
-      RequestProcessorImpl(retry, backend, maxConnectionSemaphore)
+    def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
+      asResource(RequestProcessorConfig(retry.maxRetries, retry.initialBackoff, retry.maxBackoff, maxConnections))
+    }
 
   }
 
@@ -483,13 +488,15 @@ object http extends LoggingF {
         }
 
     case class RequestProcessorImpl(
-      retryConfig: RetryConfig,
+      config: RequestProcessorConfig,
       backend: Backend,
       maxConnectionSemaphore: Semaphore
     )
       extends RequestProcessor
     {
 
+      import config.retryConfig
+      import config.maxConnections
 
       override def execWithEffect[A](request: Request, responseEffect: Either[Throwable, Response] => Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         request match {

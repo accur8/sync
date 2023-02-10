@@ -11,6 +11,7 @@ package a8.sync
 //====
 import a8.sync.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
 import scala.concurrent.duration.FiniteDuration
+import a8.shared.SharedImports._
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -42,9 +43,9 @@ object Mxhttp {
     }
     
     object parameters {
-      lazy val maxRetries: CaseClassParm[RetryConfig,Int] = CaseClassParm[RetryConfig,Int]("maxRetries", _.maxRetries, (d,v) => d.copy(maxRetries = v), None, 0)
-      lazy val initialBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), None, 1)
-      lazy val maxBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), None, 2)
+      lazy val maxRetries: CaseClassParm[RetryConfig,Int] = CaseClassParm[RetryConfig,Int]("maxRetries", _.maxRetries, (d,v) => d.copy(maxRetries = v), Some(()=> 5), 0)
+      lazy val initialBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), Some(()=> 1.second), 1)
+      lazy val maxBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), Some(()=> 1.minute), 2)
     }
     
     
@@ -88,7 +89,9 @@ object Mxhttp {
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[RequestProcessorConfig,a8.shared.json.ast.JsObj] =
       jsonCodecBuilder(
         a8.shared.json.JsonObjectCodecBuilder(generator)
-          .addField(_.retry)
+          .addField(_.maxRetries)
+          .addField(_.initialBackoff)
+          .addField(_.maxBackoff)
           .addField(_.maxConnections)
       )
       .build
@@ -98,13 +101,15 @@ object Mxhttp {
     implicit val catsEq: cats.Eq[RequestProcessorConfig] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[RequestProcessorConfig,parameters.type] =  {
-      val constructors = Constructors[RequestProcessorConfig](2, unsafe.iterRawConstruct)
+      val constructors = Constructors[RequestProcessorConfig](4, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
-      lazy val retry: CaseClassParm[RequestProcessorConfig,RetryConfig] = CaseClassParm[RequestProcessorConfig,RetryConfig]("retry", _.retry, (d,v) => d.copy(retry = v), None, 0)
-      lazy val maxConnections: CaseClassParm[RequestProcessorConfig,Int] = CaseClassParm[RequestProcessorConfig,Int]("maxConnections", _.maxConnections, (d,v) => d.copy(maxConnections = v), None, 1)
+      lazy val maxRetries: CaseClassParm[RequestProcessorConfig,Int] = CaseClassParm[RequestProcessorConfig,Int]("maxRetries", _.maxRetries, (d,v) => d.copy(maxRetries = v), Some(()=> 5), 0)
+      lazy val initialBackoff: CaseClassParm[RequestProcessorConfig,FiniteDuration] = CaseClassParm[RequestProcessorConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), Some(()=> 1.second), 1)
+      lazy val maxBackoff: CaseClassParm[RequestProcessorConfig,FiniteDuration] = CaseClassParm[RequestProcessorConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), Some(()=> 1.minute), 2)
+      lazy val maxConnections: CaseClassParm[RequestProcessorConfig,Int] = CaseClassParm[RequestProcessorConfig,Int]("maxConnections", _.maxConnections, (d,v) => d.copy(maxConnections = v), Some(()=> 50), 3)
     }
     
     
@@ -112,22 +117,26 @@ object Mxhttp {
     
       def rawConstruct(values: IndexedSeq[Any]): RequestProcessorConfig = {
         RequestProcessorConfig(
-          retry = values(0).asInstanceOf[RetryConfig],
-          maxConnections = values(1).asInstanceOf[Int],
+          maxRetries = values(0).asInstanceOf[Int],
+          initialBackoff = values(1).asInstanceOf[FiniteDuration],
+          maxBackoff = values(2).asInstanceOf[FiniteDuration],
+          maxConnections = values(3).asInstanceOf[Int],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): RequestProcessorConfig = {
         val value =
           RequestProcessorConfig(
-            retry = values.next().asInstanceOf[RetryConfig],
+            maxRetries = values.next().asInstanceOf[Int],
+            initialBackoff = values.next().asInstanceOf[FiniteDuration],
+            maxBackoff = values.next().asInstanceOf[FiniteDuration],
             maxConnections = values.next().asInstanceOf[Int],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(retry: RetryConfig, maxConnections: Int): RequestProcessorConfig =
-        RequestProcessorConfig(retry, maxConnections)
+      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration, maxConnections: Int): RequestProcessorConfig =
+        RequestProcessorConfig(maxRetries, initialBackoff, maxBackoff, maxConnections)
     
     }
     
