@@ -93,7 +93,7 @@ object ZFileSystem {
   trait HasParent {
     self: Path =>
     def parentOpt: Option[Directory] = parent.some
-    def parent = new DirectoryImpl(asNioPath.getParent)
+    def parent: Directory = new DirectoryImpl(asNioPath.getParent)
   }
 
   object File extends AbstractStringValueCompanion[File] {
@@ -103,7 +103,6 @@ object ZFileSystem {
 
   trait File extends Path with HasParent {
 
-    def parent: Directory
     def write(content: String): Z[Unit] =
       parent
         .resolve

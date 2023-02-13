@@ -82,7 +82,7 @@ trait ConnFactoryCompanion {
   lazy val layer: ZLayer[DatabaseConfig with Scope, Throwable, ConnFactory] =
     ZLayer(constructor)
 
-  val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory]
+  lazy val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory]
 
   def resource(databaseConfig: DatabaseConfig): Resource[ConnFactory] =
     constructor.provideSome[zio.Scope](ZLayer.succeed(databaseConfig))

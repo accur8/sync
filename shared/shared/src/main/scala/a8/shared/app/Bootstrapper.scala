@@ -13,11 +13,11 @@ object Bootstrapper extends BootstrapperCompanionPlatform with BootstrapperCompa
 }
 
 trait Bootstrapper {
-  val logs: Iterable[String]
-  val rootConfig: JsVal
-  val bootstrapConfig: BootstrapConfig
-  val directoriesSearched: Iterable[Path]
-  val configFiles: Iterable[Path]
+  lazy val logs: Iterable[String]
+  lazy val rootConfig: JsVal
+  lazy val bootstrapConfig: BootstrapConfig
+  lazy val directoriesSearched: Iterable[Path]
+  lazy val configFiles: Iterable[Path]
   def appConfig[A : JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): Task[A] =
     rootConfig
       .toRootDoc("app")

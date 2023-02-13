@@ -37,10 +37,10 @@ object MapperBuilder {
 
   sealed trait Parm[A] {
     def pairs(columnNamePrefix: ColumnName, row: A): Iterable[(ColumnName, SqlString)]
-    val name: String
-    val columnCount: Int
+    lazy val name: String
+    lazy val columnCount: Int
     val ordinal: Int
-    val columnNames: Iterable[ColumnName]
+    lazy val columnNames: Iterable[ColumnName]
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
     def values(a: A): Vector[QueryDsl.Constant[_]]
     def fields(path: QueryDsl.Path, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[_]]
