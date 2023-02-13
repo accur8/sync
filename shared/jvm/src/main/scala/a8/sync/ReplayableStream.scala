@@ -59,12 +59,12 @@ object ReplayableStream extends LoggingF {
           )(
             _.shutdown
           )
-       _ <- {
-         if ( eagerlyConsume )
-           replayableStream.submitConsumption
-         else
-           ZIO.unit
-       }
+         _ <- {
+           if ( eagerlyConsume )
+             replayableStream.submitConsumption
+           else
+             ZIO.unit
+         }
 
       } yield replayableStream.unscopedReplayableStream
     }
