@@ -45,6 +45,7 @@ object http extends LoggingF {
 
   object RequestProcessorConfig extends MxRequestProcessorConfig {
     val noRetries = RequestProcessorConfig(0, 1.second, 1.minute)
+    val default = RequestProcessorConfig()
   }
 
   @CompanionGen

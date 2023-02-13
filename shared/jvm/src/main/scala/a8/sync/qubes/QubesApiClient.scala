@@ -9,7 +9,7 @@ import a8.shared.SharedImports._
 import a8.shared.app.{Logging, LoggingF}
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
-import a8.sync.http.{Backend, Method, RequestProcessor, RetryConfig}
+import a8.sync.http.{Backend, Method, RequestProcessor, RequestProcessorConfig, RetryConfig}
 import a8.sync.http
 import a8.sync.qubes.MxQubesApiClient._
 import sttp.client3._
@@ -49,10 +49,7 @@ object QubesApiClient extends LoggingF {
   case class Config(
     uri: Uri,
     authToken: AuthToken,
-    maximumSimultaneousHttpConnections: Int = 5,
-//    readTimeout: FiniteDuration = Config.twentySeconds,
-//    connectTimeout: FiniteDuration = Config.fiveSeconds,
-    retry: RetryConfig = Config.defaultRetryConfig,
+    requestProcessor: RequestProcessorConfig = RequestProcessorConfig.default,
   )
 
   object QueryRequest extends MxQueryRequest {
@@ -106,7 +103,7 @@ object QubesApiClient extends LoggingF {
 
   def asResource(config: QubesApiClient.Config): Resource[QubesApiClient] = {
     RequestProcessor
-      .asResource(retry = config.retry, maxConnections = config.maximumSimultaneousHttpConnections)
+      .asResource(config.requestProcessor)
       .map(rp => QubesApiClient(config, rp))
   }
 

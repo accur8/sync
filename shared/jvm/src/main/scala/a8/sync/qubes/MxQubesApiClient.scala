@@ -11,7 +11,8 @@ package a8.sync.qubes
 //====
 import a8.sync.qubes.QubesApiClient.Config
 import sttp.model.Uri
-import a8.sync.http.RetryConfig
+import a8.sync.http.{RequestProcessorConfig, RetryConfig}
+
 import scala.concurrent.duration.FiniteDuration
 import a8.sync.qubes.QubesApiClient._
 import a8.shared.json.ast.{JsDoc, JsObj}
@@ -32,8 +33,7 @@ object MxQubesApiClient {
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.uri)
           .addField(_.authToken)
-          .addField(_.maximumSimultaneousHttpConnections)
-          .addField(_.retry)
+          .addField(_.requestProcessor)
       )
       .build
     
@@ -42,15 +42,14 @@ object MxQubesApiClient {
     implicit val catsEq: cats.Eq[Config] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Config,parameters.type] =  {
-      val constructors = Constructors[Config](4, unsafe.iterRawConstruct)
+      val constructors = Constructors[Config](3, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
       lazy val uri: CaseClassParm[Config,Uri] = CaseClassParm[Config,Uri]("uri", _.uri, (d,v) => d.copy(uri = v), None, 0)
       lazy val authToken: CaseClassParm[Config,AuthToken] = CaseClassParm[Config,AuthToken]("authToken", _.authToken, (d,v) => d.copy(authToken = v), None, 1)
-      lazy val maximumSimultaneousHttpConnections: CaseClassParm[Config,Int] = CaseClassParm[Config,Int]("maximumSimultaneousHttpConnections", _.maximumSimultaneousHttpConnections, (d,v) => d.copy(maximumSimultaneousHttpConnections = v), Some(()=> 5), 2)
-      lazy val retry: CaseClassParm[Config,RetryConfig] = CaseClassParm[Config,RetryConfig]("retry", _.retry, (d,v) => d.copy(retry = v), Some(()=> Config.defaultRetryConfig), 3)
+      lazy val requestProcessor: CaseClassParm[Config,RequestProcessorConfig] = CaseClassParm[Config,RequestProcessorConfig]("requestProcessor", _.requestProcessor, (d,v) => d.copy(requestProcessor = v), Some(()=> RequestProcessorConfig.default), 2)
     }
     
     
@@ -60,8 +59,7 @@ object MxQubesApiClient {
         Config(
           uri = values(0).asInstanceOf[Uri],
           authToken = values(1).asInstanceOf[AuthToken],
-          maximumSimultaneousHttpConnections = values(2).asInstanceOf[Int],
-          retry = values(3).asInstanceOf[RetryConfig],
+          requestProcessor = values(2).asInstanceOf[RequestProcessorConfig],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Config = {
@@ -69,15 +67,14 @@ object MxQubesApiClient {
           Config(
             uri = values.next().asInstanceOf[Uri],
             authToken = values.next().asInstanceOf[AuthToken],
-            maximumSimultaneousHttpConnections = values.next().asInstanceOf[Int],
-            retry = values.next().asInstanceOf[RetryConfig],
+            requestProcessor = values.next().asInstanceOf[RequestProcessorConfig],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(uri: Uri, authToken: AuthToken, maximumSimultaneousHttpConnections: Int, retry: RetryConfig): Config =
-        Config(uri, authToken, maximumSimultaneousHttpConnections, retry)
+      def typedConstruct(uri: Uri, authToken: AuthToken, requestProcessor: RequestProcessorConfig): Config =
+        Config(uri, authToken, requestProcessor)
     
     }
     
