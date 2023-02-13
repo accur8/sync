@@ -15,6 +15,7 @@ import a8.shared.jdbcf.MaterializedMapperDemo.JsonCC
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 import a8.shared.jdbcf
+import a8.shared.jdbcf.querydsl.QueryDsl
 
 
 object MxMaterializedMapperDemo {
@@ -89,8 +90,8 @@ object MxMaterializedMapperDemo {
     
     
     class TableDsl(join: jdbcf.querydsl.QueryDsl.Join = jdbcf.querydsl.QueryDsl.RootJoin) {
-      val grOup = jdbcf.querydsl.QueryDsl.field[Int]("grOup", join)
-      val name = jdbcf.querydsl.QueryDsl.field[String]("name", join)
+      val grOup: QueryDsl.Field[Int] = jdbcf.querydsl.QueryDsl.field[Int]("grOup", join)
+      val name: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("name", join)
     
     }
     

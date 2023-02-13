@@ -124,7 +124,7 @@ trait SharedImports
 
   object ParseTimeUnit {
 
-    val timeUnitsByName = {
+    val timeUnitsByName: Map[String,TimeUnit] = {
       val fromEnum = TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
 
       (
@@ -156,7 +156,7 @@ trait SharedImports
   implicit def matchOpsAnyRef[A <: AnyRef](a: A): AnyOps[A] =
     new AnyOps[A](a)
 
-  implicit def matchOpsAnyVal[A <: AnyVal](a: A) =
+  implicit def matchOpsAnyVal[A <: AnyVal](a: A): AnyOps[A] =
     new AnyOps[A](a)
 
   implicit def sharedImportsIntOps(i: Int): IntOps =
@@ -168,7 +168,7 @@ trait SharedImports
   implicit def sharedImportsLocalDateTimeOps(localDateTime: LocalDateTime): LocalDateTimeOps =
     new LocalDateTimeOps(localDateTime)
 
-  implicit def throwableOps(th: Throwable) =
+  implicit def throwableOps(th: Throwable): ThrowableOps =
     new ThrowableOps(th)
 
   implicit def iterableOps[A](iterable: Iterable[A]): IterableOps[A, Iterable] =

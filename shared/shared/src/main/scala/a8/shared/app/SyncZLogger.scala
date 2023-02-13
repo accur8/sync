@@ -16,7 +16,7 @@ object SyncZLogger {
     isEnabled: org.slf4j.Logger => Boolean
   )
 
-  val levelers =
+  val levelers: List[Leveler] =
     List(
       Leveler(LogLevel.Trace, _.isTraceEnabled()),
       Leveler(LogLevel.Debug, _.isDebugEnabled()),
@@ -26,7 +26,7 @@ object SyncZLogger {
       Leveler(LogLevel.Fatal, _.isErrorEnabled()),
     )
 
-  val levelersByLogLevel =
+  val levelersByLogLevel: Map[LogLevel,Leveler] =
     levelers
       .toMapTransform(_.logLevel)
 
@@ -36,7 +36,7 @@ object SyncZLogger {
     slf4jLogger: org.slf4j.Logger,
     wvletLogger: wvlet.log.Logger,
   ) {
-    val fileName =
+    val fileName: String =
       zioTrace.indexOf("(") match {
         case -1 =>
           ""

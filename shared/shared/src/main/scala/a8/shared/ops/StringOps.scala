@@ -9,19 +9,19 @@ import zio.stream.{UStream, ZStream}
 
 
 object StringOps {
-  val ltrimPattern = Pattern.compile("^\\s+")
-  val rtrimPattern = Pattern.compile("\\s+$")
+  val ltrimPattern: Pattern = Pattern.compile("^\\s+")
+  val rtrimPattern: Pattern = Pattern.compile("\\s+$")
 }
 
 class StringOps(private val source: String) extends AnyVal {
 
-  def isNotBlank = source.exists(!_.isWhitespace)
-  def isBlankX = source.trim.length == 0
-  def toCi = CIString(source)
+  def isNotBlank: Boolean = source.exists(!_.isWhitespace)
+  def isBlankX: Boolean = source.trim.length == 0
+  def toCi: CIString = CIString(source)
   def =:=(right: String) = source.equalsIgnoreCase(right)
-  def ltrim = StringOps.ltrimPattern.matcher(source).replaceAll("")
-  def rtrim = StringOps.rtrimPattern.matcher(source).replaceAll("")
-  def toUri = Uri.unsafeParse(source)
+  def ltrim: String = StringOps.ltrimPattern.matcher(source).replaceAll("")
+  def rtrim: String = StringOps.rtrimPattern.matcher(source).replaceAll("")
+  def toUri: Uri = Uri.unsafeParse(source)
 
   def toChunk: zio.Chunk[Byte] =
     zio.Chunk.fromArray(
@@ -33,7 +33,7 @@ class StringOps(private val source: String) extends AnyVal {
       .fromChunk(toChunk)
   }
 
-  def indent(indent: String) =
+  def indent(indent: String): String =
     source
       .linesIterator.map(indent + _)
       .mkString("\n")

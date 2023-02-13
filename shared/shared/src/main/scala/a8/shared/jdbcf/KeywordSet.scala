@@ -9,7 +9,7 @@ import zio._
 
 object KeywordSet {
 
-  val default = {
+  val default: KeywordSet = {
     val rawSet = """
 A
 ABORT

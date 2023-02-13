@@ -26,7 +26,7 @@ object BootstrapConfig {
     name: String,
     level: String,
   ) {
-    lazy val resolvedLevel =
+    lazy val resolvedLevel: Option[LogLevel] =
       LogLevel
         .values
         .find(_.name =:= level)
@@ -34,7 +34,7 @@ object BootstrapConfig {
 
   object BootstrapConfigDto extends MxBootstrapConfigDto {
 
-    val default =
+    val default: BootstrapConfigDto =
       BootstrapConfigDto(
         consoleLogging = true.toSome,
         colorConsole = true.toSome,
@@ -45,11 +45,11 @@ object BootstrapConfig {
         dataDir = "data".toSome,
         tempDir = "temp".toSome,
         defaultLogLevel = LogLevel.DEBUG.name.toSome,
-        logLevels = Vector.empty,
+        logLevels = Vector.empty[LogLevelConfig],
         configFilePollInterval = 1.minute.some,
       ).copy(source = Some("default"))
 
-    val empty =
+    val empty: BootstrapConfigDto =
       BootstrapConfigDto()
         .copy(source = Some("empty"))
 
@@ -67,7 +67,7 @@ object BootstrapConfig {
     cacheDir: Option[String] = None,
     dataDir: Option[String] = None,
     defaultLogLevel: Option[String] = None,
-    logLevels: Vector[LogLevelConfig] = Vector.empty,
+    logLevels: Vector[LogLevelConfig] = Vector.empty[LogLevelConfig],
     configFilePollInterval: Option[FiniteDuration] = None,
 ) extends NamedToString {
     def +(right: BootstrapConfigDto): BootstrapConfigDto =
@@ -146,7 +146,7 @@ case class BootstrapConfig(
   configFilePollInterval: FiniteDuration,
 ) extends NamedToString { self =>
 
-  lazy val invalidLogLevels =
+  lazy val invalidLogLevels: Vector[LogLevelConfig] =
     logLevels
       .flatMap { ll =>
         ll.resolvedLevel match {
@@ -157,7 +157,7 @@ case class BootstrapConfig(
         }
       }
 
-  lazy val resolvedLogLevels =
+  lazy val resolvedLogLevels: Vector[(String, LogLevel)] =
     for {
       ll <- logLevels
       level <- ll.resolvedLevel

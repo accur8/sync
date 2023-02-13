@@ -243,7 +243,7 @@ object ResolvedTable {
     }
 
     case class JsonNormalValue(value: String, jsonType: TypeName) extends NormalizedValue {
-      override lazy val asSqlFragment = q"${value.escape}::${jsonType}"
+      override lazy val asSqlFragment: SqlString = q"${value.escape}::${jsonType}"
 
       override def prepare(ps: JPreparedStatement, parameterIndex: Int)(implicit dialect: Dialect): Unit = {
         import org.postgresql.util.PGobject

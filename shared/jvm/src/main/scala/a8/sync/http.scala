@@ -34,7 +34,7 @@ import scala.jdk.DurationConverters._
 object http extends LoggingF {
 
   object RetryConfig extends MxRetryConfig {
-    val noRetries = RetryConfig(0, 1.second, 1.minute)
+    val noRetries: RetryConfig = RetryConfig(0, 1.second, 1.minute)
   }
   @CompanionGen
   case class RetryConfig(
@@ -44,8 +44,8 @@ object http extends LoggingF {
   )
 
   object RequestProcessorConfig extends MxRequestProcessorConfig {
-    val noRetries = RequestProcessorConfig(0, 1.second, 1.minute)
-    val default = RequestProcessorConfig()
+    val noRetries: RequestProcessorConfig = RequestProcessorConfig(0, 1.second, 1.minute)
+    val default: RequestProcessorConfig = RequestProcessorConfig()
   }
 
   @CompanionGen
@@ -55,7 +55,7 @@ object http extends LoggingF {
     maxBackoff: FiniteDuration = 1.minute,
     maxConnections: Int = 50,
   ) {
-    lazy val retryConfig = RetryConfig(maxRetries, initialBackoff, maxBackoff)
+    lazy val retryConfig: RetryConfig = RetryConfig(maxRetries, initialBackoff, maxBackoff)
   }
 
   trait Backend {
@@ -147,7 +147,7 @@ object http extends LoggingF {
   }
 
   object JsonResponseOptions {
-    implicit val default = JsonResponseOptions()
+    implicit val default: JsonResponseOptions = JsonResponseOptions()
   }
   case class JsonResponseOptions(
     logJsonResponseBody: Boolean = true,
@@ -321,14 +321,14 @@ object http extends LoggingF {
   }
 
   object Method extends StringValue.Companion[Method] {
-    val DELETE = Method("DELETE")
-    val GET = Method("GET")
-    val HEAD = Method("HEAD")
-    val MOVE = Method("MOVE")
-    val OPTIONS = Method("OPTIONS")
-    val PATCH = Method("PATCH")
-    val POST = Method("POST")
-    val PUT = Method("PUT")
+    val DELETE: Method = Method("DELETE")
+    val GET: Method = Method("GET")
+    val HEAD: Method = Method("HEAD")
+    val MOVE: Method = Method("MOVE")
+    val OPTIONS: Method = Method("OPTIONS")
+    val PATCH: Method = Method("PATCH")
+    val POST: Method = Method("POST")
+    val PUT: Method = Method("PUT")
   }
 
   case class Method(
@@ -360,9 +360,9 @@ object http extends LoggingF {
     headers: Vector[(String,String)],
   ) {
 
-    lazy val statusCode = StatusCode(statusCodeInt)
+    lazy val statusCode: StatusCode = StatusCode(statusCodeInt)
 
-    lazy val headersByName =
+    lazy val headersByName: Map[CIString,String] =
       headers
         .map(h => CIString(h._1) -> h._2)
         .toMap
@@ -411,7 +411,7 @@ object http extends LoggingF {
 
   object RequestProcessor {
 
-    lazy val layer =
+    lazy val layer: ZLayer[RequestProcessorConfig with Scope,Throwable,RequestProcessor] =
       ZLayer(
         for {
           config <- zservice[RequestProcessorConfig]
@@ -444,7 +444,7 @@ object http extends LoggingF {
       standardResponseProcessorImpl(responseE, effect)
     }
 
-    lazy val retryableStatusCodes = Set(429, 500, 502, 503, 504)
+    lazy val retryableStatusCodes: Set[Int] = Set(429, 500, 502, 503, 504)
 
     def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], effect: Response=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[ResponseAction[A]] = {
       responseE match {
@@ -468,7 +468,7 @@ object http extends LoggingF {
       }
     }
 
-    val contentTypeHeaderName = CIString("Content-Type")
+    val contentTypeHeaderName: CIString = CIString("Content-Type")
 
     /** Removes quotes surrounding the charset.
      */
@@ -560,7 +560,7 @@ object http extends LoggingF {
       headers: Map[String, String] = Map.empty,
       method: Method = Method.GET,
       retryConfig: Option[RetryConfig] = None,
-      effects: Vector[Request=>Task[Request]] = Vector.empty,
+      effects: Vector[Request=>Task[Request]] = Vector.empty[Request=>Task[Request]],
       followRedirects: Boolean = true,
     ) extends Request {
 

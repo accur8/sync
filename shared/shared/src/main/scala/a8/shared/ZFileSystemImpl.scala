@@ -284,7 +284,7 @@ object ZFileSystemImpl {
           Left(np.toAbsolutePath.normalize())
       }
 
-  def zfailUnsupported = zfail(new RuntimeException("this feature is currently not supported"))
+  def zfailUnsupported: ZIO[Any,RuntimeException,Nothing] = zfail(new RuntimeException("this feature is currently not supported"))
 
   /**
    * a RealizedNioPath is a java.nio.file.Path that has been returned by java.nio.file.Path.toRealPath(LinkOption.NOFOLLOW_LINKS)

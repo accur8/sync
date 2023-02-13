@@ -24,9 +24,9 @@ object QubesMapperBuilder {
 
   case class CaseClassParmParm[A,B : JsonCodec](caseClassParm: CaseClassParm[A,B]) extends Parm[A] {
     val name = caseClassParm.name
-    val columnName = ColumnName(name)
+    val columnName: ColumnName = ColumnName(name)
     val ordinal = caseClassParm.ordinal
-    def toJson(a: A) = caseClassParm.lens(a).toJsVal
+    def toJson(a: A): JsVal = caseClassParm.lens(a).toJsVal
   }
 
   sealed trait PrimaryKey[A,B] {
@@ -37,7 +37,7 @@ object QubesMapperBuilder {
     parm: CaseClassParm[A,B],
   ) extends PrimaryKey[A,B] {
     import SqlString._
-    val sqlStringer = implicitly[SqlStringer[B]]
+    val sqlStringer: SqlStringer[B] = implicitly[SqlStringer[B]]
     def whereClause(primaryKey: B): SqlString = {
       sql"${parm.name.identifier} = ${sqlStringer.toSqlString(primaryKey)}"
     }
@@ -48,8 +48,8 @@ object QubesMapperBuilder {
     parm2: CaseClassParm[A,PK2],
   ) extends PrimaryKey[A,(PK1,PK2)] {
     import SqlString._
-    val sqlStringer1 = implicitly[SqlStringer[PK1]]
-    val sqlStringer2 = implicitly[SqlStringer[PK2]]
+    val sqlStringer1: SqlStringer[PK1] = implicitly[SqlStringer[PK1]]
+    val sqlStringer2: SqlStringer[PK2] = implicitly[SqlStringer[PK2]]
     override def whereClause(key: (PK1, PK2)): SqlString = {
       sql"${parm1.name.identifier} = ${sqlStringer1.toSqlString(key._1)} and ${parm2.name.identifier} = ${sqlStringer2.toSqlString(key._2)}"
     }
@@ -61,9 +61,9 @@ object QubesMapperBuilder {
     parm3: CaseClassParm[A,PK3],
   ) extends PrimaryKey[A,(PK1,PK2,PK3)] {
     import SqlString._
-    val sqlStringer1 = implicitly[SqlStringer[PK1]]
-    val sqlStringer2 = implicitly[SqlStringer[PK2]]
-    val sqlStringer3 = implicitly[SqlStringer[PK3]]
+    val sqlStringer1: SqlStringer[PK1] = implicitly[SqlStringer[PK1]]
+    val sqlStringer2: SqlStringer[PK2] = implicitly[SqlStringer[PK2]]
+    val sqlStringer3: SqlStringer[PK3] = implicitly[SqlStringer[PK3]]
     override def whereClause(key: (PK1, PK2, PK3)): SqlString = {
       sql"${parm1.name.identifier} = ${sqlStringer1.toSqlString(key._1)} and ${parm2.name.identifier} = ${sqlStringer2.toSqlString(key._2)} and ${parm3.name.identifier} = ${sqlStringer3.toSqlString(key._3)}"
     }
@@ -76,10 +76,10 @@ object QubesMapperBuilder {
     parm4: CaseClassParm[A,PK4],
   ) extends PrimaryKey[A,(PK1,PK2,PK3,PK4)] {
     import SqlString._
-    val sqlStringer1 = implicitly[SqlStringer[PK1]]
-    val sqlStringer2 = implicitly[SqlStringer[PK2]]
-    val sqlStringer3 = implicitly[SqlStringer[PK3]]
-    val sqlStringer4 = implicitly[SqlStringer[PK4]]
+    val sqlStringer1: SqlStringer[PK1] = implicitly[SqlStringer[PK1]]
+    val sqlStringer2: SqlStringer[PK2] = implicitly[SqlStringer[PK2]]
+    val sqlStringer3: SqlStringer[PK3] = implicitly[SqlStringer[PK3]]
+    val sqlStringer4: SqlStringer[PK4] = implicitly[SqlStringer[PK4]]
     override def whereClause(key: (PK1, PK2, PK3, PK4)): SqlString = {
       sql"${parm1.name.identifier} = ${sqlStringer1.toSqlString(key._1)} and ${parm2.name.identifier} = ${sqlStringer2.toSqlString(key._2)} and ${parm3.name.identifier} = ${sqlStringer3.toSqlString(key._3)} and ${parm4.name.identifier} = ${sqlStringer4.toSqlString(key._4)}"
     }
@@ -88,7 +88,7 @@ object QubesMapperBuilder {
     generator: Generator[A,B],
     cubeName: Option[String] = None,
     appSpace: Option[String] = None,
-    parms: Vector[Parm[A]] = Vector.empty,
+    parms: Vector[Parm[A]] = Vector.empty[Parm[A]],
     primaryKey: Option[PrimaryKey[A,PK]] = None,
   )(
     implicit

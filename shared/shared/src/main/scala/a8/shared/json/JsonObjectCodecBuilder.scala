@@ -16,7 +16,7 @@ object JsonObjectCodecBuilder {
     def read(jsonDoc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError,Any]
     def addAliases(aliases: Iterable[String]): Parm[A]
     val extraAliases: Iterable[String]
-    lazy val resolvedAliases = name.toSome ++ extraAliases.filter(_ != name)
+    lazy val resolvedAliases: Iterable[String] = name.toSome ++ extraAliases.filter(_ != name)
     val ordinal: Int
   }
 
@@ -56,9 +56,9 @@ object JsonObjectCodecBuilder {
 
   case class JsonObjectCodecBuilderImpl[A : ClassTag,B](
     generator: Generator[A,B],
-    parms: Vector[Parm[A]] = Vector.empty,
-    ignoredFields: Vector[IgnoredField] = Vector.empty,
-    aliases: Vector[(String,String)] = Vector.empty,
+    parms: Vector[Parm[A]] = Vector.empty[Parm[A]],
+    ignoredFields: Vector[IgnoredField] = Vector.empty[IgnoredField],
+    aliases: Vector[(String,String)] = Vector.empty[(String,String)],
   ) extends JsonObjectCodecBuilder[A,B] {
 
     override def addAlias[C](fn: B => CaseClassParm[A, C], alias: String): JsonObjectCodecBuilder[A, B] =

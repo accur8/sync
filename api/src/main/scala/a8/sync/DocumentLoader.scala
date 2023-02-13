@@ -46,7 +46,7 @@ object DocumentLoader {
           }
       }
 
-    def load = {
+    def load: RIO[Any,JsVal] = {
       ZIO.suspend {
         cachedValue match {
           case Some(value) =>
@@ -129,7 +129,7 @@ object DocumentLoader {
   }
 
   abstract class AbstractDocumentLoader extends DocumentLoader {
-    def loadAsDynamicJson = load.map(DynamicJson.apply)
+    def loadAsDynamicJson: ZIO[Any,Throwable,DynamicJson] = load.map(DynamicJson.apply)
 
   }
 

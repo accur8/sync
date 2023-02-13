@@ -14,10 +14,10 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "2.13.6"
+val scalaLibVersion = "2.13.10"
 val sbtA8Version = "1.2.0-20220113_1040"
-val zioVersion = "2.0.5"
-val zioLoggingVersion = "2.1.5"
+val zioVersion = "2.0.8"
+val zioLoggingVersion = "2.1.9"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -45,9 +45,7 @@ lazy val api =
     .settings(
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
-        "net.sf.jt400" % "jt400" % "10.7",
-        "com.zaxxer" % "HikariCP" % "4.0.3",
-        "org.scalatest" %% "scalatest" % "3.2.10" % "test",
+        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
       )
     )
 
@@ -69,18 +67,17 @@ lazy val shared =
           baseDirectory.value / "shared" / "src" / "test" / "scala",
         ),
       libraryDependencies ++= Seq(
-        "org.wvlet.airframe" %% "airframe-log" % "22.1.0",
-        "org.typelevel" %% "cats-core" % "2.7.0",
-        "org.typelevel" %% "case-insensitive" % "1.2.0",
-        "com.beachape" %%% "enumeratum" % "1.7.0",
-        "com.lihaoyi" %%% "sourcecode" % "0.2.7",
-        "org.typelevel" %% "case-insensitive" % "1.2.0",
-        "com.softwaremill.sttp.model" %% "core" % "1.5.3",
-        "org.slf4j" % "slf4j-jdk14" % "2.0.5",
-        "org.scalactic" %% "scalactic" % "3.2.10",
-        "org.scalatest" %% "scalatest" % "3.2.10" % "test",
-        "org.typelevel" %% "jawn-parser" % "1.3.2",
-        "org.typelevel" %% "jawn-ast" % "1.3.2",
+        "org.wvlet.airframe" %% "airframe-log" % "23.2.4",
+        "org.typelevel" %% "cats-core" % "2.9.0",
+        "org.typelevel" %% "case-insensitive" % "1.3.0",
+        "com.beachape" %%% "enumeratum" % "1.7.2",
+        "com.lihaoyi" %%% "sourcecode" % "0.3.0",
+        "com.softwaremill.sttp.model" %% "core" % "1.5.5",
+        "org.slf4j" % "slf4j-jdk14" % "2.0.6",
+        "org.scalactic" %% "scalactic" % "3.2.15",
+        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+        "org.typelevel" %% "jawn-parser" % "1.4.0",
+        "org.typelevel" %% "jawn-ast" % "1.4.0",
         "dev.zio" %%% "zio-prelude" % "1.0.0-RC16",
         "dev.zio" %%% "zio" % zioVersion,
         "dev.zio" %%% "zio-streams" % zioVersion,
@@ -95,13 +92,13 @@ lazy val shared =
         "com.softwaremill.sttp.client3" %% "zio" % "3.8.11",
 //"com.softwaremill.sttp.client3" %% "async-http-client-backend-zio" % "3.8.5",
         "dev.zio" %% "zio-logging-slf4j" % zioLoggingVersion,
-        "org.hsqldb" % "hsqldb" % "2.6.1",
-        "dev.zio" % "zio-cache_2.13" % "0.2.1",
+        "org.hsqldb" % "hsqldb" % "2.7.1",
+        "dev.zio" %% "zio-cache" % "0.2.2",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
-        "org.postgresql" % "postgresql" % "42.3.4",
-        "mysql" % "mysql-connector-java" % "8.0.28",
-        "net.sf.jt400" % "jt400" % "10.7",
-        "com.zaxxer" % "HikariCP" % "4.0.3",
+        "org.postgresql" % "postgresql" % "42.5.3",
+        "mysql" % "mysql-connector-java" % "8.0.32",
+        "net.sf.jt400" % "jt400" % "11.1",
+        "com.zaxxer" % "HikariCP" % "5.0.1",
         "com.sun.mail" % "jakarta.mail" % "2.0.1",
       )
     )

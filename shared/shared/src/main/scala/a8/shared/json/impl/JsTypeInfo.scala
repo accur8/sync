@@ -17,7 +17,7 @@ object JsTypeInfo {
 abstract class JsTypeInfo[A <: JsVal : ClassTag](
   val name: String,
 ) {
-  val classTagA = classTag[A]
-  def isInstance(jsv: JsVal) = classTagA.runtimeClass.isInstance(jsv)
+  val classTagA: ClassTag[A] = classTag[A]
+  def isInstance(jsv: JsVal): Boolean = classTagA.runtimeClass.isInstance(jsv)
   def cast(jsv: JsVal): Option[A] = isInstance(jsv).toOption(jsv.asInstanceOf[A])
 }

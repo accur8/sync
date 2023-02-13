@@ -5,6 +5,7 @@ import a8.shared.jdbcf.SqlString._
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.jdbcf.querydsl.QueryDslTest
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Assertion
 
 class MapperTest extends AnyFunSuite {
 
@@ -20,7 +21,7 @@ class MapperTest extends AnyFunSuite {
         .trim
   }
 
-  def assertEquals[A](expected: A, actual: A) =
+  def assertEquals[A](expected: A, actual: A): Assertion =
     assertResult(expected)(actual)
 
   test("fetchSql") {
@@ -97,12 +98,12 @@ class MapperTest extends AnyFunSuite {
 
 
   object customColumnNameResolver extends ColumnNameResolver {
-    val suffix = ColumnName("X")
+    val suffix: ColumnName = ColumnName("X")
     override def quote(columnName: ColumnName): DialectQuotedIdentifier =
       DialectQuotedIdentifier((columnName ~ suffix).asString)
   }
-  lazy val customWidgetMapper = Widget.jdbcMapper.asInstanceOf[CaseClassMapper[Widget,String]].copy(columnNameResolver = customColumnNameResolver)
-  lazy val customContainerMapper = Container.jdbcMapper.asInstanceOf[CaseClassMapper[Container,String]].copy(columnNameResolver = customColumnNameResolver)
+  lazy val customWidgetMapper: CaseClassMapper[Widget,String] = Widget.jdbcMapper.asInstanceOf[CaseClassMapper[Widget,String]].copy(columnNameResolver = customColumnNameResolver)
+  lazy val customContainerMapper: CaseClassMapper[Container,String] = Container.jdbcMapper.asInstanceOf[CaseClassMapper[Container,String]].copy(columnNameResolver = customColumnNameResolver)
 
   test("fetchSql with custom columnNameResolver") {
     val actual = customWidgetMapper.fetchSql("foo").compileToString

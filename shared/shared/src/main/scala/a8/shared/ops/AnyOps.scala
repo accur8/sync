@@ -20,8 +20,8 @@ class AnyOps[A](private val a: A) extends AnyVal {
 
   def toFuture: Future[A] = Future.successful(a)
 
-  def toLeft = Left(a)
+  def toLeft: Left[A,Nothing] = Left(a)
 
-  def toRight = Right(a)
+  def toRight: Right[Nothing,A] = Right(a)
 
 }

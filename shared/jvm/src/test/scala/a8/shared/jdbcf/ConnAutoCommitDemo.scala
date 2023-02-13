@@ -9,7 +9,7 @@ import zio._
 
 object ConnAutoCommitDemo extends BootstrappedIOApp {
 
-  lazy val config =
+  lazy val config: DatabaseConfig =
     DatabaseConfig(
       DatabaseId("test"),
       uri"jdbc:postgresql://localhost:5432/qubes",
@@ -18,8 +18,8 @@ object ConnAutoCommitDemo extends BootstrappedIOApp {
     )
 
 
-  lazy val autoCommitConnFactoryR = ConnFactory.resource(config.copy(autoCommit = true))
-  lazy val noAutoCommitConnFactoryR = ConnFactory.resource(config.copy(autoCommit = false))
+  lazy val autoCommitConnFactoryR: Resource[ConnFactory] = ConnFactory.resource(config.copy(autoCommit = true))
+  lazy val noAutoCommitConnFactoryR: Resource[ConnFactory] = ConnFactory.resource(config.copy(autoCommit = false))
 
 
   override def runT: Task[Unit] = {

@@ -38,7 +38,7 @@ case class SelectQueryImpl[T,U](
           .toSome
       }
 
-    lazy val fieldExprs = QueryDsl.fieldExprs(where)
+    lazy val fieldExprs: IndexedSeq[QueryDsl.FieldExpr[_]] = QueryDsl.fieldExprs(where)
 
 
     lazy val joins: Iterable[Join] = {

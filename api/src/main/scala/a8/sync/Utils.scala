@@ -11,7 +11,7 @@ object Utils {
   object config {
 
     val defaultFilename = "config.json"
-    val defaultLookupDirs = Vector(Paths.get("config"), Paths.get(""))
+    val defaultLookupDirs: Vector[Path] = Vector(Paths.get("config"), Paths.get(""))
 
     def load[A : JsonCodec](filename: String = defaultFilename, lookupDirs: Vector[Path] = defaultLookupDirs)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       val files = lookupDirs.map(_.resolve(filename).toFile)

@@ -96,7 +96,7 @@ object impl {
   }
 
   case class NormalizedDataSet(rows: Vector[NormalizedRow]) {
-    lazy val rowsByKey = rows.map(row => row.key -> row).toMap
+    lazy val rowsByKey: Map[NormalizedKey,NormalizedRow] = rows.map(row => row.key -> row).toMap
   }
 
   type NormalizedTuple = Chunk[NormalizedValue]

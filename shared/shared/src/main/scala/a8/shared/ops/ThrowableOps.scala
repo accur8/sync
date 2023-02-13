@@ -15,7 +15,7 @@ class ThrowableOps(private val _value: Throwable) extends AnyVal {
     }
   }
 
-  def stackTraceAsString = {
+  def stackTraceAsString: String = {
     val sw = new StringWriter()
     val pw = new PrintWriter(sw)
     _value.printStackTrace(pw)

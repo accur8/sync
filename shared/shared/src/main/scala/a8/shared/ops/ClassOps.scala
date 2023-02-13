@@ -12,6 +12,6 @@ object ClassOps {
 
 class ClassOps[A](private val clazz: Class[A]) extends AnyVal {
 
-  def shortName = ClassOps.shortName(clazz.getName)
+  def shortName: String = ClassOps.shortName(clazz.getName)
 
 }

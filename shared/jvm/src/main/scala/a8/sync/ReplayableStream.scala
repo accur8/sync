@@ -134,7 +134,7 @@ class ReplayableStream(
 
   import ReplayableStream._
 
-  def submitConsumption =
+  def submitConsumption: ZIO[Any,Nothing,Unit] =
     for {
       consumptionSubmitted <- consumptionSubmittedRef.getAndSet(true)
       _ <-

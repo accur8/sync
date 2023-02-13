@@ -34,10 +34,10 @@ object QubesMapper {
     extends QubesKeyedMapper[A,B]
   {
 
-    val codecA = implicitly[JsonTypedCodec[A, JsObj]]
+    val codecA: JsonTypedCodec[A,JsObj] = implicitly[JsonTypedCodec[A, JsObj]]
 
 
-    lazy val parms = rawParms.sortBy(_.ordinal)
+    lazy val parms: Vector[Parm[A]] = rawParms.sortBy(_.ordinal)
 
     // validate ordinals
     parms.zipWithIndex.find(t => t._1.ordinal != t._2) match {
@@ -58,7 +58,7 @@ object QubesMapper {
         }
 
     override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: ZJsonReaderOptions): Task[Option[A]] = {
-      implicit def qm = this
+      implicit def qm: QubesMapperImpl[A, B] = this
       import SqlString._
       qubesApiClient
         .query[A](primaryKey.whereClause(key))
@@ -103,7 +103,7 @@ trait QubesMapper[A] {
   val cubeName: TableName
   val appSpace: String
 
-  def qualifiedName = appSpace + "/" + cubeName.asString
+  def qualifiedName: String = appSpace + "/" + cubeName.asString
 
   def queryReq(whereClause: SqlString): QueryRequest
   def insertReq(a: A): UpdateRowRequest

@@ -28,7 +28,7 @@ object Batcher {
                 ZStream
                   .fromIterableZIO {
                     withSqlCtx(sql) {
-                      ps.executeBatch().toIterable
+                      ps.executeBatch()
                     }
                   }
               val header =

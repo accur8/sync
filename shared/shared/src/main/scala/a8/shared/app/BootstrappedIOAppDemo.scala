@@ -19,7 +19,7 @@ object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
 //  )
 
 
-  override def runT =
+  override def runT: ZIO[BootstrapEnv,Throwable,Unit] =
     for {
       appName <- zservice[AppName]
       workDir <- zservice[WorkDir]

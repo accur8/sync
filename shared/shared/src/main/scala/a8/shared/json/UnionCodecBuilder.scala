@@ -15,7 +15,7 @@ object UnionCodecBuilder {
 
   case class UnionCodecBuilderType[A, B  <: A: ClassTag](name: Option[String])(implicit jsonTypedCodec: JsonTypedCodec[B, JsObj]) extends UnionType[A] {
 
-    val classTag = scala.reflect.classTag[B]
+    val classTag: ClassTag[B] = scala.reflect.classTag[B]
 
     override def isInstanceOf(a: Any): Boolean =
       classTag.runtimeClass.isInstance(a)
@@ -47,17 +47,17 @@ object UnionCodecBuilder {
     def write(a: A): JsObj
     def isInstanceOf(a: Any): Boolean
     val name: Option[String]
-    lazy val nameJsStr = name.map(JsStr.apply)
+    lazy val nameJsStr: Option[JsStr] = name.map(JsStr.apply)
   }
 
   case class UnionCodecBuilderImpl[A](
-    types: Vector[UnionType[A]] = Vector.empty,
+    types: Vector[UnionType[A]] = Vector.empty[UnionType[A]],
     typeFieldName: String = "__type__",
   ) extends UnionCodecBuilder[A] {
 
-    lazy val defaultTypeOpt = typesByName.get(None)
+    lazy val defaultTypeOpt: Option[UnionType[A]] = typesByName.get(None)
 
-    lazy val typesByName = types.map(t => t.name.map(_.toCi) -> t).toMap
+    lazy val typesByName: Map[Option[CIString],UnionType[A]] = types.map(t => t.name.map(_.toCi) -> t).toMap
 
     override def defaultType[B <: A : ClassTag](implicit jsonTypedCodec: JsonTypedCodec[B, JsObj]): UnionCodecBuilder[A] =
       copy(types = types :+ UnionCodecBuilderType[A,B](None))

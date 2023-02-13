@@ -20,7 +20,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
     )
   }
 
-  override lazy val constructor = {
+  override lazy val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory] = {
     zservice[DatabaseConfig].flatMap { databaseConfig =>
       def createDs = {
 

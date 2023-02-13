@@ -35,25 +35,25 @@ case class TableLocator(catalogName: Option[CatalogName] = None, schemaName: Opt
    * catalog appropriate for use in Connection.getMetadata calls (noting this value could be null
    * because that is how jdbc wants it
    */
-  def metadataCatalog = catalogName.map(_.asString).orNull
-  def metadataSchema = schemaName.map(_.asString).orNull
+  def metadataCatalog: String = catalogName.map(_.asString).orNull
+  def metadataSchema: String = schemaName.map(_.asString).orNull
   def metadataTable = tableName.asString
 }
 
 trait SqlIdentifierValue extends CIStringValue with HasSqlString {
-  override val asSqlFragment = SqlString.identifier(asString)
+  override val asSqlFragment: SqlString = SqlString.identifier(asString)
 }
 
 object TableName extends CIStringValueCompanion[TableName]
 case class TableName(value: CIString) extends SqlIdentifierValue {
-  def asLowerCaseStringValue = SqlString.EscapedSqlString(asString.toLowerCase)
+  def asLowerCaseStringValue: SqlString.EscapedSqlString = SqlString.EscapedSqlString(asString.toLowerCase)
   def asSqlString: SqlString = ???
 }
 
 object SchemaName extends CIStringValueCompanion[SchemaName] {
 }
 case class SchemaName(value: CIString) extends SqlIdentifierValue {
-  def asLowerCaseStringValue = SqlString.EscapedSqlString(asString.toLowerCase)
+  def asLowerCaseStringValue: SqlString.EscapedSqlString = SqlString.EscapedSqlString(asString.toLowerCase)
 }
 
 object CatalogName extends CIStringValueCompanion[CatalogName] {
@@ -71,11 +71,11 @@ object ResolvedTableName extends MxResolvedTableName {
 @CompanionGen(jdbcMapper = true)
 case class ResolvedTableName(catalog: Option[CatalogName], schema: Option[SchemaName], name: TableName) {
 
-  def asLocator = TableLocator(catalog, schema, name)
+  def asLocator: TableLocator = TableLocator(catalog, schema, name)
 
-  def qualifiedName = (catalog.map(_.asString) ++ schema.map(_.asString) ++ Some(name.asString)).mkString(".")
+  def qualifiedName: String = (catalog.map(_.asString) ++ schema.map(_.asString) ++ Some(name.asString)).mkString(".")
 }
 
 case class TypeName(name: String, length: Option[Int] = None, digits: Option[Int] = None) extends HasSqlString {
-  override def asSqlFragment = SqlString.typeName(this)
+  override def asSqlFragment: SqlString = SqlString.typeName(this)
 }

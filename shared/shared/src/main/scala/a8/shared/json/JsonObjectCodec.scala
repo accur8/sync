@@ -33,7 +33,7 @@ class JsonObjectCodec[A](
   with Logging
 {
 
-  lazy val parms =
+  lazy val parms: Vector[Parm[A]] =
     rawParms
       .map { p =>
         p.addAliases(aliases.filter(_._1 === p.name).map(_._2))
@@ -49,7 +49,7 @@ class JsonObjectCodec[A](
   }
 
 
-  lazy val ignoredFieldsSet =
+  lazy val ignoredFieldsSet: Set[String] =
     ignoredFields
       .collect {
         case IgnoredField.IgnoreFieldString(v) =>
@@ -57,7 +57,7 @@ class JsonObjectCodec[A](
       }
       .toSet
 
-  lazy val ignoredFieldRegexes =
+  lazy val ignoredFieldRegexes: Vector[IgnoredField.IgnoreFieldRegex] =
     ignoredFields
       .collect {
         case ifr: IgnoredField.IgnoreFieldRegex =>
@@ -67,7 +67,7 @@ class JsonObjectCodec[A](
   def ignoreField(fieldName: String): Boolean =
     ignoredFieldsSet(fieldName) || ignoredFieldRegexes.exists(_.ignore(fieldName))
 
-  lazy val parmsByName =
+  lazy val parmsByName: Map[String,Parm[A]] =
     parms
       .flatMap(p => (p.name.some ++ p.extraAliases).map(_ -> p))
       .toMap

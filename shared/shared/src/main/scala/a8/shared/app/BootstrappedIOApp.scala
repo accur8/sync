@@ -9,6 +9,7 @@ import wvlet.log.LogLevel
 import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
 import a8.shared.SharedImports._
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
+import zio.ULayer
 
 object BootstrappedIOApp {
 
@@ -109,14 +110,14 @@ abstract class BootstrappedIOApp
 
 
   object layers {
-    lazy val appName = ZLayer.succeed(resolvedAppName)
-    lazy val bootstrapConfig = Bootstrapper.layer.project(_.bootstrapConfig)
+    lazy val appName: ULayer[AppName] = ZLayer.succeed(resolvedAppName)
+    lazy val bootstrapConfig: ZLayer[AppName with ZIOAppArgs,Throwable,BootstrapConfig] = Bootstrapper.layer.project(_.bootstrapConfig)
 
-    lazy val tempDir = bootstrapConfig.project(_.tempDir)
-    lazy val cacheDir = bootstrapConfig.project(_.cacheDir)
-    lazy val logsDir = bootstrapConfig.project(_.logsDir)
-    lazy val dataDir = bootstrapConfig.project(_.dataDir)
-    lazy val appArgs = bootstrapConfig.project(_.appArgs)
+    lazy val tempDir: ZLayer[AppName with ZIOAppArgs,Throwable,TempDir] = bootstrapConfig.project(_.tempDir)
+    lazy val cacheDir: ZLayer[AppName with ZIOAppArgs,Throwable,CacheDir] = bootstrapConfig.project(_.cacheDir)
+    lazy val logsDir: ZLayer[AppName with ZIOAppArgs,Throwable,LogsDir] = bootstrapConfig.project(_.logsDir)
+    lazy val dataDir: ZLayer[AppName with ZIOAppArgs,Throwable,DataDir] = bootstrapConfig.project(_.dataDir)
+    lazy val appArgs: ZLayer[AppName with ZIOAppArgs,Throwable,ZIOAppArgs] = bootstrapConfig.project(_.appArgs)
 
     lazy val workDir = WorkDir.layer
 
@@ -130,7 +131,7 @@ abstract class BootstrappedIOApp
 
   def defaultZioLogLevel = zio.LogLevel.Debug
 
-  def appConfigLayer[A: Tag: JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions) = ZLayer(appConfig[A])
+  def appConfigLayer[A: Tag: JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): ZLayer[Bootstrapper,Throwable,A] = ZLayer(appConfig[A])
 
   def runT: zio.ZIO[BootstrapEnv, Throwable, Unit]
 

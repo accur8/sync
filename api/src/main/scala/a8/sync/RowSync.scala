@@ -126,7 +126,7 @@ object RowSync {
     val table = table0
     val key = truncatedNewRow.key
 
-    lazy val isNoop =
+    lazy val isNoop: Boolean =
       truncatedNewRow
         .values
         .iterator

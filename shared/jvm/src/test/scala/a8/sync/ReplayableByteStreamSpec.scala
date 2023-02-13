@@ -15,9 +15,9 @@ object ReplayableByteStreamSpec extends ZIOSpecDefault {
 
   val tempDirLayer: ULayer[TempDir] = ZLayer.succeed(TempDir(FileSystem.dir("temp")))
 
-  def newStream(length: Int) = ZStream.fromIterable((0 to length).map(_.toByte))
+  def newStream(length: Int): ZStream[Any,Nothing,Byte] = ZStream.fromIterable((0 to length).map(_.toByte))
 
-  def spec =
+  def spec: Spec[Any,Throwable] =
     suite("ReplayableByteStreamSpec")(
 
       test("in memory replay 1k") {
@@ -75,7 +75,7 @@ object ReplayableByteStreamSpec extends ZIOSpecDefault {
   }
 
 
-  def runInParallel(length: Int, numberInParallel: Int) = {
+  def runInParallel(length: Int, numberInParallel: Int): ZIO[Any,Throwable,TestResult] = {
     val sourceStream = newStream(length)
     val counter = new AtomicInteger()
     val streamCountingHead = ZIO.attempt(counter.incrementAndGet()).zstreamExec

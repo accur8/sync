@@ -10,7 +10,7 @@ object UpdateRowWhereDemo extends BootstrappedIOApp {
 
   import MaterializedMapperDemo.databaseConfig
 
-  lazy val connFactoryR = ConnFactory.resource(databaseConfig)
+  lazy val connFactoryR: Resource[ConnFactory] = ConnFactory.resource(databaseConfig)
 
   override def runT: Task[Unit] =
     ZIO.scoped {

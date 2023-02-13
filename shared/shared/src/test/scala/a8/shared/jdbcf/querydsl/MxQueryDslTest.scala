@@ -30,9 +30,9 @@ object MxQueryDslTest {
     
     
     class TableDsl(join: jdbcf.querydsl.QueryDsl.Join = jdbcf.querydsl.QueryDsl.RootJoin) {
-      val id = jdbcf.querydsl.QueryDsl.field[String]("id", join)
-      val name = jdbcf.querydsl.QueryDsl.field[String]("name", join)
-      val containerId = jdbcf.querydsl.QueryDsl.field[String]("containerId", join)
+      val id: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("id", join)
+      val name: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("name", join)
+      val containerId: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("containerId", join)
       
       lazy val container: Container.TableDsl = {
         val childJoin = jdbcf.querydsl.QueryDsl.createJoin(join, "container", queryDsl.tableDsl, join=>new Container.TableDsl(join), Container.jdbcMapper) { (from,to) =>
@@ -125,9 +125,9 @@ object MxQueryDslTest {
     
     
     class TableDsl(join: jdbcf.querydsl.QueryDsl.Join = jdbcf.querydsl.QueryDsl.RootJoin) {
-      val id = jdbcf.querydsl.QueryDsl.field[String]("id", join)
-      val count = jdbcf.querydsl.QueryDsl.field[Long]("count", join)
-      val name = jdbcf.querydsl.QueryDsl.field[String]("name", join)
+      val id: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("id", join)
+      val count: QueryDsl.Field[Long] = jdbcf.querydsl.QueryDsl.field[Long]("count", join)
+      val name: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("name", join)
       val address = new Address.TableDsl(jdbcf.querydsl.QueryDsl.ComponentJoin("address", join))
     
     }
@@ -219,11 +219,11 @@ object MxQueryDslTest {
     
     
     class TableDsl(join: jdbcf.querydsl.QueryDsl.Path) extends jdbcf.querydsl.QueryDsl.Component[Address](join) {
-      val line1 = jdbcf.querydsl.QueryDsl.field[String]("line1", join)
-      val line2 = jdbcf.querydsl.QueryDsl.field[String]("line2", join)
-      val city = jdbcf.querydsl.QueryDsl.field[String]("city", join)
-      val state = jdbcf.querydsl.QueryDsl.field[String]("state", join)
-      val zip = jdbcf.querydsl.QueryDsl.field[String]("zip", join)
+      val line1: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("line1", join)
+      val line2: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("line2", join)
+      val city: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("city", join)
+      val state: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("state", join)
+      val zip: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("zip", join)
     
     }
     

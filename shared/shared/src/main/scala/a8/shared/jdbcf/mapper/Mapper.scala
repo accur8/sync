@@ -46,7 +46,7 @@ object Mapper {
     implicit def fromRowReaderAndSqlString[A : RowReader : SqlStringer]: FieldHandler[A] =
       new SingleFieldHandler[A]
 
-    def apply[A: FieldHandler] =
+    def apply[A: FieldHandler]: FieldHandler[A] =
       implicitly[FieldHandler[A]]
 
   }
@@ -91,14 +91,14 @@ object Mapper {
       } yield
         new SingleFieldHandler[A]()(materializedRowReader, materializedSqlStringer)
 
-    def columnNames(columnNamePrefix: ColumnName) = Iterable(columnNamePrefix)
+    def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName] = Iterable(columnNamePrefix)
     val columnCount = 1
     override def booleanOp(linker: Path, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition = {
       import QueryDsl._
       val resolvedName = columnNameResolver.quote(linker.columnName(ColumnName(name)))
       BooleanOperation(Field(resolvedName.value, linker, true), Ops.Equal, Constant(a))
     }
-    def pairs(columnNamePrefix: ColumnName, a: A) = Iterable(columnNamePrefix -> sqlStringer.toSqlString(a))
+    def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName, SqlString)] = Iterable(columnNamePrefix -> sqlStringer.toSqlString(a))
   }
 
   class ComponentFieldHandler[A](implicit componentMapper: ComponentMapper[A]) extends FieldHandler[A] {
@@ -119,7 +119,7 @@ object Mapper {
         }
 
     val rowReader = componentMapper
-    def columnNames(columnNamePrefix: ColumnName) = componentMapper.columnNames(columnNamePrefix)
+    def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName] = componentMapper.columnNames(columnNamePrefix)
     val columnCount = componentMapper.columnCount
 
     override def booleanOp(linker: Path, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition = {
@@ -127,7 +127,7 @@ object Mapper {
       componentMapper.structuralEquality(componentLinker, Iterable(a))
     }
 
-    def pairs(columnNamePrefix: ColumnName, a: A) =
+    def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName, SqlString)] =
       componentMapper.pairs(columnNamePrefix, a)
 
   }

@@ -7,12 +7,13 @@ import zio.stream.ZStream
 import zio.test.{TestResult, ZIOSpecDefault, assertTrue}
 import SharedImports._
 import a8.sync.ReplayableByteStreamSpec.runInParallel
+import zio.test.Spec
 
 object StringOpsTest extends ZIOSpecDefault {
 
   case class Test(input: String, expected: String)
 
-  def spec =
+  def spec: Spec[Any,Throwable] =
     suite("string ops")(
 
       test("ltrim") {

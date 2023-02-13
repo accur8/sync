@@ -36,13 +36,13 @@ object JsonReader extends Logging { outer =>
         }
     }
 
-    case class Success[A](value: A, warnings: Vector[String] = Vector.empty, doc: JsDoc = JsDoc.empty, resolvedContext: Option[String] = None) extends ReadResult[A] {
+    case class Success[A](value: A, warnings: Vector[String] = Vector.empty[String], doc: JsDoc = JsDoc.empty, resolvedContext: Option[String] = None) extends ReadResult[A] {
       override def map[B](fn: A => B): ReadResult[B] =
         copy(value = fn(value))
       override def valueOpt: Option[A] = Some(value)
     }
 
-    case class Error[A](readError: ReadError, warnings: Vector[String] = Vector.empty, doc: Option[JsDoc] = None) extends ReadResult[A] {
+    case class Error[A](readError: ReadError, warnings: Vector[String] = Vector.empty[String], doc: Option[JsDoc] = None) extends ReadResult[A] {
       override def map[B](fn: A => B): ReadResult[B] = this.asInstanceOf[ReadResult[B]]
       override def valueOpt: Option[A] = None
     }
@@ -66,7 +66,7 @@ object JsonReader extends Logging { outer =>
       val resolvedContext = resolveContext(source.context)
       source.jsdoc match {
         case Left(re) =>
-          ReadResult.Error(re.withContext(resolvedContext), Vector.empty, None)
+          ReadResult.Error(re.withContext(resolvedContext), Vector.empty[String], None)
         case Right(jsd) =>
           impl(jsd, resolvedContext)
       }
@@ -206,11 +206,11 @@ object JsonReader extends Logging { outer =>
   }
 
   object JsonWarningLogLevel {
-    val Off = JsonWarningLogLevel(LogLevel.OFF)
-    val Trace = JsonWarningLogLevel(LogLevel.TRACE)
-    val Debug = JsonWarningLogLevel(LogLevel.DEBUG)
-    val Warn = JsonWarningLogLevel(LogLevel.WARN)
-    implicit val Default = Warn
+    val Off: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.OFF)
+    val Trace: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.TRACE)
+    val Debug: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.DEBUG)
+    val Warn: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.WARN)
+    implicit val Default: JsonWarningLogLevel = Warn
   }
   case class JsonWarningLogLevel(logLevel: LogLevel)
 

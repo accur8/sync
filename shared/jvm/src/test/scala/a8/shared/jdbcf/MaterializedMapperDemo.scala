@@ -12,7 +12,7 @@ import zio._
 
 object MaterializedMapperDemo extends ZIOAppDefault {
 
-  lazy val databaseConfig =
+  lazy val databaseConfig: DatabaseConfig =
     DatabaseConfig(
       id = DatabaseId("demo"),
       url = unsafeParseUri("jdbc:hsqldb:mem:demo"),

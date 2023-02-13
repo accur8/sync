@@ -77,7 +77,7 @@ object ZString {
     implicit val charZStringer: ZStringer[Char] = toStringZStringer[Char]
 
     implicit class ZStringIterableOps[A: ZStringer](iterable: Iterable[A]) {
-      lazy val zstringer = implicitly[ZStringer[A]]
+      lazy val zstringer: ZStringer[A] = implicitly[ZStringer[A]]
       def mkZString: ZString =
         IteratorZStr(() => iterable.iterator.map(zstringer.toZString))
       def mkZString(separator: String): ZString =
@@ -129,7 +129,7 @@ object ZString {
 }
 
 sealed trait ZString {
-  override def toString = {
+  override def toString: String = {
     val sb = new StringBuilder
     ZString.impl.append(this, sb)
     sb.toString()

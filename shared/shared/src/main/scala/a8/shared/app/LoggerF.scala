@@ -31,7 +31,7 @@ object LoggerF {
         wvlet.log.LogLevel.OFF -> zio.LogLevel.None,
       )
 
-    val zioLogLevelMap =
+    val zioLogLevelMap: Map[zio.LogLevel,LogLevel] =
       logLevelMap
         .map(t => t._2 -> t._1)
 
@@ -59,7 +59,7 @@ object LoggerF {
     fileName: sourcecode.FileName,
     line: sourcecode.Line,
   ) {
-    def asLogSource = LogSource(file.value, fileName.value, line.value, 0)
+    def asLogSource: LogSource = LogSource(file.value, fileName.value, line.value, 0)
   }
 
   def wrap(logger: Logger): LoggerF =

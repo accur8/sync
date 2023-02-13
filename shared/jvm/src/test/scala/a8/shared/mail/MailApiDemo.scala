@@ -13,7 +13,7 @@ object MailApiDemo extends BootstrappedIOApp {
   Logger("com.sun.mail").setLogLevel(LogLevel.DEBUG)
   Logger("jakarta").setLogLevel(LogLevel.DEBUG)
 
-  lazy val mailConfig = MailConfig(
+  lazy val mailConfig: MailConfig = MailConfig(
     host = "smtp.gmail.com",
     port = Some(587),
     user = Some("raphael@accur8software.com"),

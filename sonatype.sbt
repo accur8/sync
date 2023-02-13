@@ -5,9 +5,6 @@ ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 // Profile name of sonatype account
 ThisBuild / sonatypeProfileName := "io.accur8"
 
-// Needed to sync with Maven central
-ThisBuild / publishMavenStyle := true
-
 // Open-source license
 ThisBuild / licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 

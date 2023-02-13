@@ -20,7 +20,7 @@ object JsonCodec extends JsonCodecs {
   val long = JsonTypedCodec.long
 
   @inline
-  final def apply[A : JsonCodec] = implicitly[JsonCodec[A]]
+  final def apply[A : JsonCodec]: JsonCodec[A] = implicitly[JsonCodec[A]]
 
   class JsonCodecOps[A: JsonCodec](private val a: A) {
     def toJsVal: JsVal = JsonCodec[A].write(a)

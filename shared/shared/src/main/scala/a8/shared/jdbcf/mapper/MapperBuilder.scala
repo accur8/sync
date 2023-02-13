@@ -53,7 +53,7 @@ object MapperBuilder {
   case class FromCaseClassParm[A,B : FieldHandler](parm: CaseClassParm[A,B], ordinal: Int) extends Parm[A] {
 
     override def pairs(columnNamePrefix: ColumnName, row: A): Iterable[(ColumnName, SqlString)] = fieldHandler.pairs(columnNamePrefix ~ ColumnName(name), parm.lens(row))
-    val fieldHandler = FieldHandler[B]
+    val fieldHandler: FieldHandler[B] = FieldHandler[B]
 //    val sqlStringer: SqlStringer[B] = implicitly[SqlStringer[B]]
 //    def sqlString(a: A): SqlString = sqlStringer.toSqlString(parm.lens(a))
     lazy val name = parm.name
@@ -89,7 +89,7 @@ object MapperBuilder {
   case class MapperBuilderImpl[A : ClassTag,B,PK](
     generator: Generator[A,B],
     primaryKey: Option[PrimaryKey[A,PK]] = None,
-    fields: Vector[Parm[A]] = Vector.empty,
+    fields: Vector[Parm[A]] = Vector.empty[Parm[A]],
     tableName: Option[TableName] = None
   ) extends MapperBuilder[A,B,PK] {
 
@@ -197,7 +197,7 @@ object MapperBuilder {
     extends PrimaryKey[A,(PK1,PK2)]
   {
     override def key(a: A): (PK1,PK2) = parm1.parm.lens(a) -> parm2.parm.lens(a)
-    override val columnNames = parm1.columnNames ++ parm2.columnNames
+    override val columnNames: Iterable[ColumnName] = parm1.columnNames ++ parm2.columnNames
     override def whereClause(key: (PK1, PK2), columnNameResolver: ColumnNameResolver): SqlString = {
       import implicits._
       val cond1 = parm1.booleanOpB(QueryDsl.RootJoin, key._1, columnNameResolver)
@@ -216,7 +216,7 @@ object MapperBuilder {
     extends PrimaryKey[A,(PK1,PK2,PK3)]
   {
     override def key(a: A): (PK1,PK2,PK3) = (parm1.parm.lens(a), parm2.parm.lens(a), parm3.parm.lens(a))
-    override val columnNames = parm1.columnNames ++ parm2.columnNames ++ parm3.columnNames
+    override val columnNames: Iterable[ColumnName] = parm1.columnNames ++ parm2.columnNames ++ parm3.columnNames
     override def whereClause(key: (PK1, PK2, PK3), columnNameResolver: ColumnNameResolver): SqlString = {
       import implicits._
       val cond1 = parm1.booleanOpB(QueryDsl.RootJoin, key._1, columnNameResolver)
@@ -237,7 +237,7 @@ object MapperBuilder {
     extends PrimaryKey[A,(PK1,PK2,PK3,PK4)]
   {
     override def key(a: A): (PK1,PK2,PK3,PK4) = (parm1.parm.lens(a), parm2.parm.lens(a), parm3.parm.lens(a), parm4.parm.lens(a))
-    override val columnNames = parm1.columnNames ++ parm2.columnNames ++ parm3.columnNames ++ parm4.columnNames
+    override val columnNames: Iterable[ColumnName] = parm1.columnNames ++ parm2.columnNames ++ parm3.columnNames ++ parm4.columnNames
     override def whereClause(key: (PK1, PK2, PK3, PK4), columnNameResolver: ColumnNameResolver): SqlString = {
       import implicits._
       val cond1 = parm1.booleanOpB(QueryDsl.RootJoin, key._1, columnNameResolver)

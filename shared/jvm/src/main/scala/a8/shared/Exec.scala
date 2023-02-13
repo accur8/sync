@@ -29,7 +29,7 @@ case class Exec(
   with Logging
 {
 
-  def inDirectory(directory: Directory) =
+  def inDirectory(directory: Directory): Exec =
     copy(workingDirectory = Some(directory))
 
   import Exec._
@@ -68,7 +68,7 @@ case class Exec(
     exitCode
   }
 
-  lazy val argsAsString =
+  lazy val argsAsString: String =
     args
       .map { arg =>
         if ( arg.exists(_.isWhitespace) ) s"'${arg}'"
@@ -76,7 +76,7 @@ case class Exec(
       }
       .mkString(" ")
 
-  override def toString =
+  override def toString: String =
     s"running ${workingDirectory.map(d=>s"with a cwd of ${d}").getOrElse("")} the command -- ${argsAsString}"
 
 }

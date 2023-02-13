@@ -14,14 +14,14 @@ import zio._
 
 object SqlString extends SqlStringLowPrio {
 
-  val DoubleQuote = '"'.toString
+  val DoubleQuote: String = '"'.toString
   val Null: SqlString = keyword("null")
-  val Comma = keyword(",")
-  val CommaSpace = keyword(", ")
-  val Space = keyword(" ")
-  val LeftParen = keyword("(")
-  val RightParen = keyword(")")
-  val OrWs = keyword(" or ")
+  val Comma: SqlString = keyword(",")
+  val CommaSpace: SqlString = keyword(", ")
+  val Space: SqlString = keyword(" ")
+  val LeftParen: SqlString = keyword("(")
+  val RightParen: SqlString = keyword(")")
+  val OrWs: SqlString = keyword(" or ")
 
   def parens(sql: SqlString): SqlString =
     CompositeSqlString(Iterable(LeftParen, sql, RightParen))
@@ -43,7 +43,7 @@ object SqlString extends SqlStringLowPrio {
 
   object unsafe {
 
-    def rawSqlString(s: String) = RawSqlString(s)
+    def rawSqlString(s: String): RawSqlString = RawSqlString(s)
 
     def compile(sqlString: SqlString, escaper: Escaper): CompiledSql = {
 //      implicit val ctx = Context(escaper)
@@ -180,7 +180,7 @@ object SqlString extends SqlStringLowPrio {
     implicit def optionSqlString[A: SqlStringer]: SqlStringer[Option[A]] =
       OptionSqlStringer(SqlStringer[A])
 
-    def apply[A : SqlStringer] = implicitly[SqlStringer[A]]
+    def apply[A : SqlStringer]: SqlStringer[A] = implicitly[SqlStringer[A]]
 
     case class OptionSqlStringer[A](delegate: SqlStringer[A]) extends SqlStringer[Option[A]] {
 
@@ -292,7 +292,7 @@ sealed trait SqlString {
   def compile(implicit escaper: Escaper): CompiledSql =
     SqlString.unsafe.compile(this, escaper)
 
-  override def toString =
+  override def toString: String =
     SqlString.unsafe.compile(this, DefaultJdbcEscaper).value
 
 }

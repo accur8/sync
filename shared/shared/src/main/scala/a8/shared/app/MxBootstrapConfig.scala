@@ -122,7 +122,7 @@ object MxBootstrapConfig {
       lazy val cacheDir: CaseClassParm[BootstrapConfigDto,Option[String]] = CaseClassParm[BootstrapConfigDto,Option[String]]("cacheDir", _.cacheDir, (d,v) => d.copy(cacheDir = v), Some(()=> None), 8)
       lazy val dataDir: CaseClassParm[BootstrapConfigDto,Option[String]] = CaseClassParm[BootstrapConfigDto,Option[String]]("dataDir", _.dataDir, (d,v) => d.copy(dataDir = v), Some(()=> None), 9)
       lazy val defaultLogLevel: CaseClassParm[BootstrapConfigDto,Option[String]] = CaseClassParm[BootstrapConfigDto,Option[String]]("defaultLogLevel", _.defaultLogLevel, (d,v) => d.copy(defaultLogLevel = v), Some(()=> None), 10)
-      lazy val logLevels: CaseClassParm[BootstrapConfigDto,Vector[LogLevelConfig]] = CaseClassParm[BootstrapConfigDto,Vector[LogLevelConfig]]("logLevels", _.logLevels, (d,v) => d.copy(logLevels = v), Some(()=> Vector.empty), 11)
+      lazy val logLevels: CaseClassParm[BootstrapConfigDto,Vector[LogLevelConfig]] = CaseClassParm[BootstrapConfigDto,Vector[LogLevelConfig]]("logLevels", _.logLevels, (d,v) => d.copy(logLevels = v), Some(()=> Vector.empty[LogLevelConfig]), 11)
       lazy val configFilePollInterval: CaseClassParm[BootstrapConfigDto,Option[FiniteDuration]] = CaseClassParm[BootstrapConfigDto,Option[FiniteDuration]]("configFilePollInterval", _.configFilePollInterval, (d,v) => d.copy(configFilePollInterval = v), Some(()=> None), 12)
     }
     

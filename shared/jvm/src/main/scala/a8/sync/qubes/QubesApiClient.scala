@@ -21,7 +21,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object QubesApiClient extends LoggingF {
 
-  lazy val layer = ZLayer(constructor)
+  lazy val layer: ZLayer[Scope & Config,Throwable,QubesApiClient] = ZLayer(constructor)
 
   lazy val constructor: ZIO[Scope & Config, Throwable, QubesApiClient] = {
     for {
@@ -31,9 +31,9 @@ object QubesApiClient extends LoggingF {
   }
 
   object Config extends MxConfig {
-    val fiveSeconds = 5.seconds
-    val twentySeconds = 20.seconds
-    val defaultRetryConfig =
+    val fiveSeconds: FiniteDuration = 5.seconds
+    val twentySeconds: FiniteDuration = 20.seconds
+    val defaultRetryConfig: RetryConfig =
       RetryConfig(
         maxRetries = 0,
         initialBackoff = 2.seconds,
@@ -70,7 +70,7 @@ object QubesApiClient extends LoggingF {
   case class UpdateRowRequest(
     cube: String,
     fields: JsObj,
-    parameters: Vector[JsDoc] = Vector.empty,
+    parameters: Vector[JsDoc] = Vector.empty[JsDoc],
     where: Option[String] = None,
     appSpace: Option[String] = None,
   )
@@ -118,8 +118,8 @@ case class QubesApiClient(
 
   object impl {
 
-    implicit lazy val implicitRequestProcessor = requestProcessor
-    lazy val baseRequest = http.Request(config.uri).addHeader("X-SESS", config.authToken.value)
+    implicit lazy val implicitRequestProcessor: RequestProcessor = requestProcessor
+    lazy val baseRequest: http.Request = http.Request(config.uri).addHeader("X-SESS", config.authToken.value)
 
     def executeA[A: JsonCodec, B: JsonCodec](subPath: Uri, requestBody: A): Task[B] = {
       ZIO.suspend {
@@ -185,7 +185,7 @@ case class QubesApiClient(
   }
 
   def fetch[A,B : SqlStringer](key: B)(implicit qubesKeyedMapper: QubesKeyedMapper[A,B], jsonReaderOptions: ZJsonReaderOptions): Task[A] = {
-    implicit def implicitQubesApiClient = this
+    implicit def implicitQubesApiClient: QubesApiClient = this
     qubesKeyedMapper.fetch(key)
   }
 

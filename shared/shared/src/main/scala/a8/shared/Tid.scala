@@ -15,7 +15,7 @@ import java.sql.PreparedStatement
 
 object Tid {
 
-  def random[A](length: Int = 32) =
+  def random[A](length: Int = 32): Tid[A] =
     Tid[A](value = Random.alphanumeric.take(length).mkString)
 
   trait DataSetOps[A] {

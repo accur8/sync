@@ -41,32 +41,32 @@ TODO support overriding the select fields
 object QueryDsl {
 
   object ss {
-    val Period = SqlString.keyword(".")
-    val Space = SqlString.keyword(" ")
-    val Underscore = SqlString.keyword("_")
-    val LeftParen = SqlString.keyword("(")
-    val RightParen = SqlString.keyword(")")
-    val IsNotNull = SqlString.keyword("is not null")
-    val IsNull = SqlString.keyword("is null")
-    val OneEqOne = SqlString.keyword("1 = 1")
-    val OneNeOne = SqlString.keyword("1 <> 1")
-    val And = SqlString.keyword("and")
-    val Or = SqlString.keyword("or")
-    val In = SqlString.keyword("in")
-    val Null = SqlString.keyword("null")
-    val Concat = SqlString.keyword("||")
-    val NullWithParens = SqlString.keyword("(null)")
+    val Period: SqlString = SqlString.keyword(".")
+    val Space: SqlString = SqlString.keyword(" ")
+    val Underscore: SqlString = SqlString.keyword("_")
+    val LeftParen: SqlString = SqlString.keyword("(")
+    val RightParen: SqlString = SqlString.keyword(")")
+    val IsNotNull: SqlString = SqlString.keyword("is not null")
+    val IsNull: SqlString = SqlString.keyword("is null")
+    val OneEqOne: SqlString = SqlString.keyword("1 = 1")
+    val OneNeOne: SqlString = SqlString.keyword("1 <> 1")
+    val And: SqlString = SqlString.keyword("and")
+    val Or: SqlString = SqlString.keyword("or")
+    val In: SqlString = SqlString.keyword("in")
+    val Null: SqlString = SqlString.keyword("null")
+    val Concat: SqlString = SqlString.keyword("||")
+    val NullWithParens: SqlString = SqlString.keyword("(null)")
 //    val QuestionMark = SqlString.keyword("?")
-    val Comma = SqlString.keyword(",")
-    val CommaSpace = SqlString.keyword(", ")
-    val Equal = SqlString.keyword("=")
-    val From = SqlString.keyword("from")
-    val Update = SqlString.keyword("update")
-    val Asc = SqlString.keyword("asc")
-    val Desc = SqlString.keyword("desc")
-    val Set = SqlString.keyword("set")
-    val Where = SqlString.keyword("where")
-    val NewLine = SqlString.keyword("\n")
+    val Comma: SqlString = SqlString.keyword(",")
+    val CommaSpace: SqlString = SqlString.keyword(", ")
+    val Equal: SqlString = SqlString.keyword("=")
+    val From: SqlString = SqlString.keyword("from")
+    val Update: SqlString = SqlString.keyword("update")
+    val Asc: SqlString = SqlString.keyword("asc")
+    val Desc: SqlString = SqlString.keyword("desc")
+    val Set: SqlString = SqlString.keyword("set")
+    val Where: SqlString = SqlString.keyword("where")
+    val NewLine: SqlString = SqlString.keyword("\n")
   }
 
   val TRUE: Condition = Condition.TRUE
@@ -82,20 +82,20 @@ object QueryDsl {
   case class IsNull(left: Expr[_], not: Boolean) extends Condition
 
   case class StructuralEquality[A: ComponentMapper](linker: Path, component: Component[A], values: Iterable[A]) extends Condition {
-    val mapper = implicitly[ComponentMapper[A]]
+    val mapper: ComponentMapper[A] = implicitly[ComponentMapper[A]]
   }
 
   case class InClause(left: IndexedSeq[Expr[_]], right: IndexedSeq[IndexedSeq[Expr[_]]]) extends Condition
 
   case class StructuralInClause[A: ComponentMapper](linker: Path, component: Component[A], values: IndexedSeq[A]) extends Condition {
-    val mapper = implicitly[ComponentMapper[A]]
+    val mapper: ComponentMapper[A] = implicitly[ComponentMapper[A]]
   }
 
   case class BooleanOperation[T](left: Expr[T], op: BooleanOperator, right: Expr[T]) extends Condition
 
   case class Constant[T: SqlStringer](value: T) extends Expr[T] {
-    val sqlStringer = SqlStringer[T]
-    val sqlString = sqlStringer.toSqlString(value)
+    val sqlStringer: SqlStringer[T] = SqlStringer[T]
+    val sqlString: SqlString = sqlStringer.toSqlString(value)
 //    def applyRowWriter = QueryDsl.applyRowWriter(value, RowWriter[T])
 //    def applyRowWriterChain = Chain.one(applyRowWriter)
   }
@@ -233,8 +233,8 @@ object QueryDsl {
 
     def isComposite: Boolean = false
 
-    def isAnd = this.isInstanceOf[And]
-    def isOr= this.isInstanceOf[Or]
+    def isAnd: Boolean = this.isInstanceOf[And]
+    def isOr: Boolean= this.isInstanceOf[Or]
 
     def and(right: Condition): Condition =
       And(safeParens(this, true), safeParens(right, true))
@@ -293,28 +293,28 @@ object QueryDsl {
   }
 
   case class JoinImpl(parent: Join, name: String, toTableMapper: TableMapper[_], joinExprFn: Join=>QueryDsl.Condition) extends Join {
-    lazy val joinExpr = joinExprFn(this)
-    override def chain = this :: parent.chain
-    def depth = parent.depth + 1
+    lazy val joinExpr: Condition = joinExprFn(this)
+    override def chain: List[Join] = this :: parent.chain
+    def depth: Int = parent.depth + 1
     def columnName(suffix: ColumnName) = suffix
   }
 
   case class ComponentJoin(name: String, parent: Path) extends Path {
-    val nameAsColumnName = ColumnName(name)
+    val nameAsColumnName: ColumnName = ColumnName(name)
     lazy val path: Vector[String] = name +: parentPath
     lazy val parentPath: Vector[String] =
       parent match {
         case pj: ComponentJoin =>
           pj.path
         case _ =>
-          Vector.empty
+          Vector.empty[String]
       }
     lazy val baseJoin: Join =
       parent match {
         case pj: ComponentJoin => pj.baseJoin
         case j: Join => j
       }
-    def columnName(suffix: ColumnName) =
+    def columnName(suffix: ColumnName): ColumnName =
       parent.columnName(nameAsColumnName ~ suffix)
   }
 
@@ -375,11 +375,11 @@ object QueryDsl {
     def is_not_null: Condition =
       IsNull(this, true)
 
-    def in(set: Iterable[T]) =
+    def in(set: Iterable[T]): In[T] =
       In(this, set.map(i=>Constant(i)))
 
-    def asc = OrderBy(this, true)
-    def desc = OrderBy(this, false)
+    def asc: OrderBy = OrderBy(this, true)
+    def desc: OrderBy = OrderBy(this, false)
 
     def opt: Expr[Option[T]] =
       Opt(this)
@@ -500,8 +500,8 @@ object QueryDsl {
   }
 
   case class OrderBy(expr: Expr[_], ascending: Boolean = true) {
-    def asc = copy(ascending=true)
-    def desc = copy(ascending=false)
+    def asc: OrderBy = copy(ascending=true)
+    def desc: OrderBy = copy(ascending=false)
     def asSql(implicit alias: PathCompiler): SqlString =
       QueryDsl.exprAsSql(expr) ~*~ (if (ascending) ss.Asc else ss.Desc)
   }

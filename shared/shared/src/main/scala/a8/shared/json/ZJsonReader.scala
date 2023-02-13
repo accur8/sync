@@ -58,7 +58,7 @@ object ZJsonReader {
         .either
         .map {
           case Left(re) =>
-            ReadResult.Error(re.withContext(resolvedContext), Vector.empty, None)
+            ReadResult.Error(re.withContext(resolvedContext), Vector.empty[String], None)
           case Right(jsd) =>
             impl(jsd, resolvedContext)
         }

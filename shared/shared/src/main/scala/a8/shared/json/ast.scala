@@ -8,6 +8,7 @@ import org.typelevel.jawn.Facade
 
 import language.implicitConversions
 import scala.util.Try
+import zio.prelude.Equal
 
 object ast {
 
@@ -21,7 +22,7 @@ object ast {
 
   object JsVal {
     implicit def jawnFacade: Facade[JsVal] = JawnFacade
-    implicit val equal = zio.prelude.Equal.default[JsVal]
+    implicit val equal: Equal[JsVal] = zio.prelude.Equal.default[JsVal]
   }
 
   sealed trait JsVal extends HasJsVal {
@@ -93,15 +94,15 @@ object ast {
   case object JsNull extends JsVal
 
   object JsObj {
-    val empty = JsObj(Map.empty)
+    val empty: JsObj = JsObj(Map.empty)
     def from(values: (String,JsVal)*): JsObj = new JsObj(values.toMap)
   }
   case class JsObj(values: Map[String,JsVal]) extends JsVal {
     val size = values.size
     def removeField(fieldName: String): JsObj = copy(values = values - fieldName)
     def removeFields(fieldNames: String*): JsObj = copy(values = values -- fieldNames)
-    def addField(fieldName: String, value: JsVal) = copy(values = (values + (fieldName -> value)))
-    def addFields(fields: (String,JsVal)*) = copy(values = values ++ fields)
+    def addField(fieldName: String, value: JsVal): JsObj = copy(values = (values + (fieldName -> value)))
+    def addFields(fields: (String,JsVal)*): JsObj = copy(values = values ++ fields)
   }
 
   def resolveAliases(aliases: Iterable[String], jsdoc: JsDoc): JsDoc = {
@@ -119,7 +120,7 @@ object ast {
   }
 
   object JsArr {
-    val empty = JsArr(Nil)
+    val empty: JsArr = JsArr(Nil)
   }
   case class JsArr(values: List[JsVal]) extends JsVal {
     val size = values.size

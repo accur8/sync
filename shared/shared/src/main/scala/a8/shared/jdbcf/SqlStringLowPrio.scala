@@ -29,10 +29,10 @@ object SqlStringLowPrio {
   }
 
   class StringOpsSqlString(private val v: String) extends AnyVal {
-    def keyword = SqlString.unsafe.rawSqlString(v)
-    def identifier = SqlString.DialectQuotedIdentifier(v)
-    def escape = SqlString.EscapedSqlString(v)
-    def unsafeUnEscaped = SqlString.unsafe.rawSqlString(v)
+    def keyword: SqlString.RawSqlString = SqlString.unsafe.rawSqlString(v)
+    def identifier: SqlString.DialectQuotedIdentifier = SqlString.DialectQuotedIdentifier(v)
+    def escape: SqlString.EscapedSqlString = SqlString.EscapedSqlString(v)
+    def unsafeUnEscaped: SqlString.RawSqlString = SqlString.unsafe.rawSqlString(v)
   }
 
   class IterableSqlString[A <: SqlString](private val iterable: Iterable[A]) extends AnyVal {

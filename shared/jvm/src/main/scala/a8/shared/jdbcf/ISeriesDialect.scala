@@ -15,7 +15,7 @@ object ISeriesDialect extends Dialect {
   override val validationQuery: Option[SqlString] =
     Some(sql"select 1 from sysibm.sysdummy1")
 
-  val logger = Logger.of[ISeriesDialect.type]
+  val logger: Logger = Logger.of[ISeriesDialect.type]
 
   override def isIdentifierDefaultCase(name: String): Boolean =
     !name.exists(_.isLower)
@@ -134,7 +134,7 @@ object ISeriesDialect extends Dialect {
               case Some(v) =>
                 zsucceed(v)
               case None =>
-                zsucceed(Vector.empty)
+                zsucceed(Vector.empty[JdbcPrimaryKey])
             }
         }
     }
@@ -233,7 +233,7 @@ object ISeriesDialect extends Dialect {
           libs.splitList(",").map(l=>SchemaName(l.toUpperCase)).toVector
         )
       case _ =>
-        LibraryList(Vector.empty)
+        LibraryList(Vector.empty[SchemaName])
     }
   }
 

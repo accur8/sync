@@ -18,8 +18,8 @@ import zio._
 
 object CaseClassMapper {
 //  val QuestionMark = SqlString.keyword("?")
-  val And = SqlString.keyword(" and ")
-  val RootColumnNamePrefix = ColumnName("")
+  val And: SqlString = SqlString.keyword(" and ")
+  val RootColumnNamePrefix: ColumnName = ColumnName("")
 
   object ColumnNameResolver {
     object noop extends ColumnNameResolver {
@@ -69,7 +69,7 @@ case class CaseClassMapper[A, PK](
       .sequence
       .map(materializedParms => copy(rawFields = materializedParms))
 
-  lazy val columnCount = fields.map(_.columnCount).sum
+  lazy val columnCount: Int = fields.map(_.columnCount).sum
 
   override def columnNames(columnNamePrefix: jdbcf.ColumnName): Iterable[jdbcf.ColumnName] =
     fields

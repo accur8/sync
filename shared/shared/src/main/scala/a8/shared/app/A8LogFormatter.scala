@@ -25,7 +25,7 @@ object A8LogFormatter {
 
 trait A8LogFormatter extends LogFormatter {
 
-  protected val timestampFormatter = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss.SSS")
+  protected val timestampFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss.SSS")
   protected val levelWidth = 14
 
   object impl {

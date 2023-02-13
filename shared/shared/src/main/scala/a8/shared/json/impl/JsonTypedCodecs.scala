@@ -109,8 +109,8 @@ trait JsonTypedCodecs {
 
   implicit object bigDecimal extends JsonTypedCodec[BigDecimal,JsNum] { outer =>
 
-      val typeInfo = implicitly[JsTypeInfo[JsNum]]
-      val shortName = classTag[Long].runtimeClass.shortName
+      val typeInfo: JsTypeInfo[JsNum] = implicitly[JsTypeInfo[JsNum]]
+      val shortName: String = classTag[Long].runtimeClass.shortName
 
       override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, BigDecimal] =
         doc.value match {

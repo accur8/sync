@@ -33,11 +33,11 @@ class PathOps(private val path: java.nio.file.Path) extends AnyVal {
   def subdir(name: String): java.nio.file.Path =
     path.resolve(Paths.get(name))
 
-  def exists() = Files.exists(path)
+  def exists(): Boolean = Files.exists(path)
 
-  def isFile() = Files.isRegularFile(path)
-  def isDirectory() = Files.isDirectory(path)
+  def isFile(): Boolean = Files.isRegularFile(path)
+  def isDirectory(): Boolean = Files.isDirectory(path)
 
-  def parentOpt() = Option(path.getParent)
+  def parentOpt(): Option[Path] = Option(path.getParent)
 
 }

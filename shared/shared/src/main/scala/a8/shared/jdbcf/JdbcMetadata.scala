@@ -64,8 +64,8 @@ object JdbcMetadata {
     isAutoIncrement: Option[Boolean],
     alternativeNames: Vector[ColumnName] = Vector(),
   ) extends NamedToString {
-    def qualifiedName = resolvedTableName.qualifiedName + "." + columnName.asString
-    lazy val columnNames = alternativeNames.prepended(columnName)
+    def qualifiedName: String = resolvedTableName.qualifiedName + "." + columnName.asString
+    lazy val columnNames: Vector[ColumnName] = alternativeNames.prepended(columnName)
   }
 
   object JdbcTable {
@@ -93,7 +93,7 @@ object JdbcMetadata {
       rawRow: Row,
       origin: Option[TableLocator] = None,
   ) {
-    def locator = TableLocator(catalog, schema, tableName)
+    def locator: TableLocator = TableLocator(catalog, schema, tableName)
   }
 
   case class ResolvedJdbcTable(
@@ -104,7 +104,7 @@ object JdbcMetadata {
 //    searchSchema: Option[String]
   ) {
 
-    lazy val columnsByName = columns.toMapTransform(_.name)
+    lazy val columnsByName: Map[ColumnName,ResolvedColumn] = columns.toMapTransform(_.name)
 
     lazy val columns: Seq[ResolvedColumn] = {
       val keysByColumnName = jdbcKeys.map(k => k.columnName -> k).iterator.toMap
@@ -118,7 +118,7 @@ object JdbcMetadata {
       }
     }
 
-    lazy val keys = columns.filter(_.isPrimaryKey)
+    lazy val keys: Seq[ResolvedColumn] = columns.filter(_.isPrimaryKey)
 
     def querySql(whereExpr: Option[SqlString]): SqlString = {
       import SqlString._
@@ -131,21 +131,22 @@ object JdbcMetadata {
 
   case class ResolvedColumn(name: ColumnName, jdbcColumn: JdbcColumn, jdbcPrimaryKey: Option[JdbcPrimaryKey], ordinalPosition: Int /** from 0 */)(table: ResolvedJdbcTable) extends NamedToString {
     def isPrimaryKey = jdbcPrimaryKey.isDefined
-    def isNullable =
+    def isNullable: Boolean =
       jdbcColumn
         .isNullable
         .getOrElse {
           jdbcColumn.nullable === ResultSetMetaData.columnNullable
         }
-    def qualifiedName =
+    def qualifiedName: String =
       s"${jdbcColumn.resolvedTableName.name.value.toString}/${name.value.toString}"
 
   }
 
 
-  val default =
+  val default: default =
 
-    new JdbcMetadata {
+    new default
+  class default extends JdbcMetadata {
 
       val resolvedTableNameCache = AtomicMap[TableLocator, ResolvedTableName]
       val tableMetadataCache = AtomicMap[TableLocator, ResolvedJdbcTable]

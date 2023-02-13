@@ -86,6 +86,6 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
     ref.get.iterator
 
   override def clear(): Unit =
-    ref.set(Vector.empty)
+    ref.set(Vector.empty[A])
 
 }

@@ -16,7 +16,7 @@ import zio.stream.ZSink
 
 object LongQueryDemo extends ZIOAppDefault {
 
-  lazy val connR =
+  lazy val connR: Resource[Conn] =
     Conn.fromNewConnection(
       "jdbc:postgresql://localhost/glen".toUri, // connect URL (driver-specific)
       "glen", // user

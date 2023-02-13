@@ -5,7 +5,7 @@ import a8.shared.jdbcf.mapper.MapperBuilder.AuditProvider
 import a8.shared.jdbcf.{Conn, RowReader, RowWriter, SqlString, TableName}
 
 object TableMapper {
-  def apply[A: TableMapper] = implicitly[TableMapper[A]]
+  def apply[A: TableMapper]: TableMapper[A] = implicitly[TableMapper[A]]
 }
 
 trait TableMapper[A] extends ComponentMapper[A] { self =>

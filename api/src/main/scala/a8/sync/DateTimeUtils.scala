@@ -10,8 +10,8 @@ object DateTimeUtils {
 
   object TimeAnteMeridiem extends Enumeration {
     type AnteMeridiem = Value
-    val AM = Value(0, "am")
-    val PM = Value(12, "pm")
+    val AM: Value = Value(0, "am")
+    val PM: Value = Value(12, "pm")
 
     def unapply(s: String): Option[TimeAnteMeridiem.Value] =
       s

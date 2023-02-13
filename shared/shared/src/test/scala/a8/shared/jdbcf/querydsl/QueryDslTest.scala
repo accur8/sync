@@ -10,6 +10,7 @@ import a8.shared.jdbcf.querydsl.QueryDsl.Join
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions
+import org.scalatest.Assertion
 
 object QueryDslTest {
 
@@ -52,7 +53,7 @@ class QueryDslTest extends AnyFunSuite {
 
   import QueryDslTest._
 
-  def assertEquals[A](expected: A, actual: A) =
+  def assertEquals[A](expected: A, actual: A): Assertion =
     assertResult(expected)(actual)
 
   test("simpleJoinInWhere") {
@@ -272,7 +273,7 @@ class QueryDslTest extends AnyFunSuite {
 //  }
 
 
-  def runTests[TInput,TOutput](tests: List[(TInput,TOutput)])( code: TInput => TOutput ) = {
+  def runTests[TInput,TOutput](tests: List[(TInput,TOutput)])( code: TInput => TOutput ): Unit = {
     tests.foreach { case (input, expectedOutput) =>
       val actualOutput = code(input)
       assertEquals(expectedOutput, actualOutput)

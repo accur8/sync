@@ -6,7 +6,7 @@ import SharedImports._
 trait NamedToString { self: Product =>
 
 
-  override def toString = {
+  override def toString: String = {
     val name = self.getClass.shortName
     val args =
       self

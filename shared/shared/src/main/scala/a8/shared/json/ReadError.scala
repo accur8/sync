@@ -26,7 +26,7 @@ sealed trait ReadError {
         this
     }
 
-  def asException = ReadErrorException(this)
+  def asException: ReadErrorException = ReadErrorException(this)
 
   def prettyMessage: String = {
     this match {

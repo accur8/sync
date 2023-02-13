@@ -175,7 +175,7 @@ object MxQubesApiClient {
     object parameters {
       lazy val cube: CaseClassParm[UpdateRowRequest,String] = CaseClassParm[UpdateRowRequest,String]("cube", _.cube, (d,v) => d.copy(cube = v), None, 0)
       lazy val fields: CaseClassParm[UpdateRowRequest,JsObj] = CaseClassParm[UpdateRowRequest,JsObj]("fields", _.fields, (d,v) => d.copy(fields = v), None, 1)
-      lazy val parameters: CaseClassParm[UpdateRowRequest,Vector[JsDoc]] = CaseClassParm[UpdateRowRequest,Vector[JsDoc]]("parameters", _.parameters, (d,v) => d.copy(parameters = v), Some(()=> Vector.empty), 2)
+      lazy val parameters: CaseClassParm[UpdateRowRequest,Vector[JsDoc]] = CaseClassParm[UpdateRowRequest,Vector[JsDoc]]("parameters", _.parameters, (d,v) => d.copy(parameters = v), Some(()=> Vector.empty[JsDoc]), 2)
       lazy val where: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("where", _.where, (d,v) => d.copy(where = v), Some(()=> None), 3)
       lazy val appSpace: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("appSpace", _.appSpace, (d,v) => d.copy(appSpace = v), Some(()=> None), 4)
     }

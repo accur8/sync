@@ -1,12 +1,14 @@
 package a8.sync
 
 import zio.{ZIO, ZIOAppDefault}
+import zio.{ Scope, ZIOAppArgs }
+import zio.stream.ZStream
 
 object ReplayableByteStreamDemo extends ZIOAppDefault {
 
-  val stream = ReplayableByteStreamSpec.newStream(1024)
+  val stream: ZStream[Any,Nothing,Byte] = ReplayableByteStreamSpec.newStream(1024)
 
-  def run = {
+  def run: ZIO[Environment with ZIOAppArgs with Scope,Any,Any] = {
     for {
       buffer <-
         stream

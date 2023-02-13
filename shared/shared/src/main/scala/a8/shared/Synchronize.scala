@@ -31,7 +31,7 @@ object Synchronize {
     val sourceBy = source.toMapTransform(correlateBy)
     val targetBy = target.toMapTransform(correlateBy)
 
-    val deletesAndUpdatesAndNoops =
+    val deletesAndUpdatesAndNoops: Vector[Action[A]] =
       target
         .map(t => t -> sourceBy.get(correlateBy(t)))
         .map {
@@ -49,7 +49,7 @@ object Synchronize {
         }
 
     // in source and not in target is an insert
-    val inserts =
+    val inserts: Vector[Action[A]] =
       source
         .filterNot(s => targetBy.contains(correlateBy(s)))
         .map(s => Insert(s))

@@ -16,7 +16,7 @@ case class UpdateQueryImpl[T,U](
   extends UpdateQuery[U]
 {
 
-  val delegate = SelectQueryImpl(tableDsl, outerMapper, where, Nil)
+  val delegate: SelectQueryImpl[T,U] = SelectQueryImpl(tableDsl, outerMapper, where, Nil)
 
   lazy val sqlString: SqlString = {
     import SqlString._

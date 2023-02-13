@@ -7,11 +7,12 @@ import com.typesafe.config.Config
 import playground.MxHoconDemo.MxBigFoo
 
 import scala.reflect.ClassTag
+import com.typesafe.config.{ ConfigObject, ConfigValue }
 
 
 object HoconDemo extends App {
 
-  implicit val ll = JsonWarningLogLevel.Debug
+  implicit val ll: JsonWarningLogLevel = JsonWarningLogLevel.Debug
 
   object BigFoo extends MxBigFoo
   @CompanionGen
@@ -29,9 +30,9 @@ object HoconDemo extends App {
   }
 
   val empty = CascadingHocon.emptyHocon
-  val root = empty.root()
-  val boo = empty.root().get("boo")
-  val atKey = root.get("boo")
+  val root: ConfigObject = empty.root()
+  val boo: ConfigValue = empty.root().get("boo")
+  val atKey: ConfigValue = root.get("boo")
 
 //  val value = atKey.root().unwrapped()
 //  value.toString
