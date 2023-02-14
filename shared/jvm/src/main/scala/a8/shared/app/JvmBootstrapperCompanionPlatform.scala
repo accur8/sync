@@ -1,6 +1,6 @@
 package a8.shared.app
 
-import a8.shared.{ConfigMojo, FileSystem, HoconOps}
+import a8.shared.{FileSystem, HoconOps}
 import a8.shared.FileSystem.Directory
 import a8.shared.app.BootstrapConfig._
 import a8.shared.json.{JsonCodec, ast}
@@ -30,7 +30,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
       args <- zservice[ZIOAppArgs]
     } yield {
 
-      val configMojoRoot = ConfigMojo().mojoRoot
+      val configMojoRoot = a8.shared.ConfigMojo.root.mojoRoot
       val configMojo = configMojoRoot(appName.value)
 
       val bootstrapLogs = mutable.Buffer[String]()
