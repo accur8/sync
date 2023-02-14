@@ -44,7 +44,7 @@ object Conn extends Logging {
     ConnFactory
       .constructor
       .flatMap(_.connR)
-      .provideSome(ZLayer.succeed(config))
+      .provideSome[zio.Scope](ZLayer.succeed(config))
   }
 
   def toConn(

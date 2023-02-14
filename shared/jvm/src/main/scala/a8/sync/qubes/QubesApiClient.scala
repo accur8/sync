@@ -15,7 +15,7 @@ import a8.sync.qubes.MxQubesApiClient._
 import sttp.client3._
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
-import zio.{& => _, durationInt => _, _}
+import zio.{durationInt => _, _}
 
 import scala.concurrent.duration.FiniteDuration
 

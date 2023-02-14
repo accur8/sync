@@ -54,8 +54,6 @@ object JsValOps {
   def toPrettyJsonChord(JsVal: JsVal): Chord = {
     def impl(jv: JsVal): Chord =
       jv match {
-        case jsd: JsDoc =>
-          impl(jsd.value)
         case jn: JsNum =>
           Chord.str(jn.value.toString())
         case js: JsStr =>
@@ -113,8 +111,6 @@ object JsValOps {
 
   def toCompactJsonChord(jv: JsVal, sortKeys: Boolean): Chord =
     jv match {
-      case jsd: JsDoc =>
-        toCompactJsonChord(jsd.value, sortKeys)
       case jn: JsNum =>
         Chord.str(jn.value.toString())
       case js: JsStr =>

@@ -20,7 +20,7 @@ import java.nio.file.Paths
 
 object ConfigMojo  {
 
-  private lazy val root: ConfigMojo = {
+  lazy val root: ConfigMojo = {
     val ch = CascadingHocon.loadConfigsInDirectory(Paths.get("./config/"), true, true)
     impl.ConfigMojoRoot(
       hoconValue = ch.config.root(),
@@ -28,7 +28,7 @@ object ConfigMojo  {
     )
   }
 
-  def apply(): ConfigMojo = root
+//  def apply(): ConfigMojo = root
 //  def apply(value: hocon.ConfigValue): ConfigMojo = new ConfigMojo(name = None, parent = None, hoconValueOpt = Some(value))
 
 }
@@ -60,8 +60,9 @@ object ConfigMojoOps {
 }
 
 
-
 abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoconValueOpt: Option[hocon.ConfigValue], root: Option[CascadingHocon]) extends Dynamic { outer =>
+
+//abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoconValueOpt: Option[hocon.ConfigValue], root: Option[CascadingHocon]) { outer =>
 
   def hoconValue: ConfigValue
 

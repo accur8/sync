@@ -14,7 +14,7 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "2.13.10"
+val scalaLibVersion = "3.2.2"
 val sbtA8Version = "1.2.0-20220113_1040"
 val zioVersion = "2.0.8"
 val zioLoggingVersion = "2.1.9"

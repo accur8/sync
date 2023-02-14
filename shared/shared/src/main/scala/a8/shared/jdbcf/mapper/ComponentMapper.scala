@@ -25,7 +25,7 @@ trait ComponentMapper[A] extends Mapper[A] {
   def inClause(linker: QueryDsl.Path, values: Iterable[A])(implicit alias: PathCompiler): QueryDsl.InClause
   def structuralEquality(linker: QueryDsl.Path, values: Iterable[A])(implicit alias: PathCompiler): QueryDsl.Condition
   def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName]
-  val columnCount: Int
+  lazy val columnCount: Int
   def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName,SqlString)]
 
   def fieldExprs(linker: Path): Vector[QueryDsl.FieldExpr[_]]

@@ -113,7 +113,8 @@ object ZFileSystemImpl {
     nioPath: java.nio.file.Path
   )
     extends PathImpl(nioPath)
-      with File {
+      with File
+  { self =>
 
     override def kind: String = "file"
 
