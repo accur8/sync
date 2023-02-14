@@ -26,7 +26,7 @@ select * from table(key_list('PPITGDATA','CLPT006'))
 
   val l: Vector[jdbcf.Row] = jdbcf.resultSetToVector(rs)
 
-  l.foreach(row => println(row.unsafeAsJsObj.compactJson))
+//  l.foreach(row => println(row.unsafeAsJsObj.compactJson))
 
 
   println(l)

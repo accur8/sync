@@ -85,6 +85,6 @@ trait ConnFactoryCompanion {
   val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory]
 
   def resource(databaseConfig: DatabaseConfig): Resource[ConnFactory] =
-    constructor.provideSome(ZLayer.succeed(databaseConfig))
+    constructor.provideSome[zio.Scope](ZLayer.succeed(databaseConfig))
 
 }

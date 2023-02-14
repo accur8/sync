@@ -18,7 +18,6 @@ object Batcher {
 
       override lazy val sql = conn.compile(sql0)
 
-
       override def execBatch(stream: XStream[A]): XStream[Int] = {
         val effect =
           conn

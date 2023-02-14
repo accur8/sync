@@ -107,59 +107,61 @@ trait JsonTypedCodecs {
       l => BigDecimal(l),
     )
 
-  implicit object bigDecimal extends JsonTypedCodec[BigDecimal,JsNum] { outer =>
+  implicit lazy val bigDecimal: BigDecimalTypedCodec = new BigDecimalTypedCodec
 
-      val typeInfo: JsTypeInfo[JsNum] = implicitly[JsTypeInfo[JsNum]]
-      val shortName: String = classTag[Long].runtimeClass.shortName
+  class BigDecimalTypedCodec extends JsonTypedCodec[BigDecimal,JsNum] { outer =>
 
-      override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, BigDecimal] =
-        doc.value match {
-          case JsNum(bd) =>
-            Right(bd)
-          case JsStr(s) =>
-            try {
-              Right(BigDecimal(s.replace("_", "")))
-            } catch {
-              case IsNonFatal(_) =>
-                doc.errorL(s"expected ${typeInfo.name}")
-            }
-          case _ =>
-            doc.errorL(s"expected ${typeInfo.name}")
-        }
+    val typeInfo: JsTypeInfo[JsNum] = implicitly[JsTypeInfo[JsNum]]
+    val shortName: String = classTag[Long].runtimeClass.shortName
 
-      override def write(a: BigDecimal): JsNum =
-        JsNum(a)
+    override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, BigDecimal] =
+      doc.value match {
+        case JsNum(bd) =>
+          Right(bd)
+        case JsStr(s) =>
+          try {
+            Right(BigDecimal(s.replace("_", "")))
+          } catch {
+            case IsNonFatal(_) =>
+              doc.errorL(s"expected ${typeInfo.name}")
+          }
+        case _ =>
+          doc.errorL(s"expected ${typeInfo.name}")
+      }
 
-      /**
-        * a hardened map method the gives good error messages for precision issues
-        * when handling numeric types
-        */
-      def dimap2[A : ClassTag](
-        toA: BigDecimal=>A,
-        toBigDecimal: A=>BigDecimal,
-      ): JsonTypedCodec[A,JsNum] =
-        new JsonTypedCodec[A,JsNum] {
+    override def write(a: BigDecimal): JsNum =
+      JsNum(a)
 
-          val shortName = classTag[A].runtimeClass.shortName
+    /**
+      * a hardened map method the gives good error messages for precision issues
+      * when handling numeric types
+      */
+    def dimap2[A : ClassTag](
+      toA: BigDecimal=>A,
+      toBigDecimal: A=>BigDecimal,
+    ): JsonTypedCodec[A,JsNum] =
+      new JsonTypedCodec[A,JsNum] {
 
-          override def write(a: A): JsNum =
-            JsNum(toBigDecimal(a))
+        val shortName = classTag[A].runtimeClass.shortName
 
-          override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
-            outer
-              .read(doc)
-              .flatMap { bd =>
-                try {
-                  Right(toA(bd))
-                } catch {
-                  case IsNonFatal(_) =>
-                    doc.errorL(s"cannot convert ${bd} to a ${shortName}")
-                }
+        override def write(a: A): JsNum =
+          JsNum(toBigDecimal(a))
+
+        override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
+          outer
+            .read(doc)
+            .flatMap { bd =>
+              try {
+                Right(toA(bd))
+              } catch {
+                case IsNonFatal(_) =>
+                  doc.errorL(s"cannot convert ${bd} to a ${shortName}")
               }
+            }
 
-        }
+      }
 
-    }
+  }
 
   implicit lazy val int: JsonTypedCodec[Int, JsNum] =
     bigDecimal.dimap2[Int](
