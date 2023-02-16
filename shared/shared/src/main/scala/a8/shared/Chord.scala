@@ -46,6 +46,7 @@ object Chord {
             By(value ~ by.value)
         }
     }
+    given [A <: Indent, B <: Indent]: CanEqual[A,B] = CanEqual.derived
   }
 
   val empty: Chord = impl.Empty
@@ -138,6 +139,8 @@ object Chord {
     def mkChord: Chord = IteratorChord(() => array.iterator)
     def mkChord(separator: Chord): Chord = IteratorChordWithSeparator(() => array.iterator, separator)
   }
+
+  given [A <: Chord, B <: Chord]: CanEqual[A,B] = CanEqual.derived
 
 }
 

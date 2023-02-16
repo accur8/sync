@@ -10,7 +10,7 @@ import SharedImports._
 import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
 import a8.shared.json.ast._
-
+import SharedImports.canEqual.given
 
 object HoconOps extends HoconOps
 

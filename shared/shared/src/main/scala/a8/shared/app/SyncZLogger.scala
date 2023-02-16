@@ -6,6 +6,7 @@ import org.slf4j.{LoggerFactory, MDC}
 import zio.{Cause, FiberId, FiberRef, LogLevel, LogSpan, Runtime, Trace, ZLayer, ZLogger}
 import zio.logging.LogFormat
 import a8.shared.SharedImports._
+import a8.shared.SharedImports.canEqual.given
 
 import java.util
 

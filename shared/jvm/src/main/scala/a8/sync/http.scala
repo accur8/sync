@@ -30,6 +30,7 @@ import java.net.URLEncoder
 import java.nio.charset.Charset
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters._
+import a8.shared.SharedImports.given
 
 object http extends LoggingF {
 
@@ -54,6 +55,7 @@ object http extends LoggingF {
     initialBackoff: FiniteDuration = 1.second,
     maxBackoff: FiniteDuration = 1.minute,
     maxConnections: Int = 50,
+    jitterFactor: Double = 0.2, // 0.0 is no jitter
   ) {
     lazy val retryConfig: RetryConfig = RetryConfig(maxRetries, initialBackoff, maxBackoff)
   }
@@ -200,12 +202,13 @@ object http extends LoggingF {
 
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, trace: Trace, loggerF: LoggerF): Task[A] = {
 
-      implicit val jsonReaderOptions =
-        if ( jsonResponseOptions.jsonWarningsLogLevel == LogLevel.OFF) {
+      implicit val jsonReaderOptions = {
+        if ( jsonResponseOptions.jsonWarningsLogLevel equals LogLevel.OFF) {
           ZJsonReaderOptions.NoLogWarnings
         } else {
           ZJsonReaderOptions.LogWarnings(jsonResponseOptions.jsonWarningsLogLevel, trace, loggerF)
         }
+      }
 
       // some mildly unruly code because all of the JsonResponseOptions come together here
       def responseEffect(response: Response): Task[ResponseAction[A]] = {
@@ -654,6 +657,7 @@ object http extends LoggingF {
     case class StreamingBody(stream: XStream[Byte]) extends Body {
       override def isStream: Boolean = true
     }
+    given [A <: Body, B <: Body]: CanEqual[A,B] = CanEqual.derived
   }
 
 }

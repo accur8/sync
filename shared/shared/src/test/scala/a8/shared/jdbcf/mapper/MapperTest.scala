@@ -6,6 +6,7 @@ import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.jdbcf.querydsl.QueryDslTest
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Assertion
+import a8.shared.SharedImports.canEqual.given
 
 class MapperTest extends AnyFunSuite {
 

@@ -21,6 +21,9 @@ object FromString {
         value.toIntOption
     }
 
+  def apply[A: FromString]: FromString[A] =
+    implicitly[FromString[A]]
+
 }
 
 trait FromString[A] {

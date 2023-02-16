@@ -7,6 +7,7 @@ import a8.shared.jdbcf.mapper.{ComponentMapper, KeyedTableMapper, TableMapper}
 import scala.language.{existentials, implicitConversions}
 import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
+import a8.shared.json.ast.JsVal
 import cats.data.Chain
 import zio.Task
 
@@ -139,13 +140,22 @@ object QueryDsl {
   case class UnaryOperation[T: SqlStringer](op: UnaryOperator, value: Expr[T]) extends Expr[T]
   case class NumericOperation[T: SqlStringer](left: Expr[T], op: NumericOperator, right: Expr[T]) extends NumericExpr[T]
 
+  object BooleanOperator {
+    given [A <: BooleanOperator, B <: BooleanOperator]: CanEqual[A,B] = CanEqual.derived
+  }
   sealed trait BooleanOperator {
     val asSql: SqlString
+  }
+  object AbstractOperator {
+    given [A <: AbstractOperator, B <: AbstractOperator]: CanEqual[A,B] = CanEqual.derived
   }
   abstract class AbstractOperator(sqlStr: String) {
     val asSql: SqlString = SqlString.keyword(sqlStr)
   }
 
+  object NumericOperator {
+    given[A <: NumericOperator, B <: NumericOperator]: CanEqual[A, B] = CanEqual.derived
+  }
   sealed trait NumericOperator {
     val asSql: SqlString
   }
@@ -181,6 +191,7 @@ object QueryDsl {
   object Condition {
     object TRUE extends Condition
     object FALSE extends Condition
+    given [A <: Condition, B <: Condition]: CanEqual[A,B] = CanEqual.derived
   }
 
   case class Parens(inside: Condition) extends Condition
@@ -272,6 +283,9 @@ object QueryDsl {
       }
   }
 
+  object Path {
+    given [A <: Path, B <: Path]: CanEqual[A,B] = CanEqual.derived
+  }
   sealed trait Path {
     def baseJoin: Join
     def columnName(suffix: ColumnName): ColumnName

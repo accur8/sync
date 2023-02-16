@@ -309,4 +309,8 @@ trait SharedImports
 
   }
 
+  object canEqual {
+    given[A]: CanEqual[A, A] = CanEqual.canEqualAny
+  }
+
 }

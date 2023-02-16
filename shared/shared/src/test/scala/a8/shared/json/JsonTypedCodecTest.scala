@@ -7,6 +7,7 @@ import a8.shared.json.ast._
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, OffsetDateTime, OffsetTime, ZoneOffset, ZonedDateTime}
 import java.util.UUID
 import scala.concurrent.duration._
+import a8.shared.SharedImports.canEqual.given
 
 class JsonTypedCodecTest extends AnyFunSuite {
 

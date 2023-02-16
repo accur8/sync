@@ -10,7 +10,7 @@ class ThrowableOps(private val _value: Throwable) extends AnyVal {
   def allCauses: Vector[Throwable] = {
     _value.getCause match {
       case null => Vector(_value)
-      case c if _value == c => Vector(_value)
+      case c if _value eq c => Vector(_value)
       case c => Vector(_value) ++ new ThrowableOps(c).allCauses
     }
   }

@@ -126,6 +126,8 @@ object ZString {
   implicit def zstringToPathSegment(zstr: ZString): Segment =
     PathSegment(zstr.toString)
 
+  given [A <: ZString, B <: ZString]: CanEqual[A,B] = CanEqual.derived
+
 }
 
 sealed trait ZString {

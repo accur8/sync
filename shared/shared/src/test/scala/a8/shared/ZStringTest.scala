@@ -5,6 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import SharedImports._
 import sttp.client3.UriContext
 import sttp.model.Uri
+import a8.shared.SharedImports.canEqual.given
 
 class ZStringTest extends AnyFunSuite {
 

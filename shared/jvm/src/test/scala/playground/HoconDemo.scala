@@ -8,7 +8,7 @@ import playground.MxHoconDemo.MxBigFoo
 
 import scala.reflect.ClassTag
 import com.typesafe.config.{ ConfigObject, ConfigValue }
-
+import a8.shared.SharedImports.canEqual.given
 
 object HoconDemo extends App {
 

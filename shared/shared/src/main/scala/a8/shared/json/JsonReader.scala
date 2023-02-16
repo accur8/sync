@@ -226,6 +226,8 @@ object JsonReader extends Logging { outer =>
 
     case object NoLogWarnings extends JsonReaderOptions
 
+    given [A <: JsonReaderOptions, B <: JsonReaderOptions]: CanEqual[A,B] = CanEqual.derived
+
   }
   sealed trait JsonReaderOptions
 

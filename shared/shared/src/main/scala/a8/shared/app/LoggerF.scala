@@ -16,7 +16,7 @@ object LoggerF {
      * underlying logger slf4j treats trait as jul.Level.FINEST where wvlet treats it as jul.Level.FINER
      */
     def setLogLevel(loggerName: String, level: LogLevel): Unit = {
-      val ll = if ( level == LogLevel.TRACE ) LogLevel.ALL else level
+      val ll = if ( level equals LogLevel.TRACE ) LogLevel.ALL else level
       Logger(loggerName).setLogLevel(ll)
     }
 

@@ -5,6 +5,7 @@ import a8.shared.FileSystem.Directory
 import SharedImports._
 import cats.Eq
 import zio._
+import a8.shared.SharedImports.canEqual.given
 
 import java.nio.file.{Files, LinkOption, Path => NioPath, Paths => NioPaths}
 

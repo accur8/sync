@@ -2,6 +2,7 @@ package a8.shared
 
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
+import a8.shared.SharedImports.canEqual.given
 
 class AtomicBufferTest extends AnyFunSuite {
 
