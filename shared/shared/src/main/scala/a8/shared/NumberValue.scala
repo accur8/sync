@@ -17,6 +17,7 @@ object NumberValue {
       jsonCodecB: JsonTypedCodec[B, JsNum],
       fromStringB: FromString[B],
       zstringerB: ZStringer[B],
+      canEqual: CanEqual[B,B],
   ) extends AbstractSingleValue.Companion[A, B, JsNum] {
 
     implicit val fromString: FromString[A] =

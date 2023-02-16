@@ -5,14 +5,18 @@ import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, ZoneId}
 import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 
 import scala.reflect.ClassTag
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.jdbcf.JdbcMetadata.{ResolvedColumn, ResolvedJdbcTable}
 import a8.shared.jdbcf.mapper.MapperBuilder
 import zio.{Task, ZIO}
 
 import java.io.BufferedReader
+import a8.shared.jdbcf.RowReader.noneAnyRef
+import a8.shared.SharedImports.canEqual.given
 
 object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
+
+  val noneAnyRef: AnyRef = None
 
   trait TupleReader[A] extends RowReader[A] {
     class UnsafeReader(startIndex: Int, row: Row) {
@@ -124,7 +128,7 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
       val rowReaderA = implicitly[RowReader[A]]
       override def rawRead(row: Row, index: Int): (Option[A], Int) = {
         row.rawValueByIndex(index) match {
-          case None =>
+          case v if v == noneAnyRef =>
             None -> 1
           case _ =>
             val t = rowReaderA.rawRead(row, index)
@@ -168,7 +172,7 @@ trait RowReader[A] { outer =>
 
   def readOpt(row: Row, index: Int): Option[A] =
     row.rawValueByIndex(index) match {
-      case None =>
+      case v if v == noneAnyRef =>
         None
       case null =>
         None

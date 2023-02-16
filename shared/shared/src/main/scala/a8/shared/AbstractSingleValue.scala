@@ -16,7 +16,9 @@ object AbstractSingleValue {
       rowWriterB: RowWriter[B],
       jsonCodecB: JsonTypedCodec[B, C],
       zstringerB: ZStringer[B],
+      canEqual: CanEqual[B,B],
   ) {
+
 
     implicit lazy val zioEq: zio.prelude.Equal[A] =
       zio.prelude.Equal.make((a, b) => a.value == b.value)

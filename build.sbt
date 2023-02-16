@@ -19,7 +19,16 @@ val sbtA8Version = "1.2.0-20220113_1040"
 val zioVersion = "2.0.8"
 val zioLoggingVersion = "2.1.9"
 
-scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
+scalacOptions in Global ++= Seq(
+  "-deprecation",
+  "-feature",
+  "-unchecked",
+  "-language:implicitConversions",
+  "-language:higherKinds",
+  "-language:existentials",
+  "-language:postfixOps",
+  "-language:strictEquality",
+)
 
 
 publishTo in Global := sonatypePublishToBundle.value
@@ -36,7 +45,6 @@ versionScheme in Global := Some("strict")
 serverConnectionType in Global := ConnectionType.Local
 
 resolvers += MavenCache("local-maven", file("/Users/glen/code/accur8/versions/m2-local-repo"))
-
 
 lazy val api =
   Common

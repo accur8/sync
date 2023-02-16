@@ -8,6 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import a8.shared.SharedImports._
 import a8.shared.json.MxJsonTest._
 import a8.shared.json.ReadError.ReadErrorException
+import a8.shared.SharedImports.canEqual.given
 
 object JsonTest {
 

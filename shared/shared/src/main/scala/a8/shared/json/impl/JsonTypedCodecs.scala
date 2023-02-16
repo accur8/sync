@@ -9,9 +9,9 @@ import java.nio.file.{Path, Paths}
 import java.sql.Timestamp
 import java.time._
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.{ClassTag, classTag}
+import a8.shared.SharedImports.canEqual.given
 
 trait JsonTypedCodecs {
 
@@ -252,11 +252,11 @@ trait JsonTypedCodecs {
     )
 
   implicit lazy val finiteDurationCodec: JsonTypedCodec[FiniteDuration,JsStr] = {
-    val timeUnitsByName = TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
+    val timeUnitsByName = java.util.concurrent.TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
     def stringToValue(str: String): FiniteDuration = {
       str.trim.splitList(" ") match {
         case List(ParseLong(length)) =>
-          FiniteDuration(length, TimeUnit.MILLISECONDS)
+          FiniteDuration(length, java.util.concurrent.TimeUnit.MILLISECONDS)
         case List(ParseLong(length), ParseTimeUnit(unit)) =>
           FiniteDuration(length, unit)
         case _ =>
@@ -265,7 +265,7 @@ trait JsonTypedCodecs {
     }
 
     def valueToString(d: FiniteDuration): String = {
-      if (d.unit == TimeUnit.MILLISECONDS) {
+      if (d.unit == java.util.concurrent.TimeUnit.MILLISECONDS) {
         d.toMillis.toString
       } else {
         s"${d.length} ${d.unit.name}"

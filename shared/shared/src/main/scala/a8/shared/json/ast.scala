@@ -21,8 +21,12 @@ object ast {
   }
 
   object JsVal {
+
     implicit def jawnFacade: Facade[JsVal] = JawnFacade
     implicit val equal: Equal[JsVal] = zio.prelude.Equal.default[JsVal]
+
+    given [A <: JsVal, B <: JsVal]: CanEqual[A,B] = CanEqual.derived
+    
   }
 
   sealed trait JsVal extends HasJsVal {

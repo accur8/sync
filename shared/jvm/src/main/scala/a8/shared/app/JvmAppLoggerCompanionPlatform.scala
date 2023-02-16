@@ -10,6 +10,7 @@ import zio.stream.ZStream
 
 import java.io.IOException
 import java.nio.file.{Path, StandardWatchEventKinds}
+import a8.shared.SharedImports.canEqual.given
 
 class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF {
 
@@ -30,7 +31,7 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
 
       def configureLogLevels(): Unit = {
 
-        if ( bootstrapConfig.defaultLogLevel == LogLevel.TRACE )
+        if ( bootstrapConfig.defaultLogLevel equals LogLevel.TRACE )
           Logger.setDefaultLogLevel(LogLevel.ALL)
         else
           Logger.setDefaultLogLevel(bootstrapConfig.defaultLogLevel)
@@ -91,7 +92,7 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
       }
     }
 
-    def poll(previousState: State): XStream[Unit] = {
+    def poll(previousState: Option[Vector[(a8.shared.FileSystem.File, Option[Long])]]): XStream[Unit] = {
       val pollEffect =
         for {
           _ <- ZIO.sleep(pollDelay)

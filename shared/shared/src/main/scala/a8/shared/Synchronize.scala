@@ -17,14 +17,14 @@ object Synchronize {
    * Analyzes the source and target and returns
    * the Action's (Insert, Update, Delete, Noop) needed to be applied to the target for it to match the source
    */
-  def apply[A](source: Vector[A], target: Vector[A]): Vector[Action[A]] =
+  def apply[A](source: Vector[A], target: Vector[A])(using canEqual: CanEqual[A,A]): Vector[Action[A]] =
     apply(source, target, identity)
 
   /**
    * Analyzes the source and target and returns
    * the Action's (Insert, Update, Delete, Noop) needed to be applied to the target for it to match the source
    */
-  def apply[A,B](source: Vector[A], target: Vector[A], correlateBy: A=>B): Vector[Action[A]] = {
+  def apply[A,B](source: Vector[A], target: Vector[A], correlateBy: A=>B)(using canEqual: CanEqual[A,A]): Vector[Action[A]] = {
 
     import Action._
 

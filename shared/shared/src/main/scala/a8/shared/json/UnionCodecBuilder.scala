@@ -32,7 +32,7 @@ object UnionCodecBuilder {
   case class UnionCodecBuilderSingleton[A, B  <: A: ClassTag](name: Option[String], singleton: B) extends UnionType[A] {
 
     override def isInstanceOf(a: Any): Boolean =
-      a == singleton
+      a equals singleton
 
     override def read(doc: ast.JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
       Right(singleton)

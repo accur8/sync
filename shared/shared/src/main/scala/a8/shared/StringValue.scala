@@ -2,9 +2,10 @@ package a8.shared
 
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import org.typelevel.ci.CIString
-import SharedImports._
+import SharedImports.*
 import a8.shared.ZString.{HasZString, ZStringer}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
+import a8.sync.http.Body
 
 import language.implicitConversions
 import scala.reflect.ClassTag
@@ -32,6 +33,8 @@ object StringValue {
   }
 
   abstract class CIStringValueCompanion[A <: CIStringValue] {
+
+    given [A]: CanEqual[A,A] = CanEqual.derived
 
     implicit val fromString: FromString[A] =
       new FromString[A] {

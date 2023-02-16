@@ -284,6 +284,7 @@ object SqlString extends SqlStringLowPrio {
     @inline def ~*~(r: SqlString): SqlString = left * r
   }
 
+  given [A <: SqlString, B <: SqlString]: CanEqual[A,B] = CanEqual.derived
 
 }
 

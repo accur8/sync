@@ -11,6 +11,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions
 import org.scalatest.Assertion
+import a8.shared.SharedImports.canEqual.given
 
 object QueryDslTest {
 
