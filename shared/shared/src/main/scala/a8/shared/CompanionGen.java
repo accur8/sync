@@ -10,7 +10,11 @@ import java.lang.annotation.Target;
 public @interface CompanionGen {
     boolean messagePack() default false;
     boolean jdbcMapper() default false;
+    boolean queryDsl() default false;
     boolean qubesMapper() default false;
     boolean circeCodec() default false;
     boolean jsonCodec() default false;
+    boolean scala3() default false;
+    boolean cats() default false;
+    boolean zio() default false;
 }
