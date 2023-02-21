@@ -19,15 +19,16 @@ import scala.reflect.ClassTag
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
 
-  override val layer: ZLayer[AppName with ZIOAppArgs, Throwable, Bootstrapper] =
+  override val layer: ZLayer[AppName & BootstrappedIOApp.DefaultLogLevel & ZIOAppArgs, Throwable, Bootstrapper] =
     ZLayer(live)
 
 
-  val live: ZIO[AppName with ZIOAppArgs, Throwable, Bootstrapper] = {
+  val live: ZIO[AppName & BootstrappedIOApp.DefaultLogLevel & ZIOAppArgs, Throwable, Bootstrapper] = {
 
     for {
       appName <- zservice[AppName]
       args <- zservice[ZIOAppArgs]
+      globalDefaultLogLevel <- zservice[BootstrappedIOApp.DefaultLogLevel]
     } yield {
 
       val configMojoRoot = a8.shared.ConfigMojo.root.mojoRoot
@@ -74,7 +75,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
           val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
           //        bootstrapLogs.append(s"resolved dto ${resolvedDto}")
 
-          val defaultLogLevel = {
+          val defaultLogLevel: UnifiedLogLevel = {
 
             def find(nameOpt: Option[String]): Option[LogLevel] = {
               nameOpt
@@ -86,7 +87,8 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
             find(Option(System.getProperty("defaultLogLevel")))
               .orElse(find(resolvedDto.defaultLogLevel))
-              .get
+              .map(UnifiedLogLevel(_))
+              .getOrElse(globalDefaultLogLevel.value)
 
           }
 

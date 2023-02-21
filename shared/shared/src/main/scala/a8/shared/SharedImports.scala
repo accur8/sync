@@ -287,7 +287,7 @@ trait SharedImports
 
   def zl_succeed[A: Tag](a: A): ULayer[A] = ZLayer.succeed(a)
 
-  type &[+A, +B] = A with B
+//  type &[+A, +B] = A with B
 
 
   implicit final def optionIdOps[A](a: A): OptionIdOps[A] =

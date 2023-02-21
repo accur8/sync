@@ -87,6 +87,25 @@ object BootstrapConfig {
       )
   }
 
+  object UnifiedLogLevel {
+    def apply(logLevel: LogLevel): UnifiedLogLevel = ???
+  }
+
+  case class UnifiedLogLevel(wvletLogLevel: wvlet.log.LogLevel, zioLogLevel: zio.LogLevel) {
+
+    import a8.shared.SharedImports.canEqual.given
+
+    lazy val isTrace = wvletLogLevel == wvlet.log.LogLevel.TRACE
+
+    lazy val resolvedWvletLogLevel: wvlet.log.LogLevel = {
+      if (isTrace)
+        LogLevel.ALL
+      else
+        wvletLogLevel
+    }
+
+  }
+
   object AppName extends StringValue.Companion[AppName]
   case class AppName(value: String) extends StringValue
 
@@ -141,7 +160,7 @@ case class BootstrapConfig(
   cacheDir: CacheDir,
   dataDir: DataDir,
   appArgs: zio.ZIOAppArgs,
-  defaultLogLevel: wvlet.log.LogLevel,
+  defaultLogLevel: UnifiedLogLevel,
   logLevels: Vector[LogLevelConfig],
   configFilePollInterval: FiniteDuration,
 ) extends NamedToString { self =>

@@ -4,9 +4,9 @@ package a8.sync
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
 import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
 import a8.shared.json.ast.JsVal
-import a8.sync.Mxhttp._
+import a8.sync.Mxhttp.*
 import sttp.model.{StatusCode, Uri}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
 import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.json.JsonReader.ReadResult
@@ -20,17 +20,19 @@ import sttp.capabilities.zio.ZioStreams
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
-import sttp.client3.{Identity, RequestT, ResponseAs, basicRequest}
+import sttp.client3.{Identity, RequestT, ResponseAs, SttpBackendOptions, basicRequest}
 import wvlet.log.LogLevel
 import zio.Schedule.{WithState, succeed}
-import zio.{LogLevel => _, durationInt => _, _}
+import zio.{LogLevel as _, durationInt as _, *}
 import zio.stream.{ZPipeline, ZSink}
 
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import scala.concurrent.duration.FiniteDuration
-import scala.jdk.DurationConverters._
+import scala.jdk.DurationConverters.*
 import a8.shared.SharedImports.given
+
+import scala.concurrent.duration
 
 object http extends LoggingF {
 
@@ -42,6 +44,8 @@ object http extends LoggingF {
     maxRetries: Int = 5,
     initialBackoff: FiniteDuration = 1.second,
     maxBackoff: FiniteDuration = 1.minute,
+    jitterFactor: Double = 0.2, // 0.0 is no jitter
+    backoffFactor: Double = 1.2, // 2.0 doubles (i.e. squares) backoff after each retry
   )
 
   object RequestProcessorConfig extends MxRequestProcessorConfig {
@@ -56,6 +60,9 @@ object http extends LoggingF {
     maxBackoff: FiniteDuration = 1.minute,
     maxConnections: Int = 50,
     jitterFactor: Double = 0.2, // 0.0 is no jitter
+    backoffFactor: Double = 1.2, // 2.0 doubles (i.e. squares) backoff after each retry
+    connectionTimeout: FiniteDuration = 15.seconds,
+    readTimeout: FiniteDuration = 30.seconds,
   ) {
     lazy val retryConfig: RetryConfig = RetryConfig(maxRetries, initialBackoff, maxBackoff)
   }
@@ -66,6 +73,7 @@ object http extends LoggingF {
 
   case class SttpBackend(
     sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams],
+    readTimeout: Option[FiniteDuration],
 //    replayableStreamFactory: ReplayableStream.Factory
   )
     extends Backend
@@ -73,6 +81,9 @@ object http extends LoggingF {
     override def rawSingleExec(request: RequestImpl): ZIO[Scope, Throwable, Response] = {
 
       type SttpRequest = RequestT[Identity, (XStream[Byte], ResponseMetadata), capabilities.Effect[Task] with ZioStreams]
+
+      def requestWithReadTimeout(r0: SttpRequest): SttpRequest =
+        readTimeout.fold(r0)(r0.readTimeout(_))
 
       def requestWithBody(r0: SttpRequest): SttpRequest =
         request.body match {
@@ -103,7 +114,7 @@ object http extends LoggingF {
           .response(responseAs)
 
       val requestUpdaters: Vector[SttpRequest=>SttpRequest] =
-        Vector(requestWithBody, requestWithFollowRedirects)
+        Vector(requestWithBody, requestWithFollowRedirects, requestWithReadTimeout)
 
       val resolvedSttpRequest: SttpRequest = requestUpdaters.foldLeft(request0)((r0,fn) => fn(r0))
 
@@ -117,7 +128,7 @@ object http extends LoggingF {
 //            .map { replayableStream =>
 //            }
 //            .tap { _ =>
-          loggerF.trace(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+          loggerF.debug(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
             .as(
               Response(
                 request,
@@ -424,10 +435,10 @@ object http extends LoggingF {
 
     def asResource(config: RequestProcessorConfig): Resource[RequestProcessor] = {
       for {
-        sttpBackend <- sttp.client3.httpclient.zio.HttpClientZioBackend.scoped()
+        sttpBackend <- sttp.client3.httpclient.zio.HttpClientZioBackend.scoped(options = SttpBackendOptions(config.connectionTimeout, None))
         maxConnectionSemaphore <- Semaphore.make(config.maxConnections)
       } yield
-        RequestProcessorImpl(config, SttpBackend(sttpBackend), maxConnectionSemaphore)
+        RequestProcessorImpl(config, SttpBackend(sttpBackend, config.readTimeout.some), maxConnectionSemaphore)
     }
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
@@ -511,7 +522,9 @@ object http extends LoggingF {
 
       def runWithRetry[A](request: RequestImpl, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
         def impl(retryNumber: Int, backoff: FiniteDuration): Task[A] = {
-          val resolvedBackoff = List(backoff, retryConfig.maxBackoff).min
+          val baseBackoff = List(backoff, retryConfig.maxBackoff).min
+          val jitter = baseBackoff.toMillis * (config.jitterFactor * (2.0 * Math.random() - 1.0))
+          val jitteredBackoff = duration.FiniteDuration((baseBackoff.toMillis + jitter).toLong, duration.MILLISECONDS)
 
           val rawSingleEffect =
             rawSingleExec(request, responseEffect)
@@ -520,10 +533,11 @@ object http extends LoggingF {
                   ZIO.succeed(a)
                 case ResponseAction.Retry(context) =>
                   if (retryNumber <= retryConfig.maxRetries) {
+                    val newBackoff = duration.FiniteDuration((baseBackoff.toMillis * config.backoffFactor).toLong, duration.MILLISECONDS)
                     for {
-                      _ <- loggerF.info(s"${context} will retry in ${resolvedBackoff}")
-                      _ <- ZIO.sleep(resolvedBackoff.toZio)
-                      responseValue <- impl(retryNumber + 1, resolvedBackoff * 2)
+                      _ <- loggerF.debug(s"${context} will retry in ${jitteredBackoff}")
+                      _ <- ZIO.sleep(jitteredBackoff.toZio)
+                      responseValue <- impl(retryNumber + 1, newBackoff)
                     } yield responseValue
                   } else {
                     ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))

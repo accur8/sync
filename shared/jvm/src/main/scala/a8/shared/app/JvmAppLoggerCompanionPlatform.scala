@@ -2,8 +2,8 @@ package a8.shared.app
 
 
 import a8.shared.FileSystem.File
-import a8.shared.SharedImports._
-import a8.shared.app.BootstrapConfig.AppName
+import a8.shared.SharedImports.*
+import a8.shared.app.BootstrapConfig.{AppName, UnifiedLogLevel}
 import wvlet.log.{LogLevel, LogRotationHandler, Logger}
 import zio.{Chunk, Duration, Scope, Task, ZIO, ZLayer}
 import zio.stream.ZStream
@@ -15,7 +15,7 @@ import a8.shared.SharedImports.canEqual.given
 class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF {
 
 
-  override def configure(initialLogLevels: Iterable[(String, wvlet.log.LogLevel)]): ZIO[AppName & BootstrapConfig, Throwable, Unit] =
+  override def configure(initialLogLevels: Iterable[(String, wvlet.log.LogLevel)]): ZIO[AppName & BootstrappedIOApp.DefaultLogLevel & BootstrapConfig, Throwable, Unit] =
     configure0(initialLogLevels)
       .asZIO(
         scheduleLogLevelScan
@@ -24,18 +24,22 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
       )
 
 
-  private def configure0(initialLogLevels: Iterable[(String, wvlet.log.LogLevel)]): ZIO[BootstrapConfig, Throwable, Unit] =
+  private def configure0(initialLogLevels: Iterable[(String, wvlet.log.LogLevel)]): ZIO[BootstrapConfig & BootstrappedIOApp.DefaultLogLevel, Throwable, Unit] =
     for {
       bootstrapConfig <- ZIO.service[BootstrapConfig]
     } yield {
 
+      val resolvedWvletLogLevel: wvlet.log.LogLevel = {
+        val ull = bootstrapConfig.defaultLogLevel
+        if (ull.isTrace)
+          LogLevel.ALL
+        else
+          ull.wvletLogLevel
+      }
+
       def configureLogLevels(): Unit = {
 
-        if ( bootstrapConfig.defaultLogLevel equals LogLevel.TRACE )
-          Logger.setDefaultLogLevel(LogLevel.ALL)
-        else
-          Logger.setDefaultLogLevel(bootstrapConfig.defaultLogLevel)
-
+        Logger.setDefaultLogLevel(resolvedWvletLogLevel)
 
         initialLogLevels
           .foreach { case (name, level) =>
@@ -70,7 +74,7 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
       }
 
       if (bootstrapConfig.fileLogging) {
-        enableRollingFileLogging("details.log", bootstrapConfig.defaultLogLevel.jlLevel)
+        enableRollingFileLogging("details.log", resolvedWvletLogLevel.jlLevel)
         enableRollingFileLogging("errors.log", LogLevel.WARN.jlLevel)
       }
 
@@ -119,7 +123,7 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
 
   }
 
-  def scheduleLogLevelScan: ZIO[AppName, Nothing, Unit] = {
+  def scheduleLogLevelScan: ZIO[AppName & BootstrappedIOApp.DefaultLogLevel, Nothing, Unit] = {
     val stream =
       for {
         bootstrapper <- ZStream.service[Bootstrapper]
@@ -129,7 +133,7 @@ class JvmAppLoggerCompanionPlatform extends AppLoggerCompanionImpl with LoggingF
 
     stream
       .runDrain
-      .provideSome[AppName](
+      .provideSome[AppName & BootstrappedIOApp.DefaultLogLevel](
         ZLayer.succeed(zio.ZIOAppArgs(Chunk.empty)) >>> Bootstrapper.layer,
       )
       .logVoid
