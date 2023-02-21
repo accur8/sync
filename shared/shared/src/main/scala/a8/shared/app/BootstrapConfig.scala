@@ -16,6 +16,10 @@ import scala.concurrent.duration.FiniteDuration
 /*
  *  + app will have a default AppName which will be it's default prefix
  *  + can override the default AppName with the appname System property
+ *
+ *  + app will have default log level
+ *  + default log level can be overridden via system prop and bootstrap config
+ *
  */
 object BootstrapConfig {
 
@@ -88,7 +92,28 @@ object BootstrapConfig {
   }
 
   object UnifiedLogLevel {
-    def apply(logLevel: LogLevel): UnifiedLogLevel = ???
+    def apply(wvletLogLevel: wvlet.log.LogLevel): UnifiedLogLevel = {
+      import a8.shared.SharedImports.canEqual.given
+      import wvlet.log.LogLevel
+      val zioLogLevel =
+        wvletLogLevel match {
+          case LogLevel.ALL =>
+            zio.LogLevel.All
+          case LogLevel.TRACE =>
+            zio.LogLevel.Trace
+          case LogLevel.DEBUG =>
+            zio.LogLevel.Debug
+          case LogLevel.INFO =>
+            zio.LogLevel.Info
+          case LogLevel.WARN =>
+            zio.LogLevel.Warning
+          case LogLevel.ERROR =>
+            zio.LogLevel.Error
+          case LogLevel.OFF =>
+            zio.LogLevel.None
+        }
+      UnifiedLogLevel(wvletLogLevel, zioLogLevel)
+    }
   }
 
   case class UnifiedLogLevel(wvletLogLevel: wvlet.log.LogLevel, zioLogLevel: zio.LogLevel) {
