@@ -92,6 +92,15 @@ object BootstrapConfig {
   }
 
   object UnifiedLogLevel {
+
+    val All = UnifiedLogLevel(wvlet.log.LogLevel.ALL)
+    val Trace = UnifiedLogLevel(wvlet.log.LogLevel.TRACE)
+    val Debug = UnifiedLogLevel(wvlet.log.LogLevel.DEBUG)
+    val Info = UnifiedLogLevel(wvlet.log.LogLevel.INFO)
+    val Warn = UnifiedLogLevel(wvlet.log.LogLevel.WARN)
+    val Error = UnifiedLogLevel(wvlet.log.LogLevel.ERROR)
+    val Off = UnifiedLogLevel(wvlet.log.LogLevel.OFF)
+
     def apply(wvletLogLevel: wvlet.log.LogLevel): UnifiedLogLevel = {
       import a8.shared.SharedImports.canEqual.given
       import wvlet.log.LogLevel
