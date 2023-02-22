@@ -46,7 +46,15 @@ object http extends LoggingF {
     maxBackoff: FiniteDuration = 1.minute,
     jitterFactor: Double = 0.2, // 0.0 is no jitter
     backoffFactor: Double = 1.2, // 2.0 doubles (i.e. squares) backoff after each retry
-  )
+  ) {
+    lazy val initialRetryCounter =
+      RetryCounter(
+        1,
+        maxRetries,
+        initialBackoff,
+        this,
+      )
+  }
 
   object RequestProcessorConfig extends MxRequestProcessorConfig {
     val noRetries: RequestProcessorConfig = RequestProcessorConfig(0, 1.second, 1.minute)
@@ -68,17 +76,54 @@ object http extends LoggingF {
   }
 
   trait Backend {
-    def rawSingleExec(request: RequestImpl): ZIO[Scope,Throwable, Response]
+    def rawSingleExec(retryCounter: RetryCounter, request: RequestImpl): ZIO[Scope,Throwable, Response]
+  }
+
+  object RetryCounter {
+    def multiply(finiteDuration: FiniteDuration, factor: Double): FiniteDuration = {
+      duration.FiniteDuration(
+        (finiteDuration.toMillis * factor).toLong,
+        duration.MILLISECONDS,
+      )
+    }
+  }
+
+  case class RetryCounter(
+    attemptNumber: Int,
+    maxAttempts: Int,
+    backoff: FiniteDuration,
+    resolvedConfig: RetryConfig,
+  ) {
+
+    def jitteredBackoff = {
+      val baseBackoff = List(backoff, resolvedConfig.maxBackoff).min
+      val jitter = baseBackoff.toMillis * (resolvedConfig.jitterFactor * (2.0 * Math.random() - 1.0))
+      duration.FiniteDuration((baseBackoff.toMillis + jitter).toLong, duration.MILLISECONDS)
+    }
+
+    def context = s"attempt ${attemptNumber} of ${maxAttempts}"
+
+    def nextAttempt: Option[RetryCounter] =
+      ( (attemptNumber+1) <= maxAttempts )
+        .toOption(
+          copy(
+            attemptNumber = attemptNumber+1,
+            backoff = RetryCounter.multiply(backoff, resolvedConfig.backoffFactor),
+          )
+        )
   }
 
   case class SttpBackend(
     sttpBackend: sttp.client3.SttpBackend[Task, ZioStreams],
     readTimeout: Option[FiniteDuration],
+    retryConfig: RetryConfig,
 //    replayableStreamFactory: ReplayableStream.Factory
   )
     extends Backend
   {
-    override def rawSingleExec(request: RequestImpl): ZIO[Scope, Throwable, Response] = {
+
+
+    override def rawSingleExec(retryCounter: RetryCounter, request: RequestImpl): ZIO[Scope, Throwable, Response] = {
 
       type SttpRequest = RequestT[Identity, (XStream[Byte], ResponseMetadata), capabilities.Effect[Task] with ZioStreams]
 
@@ -128,7 +173,7 @@ object http extends LoggingF {
 //            .map { replayableStream =>
 //            }
 //            .tap { _ =>
-          loggerF.debug(s"${request.method.value} ${request.uri} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
+          loggerF.debug(s"${request.method.value} ${request.uri} ${retryCounter.context} completed in ${java.lang.System.currentTimeMillis() - startTime} ms -- ${response.code} ${response.statusText}")
             .as(
               Response(
                 request,
@@ -138,7 +183,7 @@ object http extends LoggingF {
             )
         }
         .onError { error =>
-           loggerF.debug(s"error with http request -- \n${request.curlCommand}", error)
+           loggerF.debug(s"error with http request ${retryCounter.context} -- \n${request.curlCommand}", error)
         }
     }
   }
@@ -438,7 +483,7 @@ object http extends LoggingF {
         sttpBackend <- sttp.client3.httpclient.zio.HttpClientZioBackend.scoped(options = SttpBackendOptions(config.connectionTimeout, None))
         maxConnectionSemaphore <- Semaphore.make(config.maxConnections)
       } yield
-        RequestProcessorImpl(config, SttpBackend(sttpBackend, config.readTimeout.some), maxConnectionSemaphore)
+        RequestProcessorImpl(config, SttpBackend(sttpBackend, config.readTimeout.some, config.retryConfig), maxConnectionSemaphore)
     }
 
     def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {
@@ -521,26 +566,27 @@ object http extends LoggingF {
       }
 
       def runWithRetry[A](request: RequestImpl, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Task[A] = {
-        def impl(retryNumber: Int, backoff: FiniteDuration): Task[A] = {
-          val baseBackoff = List(backoff, retryConfig.maxBackoff).min
-          val jitter = baseBackoff.toMillis * (config.jitterFactor * (2.0 * Math.random() - 1.0))
-          val jitteredBackoff = duration.FiniteDuration((baseBackoff.toMillis + jitter).toLong, duration.MILLISECONDS)
+
+        val resolvedRetry = request.retryConfig.getOrElse(retryConfig)
+
+        def impl(retryCounter: RetryCounter): Task[A] = {
 
           val rawSingleEffect =
-            rawSingleExec(request, responseEffect)
+            rawSingleExec(retryCounter, request, responseEffect)
               .flatMap {
                 case ResponseAction.Success(a) =>
                   ZIO.succeed(a)
                 case ResponseAction.Retry(context) =>
-                  if (retryNumber <= retryConfig.maxRetries) {
-                    val newBackoff = duration.FiniteDuration((baseBackoff.toMillis * config.backoffFactor).toLong, duration.MILLISECONDS)
-                    for {
-                      _ <- loggerF.debug(s"${context} will retry in ${jitteredBackoff}")
-                      _ <- ZIO.sleep(jitteredBackoff.toZio)
-                      responseValue <- impl(retryNumber + 1, newBackoff)
-                    } yield responseValue
-                  } else {
-                    ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryNumber} times"))
+                  retryCounter.nextAttempt match {
+                    case Some(nextAttempt) =>
+                      val jitteredBackoff = retryCounter.jitteredBackoff
+                      for {
+                        _ <- loggerF.debug(s"${context} will make ${nextAttempt.context} in ${jitteredBackoff}")
+                        _ <- ZIO.sleep(jitteredBackoff.toZio)
+                        responseValue <- impl(nextAttempt)
+                      } yield responseValue
+                    case None =>
+                      ZIO.fail(new RuntimeException(s"reached retry limit tried ${retryCounter.attemptNumber} times"))
                   }
                 case f@ ResponseAction.Fail(msg, rm) =>
                   ZIO.fail(new RuntimeException(s"received ${rm.map(_.metadata.statusCode)} -- ${msg}"))
@@ -549,20 +595,20 @@ object http extends LoggingF {
           ZIO.scoped(rawSingleEffect)
 
         }
-        impl(0, retryConfig.initialBackoff)
+        impl(resolvedRetry.initialRetryCounter)
       }
 
-      def rawSingleExec[A](rawRequest: RequestImpl, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Resource[ResponseAction[A]] = {
+      def rawSingleExec[A](retryCounter: RetryCounter, rawRequest: RequestImpl, responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit trace: Trace, loggerF: LoggerF): Resource[ResponseAction[A]] = {
         val rawRequest0: Task[Request] = ZIO.succeed(rawRequest: Request)
         for {
           request0 <- rawRequest.effects.foldLeft(rawRequest0)((r, effect) => r.flatMap(effect))
           request = request0 match { case r0: RequestImpl => r0 }
-          _ <- loggerF.debug(s"http request${if ( request.body.isStream ) "(with streaming request body)" else ""}\n${request.curlCommand.indent("    ")}")
+          _ <- loggerF.debug(s"http request${if ( request.body.isStream ) "(with streaming request body)" else ""} ${retryCounter.context}\n${request.curlCommand.indent("    ")}")
           response <-
             maxConnectionSemaphore
               .withPermit {
                 backend
-                  .rawSingleExec(request)
+                  .rawSingleExec(retryCounter, request)
                   .either
                   .flatMap(responseEffect)
               }
@@ -580,7 +626,6 @@ object http extends LoggingF {
       effects: Vector[Request=>Task[Request]] = Vector.empty[Request=>Task[Request]],
       followRedirects: Boolean = true,
     ) extends Request {
-
 
       override def streamingRequestBody(requestBody: SharedImports.XStream[Byte]): Request =
         copy(body = Body.StreamingBody(requestBody))
