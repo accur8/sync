@@ -145,7 +145,7 @@ object ZFileSystem {
         import java.nio.file.StandardCopyOption.REPLACE_EXISTING
         import language.implicitConversions
   //      implicit def toNioPath(path: Path): NioPath = Paths.get(path.canonicalPath)
-        Files.copy(asNioPath, target.asNioPath, REPLACE_EXISTING)
+        Files.copy(asNioPath, target.asNioPath, REPLACE_EXISTING): @scala.annotation.nowarn
         ()
       }
   }

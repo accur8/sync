@@ -16,6 +16,7 @@ import zio.{Task, ZIO, ZIOAppArgs, ZLayer}
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
+@scala.annotation.nowarn
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
 

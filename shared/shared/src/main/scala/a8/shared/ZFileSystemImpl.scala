@@ -80,7 +80,7 @@ object ZFileSystemImpl {
       parent.makeDirectories
         .asZIO(
           zblock(
-            Files.createSymbolicLink(asNioPath, Paths.get(target))
+            Files.createSymbolicLink(asNioPath, Paths.get(target)): @scala.annotation.nowarn
           )
         )
 
@@ -137,7 +137,7 @@ object ZFileSystemImpl {
         .as(())
 
     override def copyTo(d: Directory): Z[Unit] =
-      zblock(Files.copy(asNioPath, d.file(name).asNioPath))
+      zblock(Files.copy(asNioPath, d.file(name).asNioPath): @scala.annotation.nowarn)
 
   }
 
@@ -183,19 +183,19 @@ object ZFileSystemImpl {
 
     override def moveTo(d: Directory): Z[Unit] =
       zblock(
-        Files.move(asNioPath, d.subdir(name).asNioPath)
+        Files.move(asNioPath, d.subdir(name).asNioPath): @scala.annotation.nowarn
       )
 
     override def makeDirectories: Z[Unit] =
       zblock(
         if (!nioPath.toFile.isDirectory)
-          Files.createDirectories(nioPath)
+          Files.createDirectories(nioPath): @scala.annotation.nowarn
       )
 
     override def makeDirectory: Z[Unit] =
       zblock(
         if (!nioPath.toFile.isDirectory)
-          Files.createDirectory(nioPath)
+          Files.createDirectory(nioPath): @scala.annotation.nowarn
       )
 
     override def subdirs: Z[Iterable[Directory]] =
@@ -246,7 +246,7 @@ object ZFileSystemImpl {
         .flatMap {
           case true =>
             deleteChildren
-              .asZIO(zblock(nioPath.toFile.delete()))
+              .asZIO(zblock(nioPath.toFile.delete()): @scala.annotation.nowarn)
           case false =>
             zunit
         }

@@ -85,7 +85,7 @@ object SyncZLogger {
                     .getOrElse(traceStr)
                     .intern()
                 val cl = CachedLogger(traceStr, loggerName, LoggerFactory.getLogger(loggerName), wvlet.log.Logger(loggerName))
-                cachedLoggers += (trace -> cl)
+                cachedLoggers += (trace -> cl): @scala.annotation.nowarn
                 cl
             }
 
@@ -99,47 +99,50 @@ object SyncZLogger {
 
             val sb = new StringBuilder()
 
+            def append(s: String): Unit =
+              sb.append(s): @scala.annotation.nowarn
+
             { // fiber id(s)
               fiberId match {
                 case FiberId.None =>
                 // noop
-                case FiberId.Runtime(id, _, _) => Set(id)
-                  sb.append("f")
-                  sb.append(id)
-                  sb.append(" ")
+                case FiberId.Runtime(id, _, _) =>
+                  append("f")
+                  append(id.toString)
+                  append(" ")
                 case FiberId.Composite(l, r) =>
-                  sb.append("f")
+                  append("f")
                   List(l, r).foreach { fiberId =>
-                    sb.append("_")
-                    sb.append(fiberId)
+                    append("_")
+                    append(fiberId.toString)
                   }
-                  sb.append(" ")
+                  append(" ")
               }
             }
 
             { // job correlation id
               annotations.get("job") match {
                 case Some(j) =>
-                  sb.append("j")
-                  sb.append(j)
-                  sb.append(" ")
+                  append("j")
+                  append(j)
+                  append(" ")
                 case _ =>
                 // noop
               }
             }
 
-            sb.append("| ")
-            sb.append(textMessage())
+            append("| ")
+            append(textMessage())
 
             { // cause
               if (!cause.isEmpty) {
                 val indent = "        "
-                sb.append("\n")
-                sb.append(cause.prettyPrint.indent(indent))
+                append("\n")
+                append(cause.prettyPrint.indent(indent))
               }
             }
 
-            sb.append(cachedLogger.fileName)
+            append(cachedLogger.fileName)
 
             sb.toString()
 

@@ -47,10 +47,10 @@ class UnionTest extends AnyFunSuite {
 
     def run(expectedJson: String, expectedFoo: Foo): Unit = {
       val actualFoo = json.unsafeRead[Foo](expectedJson)
-      actualFoo should be (expectedFoo)
+      actualFoo should be (expectedFoo): @scala.annotation.nowarn
       val expectedJsv = json.unsafeParse(expectedJson)
       val actualJsv = actualFoo.toJsVal
-      actualJsv should be (expectedJsv)
+      actualJsv should be (expectedJsv): @scala.annotation.nowarn
     }
 
     run("""{"kind":"foo2"}""", Foo2)

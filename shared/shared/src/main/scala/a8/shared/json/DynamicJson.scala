@@ -233,9 +233,6 @@ class DynamicJson(wrappedValue: JsVal, parent: Option[(DynamicJson, Either[Strin
   def selectDynamic(name: String): DynamicJson =
     selectDynamicOpt(name)
       .getOrElse {
-        if ( name == "bsuid" ) {
-          toString
-        }
         __.error(s"unable to find ${name} in -- ${__.asCompactStr}")
       }
 

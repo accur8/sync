@@ -29,24 +29,26 @@ object JsValOps {
    */
   def toEscapedJsonChord(value: String): Chord = {
     val sb = new StringBuilder
+    def append(s: String): Unit =
+      sb.append(s): @scala.annotation.nowarn
     value
-      .map {
+      .foreach {
         case '"' =>
-          sb.append("\\\"")
+          append("\\\"")
         case '\\' =>
-          sb.append("\\\\")
+          append("\\\\")
         case '\b' =>
-          sb.append("\\b")
+          append("\\b")
         case '\f' =>
-          sb.append("\\f")
+          append("\\f")
         case '\n' =>
-          sb.append("\\n")
+          append("\\n")
         case '\r' =>
-          sb.append("\\r")
+          append("\\r")
         case '\t' =>
-          sb.append("\\t")
+          append("\\t")
         case ch =>
-          sb.append(ch)
+          sb.append(ch): @scala.annotation.nowarn
       }
     doubleQuoteCh ~  Chord.str(sb.toString()) ~ doubleQuoteCh
   }

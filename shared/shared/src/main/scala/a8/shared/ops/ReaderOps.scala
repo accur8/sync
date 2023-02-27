@@ -16,8 +16,8 @@ class ReaderOps(private val reader: Reader) extends AnyVal {
       }
       writer.toString
     } finally {
-      Try(writer.close())
-      Try(reader.close())
+      Try(writer.close()): @scala.annotation.nowarn
+      Try(reader.close()): @scala.annotation.nowarn
     }
   }
 
