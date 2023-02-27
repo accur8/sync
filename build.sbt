@@ -19,16 +19,17 @@ val sbtA8Version = "1.2.0-20220113_1040"
 val zioVersion = "2.0.8"
 val zioLoggingVersion = "2.1.9"
 
-scalacOptions in Global ++= Seq(
-  "-deprecation",
-  "-feature",
-  "-unchecked",
-  "-language:implicitConversions",
-  "-language:higherKinds",
-  "-language:existentials",
-  "-language:postfixOps",
-  "-language:strictEquality",
-)
+// scalacOptions in Global ++= Seq(
+//   "-deprecation",
+//   "-feature",
+//   "-unchecked",
+//   "-language:implicitConversions",
+//   "-language:higherKinds",
+//   "-language:existentials",
+//   "-language:postfixOps",
+//   "-language:strictEquality",
+//   // "-Werror",
+// )
 
 
 publishTo in Global := sonatypePublishToBundle.value
@@ -54,6 +55,7 @@ lazy val api =
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.5" cross CrossVersion.full),
       )
     )
 
@@ -75,6 +77,7 @@ lazy val shared =
           baseDirectory.value / "shared" / "src" / "test" / "scala",
         ),
       libraryDependencies ++= Seq(
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.5" cross CrossVersion.full),
         "org.wvlet.airframe" %% "airframe-log" % "23.2.4",
         "org.typelevel" %% "case-insensitive" % "1.3.0",
         "com.beachape" %%% "enumeratum" % "1.7.2",

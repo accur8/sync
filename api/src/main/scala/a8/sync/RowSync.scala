@@ -3,9 +3,9 @@ package a8.sync
 
 import a8.sync.ResolvedTable.ResolvedField
 import a8.sync.impl.{NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedValue}
-import Imports._
+import Imports.*
 import a8.shared.jdbcf.{Dialect, SqlString}
-import SqlString._
+import SqlString.*
 import a8.sync.ResolvedTable.ColumnMapper.StringNormalValue
 import a8.sync.RowSync.ValidationMessage
 import a8.sync.dsl.TruncateAction
@@ -13,6 +13,7 @@ import cats.data.Chain
 import wvlet.log.LogLevel
 import zio.Chunk
 
+import scala.annotation.nowarn
 import scala.collection.mutable
 
 //  sealed trait SyncAction
@@ -103,7 +104,7 @@ object RowSync {
                   case (Some(logLevel), StringNormalValue(s)) =>
                     validationMessages.append(
                       logLevel -> s"${table.qualifiedTargetTable.toString}.${resolvedField.jdbcColumn.columnName.value} truncated from length ${s.length} to ${resolvedField.jdbcColumn.columnSize} original value is -- '${s}'"
-                    )
+                    ): @nowarn
                   case (Some(logLevel), v) =>
                     sys.error(s"don't know how to handle truncated value that is not a StringNormalValue ${v}")
                   case _ =>

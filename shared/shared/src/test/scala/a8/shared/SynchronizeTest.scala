@@ -42,7 +42,7 @@ class SynchronizeTest extends AnyFunSuite with GivenWhenThen {
           _.correlationId
         )
 
-      assert(actual == expected.toVector)
+      assert(actual == expected.toVector): @scala.annotation.nowarn
 
     }
 
@@ -84,7 +84,7 @@ class SynchronizeTest extends AnyFunSuite with GivenWhenThen {
           _.id,
         )
 
-      assert(actual == expected)
+      assert(actual == expected): @scala.annotation.nowarn
 
     }
 

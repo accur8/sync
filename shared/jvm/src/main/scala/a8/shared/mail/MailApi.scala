@@ -29,16 +29,18 @@ object MailApi extends LoggingF {
     def acquire: Task[MailApi] =
       ZIO.attemptBlocking {
         val props = new Properties()
-        props.put("mail.debug", config.debug.toString)
-        props.put("mail.debug.auth", config.debug.toString)
-        props.put("mail.smtp.host", config.host)
-        config.port.map(port => props.put("mail.smtp.port", port.toString))
-        props.put("mail.smtp.auth", config.user.nonEmpty.toString)
-        config.user.map(user => props.put("mail.smtp.user", user))
-        props.put("mail.smtp.ssl.enable", config.sslEnabled.toString)
-        props.put("mail.smtp.starttls.enable", config.startTlsEnabled.toString)
-        props.put("mail.smtp.starttls.required", config.startTlsEnabled.toString)
-        if (!config.certCheckEnabled) props.put("mail.smtp.ssl.trust", "*")
+        def put(name: String, value: String): Unit =
+          props.put(name,value): @scala.annotation.nowarn
+        put("mail.debug", config.debug.toString)
+        put("mail.debug.auth", config.debug.toString)
+        put("mail.smtp.host", config.host)
+        config.port.foreach(port => put("mail.smtp.port", port.toString))
+        put("mail.smtp.auth", config.user.nonEmpty.toString)
+        config.user.foreach(user => put("mail.smtp.user", user))
+        put("mail.smtp.ssl.enable", config.sslEnabled.toString)
+        put("mail.smtp.starttls.enable", config.startTlsEnabled.toString)
+        put("mail.smtp.starttls.required", config.startTlsEnabled.toString)
+        if (!config.certCheckEnabled) put("mail.smtp.ssl.trust", "*")
 
         val session = config.user match {
           case Some(user) =>

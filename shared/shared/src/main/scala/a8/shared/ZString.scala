@@ -22,7 +22,7 @@ object ZString {
     def append(zstr: ZString, sb: StringBuilder): Unit = {
       zstr match {
         case Str(s) =>
-          sb.append(s)
+          sb.append(s): @scala.annotation.nowarn
         case Empty =>
         // noop
         case Concat(l, r) =>
@@ -33,7 +33,7 @@ object ZString {
           append(m, sb)
           append(r, sb)
         case Character(ch) =>
-          sb.append(ch)
+          sb.append(ch): @scala.annotation.nowarn
         case IteratorZStr(iter) =>
           iter()
             .foreach(zstr => append(zstr, sb))

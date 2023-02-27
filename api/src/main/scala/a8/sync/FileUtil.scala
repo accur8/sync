@@ -5,8 +5,10 @@ import a8.shared.json.{JsonCodec, ast}
 import java.io.File
 import scala.io.Source
 import java.nio.file.Files
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.json.JsonReader.JsonReaderOptions
+
+import scala.annotation.nowarn
 
 object FileUtil {
 
@@ -21,8 +23,8 @@ object FileUtil {
   }
 
   def writeFile(file: File, contents: String): Unit = {
-    file.getParentFile.mkdirs()
-    Files.writeString(file.toPath, contents)
+    file.getParentFile.mkdirs(): @nowarn
+    Files.writeString(file.toPath, contents): @nowarn
   }
 
   def resolveCaseClass[A](jsonStr: String)(implicit decoder: JsonCodec[A], jsonReaderOptions: JsonReaderOptions): A =

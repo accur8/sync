@@ -12,7 +12,7 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
   def snapshot(): Vector[A] = ref.get
 
   override def prepend(elem: A): AtomicBuffer.this.type = {
-    ref.getAndTransform(elem +: _)
+    ref.getAndTransform(elem +: _): @scala.annotation.nowarn
     this
   }
 
@@ -21,7 +21,7 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
       .getAndTransform { v =>
         val (l,r) = v.splitAt(idx)
         l ++ Vector(elem) ++ r
-      }
+      }: @scala.annotation.nowarn
   }
 
   override def insertAll(idx: Int, elems: IterableOnce[A]): Unit = {
@@ -30,7 +30,7 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
       .getAndTransform { v =>
         val (l,r) = v.splitAt(idx)
         l ++ reifiedElems ++ r
-      }
+      }: @scala.annotation.nowarn
   }
 
   override def remove(idx: Int): A = {
@@ -48,7 +48,7 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
       .getAndTransform { v =>
         val (l,r) = v.splitAt(idx)
         l ++ r.drop(count)
-      }
+      }: @scala.annotation.nowarn
 
   override def patchInPlace(from: Int, patch: IterableOnce[A], replaced: Int): AtomicBuffer.this.type = {
     val reifiedPatch = patch.iterator.take(replaced).to(Vector)
@@ -56,12 +56,12 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
       .getAndTransform { v =>
         val (l,r) = v.splitAt(from)
         l ++ reifiedPatch ++ r.drop(replaced)
-      }
+      }: @scala.annotation.nowarn
     this
   }
 
   override def addOne(elem: A): AtomicBuffer.this.type = {
-    ref.getAndTransform(_ :+ elem)
+    ref.getAndTransform(_ :+ elem): @scala.annotation.nowarn
     this
   }
 
@@ -74,7 +74,7 @@ class AtomicBuffer[A] extends collection.mutable.Buffer[A] {
           val (l,r) = v.splitAt(idx)
           l.appended(elem) ++ r.drop(1)
         }
-      }
+      }: @scala.annotation.nowarn
 
   override def apply(i: Int): A =
     ref.get.apply(i)

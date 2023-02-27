@@ -9,7 +9,7 @@ import java.sql.{ Connection, ResultSet }
 
 object SimpleJdbc extends App {
 
-  new AS400JDBCDriver
+  new AS400JDBCDriver(): @scala.annotation.nowarn()
 
   val conn: Connection = DriverManager.getConnection("jdbc:as400://localhost", "gmarches", "mwrt3967")
 //    val conn = DriverManager.getConnection("jdbc:as400://dev400.goodville.com?proxy server=goodville.vpn.accur8.io:3470", "gmarches", "mwrt3967")

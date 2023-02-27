@@ -26,8 +26,6 @@ case class ConnInternalImpl(
   with ConnInternal
 {
 
-  jdbcConn.getMetaData.getIdentifierQuoteString
-
   override def asInternal: ConnInternal = this
 
   override def compile(sql: SqlString): CompiledSql =

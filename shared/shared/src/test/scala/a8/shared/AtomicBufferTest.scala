@@ -11,22 +11,22 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("addOne") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
+    b.addOne("a"): @scala.annotation.nowarn
     val result = b.toList
     assertEquals(List("a"), result)
   }
 
   test("prepend") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.prepend("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.prepend("b"): @scala.annotation.nowarn
     assertEquals(List("b", "a" ), b.toList)
   }
 
   test("insert - start") {
     val b = new AtomicBuffer[String]
-    b.addOne("b")
-    b.addOne("c")
+    b.addOne("b"): @scala.annotation.nowarn
+    b.addOne("c"): @scala.annotation.nowarn
 
     b.insert(0, "a")
 
@@ -35,8 +35,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insert - middle") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("c")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("c"): @scala.annotation.nowarn
 
     b.insert(1, "b")
 
@@ -45,8 +45,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insert - end") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insert(2, "c")
 
@@ -55,8 +55,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insert - beyond num of elements") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insert(3, "c")
 
@@ -65,8 +65,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insert - negative index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insert(-1, "1")
 
@@ -77,8 +77,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insertAll - at start negative") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insertAll(-1, Iterable("c","d"))
 
@@ -90,8 +90,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insertAll - at start") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insertAll(0, Iterable("c","d"))
 
@@ -103,8 +103,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insertAll - at end") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insertAll(2, Iterable("c","d"))
 
@@ -115,8 +115,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insertAll - at end past existing index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insertAll(5, Iterable("c","d"))
 
@@ -127,8 +127,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("insertAll - in middle") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.insertAll(1, Iterable("c","d"))
 
@@ -139,10 +139,10 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("remove at index - inbounds") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
-    b.remove(0)
+    b.remove(0): @scala.annotation.nowarn
 
     val result = b.toList
 
@@ -151,11 +151,11 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("remove at index - out of bounds above max index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
-      b.remove(2)
+      b.remove(2): @scala.annotation.nowarn
       b.toList
     } catch {
       case e: Exception => e.getMessage
@@ -166,11 +166,11 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("remove at index - out of bounds below min index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
-      b.remove(-1)
+      b.remove(-1): @scala.annotation.nowarn
       b.toList
     } catch {
       case e: Exception => e.getMessage
@@ -181,8 +181,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("remove at index with count - inbounds") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.remove(0, 2)
 
@@ -193,8 +193,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("remove at index with count - out of bounds below min index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.remove(-1, 2)
@@ -208,8 +208,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("remove at index with count - out of bounds above max index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.remove(2, 2)
@@ -223,11 +223,11 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("patchInPlace - in middle") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
-      b.patchInPlace(1, Iterable("c", "d"),  2)
+      b.patchInPlace(1, Iterable("c", "d"),  2): @scala.annotation.nowarn
       b.toList
     } catch {
       case e: Exception => e.getMessage
@@ -238,11 +238,11 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("patchInPlace - in middle partial") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
-      b.patchInPlace(1, Iterable("c", "d"),  1)
+      b.patchInPlace(1, Iterable("c", "d"),  1): @scala.annotation.nowarn
       b.toList
     } catch {
       case e: Exception => e.getMessage
@@ -253,11 +253,11 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("patchInPlace - below min index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
-      b.patchInPlace(-1, Iterable("c", "d"),  2)
+      b.patchInPlace(-1, Iterable("c", "d"),  2): @scala.annotation.nowarn
       b.toList
     } catch {
       case e: Exception => e.getMessage
@@ -268,11 +268,11 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("patchInPlace - above max index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
-      b.patchInPlace(2, Iterable("c", "d"),  2)
+      b.patchInPlace(2, Iterable("c", "d"),  2): @scala.annotation.nowarn
       b.toList
     } catch {
       case e: Exception => e.getMessage
@@ -283,8 +283,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("update - existing head elem") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.update(0, "c")
@@ -298,8 +298,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("update - existing elem") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.update(1, "c")
@@ -313,8 +313,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("update - below min index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.update(-1, "c")
@@ -328,8 +328,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("update - above max index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.update(2, "c")
@@ -343,8 +343,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("apply - head") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.apply(0)
@@ -357,8 +357,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("apply - below min index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.apply(-1)
@@ -371,8 +371,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("apply - above max index") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.apply(2)
@@ -385,8 +385,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("length -- with values") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     val result = try {
       b.length
@@ -411,8 +411,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("iterator -- with values") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     assertResult(Iterator("a", "b").toList)(b.iterator.toList)
   }
@@ -425,8 +425,8 @@ class AtomicBufferTest extends AnyFunSuite {
 
   test("clear") {
     val b = new AtomicBuffer[String]
-    b.addOne("a")
-    b.addOne("b")
+    b.addOne("a"): @scala.annotation.nowarn
+    b.addOne("b"): @scala.annotation.nowarn
 
     b.clear()
 

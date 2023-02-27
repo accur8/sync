@@ -71,7 +71,7 @@ object ZJsonReader {
       val unusedFieldAction =
         new UnusedFieldAction {
           override def apply[A](unusedFieldsInfo: JsonReadOptions.UnusedFieldsInfo[A])(implicit readOptions: JsonReadOptions): Either[ReadError, A] = {
-            warnings.append(unusedFieldsInfo.messageFn())
+            warnings.append(unusedFieldsInfo.messageFn()): @scala.annotation.nowarn
             unusedFieldsInfo.successFn()
           }
         }

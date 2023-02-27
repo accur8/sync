@@ -96,7 +96,7 @@ abstract class BootstrappedIOApp
             try {
               Class.forName(className)
                 .getConstructor()
-                .newInstance()
+                .newInstance(): @scala.annotation.nowarn
               logger.debug(s"loaded jdbc driver ${className}")
             } catch {
               case th: Throwable =>

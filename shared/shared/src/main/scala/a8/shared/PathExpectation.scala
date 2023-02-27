@@ -62,7 +62,7 @@ object PathExpectation {
           true
         }
       if ( createSymLink ) {
-        Files.createSymbolicLink(symLink, contents)
+        Files.createSymbolicLink(symLink, contents): @scala.annotation.nowarn
         true
       } else {
         false
