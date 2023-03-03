@@ -26,10 +26,10 @@ jobs:
       - uses: cachix/install-nix-action@v18
         # This configures nix to use the cachix cache, and automatically
         # pushes all the changed files. It's safe to remove that step
-      - uses: cachix/cachix-action@v12
-        with:
-          name: accur8
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+#      - uses: cachix/cachix-action@v12
+#        with:
+#          name: accur8
+#          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       # And your commands at the end
       - run: nix-shell --run "sbt -Djline.terminal=jline.UnsupportedTerminal clean compile test:compile"
       - run: nix-shell --run "sbt -Djline.terminal=jline.UnsupportedTerminal clean test"
