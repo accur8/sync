@@ -7,11 +7,6 @@ import java.util.UUID
 
 class JsonCodecsTest extends AnyFunSuite {
 
-  //todo: need to have tests for:
-  // - List
-  // - Vector
-  // - Iterable
-
   test("Write Option Some") {
     val input = Some("test")
     val expected = JsStr(input.value)
