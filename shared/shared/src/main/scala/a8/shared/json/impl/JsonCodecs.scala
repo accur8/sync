@@ -120,7 +120,7 @@ trait JsonCodecs {
                   .iterator
                   .map { t =>
                     val value =
-                      codecA.read(doc) match {
+                      codecA.read(JsDoc.JsDocRoot(t._2)) match {
                         case Right(v) =>
                           v
                         case Left(re) =>
