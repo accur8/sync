@@ -18,17 +18,6 @@ val scalaLibVersion = "3.2.2"
 val zioVersion = "2.0.13"
 val zioLoggingVersion = "2.1.9"
 
-// scalacOptions in Global ++= Seq(
-//   "-deprecation",
-//   "-feature",
-//   "-unchecked",
-//   "-language:implicitConversions",
-//   "-language:higherKinds",
-//   "-language:existentials",
-//   "-language:postfixOps",
-//   "-language:strictEquality",
-//   // "-Werror",
-// )
 
 
 Global / publishTo := sonatypePublishToBundle.value
@@ -44,6 +33,35 @@ Global / versionScheme := Some("strict")
 
 Global / serverConnectionType := ConnectionType.Local
 
+//Global / scalacOptions ++= Seq(
+//  "-deprecation",
+//  "-feature",
+//  "-unchecked",
+//  "-language:higherKinds",
+//  "-language:implicitConversions",
+//  "-language:strictEquality",
+//  "-Xfatal-warnings",
+//  "-Xlint",
+//  "-Yinline-warnings",
+//  "-Yno-adapted-args",
+//  "-Ywarn-dead-code",
+//  "-Ywarn-numeric-widen",
+//  "-Ywarn-value-discard",
+//  "-Xfuture",
+////  "-Ywarn-unused-import"
+//)
+Global / scalacOptions ++= Seq(
+  "-encoding", "UTF-8",
+  "-deprecation",
+  "-feature",
+  "-unchecked",
+  "-language:implicitConversions",
+  "-language:higherKinds",
+  "-language:existentials",
+  "-language:postfixOps",
+  "-language:strictEquality",
+ // "-Werror",
+)
 
 lazy val api =
   Common
