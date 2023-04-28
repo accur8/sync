@@ -24,13 +24,24 @@ object ZFileSystem {
 
   type Z[A] = Task[A]
 
+  sealed abstract class SymlinkHandler(val linkOption: Option[LinkOption])
+  object SymlinkHandler {
+    case object Follow extends SymlinkHandler(Some(LinkOption.NOFOLLOW_LINKS))
+    case object NoFollow extends SymlinkHandler(None)
+  }
+
+  object SymlinkHandlerDefaults {
+    given follow: SymlinkHandler = SymlinkHandler.Follow
+    given noFollow: SymlinkHandler = SymlinkHandler.NoFollow
+  }
+
   trait Path {
     lazy val name: String = asJioFile.getName
     def parentOpt: Option[Directory]
     def canonicalPath: Z[String] = zblock(asJioFile.getCanonicalPath)
     def absolutePath: String = asJioFile.getAbsolutePath
     def path = asNioPath.toString
-    def exists: Z[Boolean]
+    def exists(implicit symlinkHandler: SymlinkHandler): Z[Boolean]
     def moveTo(d: Directory): Z[Unit]
     def copyTo(d: Directory): Z[Unit]
     def relativeTo(directory: Directory): String = directory.asNioPath.relativize(asNioPath).toString
@@ -38,6 +49,11 @@ object ZFileSystem {
     def asJioFile: java.io.File = asNioPath.toFile
     def kind: String
     def delete: Z[Unit]
+    def deleteIfExists: Z[Unit]
+    def existsAsFile(implicit symlinkHandler: SymlinkHandler): Z[Boolean]
+    def existsAsDirectory(implicit symlinkHandler: SymlinkHandler): Z[Boolean]
+    def existsAsSymlink: Z[Boolean]
+    def existsAsOther(implicit symlinkHandler: SymlinkHandler): Z[Boolean]
     def isAbsolute: Boolean = asNioPath.isAbsolute
     override def toString = absolutePath
   }
@@ -68,7 +84,7 @@ object ZFileSystem {
      * @return
      */
     def resolve: Z[Directory] =
-      exists
+      exists(SymlinkHandler.Follow)
         .flatMap {
           case true =>
             zunit
@@ -103,7 +119,9 @@ object ZFileSystem {
 
   trait File extends Path with HasParent {
 
-    def write(content: String): Z[Unit] =
+    def write[R](byteStream: ZStream[R,Throwable,Byte]): zio.ZIO[R,Throwable,Long]
+
+    def write(content: String, overwrite: Boolean = true): Z[Unit] =
       parent
         .resolve
         .asZIO(
@@ -130,7 +148,7 @@ object ZFileSystem {
      * returns None if it doesn't exist
      */
     def readAsStringOpt: Z[Option[String]] =
-      exists
+      exists(SymlinkHandler.Follow)
         .flatMap {
           case true =>
             readAsString

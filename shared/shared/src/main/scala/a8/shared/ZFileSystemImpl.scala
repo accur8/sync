@@ -1,20 +1,25 @@
 package a8.shared
 
 
-import a8.shared.ZFileSystem._
+import a8.shared.ZFileSystem.*
 import zio.ZIO
 
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{Files, Paths, Path => NioPath}
-import SharedImports._
+import java.nio.file.{Files, Paths, Path as NioPath}
+import SharedImports.*
+import zio.stream.{ZSink, ZStream}
 
 object ZFileSystemImpl {
 
-  def readAttributes(nioPath: NioPath): Z[BasicFileAttributes] =
+  def readAttributes(nioPath: NioPath)(implicit symlinkHandler: SymlinkHandler): Z[Option[BasicFileAttributes]] =
     zblock(unsafeReadAttributes(nioPath))
 
-  def unsafeReadAttributes(nioPath: NioPath): BasicFileAttributes =
-    Files.readAttributes[BasicFileAttributes](nioPath, classOf[BasicFileAttributes])
+  def unsafeReadAttributes(nioPath: NioPath)(implicit symlinkHandler: SymlinkHandler): Option[BasicFileAttributes] =
+    Files
+      .exists(nioPath)
+      .toOption(
+        Files.readAttributes[BasicFileAttributes](nioPath, classOf[BasicFileAttributes])
+      )
 
   def zblock[A](fn: => A): Z[A] =
     ZIO.attemptBlocking(fn)
@@ -28,7 +33,41 @@ object ZFileSystemImpl {
   ) {
     self: Path =>
 
-    def attributes: Z[BasicFileAttributes] =
+    override def deleteIfExists: Z[Unit] =
+      exists(SymlinkHandler.NoFollow)
+        .flatMap {
+          case true =>
+            delete
+          case false =>
+            zunit
+        }
+
+    override def existsAsFile(implicit symlinkHandler: SymlinkHandler): Z[Boolean] =
+      attributes
+        .map(_.exists(_.isRegularFile))
+
+    override def existsAsDirectory(implicit symlinkHandler: SymlinkHandler): Z[Boolean] =
+      attributes
+        .map(_.exists(_.isDirectory))
+
+    override def existsAsSymlink: Z[Boolean] = {
+      attributes(SymlinkHandler.NoFollow)
+        .map(_.exists(_.isSymbolicLink))
+    }
+
+    override def existsAsOther(implicit symlinkHandler: SymlinkHandler): Z[Boolean] =
+      attributes
+        .map(_.exists(_.isOther))
+
+    final override def exists(implicit symlinkHandler: SymlinkHandler): Z[Boolean] =
+      symlinkHandler.linkOption match {
+        case None =>
+          zblock(Files.exists(asNioPath))
+        case Some(lo) =>
+          zblock(Files.exists(asNioPath, lo))
+      }
+
+    def attributes(implicit symlinkHandler: SymlinkHandler): Z[Option[BasicFileAttributes]] =
       readAttributes(asNioPath)
 
     override def equals(obj: Any): Boolean =
@@ -49,10 +88,6 @@ object ZFileSystemImpl {
 
     override def delete: Z[Unit] =
       zblock(Files.delete(nioPath))
-
-    override def exists: Z[Boolean] =
-      readAttributes(nioPath)
-        .map(_.isOther)
 
     override def moveTo(d: Directory): Z[Unit] =
       zfailUnsupported
@@ -95,10 +130,6 @@ object ZFileSystemImpl {
         Files.delete(nioPath)
       )
 
-    override def exists: Z[Boolean] =
-      readAttributes(nioPath)
-        .map(_.isSymbolicLink)
-
     override def moveTo(d: Directory): Z[Unit] =
       zfailUnsupported
 
@@ -123,9 +154,6 @@ object ZFileSystemImpl {
     override def delete: Z[Unit] =
       zblock(Files.delete(nioPath))
 
-    override def exists: Z[Boolean] =
-      zblock(nioPath.toFile.exists())
-
     override def size: Z[Long] =
       zblock(nioPath.toFile.length())
 
@@ -139,6 +167,8 @@ object ZFileSystemImpl {
     override def copyTo(d: Directory): Z[Unit] =
       zblock(Files.copy(asNioPath, d.file(name).asNioPath): @scala.annotation.nowarn)
 
+    override def write[R](byteStream: ZStream[R, Throwable, Byte]): ZIO[R, Throwable, Long] =
+      byteStream.run(ZSink.fromFile(asJioFile))
   }
 
 
@@ -207,7 +237,7 @@ object ZFileSystemImpl {
         }
 
     override def entries: Z[Iterable[Path]] =
-      exists
+      exists(SymlinkHandler.Follow)
         .flatMap {
           case true =>
             zblockdefer(
@@ -242,7 +272,7 @@ object ZFileSystemImpl {
         .as(())
 
     override def delete: Z[Unit] =
-      exists
+      exists(SymlinkHandler.NoFollow)
         .flatMap {
           case true =>
             deleteChildren
@@ -250,6 +280,7 @@ object ZFileSystemImpl {
           case false =>
             zunit
         }
+
 
     override def copyTo(d: Directory): Z[Unit] = {
       val targetDir = d.subdir(name)
@@ -264,15 +295,6 @@ object ZFileSystemImpl {
         }
         .as(())
     }
-
-    override def exists: Z[Boolean] =
-      zblock(nioPath.toFile.exists())
-        .flatMap {
-          case true =>
-            attributes.map(_.isDirectory)
-          case false =>
-            zsucceed(false)
-        }
 
   }
 
@@ -294,8 +316,9 @@ object ZFileSystemImpl {
     zblock {
       val exists = assumeExists || Files.exists(nioPath)
       exists
-        .toOption {
-          val attributes = unsafeReadAttributes(nioPath)
+        .toOption(unsafeReadAttributes(nioPath)(SymlinkHandler.NoFollow))
+        .flatten
+        .map { attributes =>
           if (attributes.isRegularFile) {
             Right(new FileImpl(nioPath))
           } else if (attributes.isDirectory) {

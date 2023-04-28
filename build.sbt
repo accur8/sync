@@ -15,8 +15,7 @@
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "3.2.2"
-val sbtA8Version = "1.2.0-20220113_1040"
-val zioVersion = "2.0.8"
+val zioVersion = "2.0.13"
 val zioLoggingVersion = "2.1.9"
 
 // scalacOptions in Global ++= Seq(
@@ -32,20 +31,19 @@ val zioLoggingVersion = "2.1.9"
 // )
 
 
-publishTo in Global := sonatypePublishToBundle.value
-credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+Global / publishTo := sonatypePublishToBundle.value
+Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
-scalaVersion in Global := scalaLibVersion
+Global / scalaVersion := scalaLibVersion
 
-organization in Global := "io.accur8"
+Global / organization := "io.accur8"
 
-version in Global := appVersion
+Global / version := appVersion
 
-versionScheme in Global := Some("strict")
+Global / versionScheme := Some("strict")
 
-serverConnectionType in Global := ConnectionType.Local
+Global / serverConnectionType := ConnectionType.Local
 
-resolvers += MavenCache("local-maven", file("/Users/glen/code/accur8/versions/m2-local-repo"))
 
 lazy val api =
   Common
@@ -55,7 +53,7 @@ lazy val api =
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.5" cross CrossVersion.full),
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
       )
     )
 
@@ -77,7 +75,7 @@ lazy val shared =
           baseDirectory.value / "shared" / "src" / "test" / "scala",
         ),
       libraryDependencies ++= Seq(
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.5" cross CrossVersion.full),
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
         "org.wvlet.airframe" %% "airframe-log" % "23.2.4",
         "org.typelevel" %% "case-insensitive" % "1.3.0",
         "com.beachape" %%% "enumeratum" % "1.7.2",
