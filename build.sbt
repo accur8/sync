@@ -51,7 +51,7 @@ Global / serverConnectionType := ConnectionType.Local
 ////  "-Ywarn-unused-import"
 //)
 Global / scalacOptions ++= Seq(
-  "-encoding", "UTF-8",
+  // "-encoding", "UTF-8",
   "-deprecation",
   "-feature",
   "-unchecked",
