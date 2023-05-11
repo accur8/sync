@@ -13,6 +13,8 @@ object ReadError {
 
   case class ReadErrorException(readError: ReadError) extends Exception(readError.prettyMessage)
 
+  given CanEqual[ReadError,ReadError] = CanEqual.derived
+
 }
 
 
