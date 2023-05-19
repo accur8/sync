@@ -75,6 +75,19 @@ lazy val api =
       )
     )
 
+lazy val http =
+  Common
+    .jvmProject("a8-http-server", file("http-server"), "http-server")
+    .dependsOn(api)
+    .settings(
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-http" % "3.0.0-RC1",
+        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+      )
+    )
+
 
 lazy val shared =
   Common
@@ -142,6 +155,7 @@ lazy val root =
     .settings( publish := {} )
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
     .aggregate(api)
+    .aggregate(http)
 //    .aggregate(shared.js)
 //    .aggregate(sharedJVM)
     .aggregate(shared)
