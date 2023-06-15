@@ -20,8 +20,12 @@ val zioLoggingVersion = "2.1.9"
 
 
 
-Global / publishTo := sonatypePublishToBundle.value
-Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+Global / resolvers += "a8-repo" at Common.readRepoUrl()
+Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
+Global / credentials += Common.readRepoCredentials()
+
+//Global / publishTo := sonatypePublishToBundle.value
+//Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 Global / scalaVersion := scalaLibVersion
 
