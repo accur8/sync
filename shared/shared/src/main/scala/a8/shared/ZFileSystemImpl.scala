@@ -296,6 +296,16 @@ object ZFileSystemImpl {
         .as(())
     }
 
+    override def copyChildrenTo(targetDir: Directory): Z[Unit] = {
+      targetDir
+        .entries
+        .flatMap(
+          _.map(e => e.copyTo(targetDir))
+            .sequence
+        )
+        .as(())
+    }
+
   }
 
   def realize(path: NioPath): Z[Either[NioPath, Path]] =

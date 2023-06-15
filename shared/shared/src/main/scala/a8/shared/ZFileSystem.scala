@@ -71,6 +71,8 @@ object ZFileSystem {
     def \(fileName: String): File = file(fileName)
     def /(subdirName: String): Directory = subdir(subdirName)
 
+    def copyChildrenTo(target: Directory): Z[Unit]
+
     /**
      * similar to python's Path.join
      * @return
