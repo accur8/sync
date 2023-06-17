@@ -60,7 +60,7 @@ object ZFileSystem {
 
 
   object Directory extends AbstractStringValueCompanion[Directory] {
-    override def valueToString(a: Directory): String = a.absolutePath
+    override def valueToString(a: Directory): String = a.path
     override def valueFromString(s: String): Directory = ZFileSystem.dir(s)
   }
 
@@ -115,7 +115,7 @@ object ZFileSystem {
   }
 
   object File extends AbstractStringValueCompanion[File] {
-    override def valueToString(a: File): String = a.absolutePath
+    override def valueToString(a: File): String = a.path
     override def valueFromString(s: String): File = ZFileSystem.file(s)
   }
 
@@ -168,6 +168,11 @@ object ZFileSystem {
         Files.copy(asNioPath, target.asNioPath, REPLACE_EXISTING): @scala.annotation.nowarn
         ()
       }
+  }
+
+  object Symlink extends AbstractStringValueCompanion[Symlink] {
+    override def valueToString(a: Symlink): String = a.path
+    override def valueFromString(s: String): Symlink = ZFileSystem.symlink(s)
   }
 
   trait Symlink extends Path with HasParent {

@@ -297,8 +297,7 @@ object ZFileSystemImpl {
     }
 
     override def copyChildrenTo(targetDir: Directory): Z[Unit] = {
-      targetDir
-        .entries
+      entries
         .flatMap(
           _.map(e => e.copyTo(targetDir))
             .sequence
