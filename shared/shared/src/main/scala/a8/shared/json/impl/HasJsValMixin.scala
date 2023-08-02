@@ -110,7 +110,7 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
     val selectedValue =
       self.actualJsVal match {
         case jarr: JsArr =>
-          if ( index >= 0 && index <= jarr.values.size )
+          if ( index >= 0 && index < jarr.values.size )
             jarr.values(index)
           else
             JsNothing
