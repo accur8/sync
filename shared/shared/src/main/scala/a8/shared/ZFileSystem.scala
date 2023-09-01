@@ -95,8 +95,8 @@ object ZFileSystem {
         }
         .as(this)
 
-    def makeDirectories: Z[Unit]
-    def makeDirectory: Z[Unit]
+    def makeDirectories: Z[Directory]
+    def makeDirectory: Z[Directory]
     def subdirs: Z[Iterable[Directory]]
     def entries: Z[Iterable[Path]]
     def files: Z[Iterable[File]]

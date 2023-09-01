@@ -216,17 +216,17 @@ object ZFileSystemImpl {
         Files.move(asNioPath, d.subdir(name).asNioPath): @scala.annotation.nowarn
       )
 
-    override def makeDirectories: Z[Unit] =
+    override def makeDirectories: Z[Directory] =
       zblock(
         if (!nioPath.toFile.isDirectory)
           Files.createDirectories(nioPath): @scala.annotation.nowarn
-      )
+      ).as(this)
 
-    override def makeDirectory: Z[Unit] =
+    override def makeDirectory: Z[Directory] =
       zblock(
         if (!nioPath.toFile.isDirectory)
           Files.createDirectory(nioPath): @scala.annotation.nowarn
-      )
+      ).as(this)
 
     override def subdirs: Z[Iterable[Directory]] =
       entries

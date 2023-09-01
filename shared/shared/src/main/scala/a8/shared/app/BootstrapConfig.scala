@@ -2,16 +2,16 @@ package a8.shared.app
 
 import a8.shared.FileSystem.Directory
 import a8.shared.{CompanionGen, FileSystem, NamedToString, StringValue}
-import a8.shared.app.BootstrapConfig._
-import a8.shared.app.MxBootstrapConfig._
+import a8.shared.app.BootstrapConfig.*
+import a8.shared.app.MxBootstrapConfig.*
 
 import java.nio.file.{Path, Paths}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import wvlet.log.LogLevel
-import zio.{Duration, Scope, ZIO, ZLayer}
+import zio.{Duration, Scope, Task, ZIO, ZLayer}
 
 import scala.concurrent.duration.FiniteDuration
-
+import a8.shared.ZFileSystem
 
 /*
  *  + app will have a default AppName which will be it's default prefix
@@ -175,9 +175,14 @@ object BootstrapConfig {
 
   trait DirectoryValue {
     val unresolved: Directory
+    lazy val unresolvedZ: ZFileSystem.Directory = ZFileSystem.dir(unresolved.absolutePath)
     lazy val resolved: Directory = {
       unresolved.makeDirectories()
       unresolved
+    }
+    lazy val resolvedZ: Task[ZFileSystem.Directory] = {
+      unresolvedZ.makeDirectories
+        .as(unresolvedZ)
     }
   }
 
