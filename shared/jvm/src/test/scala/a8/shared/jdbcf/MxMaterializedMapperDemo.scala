@@ -15,7 +15,6 @@ import a8.shared.jdbcf.MaterializedMapperDemo.JsonCC
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 import a8.shared.jdbcf
-import a8.shared.jdbcf.querydsl.QueryDsl
 
 
 object MxMaterializedMapperDemo {
@@ -32,9 +31,10 @@ object MxMaterializedMapperDemo {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JsonCC] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JsonCC] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[JsonCC, JsonCC] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[JsonCC,parameters.type] =  {
       val constructors = Constructors[JsonCC](2, unsafe.iterRawConstruct)
@@ -90,8 +90,8 @@ object MxMaterializedMapperDemo {
     
     
     class TableDsl(join: jdbcf.querydsl.QueryDsl.Join = jdbcf.querydsl.QueryDsl.RootJoin) {
-      val grOup: QueryDsl.Field[Int] = jdbcf.querydsl.QueryDsl.field[Int]("grOup", join)
-      val name: QueryDsl.Field[String] = jdbcf.querydsl.QueryDsl.field[String]("name", join)
+      val grOup = jdbcf.querydsl.QueryDsl.field[Int]("grOup", join)
+      val name = jdbcf.querydsl.QueryDsl.field[String]("name", join)
     
     }
     
@@ -115,9 +115,10 @@ object MxMaterializedMapperDemo {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[BigBoo] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[BigBoo] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[BigBoo, BigBoo] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[BigBoo,parameters.type] =  {
       val constructors = Constructors[BigBoo](2, unsafe.iterRawConstruct)

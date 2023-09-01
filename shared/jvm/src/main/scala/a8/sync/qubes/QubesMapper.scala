@@ -1,14 +1,15 @@
 package a8.sync.qubes
 
-import a8.shared.SharedImports._
-import a8.shared.jdbcf.SqlString._
+import a8.shared.SharedImports.*
+import a8.shared.jdbcf.SqlString.*
 import a8.shared.jdbcf.{SqlString, TableName}
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.{JsonObjectCodec, JsonTypedCodec}
 import a8.shared.json.ast.JsObj
+import a8.sync.qubes.QubesApiClient.UpdateRowRequest.Parameter
 import a8.sync.qubes.QubesApiClient.{QueryRequest, UpdateRowRequest}
 import a8.sync.qubes.QubesMapperBuilder.{Parm, PrimaryKey}
-import zio._
+import zio.*
 
 object QubesMapper {
 
@@ -72,20 +73,21 @@ object QubesMapper {
         appSpace = Some(appSpace),
       )
 
-    override def insertReq(row: A): UpdateRowRequest =
+    override def insertReq(row: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest =
       updateRowRequest(row)
 
-    override def updateReq(row: A): UpdateRowRequest =
+    override def updateReq(row: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest =
       updateRowRequest(row)
 
-    override def deleteReq(row: A): UpdateRowRequest =
+    override def deleteReq(row: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest =
       updateRowRequest(row)
 
-    def updateRowRequest(row: A): UpdateRowRequest =
+    def updateRowRequest(row: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest =
       UpdateRowRequest(
         cube = cubeName.asString,
         appSpace = Some(appSpace),
         fields = codecA.write(row).asObject.getOrElse(sys.error("this will never happen")),
+        parameters = parameters,
       )
 
   }
@@ -106,8 +108,8 @@ trait QubesMapper[A] {
   def qualifiedName: String = appSpace + "/" + cubeName.asString
 
   def queryReq(whereClause: SqlString): QueryRequest
-  def insertReq(a: A): UpdateRowRequest
-  def updateReq(a: A): UpdateRowRequest
-  def deleteReq(a: A): UpdateRowRequest
+  def insertReq(a: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest
+  def updateReq(a: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest
+  def deleteReq(a: A, parameters: Seq[Parameter] = Vector.empty[Parameter]): UpdateRowRequest
 
 }

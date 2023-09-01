@@ -36,9 +36,10 @@ object MxDatabaseConfig {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[DatabaseConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[DatabaseConfig] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[DatabaseConfig, DatabaseConfig] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[DatabaseConfig,parameters.type] =  {
       val constructors = Constructors[DatabaseConfig](7, unsafe.iterRawConstruct)

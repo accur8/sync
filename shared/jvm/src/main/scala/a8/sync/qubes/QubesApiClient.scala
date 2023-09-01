@@ -3,19 +3,20 @@ package a8.sync.qubes
 
 import a8.shared.{CompanionGen, StringValue}
 import a8.shared.jdbcf.SqlString
-import a8.shared.json.ast._
+import a8.shared.json.ast.*
 import a8.shared.json.{JsonCodec, ast}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.app.{Logging, LoggingF}
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.sync.http.{Backend, Method, RequestProcessor, RequestProcessorConfig, RetryConfig}
 import a8.sync.http
-import a8.sync.qubes.MxQubesApiClient._
-import sttp.client3._
+import a8.sync.qubes.MxQubesApiClient.*
+import a8.sync.qubes.QubesApiClient.UpdateRowRequest.{Parameter, Parm}
+import sttp.client3.*
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
-import zio.{durationInt => _, _}
+import zio.{durationInt as _, *}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -65,12 +66,20 @@ object QubesApiClient extends LoggingF {
   )
 
   object UpdateRowRequest extends MxUpdateRowRequest {
+    object Parm extends MxParameter
+    @CompanionGen()
+    case class Parm(
+      dataType: Option[String] = None,
+      cube: Option[String] = None,
+      field: Option[String] = None,
+      value: String
+    )
   }
   @CompanionGen()
-  case class UpdateRowRequest(
+  case class UpdateRowRequest(x
     cube: String,
     fields: JsObj,
-    parameters: Vector[JsDoc] = Vector.empty[JsDoc],
+    parameters: Vector[Parm] = Vector.empty[Parm],
     where: Option[String] = None,
     appSpace: Option[String] = None,
   )
@@ -189,32 +198,32 @@ case class QubesApiClient(
     qubesKeyedMapper.fetch(key)
   }
 
-  def insert[A : QubesMapper](row: A): Task[A] =
+  def insert[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
     processResponse(
       "insert",
       row,
-      lowlevel.insert(implicitly[QubesMapper[A]].insertReq(row))
+      lowlevel.insert(implicitly[QubesMapper[A]].insertReq(row, parameters))
     ).as(row)
 
-  def update[A : QubesMapper](row: A): Task[A] =
+  def update[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
     processResponse(
       "update",
       row,
-      lowlevel.update(implicitly[QubesMapper[A]].updateReq(row))
+      lowlevel.update(implicitly[QubesMapper[A]].updateReq(row, parameters))
     ).as(row)
 
-  def upsert[A : QubesMapper](row: A): Task[A] =
+  def upsert[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
     processResponse(
       "upsert",
       row,
-      lowlevel.upsert(implicitly[QubesMapper[A]].updateReq(row))
+      lowlevel.upsert(implicitly[QubesMapper[A]].updateReq(row, parameters))
     ).as(row)
 
-  def delete[A : QubesMapper](row: A): Task[A] =
+  def delete[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
     processResponse(
       "delete",
       row,
-      lowlevel.delete(implicitly[QubesMapper[A]].deleteReq(row))
+      lowlevel.delete(implicitly[QubesMapper[A]].deleteReq(row, parameters))
     ).as(row)
 
   protected def processResponse[A : QubesMapper](context: String, row: A, f: Task[UpdateRowResponse]): Task[Unit] =

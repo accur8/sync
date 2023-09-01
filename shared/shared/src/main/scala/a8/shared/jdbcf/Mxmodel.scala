@@ -14,7 +14,6 @@ import _root_.scala // noop import so IDE generated imports get put inside the c
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 import a8.shared.jdbcf
-import a8.shared.jdbcf.querydsl.QueryDsl
 
 
 object Mxmodel {
@@ -30,9 +29,9 @@ object Mxmodel {
     
     
     class TableDsl(join: jdbcf.querydsl.QueryDsl.Path) extends jdbcf.querydsl.QueryDsl.Component[ResolvedTableName](join) {
-      val catalog: QueryDsl.Field[Option[CatalogName]] = jdbcf.querydsl.QueryDsl.field[Option[CatalogName]]("catalog", join)
-      val schema: QueryDsl.Field[Option[SchemaName]] = jdbcf.querydsl.QueryDsl.field[Option[SchemaName]]("schema", join)
-      val name: QueryDsl.Field[TableName] = jdbcf.querydsl.QueryDsl.field[TableName]("name", join)
+      val catalog = jdbcf.querydsl.QueryDsl.field[Option[CatalogName]]("catalog", join)
+      val schema = jdbcf.querydsl.QueryDsl.field[Option[SchemaName]]("schema", join)
+      val name = jdbcf.querydsl.QueryDsl.field[TableName]("name", join)
     
     }
     
@@ -49,9 +48,10 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ResolvedTableName] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ResolvedTableName] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[ResolvedTableName, ResolvedTableName] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[ResolvedTableName,parameters.type] =  {
       val constructors = Constructors[ResolvedTableName](3, unsafe.iterRawConstruct)

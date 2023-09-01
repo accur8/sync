@@ -36,9 +36,10 @@ object MxMailConfig {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[MailConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[MailConfig] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[MailConfig, MailConfig] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[MailConfig,parameters.type] =  {
       val constructors = Constructors[MailConfig](8, unsafe.iterRawConstruct)

@@ -30,9 +30,10 @@ object MxUnionTest {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Foo1] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Foo1] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[Foo1, Foo1] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[Foo1,parameters.type] =  {
       val constructors = Constructors[Foo1](2, unsafe.iterRawConstruct)

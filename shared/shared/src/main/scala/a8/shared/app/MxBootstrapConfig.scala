@@ -32,9 +32,10 @@ object MxBootstrapConfig {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[LogLevelConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[LogLevelConfig] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[LogLevelConfig, LogLevelConfig] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[LogLevelConfig,parameters.type] =  {
       val constructors = Constructors[LogLevelConfig](2, unsafe.iterRawConstruct)
@@ -101,9 +102,10 @@ object MxBootstrapConfig {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[BootstrapConfigDto] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[BootstrapConfigDto] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[BootstrapConfigDto, BootstrapConfigDto] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[BootstrapConfigDto,parameters.type] =  {
       val constructors = Constructors[BootstrapConfigDto](13, unsafe.iterRawConstruct)

@@ -31,9 +31,10 @@ object MxHoconDemo {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[BigFoo] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[BigFoo] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[BigFoo, BigFoo] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[BigFoo,parameters.type] =  {
       val constructors = Constructors[BigFoo](2, unsafe.iterRawConstruct)

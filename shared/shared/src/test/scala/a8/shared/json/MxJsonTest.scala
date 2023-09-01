@@ -30,9 +30,10 @@ object MxJsonTest {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Person] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Person] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[Person, Person] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[Person,parameters.type] =  {
       val constructors = Constructors[Person](2, unsafe.iterRawConstruct)
@@ -88,9 +89,10 @@ object MxJsonTest {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Group] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Group] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[Group, Group] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[Group,parameters.type] =  {
       val constructors = Constructors[Group](2, unsafe.iterRawConstruct)
@@ -145,9 +147,10 @@ object MxJsonTest {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[A] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[A] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[A, A] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[A,parameters.type] =  {
       val constructors = Constructors[A](1, unsafe.iterRawConstruct)

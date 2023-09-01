@@ -30,15 +30,18 @@ object Mxhttp {
           .addField(_.maxRetries)
           .addField(_.initialBackoff)
           .addField(_.maxBackoff)
+          .addField(_.jitterFactor)
+          .addField(_.backoffFactor)
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[RetryConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[RetryConfig] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[RetryConfig, RetryConfig] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[RetryConfig,parameters.type] =  {
-      val constructors = Constructors[RetryConfig](3, unsafe.iterRawConstruct)
+      val constructors = Constructors[RetryConfig](5, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -46,6 +49,8 @@ object Mxhttp {
       lazy val maxRetries: CaseClassParm[RetryConfig,Int] = CaseClassParm[RetryConfig,Int]("maxRetries", _.maxRetries, (d,v) => d.copy(maxRetries = v), Some(()=> 5), 0)
       lazy val initialBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), Some(()=> 1.second), 1)
       lazy val maxBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), Some(()=> 1.minute), 2)
+      lazy val jitterFactor: CaseClassParm[RetryConfig,Double] = CaseClassParm[RetryConfig,Double]("jitterFactor", _.jitterFactor, (d,v) => d.copy(jitterFactor = v), Some(()=> 0.2d), 3)
+      lazy val backoffFactor: CaseClassParm[RetryConfig,Double] = CaseClassParm[RetryConfig,Double]("backoffFactor", _.backoffFactor, (d,v) => d.copy(backoffFactor = v), Some(()=> 1.2d), 4)
     }
     
     
@@ -56,6 +61,8 @@ object Mxhttp {
           maxRetries = values(0).asInstanceOf[Int],
           initialBackoff = values(1).asInstanceOf[FiniteDuration],
           maxBackoff = values(2).asInstanceOf[FiniteDuration],
+          jitterFactor = values(3).asInstanceOf[Double],
+          backoffFactor = values(4).asInstanceOf[Double],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): RetryConfig = {
@@ -64,13 +71,15 @@ object Mxhttp {
             maxRetries = values.next().asInstanceOf[Int],
             initialBackoff = values.next().asInstanceOf[FiniteDuration],
             maxBackoff = values.next().asInstanceOf[FiniteDuration],
+            jitterFactor = values.next().asInstanceOf[Double],
+            backoffFactor = values.next().asInstanceOf[Double],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration): RetryConfig =
-        RetryConfig(maxRetries, initialBackoff, maxBackoff)
+      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration, jitterFactor: Double, backoffFactor: Double): RetryConfig =
+        RetryConfig(maxRetries, initialBackoff, maxBackoff, jitterFactor, backoffFactor)
     
     }
     
@@ -93,15 +102,20 @@ object Mxhttp {
           .addField(_.initialBackoff)
           .addField(_.maxBackoff)
           .addField(_.maxConnections)
+          .addField(_.jitterFactor)
+          .addField(_.backoffFactor)
+          .addField(_.connectionTimeout)
+          .addField(_.readTimeout)
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[RequestProcessorConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[RequestProcessorConfig] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[RequestProcessorConfig, RequestProcessorConfig] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[RequestProcessorConfig,parameters.type] =  {
-      val constructors = Constructors[RequestProcessorConfig](4, unsafe.iterRawConstruct)
+      val constructors = Constructors[RequestProcessorConfig](8, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -110,6 +124,10 @@ object Mxhttp {
       lazy val initialBackoff: CaseClassParm[RequestProcessorConfig,FiniteDuration] = CaseClassParm[RequestProcessorConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), Some(()=> 1.second), 1)
       lazy val maxBackoff: CaseClassParm[RequestProcessorConfig,FiniteDuration] = CaseClassParm[RequestProcessorConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), Some(()=> 1.minute), 2)
       lazy val maxConnections: CaseClassParm[RequestProcessorConfig,Int] = CaseClassParm[RequestProcessorConfig,Int]("maxConnections", _.maxConnections, (d,v) => d.copy(maxConnections = v), Some(()=> 50), 3)
+      lazy val jitterFactor: CaseClassParm[RequestProcessorConfig,Double] = CaseClassParm[RequestProcessorConfig,Double]("jitterFactor", _.jitterFactor, (d,v) => d.copy(jitterFactor = v), Some(()=> 0.2d), 4)
+      lazy val backoffFactor: CaseClassParm[RequestProcessorConfig,Double] = CaseClassParm[RequestProcessorConfig,Double]("backoffFactor", _.backoffFactor, (d,v) => d.copy(backoffFactor = v), Some(()=> 1.2d), 5)
+      lazy val connectionTimeout: CaseClassParm[RequestProcessorConfig,FiniteDuration] = CaseClassParm[RequestProcessorConfig,FiniteDuration]("connectionTimeout", _.connectionTimeout, (d,v) => d.copy(connectionTimeout = v), Some(()=> 15.seconds), 6)
+      lazy val readTimeout: CaseClassParm[RequestProcessorConfig,FiniteDuration] = CaseClassParm[RequestProcessorConfig,FiniteDuration]("readTimeout", _.readTimeout, (d,v) => d.copy(readTimeout = v), Some(()=> 30.seconds), 7)
     }
     
     
@@ -121,6 +139,10 @@ object Mxhttp {
           initialBackoff = values(1).asInstanceOf[FiniteDuration],
           maxBackoff = values(2).asInstanceOf[FiniteDuration],
           maxConnections = values(3).asInstanceOf[Int],
+          jitterFactor = values(4).asInstanceOf[Double],
+          backoffFactor = values(5).asInstanceOf[Double],
+          connectionTimeout = values(6).asInstanceOf[FiniteDuration],
+          readTimeout = values(7).asInstanceOf[FiniteDuration],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): RequestProcessorConfig = {
@@ -130,13 +152,17 @@ object Mxhttp {
             initialBackoff = values.next().asInstanceOf[FiniteDuration],
             maxBackoff = values.next().asInstanceOf[FiniteDuration],
             maxConnections = values.next().asInstanceOf[Int],
+            jitterFactor = values.next().asInstanceOf[Double],
+            backoffFactor = values.next().asInstanceOf[Double],
+            connectionTimeout = values.next().asInstanceOf[FiniteDuration],
+            readTimeout = values.next().asInstanceOf[FiniteDuration],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration, maxConnections: Int): RequestProcessorConfig =
-        RequestProcessorConfig(maxRetries, initialBackoff, maxBackoff, maxConnections)
+      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration, maxConnections: Int, jitterFactor: Double, backoffFactor: Double, connectionTimeout: FiniteDuration, readTimeout: FiniteDuration): RequestProcessorConfig =
+        RequestProcessorConfig(maxRetries, initialBackoff, maxBackoff, maxConnections, jitterFactor, backoffFactor, connectionTimeout, readTimeout)
     
     }
     
@@ -160,9 +186,10 @@ object Mxhttp {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ResponseInfo] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ResponseInfo] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[ResponseInfo, ResponseInfo] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[ResponseInfo,parameters.type] =  {
       val constructors = Constructors[ResponseInfo](2, unsafe.iterRawConstruct)
@@ -219,9 +246,10 @@ object Mxhttp {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ResponseMetadata] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ResponseMetadata] = cats.Eq.fromUniversalEquals
+    given scala.CanEqual[ResponseMetadata, ResponseMetadata] = scala.CanEqual.derived
+    
+    
     
     lazy val generator: Generator[ResponseMetadata,parameters.type] =  {
       val constructors = Constructors[ResponseMetadata](3, unsafe.iterRawConstruct)
