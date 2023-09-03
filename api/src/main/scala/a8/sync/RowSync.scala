@@ -6,11 +6,11 @@ import a8.sync.impl.{NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedVa
 import Imports.*
 import a8.shared.jdbcf.{Dialect, SqlString}
 import SqlString.*
+import a8.common.logging.Level
 import a8.sync.ResolvedTable.ColumnMapper.StringNormalValue
 import a8.sync.RowSync.ValidationMessage
 import a8.sync.dsl.TruncateAction
 import cats.data.Chain
-import wvlet.log.LogLevel
 import zio.Chunk
 
 import scala.annotation.nowarn
@@ -26,7 +26,7 @@ import scala.collection.mutable
 
 object RowSync {
 
-  type ValidationMessage = (LogLevel,String)
+  type ValidationMessage = (Level,String)
 
   object impl {
 

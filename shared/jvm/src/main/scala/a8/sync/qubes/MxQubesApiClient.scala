@@ -14,7 +14,7 @@ import sttp.model.Uri
 import a8.sync.http.{RequestProcessorConfig, RetryConfig}
 import scala.concurrent.duration.FiniteDuration
 import a8.sync.qubes.QubesApiClient._
-import UpdateRowRequest.Parameter
+import UpdateRowRequest.Parm
 import a8.shared.json.ast.{JsDoc, JsObj}
 //====
 
@@ -150,11 +150,11 @@ object MxQubesApiClient {
   
   
   
-  trait MxParameter {
+  trait MxParm {
   
-    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Parameter,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Parameter,parameters.type] = builder
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Parm,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Parm,parameters.type] = builder
     
-    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Parameter,a8.shared.json.ast.JsObj] =
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Parm,a8.shared.json.ast.JsObj] =
       jsonCodecBuilder(
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.dataType)
@@ -165,36 +165,36 @@ object MxQubesApiClient {
       .build
     
     
-    given scala.CanEqual[Parameter, Parameter] = scala.CanEqual.derived
+    given scala.CanEqual[Parm, Parm] = scala.CanEqual.derived
     
     
     
-    lazy val generator: Generator[Parameter,parameters.type] =  {
-      val constructors = Constructors[Parameter](4, unsafe.iterRawConstruct)
+    lazy val generator: Generator[Parm,parameters.type] =  {
+      val constructors = Constructors[Parm](4, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
-      lazy val dataType: CaseClassParm[Parameter,Option[String]] = CaseClassParm[Parameter,Option[String]]("dataType", _.dataType, (d,v) => d.copy(dataType = v), None, 0)
-      lazy val cube: CaseClassParm[Parameter,Option[String]] = CaseClassParm[Parameter,Option[String]]("cube", _.cube, (d,v) => d.copy(cube = v), None, 1)
-      lazy val field: CaseClassParm[Parameter,Option[String]] = CaseClassParm[Parameter,Option[String]]("field", _.field, (d,v) => d.copy(field = v), None, 2)
-      lazy val value: CaseClassParm[Parameter,String] = CaseClassParm[Parameter,String]("value", _.value, (d,v) => d.copy(value = v), None, 3)
+      lazy val dataType: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("dataType", _.dataType, (d,v) => d.copy(dataType = v), Some(()=> None), 0)
+      lazy val cube: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("cube", _.cube, (d,v) => d.copy(cube = v), Some(()=> None), 1)
+      lazy val field: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("field", _.field, (d,v) => d.copy(field = v), Some(()=> None), 2)
+      lazy val value: CaseClassParm[Parm,String] = CaseClassParm[Parm,String]("value", _.value, (d,v) => d.copy(value = v), None, 3)
     }
     
     
     object unsafe {
     
-      def rawConstruct(values: IndexedSeq[Any]): Parameter = {
-        Parameter(
+      def rawConstruct(values: IndexedSeq[Any]): Parm = {
+        Parm(
           dataType = values(0).asInstanceOf[Option[String]],
           cube = values(1).asInstanceOf[Option[String]],
           field = values(2).asInstanceOf[Option[String]],
           value = values(3).asInstanceOf[String],
         )
       }
-      def iterRawConstruct(values: Iterator[Any]): Parameter = {
+      def iterRawConstruct(values: Iterator[Any]): Parm = {
         val value =
-          Parameter(
+          Parm(
             dataType = values.next().asInstanceOf[Option[String]],
             cube = values.next().asInstanceOf[Option[String]],
             field = values.next().asInstanceOf[Option[String]],
@@ -204,13 +204,13 @@ object MxQubesApiClient {
            sys.error("")
         value
       }
-      def typedConstruct(dataType: Option[String], cube: Option[String], field: Option[String], value: String): Parameter =
-        Parameter(dataType, cube, field, value)
+      def typedConstruct(dataType: Option[String], cube: Option[String], field: Option[String], value: String): Parm =
+        Parm(dataType, cube, field, value)
     
     }
     
     
-    lazy val typeName = "Parameter"
+    lazy val typeName = "Parm"
   
   }
   
@@ -245,7 +245,7 @@ object MxQubesApiClient {
     object parameters {
       lazy val cube: CaseClassParm[UpdateRowRequest,String] = CaseClassParm[UpdateRowRequest,String]("cube", _.cube, (d,v) => d.copy(cube = v), None, 0)
       lazy val fields: CaseClassParm[UpdateRowRequest,JsObj] = CaseClassParm[UpdateRowRequest,JsObj]("fields", _.fields, (d,v) => d.copy(fields = v), None, 1)
-      lazy val parameters: CaseClassParm[UpdateRowRequest,Vector[Parameter]] = CaseClassParm[UpdateRowRequest,Vector[Parameter]]("parameters", _.parameters, (d,v) => d.copy(parameters = v), Some(()=> Vector.empty[Parameter]), 2)
+      lazy val parameters: CaseClassParm[UpdateRowRequest,Iterable[Parm]] = CaseClassParm[UpdateRowRequest,Iterable[Parm]]("parameters", _.parameters, (d,v) => d.copy(parameters = v), Some(()=> Iterable()), 2)
       lazy val where: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("where", _.where, (d,v) => d.copy(where = v), Some(()=> None), 3)
       lazy val appSpace: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("appSpace", _.appSpace, (d,v) => d.copy(appSpace = v), Some(()=> None), 4)
     }
@@ -257,7 +257,7 @@ object MxQubesApiClient {
         UpdateRowRequest(
           cube = values(0).asInstanceOf[String],
           fields = values(1).asInstanceOf[JsObj],
-          parameters = values(2).asInstanceOf[Vector[Parameter]],
+          parameters = values(2).asInstanceOf[Iterable[Parm]],
           where = values(3).asInstanceOf[Option[String]],
           appSpace = values(4).asInstanceOf[Option[String]],
         )
@@ -267,7 +267,7 @@ object MxQubesApiClient {
           UpdateRowRequest(
             cube = values.next().asInstanceOf[String],
             fields = values.next().asInstanceOf[JsObj],
-            parameters = values.next().asInstanceOf[Vector[Parameter]],
+            parameters = values.next().asInstanceOf[Iterable[Parm]],
             where = values.next().asInstanceOf[Option[String]],
             appSpace = values.next().asInstanceOf[Option[String]],
           )
@@ -275,7 +275,7 @@ object MxQubesApiClient {
            sys.error("")
         value
       }
-      def typedConstruct(cube: String, fields: JsObj, parameters: Vector[Parameter], where: Option[String], appSpace: Option[String]): UpdateRowRequest =
+      def typedConstruct(cube: String, fields: JsObj, parameters: Iterable[Parm], where: Option[String], appSpace: Option[String]): UpdateRowRequest =
         UpdateRowRequest(cube, fields, parameters, where, appSpace)
     
     }

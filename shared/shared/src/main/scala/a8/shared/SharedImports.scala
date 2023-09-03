@@ -26,9 +26,9 @@ import scala.reflect.ClassTag
 import scala.util.Try
 import cats.syntax
 import cats.instances
-import wvlet.log.Logger
 import zio.{Tag, Task, Trace, UIO, ULayer, URIO, ZIO, ZLayer}
 import zio.prelude._
+import a8.common.logging.Logger
 
 object SharedImports extends SharedImports
 

@@ -17,7 +17,7 @@ val appVersion = a8.sbt_a8.versionStamp(file("."))
 val scalaLibVersion = "3.2.2"
 val zioVersion = "2.0.13"
 val zioLoggingVersion = "2.1.9"
-
+val slf4jVersion = "2.0.7"
 
 
 Global / resolvers += "a8-repo" at Common.readRepoUrl()
@@ -67,6 +67,45 @@ Global / scalacOptions ++= Seq(
  // "-Werror",
 )
 
+lazy val logging =
+  Common
+    .crossProject("a8-logging", file("logging"), "logging")
+    .settings(
+      libraryDependencies ++= Seq(
+        "com.lihaoyi" %%% "sourcecode" % "0.3.0",
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+      )
+    )
+    .jsSettings(
+      libraryDependencies ++= Seq(
+        "org.scala-js" %%% "scalajs-dom" % "2.6.0",
+      )
+    )
+
+lazy val loggingJVM = logging.jvm
+lazy val loggingJS = logging.js
+
+lazy val logging_logback =
+  Common
+    .jvmProject("a8-logging-logback", file("logging_logback"), "logging_logback")
+    .dependsOn(loggingJVM)
+    .settings(
+      libraryDependencies ++= Seq(
+//        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+      )
+    )
+    .settings(
+      libraryDependencies ++= Seq(
+        "org.codehaus.janino" % "janino" % "3.1.8",
+        "org.fusesource.jansi" % "jansi" % "2.4.0",
+        "ch.qos.logback" % "logback-core" % "1.4.11",
+        "ch.qos.logback" % "logback-classic" % "1.4.11",
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
+        "org.slf4j" % "jul-to-slf4j" % slf4jVersion,
+      )
+    )
+
 lazy val api =
   Common
     .jvmProject("a8-sync-api", file("api"), "api")
@@ -96,6 +135,7 @@ lazy val http =
 lazy val shared =
   Common
     .jvmProject("a8-sync-shared", file("shared"), "shared")
+    .dependsOn(logging_logback)
 //    .crossProject("a8-sync-shared", file("shared"), "shared")
     .settings(
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
@@ -111,12 +151,10 @@ lazy val shared =
         ),
       libraryDependencies ++= Seq(
         compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
-        "org.wvlet.airframe" %% "airframe-log" % "23.2.4",
         "org.typelevel" %% "case-insensitive" % "1.3.0",
         "com.beachape" %%% "enumeratum" % "1.7.2",
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
         "com.softwaremill.sttp.model" %% "core" % "1.5.5",
-        "org.slf4j" % "slf4j-jdk14" % "2.0.6",
         "org.scalactic" %% "scalactic" % "3.2.15" % "test",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
         "org.typelevel" %% "jawn-parser" % "1.4.0",
@@ -160,9 +198,11 @@ lazy val root =
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
     .aggregate(api)
     .aggregate(http)
-//    .aggregate(shared.js)
-//    .aggregate(sharedJVM)
     .aggregate(shared)
+    .aggregate(loggingJVM)
+    .aggregate(loggingJS)
+    .aggregate(logging_logback)
+
 
 
    

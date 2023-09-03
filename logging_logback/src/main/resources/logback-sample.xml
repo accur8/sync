@@ -1,0 +1,84 @@
+<configuration scan="true" scanPeriod="1 minute">
+
+    <variable name="LayoutPattern" value="%d{HH:mm:ss.SSS} | %-5level | %thread | [%X{ndc}%kvp] | %logger | %msg%n" />
+
+    <if condition='property("bootstrap.fileLogging").equals("true")'>
+        <then>
+
+            <appender name="errors" class="net.model3.logging.logback.RollingFileAppender">
+                <kind>errors</kind>
+                <encoder>
+                    <pattern>${LayoutPattern}</pattern>
+                </encoder>
+            </appender>
+
+            <appender name="details" class="net.model3.logging.logback.RollingFileAppender">
+                <kind>details</kind>
+                <encoder>
+                    <pattern>${LayoutPattern}</pattern>
+                </encoder>
+            </appender>
+
+            <root>
+                <appender-ref ref="details" />
+                <appender-ref ref="errors" />
+            </root>
+
+        </then>
+    </if>
+
+    <if condition='property("bootstrap.consoleLogging").equals("true")'>
+        <then>
+
+            <if condition='property("bootstrap.hasColorCnosole").equals("true")'>
+                <then>
+                    <appender name="console" class="net.model3.logging.logback.ConsoleAppender">
+                        <kind>stdout</kind>
+                        <encoder class="net.model3.logging.logback.ColoredConsoleEncoder" />
+                    </appender>
+                </then>
+                <else>
+                    <appender name="console" class="net.model3.logging.logback.ConsoleAppender">
+                        <kind>daemon</kind>
+                        <encoder>
+                            <pattern>${LayoutPattern}</pattern>
+                        </encoder>
+                    </appender>
+                </else>
+            </if>
+
+            <root>
+                <appender-ref ref="console" />
+            </root>
+
+        </then>
+    </if>
+
+    <root level="debug">
+    </root>
+
+
+    <Logger name="com.amazonaws" level="INFO"/>
+    <Logger name="com.mchange" level="INFO"/>
+    <Logger name="com.zaxxer.hikari" level="INFO"/>
+
+    <Logger name="log4jdbc.debug" level="INFO"/>
+
+    <Logger name="net.sf.jasperreports" level="INFO"/>
+
+    <Logger name="org.apache.kafka" level="INFO"/>
+    <Logger name="org.apache.commons" level="INFO"/>
+    <Logger name="org.apache.http" level="INFO"/>
+    <Logger name="org.apache.jasper" level="INFO"/>
+    <Logger name="org.apache.pulsar" level="WARN"/>
+
+    <Logger name="org.eclipse.jetty" level="INFO"/>
+    <Logger name="org.fusesource.scalate" level="INFO"/>
+    <Logger name="org.mortbay" level="INFO"/>
+    <Logger name="org.quartz" level="INFO"/>
+    <Logger name="play.shaded.ahc" level="INFO"/>
+
+    <Logger name="org.asynchttpclient.netty" level="INFO"/>
+    <Logger name="io.netty" level="INFO"/>
+
+</configuration>

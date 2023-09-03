@@ -2,7 +2,7 @@ package a8.shared.jdbcf
 
 import a8.shared.SharedImports.{sharedImportsIntOps=>_, _}
 import a8.shared.jdbcf.SqlString._
-import a8.shared.app.{AppLogger, BootstrappedIOApp}
+import a8.shared.app.{BootstrappedIOApp}
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import sttp.model.Uri._
 import zio._

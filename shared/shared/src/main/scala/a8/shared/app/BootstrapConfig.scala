@@ -1,17 +1,19 @@
 package a8.shared.app
 
+import a8.common.logging.{Level, LoggingBootstrapConfig}
 import a8.shared.FileSystem.Directory
-import a8.shared.{CompanionGen, FileSystem, NamedToString, StringValue}
+import a8.shared.{CompanionGen, ConfigMojo, FileSystem, NamedToString, StringValue, ZFileSystem}
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.app.MxBootstrapConfig.*
 
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports.*
-import wvlet.log.LogLevel
 import zio.{Duration, Scope, Task, ZIO, ZLayer}
 
 import scala.concurrent.duration.FiniteDuration
-import a8.shared.ZFileSystem
+import a8.common.logging.LoggingBootstrapConfig.LoggingBootstrapConfigDto
+import a8.shared.json.JsonCodec
+import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
 
 /*
  *  + app will have a default AppName which will be it's default prefix
@@ -30,112 +32,133 @@ object BootstrapConfig {
     name: String,
     level: String,
   ) {
-    lazy val resolvedLevel: Option[LogLevel] =
-      LogLevel
+    lazy val resolvedLevel: Option[Level] =
+      Level
         .values
         .find(_.name =:= level)
   }
 
-  object BootstrapConfigDto extends MxBootstrapConfigDto {
+  object BootstrapConfigDto { //extends MxBootstrapConfigDto {
 
     val default: BootstrapConfigDto =
       BootstrapConfigDto(
-        consoleLogging = true.toSome,
-        colorConsole = true.toSome,
-        fileLogging = true.toSome,
-        logAppConfig = true.toSome,
         logsDir = "logs".toSome,
         cacheDir = "cache".toSome,
         dataDir = "data".toSome,
         tempDir = "temp".toSome,
-        defaultLogLevel = LogLevel.DEBUG.name.toSome,
-        logLevels = Vector.empty[LogLevelConfig],
-        configFilePollInterval = 1.minute.some,
+        configDir = "config".toSome,
       ).copy(source = Some("default"))
 
     val empty: BootstrapConfigDto =
       BootstrapConfigDto()
         .copy(source = Some("empty"))
 
+    def fromConfigMojo(configMojo: ConfigMojo): BootstrapConfigDto = {
+
+      implicit val jsonReaderOptions: JsonReaderOptions = JsonReaderOptions.NoLogWarnings
+
+      def v[A: JsonCodec](name: String): A =
+        configMojo(name).as[A]
+
+      BootstrapConfigDto(
+        source = v[Option[String]]("source"),
+        appName = v[Option[AppName]]("appName"),
+        logsDir = v[Option[String]]("logsDir"),
+        tempDir = v[Option[String]]("tempDir"),
+        cacheDir = v[Option[String]](("cacheDir")),
+        dataDir = v[Option[String]]("dataDir"),
+        configDir = v[Option[String]]("configDir"),
+        logging = loggingBootstrapConfigDtoFromConfigMojo(configMojo("logging")),
+      )
+    }
+
+    def loggingBootstrapConfigDtoFromConfigMojo(configMojo: ConfigMojo): LoggingBootstrapConfigDto = {
+
+      implicit val jsonReaderOptions: JsonReaderOptions = JsonReaderOptions.NoLogWarnings
+
+      def v[A: JsonCodec](name: String): A =
+        configMojo(name).as[A]
+
+      LoggingBootstrapConfigDto(
+        overrideSystemErr = v[Option[Boolean]]("overrideSystemErr"),
+        overrideSystemOut = v[Option[Boolean]]("overrideSystemOut"),
+        setDefaultUncaughtExceptionHandler = v[Option[Boolean]]("setDefaultUncaughtExceptionHandler"),
+        autoCreateConfigDirectory = v[Option[Boolean]]("autoCreateConfigDirectory"),
+        fileLogging = v[Option[Boolean]]("fileLogging"),
+        consoleLogging = v[Option[Boolean]]("consoleLogging"),
+        hasColorConsole = v[Option[Boolean]]("hasColorConsole"),
+      )
+    }
+
   }
-  @CompanionGen
   case class BootstrapConfigDto(
     source: Option[String] = None,
     appName: Option[AppName] = None,
-    consoleLogging: Option[Boolean] = None,
-    colorConsole: Option[Boolean] = None,
-    fileLogging: Option[Boolean] = None,
-    logAppConfig: Option[Boolean] = None,
     logsDir: Option[String] = None,
     tempDir: Option[String] = None,
     cacheDir: Option[String] = None,
     dataDir: Option[String] = None,
-    defaultLogLevel: Option[String] = None,
-    logLevels: Vector[LogLevelConfig] = Vector.empty[LogLevelConfig],
-    configFilePollInterval: Option[FiniteDuration] = None,
-) extends NamedToString {
+    configDir: Option[String] = None,
+    autoCreateConfigDir: Option[Boolean] = None,
+    logging: LoggingBootstrapConfigDto = LoggingBootstrapConfigDto.default,
+  ) extends NamedToString {
     def +(right: BootstrapConfigDto): BootstrapConfigDto =
       BootstrapConfigDto(
         appName = right.appName.orElse(appName),
-        consoleLogging = right.consoleLogging.orElse(consoleLogging),
-        colorConsole = right.colorConsole.orElse(colorConsole),
-        fileLogging = right.fileLogging.orElse(fileLogging),
-        logAppConfig = right.logAppConfig.orElse(logAppConfig),
         logsDir = right.logsDir orElse logsDir,
         tempDir = right.tempDir orElse tempDir,
         cacheDir = right.cacheDir orElse cacheDir,
         dataDir = right.dataDir orElse dataDir,
-        defaultLogLevel = right.defaultLogLevel orElse defaultLogLevel,
-        logLevels = logLevels ++ right.logLevels,
-        configFilePollInterval = configFilePollInterval orElse right.configFilePollInterval,
+        configDir = right.configDir orElse configDir,
       )
   }
 
   object UnifiedLogLevel {
 
-    val All = UnifiedLogLevel(wvlet.log.LogLevel.ALL)
-    val Trace = UnifiedLogLevel(wvlet.log.LogLevel.TRACE)
-    val Debug = UnifiedLogLevel(wvlet.log.LogLevel.DEBUG)
-    val Info = UnifiedLogLevel(wvlet.log.LogLevel.INFO)
-    val Warn = UnifiedLogLevel(wvlet.log.LogLevel.WARN)
-    val Error = UnifiedLogLevel(wvlet.log.LogLevel.ERROR)
-    val Off = UnifiedLogLevel(wvlet.log.LogLevel.OFF)
+    val All = UnifiedLogLevel(Level.All)
+    val Trace = UnifiedLogLevel(Level.Trace)
+    val Debug = UnifiedLogLevel(Level.Debug)
+    val Info = UnifiedLogLevel(Level.Info)
+    val Warn = UnifiedLogLevel(Level.Warn)
+    val Error = UnifiedLogLevel(Level.Error)
+    val Off = UnifiedLogLevel(Level.Off)
 
-    def apply(wvletLogLevel: wvlet.log.LogLevel): UnifiedLogLevel = {
+    def apply(a8LogLevel: Level): UnifiedLogLevel = {
       import a8.shared.SharedImports.canEqual.given
-      import wvlet.log.LogLevel
       val zioLogLevel =
-        wvletLogLevel match {
-          case LogLevel.ALL =>
+        a8LogLevel match {
+          case Level.All =>
             zio.LogLevel.All
-          case LogLevel.TRACE =>
+          case Level.Trace =>
             zio.LogLevel.Trace
-          case LogLevel.DEBUG =>
+          case Level.Debug =>
             zio.LogLevel.Debug
-          case LogLevel.INFO =>
+          case Level.Info =>
             zio.LogLevel.Info
-          case LogLevel.WARN =>
+          case Level.Warn =>
             zio.LogLevel.Warning
-          case LogLevel.ERROR =>
+          case Level.Error =>
             zio.LogLevel.Error
-          case LogLevel.OFF =>
+          case Level.Fatal =>
+            zio.LogLevel.Fatal
+          case Level.Off =>
             zio.LogLevel.None
         }
-      UnifiedLogLevel(wvletLogLevel, zioLogLevel)
+      UnifiedLogLevel(a8LogLevel, zioLogLevel)
     }
   }
 
-  case class UnifiedLogLevel(wvletLogLevel: wvlet.log.LogLevel, zioLogLevel: zio.LogLevel) {
+  case class UnifiedLogLevel(a8LogLevel: Level, zioLogLevel: zio.LogLevel) {
 
     import a8.shared.SharedImports.canEqual.given
 
-    lazy val isTrace = wvletLogLevel == wvlet.log.LogLevel.TRACE
+    lazy val isTrace = a8LogLevel == Level.Trace
 
-    lazy val resolvedWvletLogLevel: wvlet.log.LogLevel = {
+    lazy val resolvedA8LogLevel: Level = {
       if (isTrace)
-        LogLevel.ALL
+        Level.All
       else
-        wvletLogLevel
+        a8LogLevel
     }
 
   }
@@ -148,6 +171,8 @@ object BootstrapConfig {
   case class CacheDir(unresolved: Directory) extends DirectoryValue
 
   case class TempDir(unresolved: Directory) extends DirectoryValue
+
+  case class ConfigDir(unresolved: Directory) extends DirectoryValue
 
   object WorkDir extends LoggingF {
 
@@ -190,35 +215,13 @@ object BootstrapConfig {
 
 case class BootstrapConfig(
   appName: AppName,
-  consoleLogging: Boolean,
-  colorConsole: Boolean,
-  fileLogging: Boolean,
-  logAppConfig: Boolean,
   logsDir: LogsDir,
   tempDir: TempDir,
   cacheDir: CacheDir,
   dataDir: DataDir,
+  configDir: ConfigDir,
   appArgs: zio.ZIOAppArgs,
-  defaultLogLevel: UnifiedLogLevel,
-  logLevels: Vector[LogLevelConfig],
-  configFilePollInterval: FiniteDuration,
+  loggingBootstrapConfig: LoggingBootstrapConfig,
 ) extends NamedToString { self =>
-
-  lazy val invalidLogLevels: Vector[LogLevelConfig] =
-    logLevels
-      .flatMap { ll =>
-        ll.resolvedLevel match {
-          case None =>
-            Some(ll)
-          case _ =>
-            None
-        }
-      }
-
-  lazy val resolvedLogLevels: Vector[(String, LogLevel)] =
-    for {
-      ll <- logLevels
-      level <- ll.resolvedLevel
-    } yield ll.name -> level
 
 }

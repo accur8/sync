@@ -27,6 +27,7 @@ object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
       _ <- loggerF.info(s"appArgs: $appArgs")
       _ <- loggerF.info(s"appName: $appName")
       _ <- loggerF.info(s"workDir: $workDir")
+      _ <- loggerF.warn("boom", new Throwable())
       _ <-
         ZStream
           .fromIterable(1 to Integer.MAX_VALUE)

@@ -4,7 +4,8 @@ package a8.sync
 import java.sql.ResultSet
 import a8.sync.dsl.JsonPath
 import org.typelevel.ci.CIString
-import Imports._
+import Imports.*
+import a8.common.logging.Level
 import a8.sync.ResolvedTable.{ColumnMapper, DataType, ResolvedField}
 import a8.sync.impl.{NormalizedKey, NormalizedRow, NormalizedTuple, NormalizedValue, SqlValue, resolveMapping}
 import a8.shared.jdbcf.{ColumnName, Conn, Dialect, SchemaName, SqlString, TableName}
@@ -12,10 +13,8 @@ import a8.shared.json.DynamicJson
 import a8.shared.json.ast.{JsNothing, JsVal}
 import a8.sync.RowSync.ValidationMessage
 import cats.data.Chain
-import wvlet.log.LogLevel
 
-import language.higherKinds
-import zio._
+import zio.*
 
 /**
 
@@ -62,7 +61,7 @@ object dsl {
             .map(_.foldLeft(Chain.empty[RowSync])(_ ++ _))
             .map { rowSyncs =>
               val validationMessages = rowSyncs.flatMap(_.validationMessages)
-              validationMessages.find(_._1 <= LogLevel.ERROR) match {
+              validationMessages.find(_._1 <= Level.Error) match {
                 case Some(firstError) =>
                   MappingResult.Error(document, new RuntimeException(s"Validation error found, the first error is -- ${firstError._2}"), validationMessages) : MappingResult
                 case None =>
@@ -71,7 +70,7 @@ object dsl {
             }
             .catchAll(th => ZIO.succeed(MappingResult.Error(document, th, Chain.empty)))
         )
-        .getOrElse(ZIO.succeed(MappingResult.Skip(document, Chain(LogLevel.INFO -> "skipped claim -- postProcessDocumentFilter returned false"))))
+        .getOrElse(ZIO.succeed(MappingResult.Skip(document, Chain(Level.Info -> "skipped claim -- postProcessDocumentFilter returned false"))))
     }
 
   }
@@ -95,12 +94,12 @@ object dsl {
 //    lazy val ci = CIString(unquoted)
 //  }
 
-  sealed abstract class TruncateAction(val logLevel: Option[LogLevel]) extends enumeratum.EnumEntry
+  sealed abstract class TruncateAction(val logLevel: Option[Level]) extends enumeratum.EnumEntry
   object TruncateAction extends enumeratum.Enum[TruncateAction] {
     val values = findValues
 
-    case object Error extends TruncateAction(Some(LogLevel.ERROR))
-    case object Warn extends TruncateAction(Some(LogLevel.WARN))
+    case object Error extends TruncateAction(Some(Level.Error))
+    case object Warn extends TruncateAction(Some(Level.Warn))
     case object Auto extends TruncateAction(None)
 
   }

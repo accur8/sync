@@ -8,7 +8,6 @@ import a8.shared.json.impl.{JsValOps, JsonCodecs}
 import scala.reflect.{ClassTag, classTag}
 import a8.shared.SharedImports._
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
-import wvlet.log.Logger
 import zio.{Task, UIO}
 
 import scala.collection.mutable

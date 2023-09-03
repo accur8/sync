@@ -1,6 +1,6 @@
 package a8.shared.app
 
-import wvlet.log.Logger
+import a8.common.logging.{Logger, LoggerFactory}
 
 
 object Logging {
@@ -31,6 +31,6 @@ object Logging {
 
 trait Logging {
 
-  implicit lazy val logger: Logger = Logger(Logging.loggerName(this.getClass))
+  implicit lazy val logger: Logger = LoggerFactory.logger(Logging.loggerName(this.getClass))
 
 }

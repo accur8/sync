@@ -1,9 +1,10 @@
 package a8.shared.json
 
 
+import a8.common.logging.Level
 import a8.shared.{FileSystem, HoconOps, ZFileSystem}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.app.LoggerF
 import a8.shared.app.LoggerF.Pos
 import a8.shared.json.JsonReader.{JsonSource, ReadResult}
@@ -12,7 +13,6 @@ import a8.shared.json.ZJsonReader.ZJsonSource.OverrideContextJsonSource
 import a8.shared.json.ZJsonReader.{ZJsonReaderOptions, ZJsonSource}
 import a8.shared.json.ast.JsDoc.JsDocRoot
 import a8.shared.json.ast.{JsDoc, JsVal}
-import wvlet.log.{LogLevel, LogSource, Logger}
 import zio.{Trace, UIO, ZIO}
 
 import scala.collection.mutable
@@ -153,9 +153,9 @@ object ZJsonReader {
   }
 
   object ZJsonReaderOptions {
-    implicit def jsonReaderZOptions(implicit logLevel: LogLevel = LogLevel.WARN, trace: Trace, loggerF: LoggerF): ZJsonReaderOptions =
+    implicit def jsonReaderZOptions(implicit logLevel: Level = Level.Warn, trace: Trace, loggerF: LoggerF): ZJsonReaderOptions =
       LogWarnings(logLevel, trace, loggerF)
-    case class LogWarnings(logLevel: LogLevel = LogLevel.WARN, trace: Trace, loggerF: LoggerF) extends ZJsonReaderOptions
+    case class LogWarnings(logLevel: Level = Level.Warn, trace: Trace, loggerF: LoggerF) extends ZJsonReaderOptions
     case object NoLogWarnings extends ZJsonReaderOptions
   }
   sealed trait ZJsonReaderOptions

@@ -3,7 +3,7 @@ package a8.shared.json
 
 import a8.shared.{FileSystem, HoconOps, ZFileSystem}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.app.{LoggerF, Logging}
 import a8.shared.app.LoggerF.Pos
 import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
@@ -11,13 +11,13 @@ import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ast.JsDoc.{JsDocRoot, empty}
 import a8.shared.json.ast.{JsDoc, JsVal}
-import wvlet.log.{LogLevel, LogSource, Logger}
 import zio.{Trace, UIO, ZIO}
 
 import scala.collection.mutable
 import scala.io.Source
 import scala.util.Try
 import scala.language.implicitConversions
+import a8.common.logging.{Logger, Level as LogLevel}
 
 object JsonReader extends Logging { outer =>
 
@@ -206,10 +206,10 @@ object JsonReader extends Logging { outer =>
   }
 
   object JsonWarningLogLevel {
-    val Off: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.OFF)
-    val Trace: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.TRACE)
-    val Debug: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.DEBUG)
-    val Warn: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.WARN)
+    val Off: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.Off)
+    val Trace: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.Trace)
+    val Debug: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.Debug)
+    val Warn: JsonWarningLogLevel = JsonWarningLogLevel(LogLevel.Warn)
     implicit val Default: JsonWarningLogLevel = Warn
   }
   case class JsonWarningLogLevel(logLevel: LogLevel)
@@ -221,7 +221,8 @@ object JsonReader extends Logging { outer =>
 
     case class LogWarnings(logLevel: JsonWarningLogLevel, pos: Pos, logger: Logger) extends JsonReaderOptions {
       def logMessage(msg: String): Unit =
-        logger.log(logLevel.logLevel, pos.asLogSource, msg)
+//        ??? logger.log(logLevel.logLevel, pos.asLogSource, msg)
+        logger.log(logLevel.logLevel, msg)
     }
 
     case object NoLogWarnings extends JsonReaderOptions

@@ -10,7 +10,7 @@ import a8.shared.app.Logging
 import java.net.URL
 import java.util
 
-object CascadingHocon extends Logging {
+object CascadingHocon {
 
   lazy val emptyConfigObject: ConfigObject = emptyHocon.root()
 
@@ -44,7 +44,7 @@ object CascadingHocon extends Logging {
       filesToTry
         .filter(_.isFile())
         .map { path =>
-          logger.info(s"loading config from ${path.toFile.getCanonicalPath}")
+//          logger.info(s"loading config from ${path.toFile.getCanonicalPath}")
           HoconOps.impl.loadConfig(path) -> path
         }
         .foldLeft(parentConfig) { case (acc, c) =>

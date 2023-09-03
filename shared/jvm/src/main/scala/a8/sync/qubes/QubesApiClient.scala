@@ -12,7 +12,7 @@ import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.sync.http.{Backend, Method, RequestProcessor, RequestProcessorConfig, RetryConfig}
 import a8.sync.http
 import a8.sync.qubes.MxQubesApiClient.*
-import a8.sync.qubes.QubesApiClient.UpdateRowRequest.{Parameter, Parm}
+import a8.sync.qubes.QubesApiClient.UpdateRowRequest.{Parm}
 import sttp.client3.*
 import sttp.client3.logging.LogLevel
 import sttp.model.Uri
@@ -66,7 +66,7 @@ object QubesApiClient extends LoggingF {
   )
 
   object UpdateRowRequest extends MxUpdateRowRequest {
-    object Parm extends MxParameter
+    object Parm extends MxParm
     @CompanionGen()
     case class Parm(
       dataType: Option[String] = None,
@@ -76,10 +76,10 @@ object QubesApiClient extends LoggingF {
     )
   }
   @CompanionGen()
-  case class UpdateRowRequest(x
+  case class UpdateRowRequest(
     cube: String,
     fields: JsObj,
-    parameters: Vector[Parm] = Vector.empty[Parm],
+    parameters: Iterable[Parm] = Iterable(),
     where: Option[String] = None,
     appSpace: Option[String] = None,
   )
@@ -198,28 +198,28 @@ case class QubesApiClient(
     qubesKeyedMapper.fetch(key)
   }
 
-  def insert[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
+  def insert[A : QubesMapper](row: A, parameters: Parm*): Task[A] =
     processResponse(
       "insert",
       row,
       lowlevel.insert(implicitly[QubesMapper[A]].insertReq(row, parameters))
     ).as(row)
 
-  def update[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
+  def update[A : QubesMapper](row: A, parameters: Parm*): Task[A] =
     processResponse(
       "update",
       row,
       lowlevel.update(implicitly[QubesMapper[A]].updateReq(row, parameters))
     ).as(row)
 
-  def upsert[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
+  def upsert[A : QubesMapper](row: A, parameters: Parm*): Task[A] =
     processResponse(
       "upsert",
       row,
       lowlevel.upsert(implicitly[QubesMapper[A]].updateReq(row, parameters))
     ).as(row)
 
-  def delete[A : QubesMapper](row: A, parameters: Parameter*): Task[A] =
+  def delete[A : QubesMapper](row: A, parameters: Parm*): Task[A] =
     processResponse(
       "delete",
       row,

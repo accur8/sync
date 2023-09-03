@@ -2,7 +2,7 @@ package a8.sync
 
 import a8.shared.CompanionGen
 import a8.shared.SharedImports._
-import a8.shared.app.{AppLogger, BootstrappedIOApp}
+import a8.shared.app.{BootstrappedIOApp}
 import a8.shared.jdbcf.mapper.PK
 import a8.sync.MxQubesApiClientDemo.MxUserGroup
 import a8.sync.qubes.{QubesAnno, QubesApiClient}

@@ -10,11 +10,11 @@ import a8.shared.SharedImports._
 import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsDoc
-import wvlet.log.LogLevel
 import zio.{Task, ZIO, ZIOAppArgs, ZLayer}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
+import a8.common.logging.{ Level => LogLevel }
 
 @scala.annotation.nowarn
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
@@ -53,60 +53,42 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
         override lazy val bootstrapConfig: BootstrapConfig = {
 
           val globalBootstrapDto =
-            (configMojoRoot("global_bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
-              case ReadResult.Success(v, _, _, _) =>
-                v
-              case ReadResult.Error(re, _, _) =>
-                sys.error(re.prettyMessage)
-            }).copy(source = Some("config.hocon - global_bootstrap"))
+            BootstrapConfigDto.fromConfigMojo(configMojoRoot("global_bootstrap"))
+              .copy(source = Some("config.hocon - global_bootstrap"))
 
-          val bootstrapConfigPropertyName = appName.value + ".bootstrap"
+          val bootstrapConfigPropertyName: String = appName.value + ".bootstrap"
+
           val bootstrapDto =
-            (configMojo("bootstrap").asReadResult[BootstrapConfig.BootstrapConfigDto] match {
-              case ReadResult.Success(v, _, _, _) =>
-                v
-              case ReadResult.Error(re, _, _) =>
-                sys.error(re.prettyMessage)
-            }).copy(source = Some("config.hocon - " + bootstrapConfigPropertyName))
+            BootstrapConfigDto.fromConfigMojo(configMojo("bootstrap"))
+              .copy(source = Some("config.hocon - " + bootstrapConfigPropertyName))
 
-          val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, bootstrapDto)
+          lazy val resolveAppName: AppName = resolvedDto.appName.getOrElse(appName)
+
+          lazy val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, bootstrapDto)
+
+          lazy val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
 
           bootstrapLogs.append(s"bootstrap chain = ${dtoChain.mkString("List(\n  ", ",\n  ", ",\n)")}")
 
-          val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
           //        bootstrapLogs.append(s"resolved dto ${resolvedDto}")
 
-          val defaultLogLevel: UnifiedLogLevel = {
-
-            def find(nameOpt: Option[String]): Option[LogLevel] = {
-              nameOpt
-                .map(_.toLowerCase)
-                .map { defaultLogLevelName =>
-                  wvlet.log.LogLevel.values.find(_.name.toLowerCase == defaultLogLevelName).get
-                }
-            }
-
-            find(Option(System.getProperty("defaultLogLevel")))
-              .orElse(find(resolvedDto.defaultLogLevel))
-              .map(UnifiedLogLevel(_))
-              .getOrElse(globalDefaultLogLevel.value)
-
-          }
+          val logsDir = LogsDir(FileSystem.dir(resolvedDto.logsDir.get))
+          val configDir = ConfigDir(FileSystem.dir(resolvedDto.configDir.get))
 
           BootstrapConfig(
-            appName = resolvedDto.appName.getOrElse(appName),
-            consoleLogging = resolvedDto.consoleLogging.get,
-            colorConsole = resolvedDto.colorConsole.get,
-            fileLogging = resolvedDto.fileLogging.get,
-            logAppConfig = resolvedDto.logAppConfig.get,
-            logsDir = LogsDir(FileSystem.dir(resolvedDto.logsDir.get)),
+            appName = resolveAppName,
+            logsDir = logsDir,
             tempDir = TempDir(FileSystem.dir(resolvedDto.tempDir.get)),
             cacheDir = CacheDir(FileSystem.dir(resolvedDto.cacheDir.get)),
             dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
-            defaultLogLevel = defaultLogLevel,
+            configDir = configDir,
             appArgs = args,
-            logLevels = resolvedDto.logLevels,
-            configFilePollInterval = resolvedDto.configFilePollInterval.get,
+            loggingBootstrapConfig =
+              resolvedDto.logging.asLoggingBootstrapConfig(
+                appName = resolveAppName.value,
+                configDirectory = new java.io.File(configDir.unresolved.canonicalPath),
+                logsDirectory = new java.io.File(logsDir.unresolved.canonicalPath),
+              ),
           )
         }
 

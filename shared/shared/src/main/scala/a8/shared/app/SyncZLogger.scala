@@ -2,7 +2,7 @@ package a8.shared.app
 
 
 import a8.shared.{AtomicMap, AtomicRef}
-import org.slf4j.{LoggerFactory, MDC}
+import org.slf4j.{MDC}
 import zio.{Cause, FiberId, FiberRef, LogLevel, LogSpan, Runtime, Trace, ZLayer, ZLogger}
 import zio.logging.LogFormat
 import a8.shared.SharedImports._
@@ -35,7 +35,7 @@ object SyncZLogger {
     zioTrace: String,
     loggerName: String,
     slf4jLogger: org.slf4j.Logger,
-    wvletLogger: wvlet.log.Logger,
+    a8Logger: a8.common.logging.Logger,
   ) {
     val fileName: String =
       zioTrace.indexOf("(") match {
@@ -84,7 +84,7 @@ object SyncZLogger {
                     .headOption
                     .getOrElse(traceStr)
                     .intern()
-                val cl = CachedLogger(traceStr, loggerName, LoggerFactory.getLogger(loggerName), wvlet.log.Logger(loggerName))
+                val cl = CachedLogger(traceStr, loggerName, org.slf4j.LoggerFactory.getLogger(loggerName), a8.common.logging.LoggerFactory.logger(loggerName))
                 cachedLoggers += (trace -> cl): @scala.annotation.nowarn
                 cl
             }
@@ -149,22 +149,22 @@ object SyncZLogger {
           }
 
           import cachedLogger.slf4jLogger
-          import cachedLogger.wvletLogger
+          import cachedLogger.a8Logger
           val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
-          if (wvletLogger.isEnabled(wvletLogLevel)) {
+          if (a8Logger.isLevelEnabled(wvletLogLevel)) {
             try logLevel match {
               case LogLevel.Trace =>
-                wvletLogger.trace(message)
+                a8Logger.trace(message)
               case LogLevel.Debug =>
-                wvletLogger.debug(message)
+                a8Logger.debug(message)
               case LogLevel.Info =>
-                wvletLogger.info(message)
+                a8Logger.info(message)
               case LogLevel.Warning =>
-                wvletLogger.warn(message)
+                a8Logger.warn(message)
               case LogLevel.Error =>
-                wvletLogger.error(message)
+                a8Logger.error(message)
               case LogLevel.Fatal =>
-                wvletLogger.error(message)
+                a8Logger.error(message)
               case LogLevel.None =>
               case _ =>
             } finally {

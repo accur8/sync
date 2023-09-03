@@ -1,9 +1,9 @@
 package a8.shared.json
 
+
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.json.ast.JsDoc
-import wvlet.log.{LogLevel, Logger}
-
+import a8.common.logging.Logger
 
 object JsonReadOptions {
 

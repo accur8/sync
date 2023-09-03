@@ -6,7 +6,6 @@ import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsDoc.{JsDocPath, JsDocRoot}
 import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
-import wvlet.log.LogLevel
 import zio.{Task, ZIO}
 
 object HasJsValOps {

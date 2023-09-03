@@ -5,11 +5,13 @@ import a8.shared.SharedImports.*
 import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempDir, UnifiedLogLevel, WorkDir}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.shared.json.JsonCodec
-import wvlet.log.LogLevel
 import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
 import a8.shared.SharedImports.*
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import zio.ULayer
+import a8.common.logging.Level
+import a8.common.logging.LoggingBootstrapConfig
+import a8.shared.ConfigMojo
 
 object BootstrappedIOApp {
 
@@ -25,12 +27,12 @@ abstract class BootstrappedIOApp
     with LoggingF
 {
 
-  def initialLogLevels: Iterable[(String,wvlet.log.LogLevel)] = {
+  def initialLogLevels: Iterable[(String,Level)] = {
     val debugs =
       List(
         "io.undertow",
       ) map { n =>
-        n -> LogLevel.DEBUG
+        n -> Level.Debug
       }
 
     val infos =
@@ -62,7 +64,7 @@ abstract class BootstrappedIOApp
         "net.snowflake.client",
         "com.linecorp.armeria",
       ) map { n =>
-        n -> LogLevel.INFO
+        n -> Level.Info
       }
 
     debugs ++ infos
@@ -87,10 +89,6 @@ abstract class BootstrappedIOApp
           logger.debug(s"config files used ${bootstrapper.configFiles.map(_.toRealPath()).mkString(" ")}")
           logger.debug(s"directories searched ${bootstrapper.directoriesSearched.mkString(" ")}")
           logger.debug(s"bootstrap config is ${bootstrapper.bootstrapConfig}")
-
-          if (bootstrapper.bootstrapConfig.logAppConfig) {
-            logger.debug(s"using config ${bootstrapper.rootConfig.prettyJson}")
-          }
 
           def loadDriver(className: String): Unit = {
             try {
@@ -134,58 +132,56 @@ abstract class BootstrappedIOApp
       config <- bootstrapper.appConfig[A]
     } yield config
 
-  def defaultLogLevel = UnifiedLogLevel(wvlet.log.LogLevel.DEBUG)
+  def defaultLogLevel = UnifiedLogLevel(Level.Debug)
 
   def appConfigLayer[A: Tag: JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): ZLayer[Bootstrapper,Throwable,A] = ZLayer(appConfig[A])
 
   def runT: zio.ZIO[BootstrapEnv, Throwable, Unit]
 
-  final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
-    zservice[ZIOAppArgs]
-      .zip(zservice[Scope])
-      .flatMap { case (appArgs, scope) =>
-        val effect =
-          for {
-            bootstrapper <- zservice[Bootstrapper]
-            _ <- AppLogger.configure(initialLogLevels ++ bootstrapper.bootstrapConfig.resolvedLogLevels)
-            _ <- {
-              if (bootstrapper.bootstrapConfig.invalidLogLevels.nonEmpty) {
-                loggerF.warn(s"invalid log levels ${bootstrapper.bootstrapConfig.invalidLogLevels.mkString(" ")}")
-              } else {
-                zunit
-              }
-            }
-            _ <- appInit
-            _ <- ZIO.scoped(runT)
-          } yield ()
+  def configureLogLevels(initialLogLevels: Iterable[(String, Level)]): zio.Task[Unit] =
+    zblock(
+      initialLogLevels
+        .foreach(ll => a8.common.logging.LoggerFactory.logger(ll._1).setLevel(ll._2))
+    )
 
-        val loggingLayer = SyncZLogger.slf4jLayer(defaultLogLevel.zioLogLevel)
+  final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] = {
 
-        effect
-          .onExit {
-            case zio.Exit.Success(_) =>
-              loggerF.info("natural shutdown")
-            case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
-              loggerF.info(s"shutdown because of interruption only", cause)
-            case zio.Exit.Failure(cause) =>
-              loggerF.warn(s"shutdown because of failure/interruption", cause)
-          }
-          .provide(
-            Bootstrapper.layer,
-            ZLayer.succeed(BootstrappedIOApp.DefaultLogLevel(defaultLogLevel)),
-            ZLayer.succeed(scope),
-            ZLayer.succeed(appArgs),
-            layers.appName,
-            layers.logsDir,
-            layers.tempDir,
-            layers.dataDir,
-            layers.cacheDir,
-            layers.workDir,
-            layers.bootstrapConfig,
-            loggingLayer,
-            zio.logging.removeDefaultLoggers,
-          )
+    val effect =
+      for {
+        bootstrapper <- zservice[Bootstrapper]
+        _ <- zblock(LoggingBootstrapConfig.finalizeConfig(bootstrapper.bootstrapConfig.loggingBootstrapConfig))
+        _ <- loggerF.info(s"bootstrap config from ${ConfigMojo.rootSources.mkString("  ")}")
+        _ <- configureLogLevels(initialLogLevels)
+        _ <- appInit
+        _ <- ZIO.scoped(runT)
+      } yield ()
+
+    val loggingLayer = SyncZLogger.slf4jLayer(defaultLogLevel.zioLogLevel)
+
+    effect
+      .onExit {
+        case zio.Exit.Success(_) =>
+          loggerF.info("natural shutdown")
+        case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
+          loggerF.info(s"shutdown because of interruption only", cause)
+        case zio.Exit.Failure(cause) =>
+          loggerF.warn(s"shutdown because of failure/interruption", cause)
       }
+      .provideSome[zio.Scope & zio.ZIOAppArgs](
+        Bootstrapper.layer,
+        ZLayer.succeed(BootstrappedIOApp.DefaultLogLevel(defaultLogLevel)),
+        layers.appName,
+        layers.logsDir,
+        layers.tempDir,
+        layers.dataDir,
+        layers.cacheDir,
+        layers.workDir,
+        layers.bootstrapConfig,
+        loggingLayer,
+        zio.logging.removeDefaultLoggers,
+      )
+
+  }
 
 
 }

@@ -21,7 +21,6 @@ import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.internal.{charsetFromContentType, sanitizeCharset}
 import sttp.{capabilities, client3}
 import sttp.client3.{Identity, RequestT, ResponseAs, SttpBackendOptions, basicRequest}
-import wvlet.log.LogLevel
 import zio.Schedule.{WithState, succeed}
 import zio.{LogLevel as _, durationInt as _, *}
 import zio.stream.{ZPipeline, ZSink}
@@ -33,6 +32,7 @@ import scala.jdk.DurationConverters.*
 import a8.shared.SharedImports.given
 
 import scala.concurrent.duration
+import a8.common.logging.Level
 
 object http extends LoggingF {
 
@@ -212,7 +212,7 @@ object http extends LoggingF {
     retryJsonParseErrors: Boolean = false,
     retryJsonCodecErrors: Boolean = false,
     responseValidator: JsVal => UIO[ResponseAction[JsVal]] = jsv => ZIO.succeed(ResponseAction.Success(jsv)),
-    jsonWarningsLogLevel: LogLevel = LogLevel.DEBUG,
+    jsonWarningsLogLevel: Level = Level.Debug,
   )
 
   object ResponseInfo extends MxResponseInfo
@@ -259,7 +259,7 @@ object http extends LoggingF {
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, trace: Trace, loggerF: LoggerF): Task[A] = {
 
       implicit val jsonReaderOptions = {
-        if ( jsonResponseOptions.jsonWarningsLogLevel equals LogLevel.OFF) {
+        if ( jsonResponseOptions.jsonWarningsLogLevel equals Level.Off) {
           ZJsonReaderOptions.NoLogWarnings
         } else {
           ZJsonReaderOptions.LogWarnings(jsonResponseOptions.jsonWarningsLogLevel, trace, loggerF)

@@ -3,15 +3,14 @@ package a8.shared.mail
 
 import a8.shared.SharedImports._
 import a8.shared.app.BootstrappedIOApp
-import wvlet.log.{LogLevel, Logger}
 import zio._
 
 object MailApiDemo extends BootstrappedIOApp {
 
   override lazy val defaultAppName: String = "mailapidemo"
 
-  Logger("com.sun.mail").setLogLevel(LogLevel.DEBUG)
-  Logger("jakarta").setLogLevel(LogLevel.DEBUG)
+//  Logger("com.sun.mail").setLogLevel(LogLevel.DEBUG)
+//  Logger("jakarta").setLogLevel(LogLevel.DEBUG)
 
   lazy val mailConfig: MailConfig = MailConfig(
     host = "smtp.gmail.com",
