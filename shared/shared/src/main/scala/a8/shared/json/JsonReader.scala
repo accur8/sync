@@ -5,7 +5,6 @@ import a8.shared.{FileSystem, HoconOps, ZFileSystem}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.SharedImports.*
 import a8.shared.app.{LoggerF, Logging}
-import a8.shared.app.LoggerF.Pos
 import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
@@ -17,7 +16,7 @@ import scala.collection.mutable
 import scala.io.Source
 import scala.util.Try
 import scala.language.implicitConversions
-import a8.common.logging.{Logger, Level as LogLevel}
+import a8.common.logging.{Logger, Pos, Level as LogLevel}
 
 object JsonReader extends Logging { outer =>
 

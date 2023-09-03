@@ -14,10 +14,13 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "3.2.2"
-val zioVersion = "2.0.13"
+val scalaLibVersion = "3.3.0"
+val zioVersion = "2.0.16"
 val zioLoggingVersion = "2.1.9"
 val slf4jVersion = "2.0.7"
+val zeroWasteVersion = "0.2.12"
+
+val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
 
 Global / resolvers += "a8-repo" at Common.readRepoUrl()
@@ -73,7 +76,8 @@ lazy val logging =
     .settings(
       libraryDependencies ++= Seq(
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+        "dev.zio" %%% "zio" % zioVersion,
+        zeroWastePlugin,
       )
     )
     .jsSettings(
@@ -91,7 +95,7 @@ lazy val logging_logback =
     .dependsOn(loggingJVM)
     .settings(
       libraryDependencies ++= Seq(
-//        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+//        zeroWastePlugin,
       )
     )
     .settings(
@@ -114,7 +118,7 @@ lazy val api =
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+        zeroWastePlugin,
       )
     )
 
@@ -127,7 +131,7 @@ lazy val http =
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-http" % "3.0.0-RC1",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+        zeroWastePlugin,
       )
     )
 
@@ -150,7 +154,7 @@ lazy val shared =
           baseDirectory.value / "shared" / "src" / "test" / "scala",
         ),
       libraryDependencies ++= Seq(
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+        zeroWastePlugin,
         "org.typelevel" %% "case-insensitive" % "1.3.0",
         "com.beachape" %%% "enumeratum" % "1.7.2",
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
@@ -160,7 +164,6 @@ lazy val shared =
         "org.typelevel" %% "jawn-parser" % "1.4.0",
         "org.typelevel" %% "jawn-ast" % "1.4.0",
         "dev.zio" %%% "zio-prelude" % "1.0.0-RC16",
-        "dev.zio" %%% "zio" % zioVersion,
         "dev.zio" %%% "zio-streams" % zioVersion,
         "dev.zio" %%% "zio-logging" % zioLoggingVersion,
         "dev.zio" %%% "zio-test" % zioVersion % Test,

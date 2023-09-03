@@ -2,7 +2,6 @@ package a8.shared.app
 
 
 import a8.shared.SharedImports.*
-import a8.shared.app.LoggerF.Pos
 import cats.Monad
 import zio.{LogLevel as _, *}
 import a8.common.logging.{Logger, LoggerFactory, Level as LogLevel}
@@ -41,25 +40,6 @@ object LoggerF {
     @inline def toZioLogLevel(logLevel: LogLevel): zio.LogLevel =
       logLevelMap(logLevel)
 
-  }
-
-  object Pos {
-    implicit def implicitPos(
-      implicit
-        file: sourcecode.File,
-        fileName: sourcecode.FileName,
-        line: sourcecode.Line,
-    ): Pos =
-      Pos(file, fileName, line)
-
-  }
-
-  case class Pos(
-    file: sourcecode.File,
-    fileName: sourcecode.FileName,
-    line: sourcecode.Line,
-  ) {
-//    def asLogSource: LogSource = LogSource(file.value, fileName.value, line.value, 0)
   }
 
   def wrap(logger: Logger): LoggerF =

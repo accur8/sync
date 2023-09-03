@@ -6,7 +6,6 @@ import a8.shared.{FileSystem, HoconOps, ZFileSystem}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.SharedImports.*
 import a8.shared.app.LoggerF
-import a8.shared.app.LoggerF.Pos
 import a8.shared.json.JsonReader.{JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ZJsonReader.ZJsonSource.OverrideContextJsonSource

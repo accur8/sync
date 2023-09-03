@@ -7,7 +7,5 @@
 
 * put RollingFileAppender defaults into sample
 
-* fix stack trace indenting
-
 
 

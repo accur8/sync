@@ -32,6 +32,9 @@ object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
         ZStream
           .fromIterable(1 to Integer.MAX_VALUE)
           .mapZIO { i =>
+            val trace = implicitly[zio.Trace]
+            logger.info(trace.toString)
+            logger.info("direct logger call")
             loggerF.info(s"hello $i")
               .asZIO(ZIO.sleep(zio.Duration.fromSeconds(1)))
           }

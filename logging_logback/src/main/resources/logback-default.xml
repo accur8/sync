@@ -1,6 +1,6 @@
 <configuration scan="true" scanPeriod="1 minute">
 
-    <variable name="LayoutPattern" value="%d{HH:mm:ss.SSS} | %-5level | %thread | [%X{ndc}%kvp] | %logger | %msg%n" />
+    <variable name="LayoutPattern" value="%d{HH:mm:ss.SSS} | %-5level | %thread | [%X{ndc}%kvp] | %logger | %msg - %marker%n" />
 
     <if condition='property("bootstrap.fileLogging").equals("true")'>
         <then>

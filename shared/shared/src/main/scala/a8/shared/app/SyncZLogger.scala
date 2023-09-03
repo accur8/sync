@@ -1,11 +1,12 @@
 package a8.shared.app
 
 
+import a8.common.logging.Pos
 import a8.shared.{AtomicMap, AtomicRef}
-import org.slf4j.{MDC}
+import org.slf4j.MDC
 import zio.{Cause, FiberId, FiberRef, LogLevel, LogSpan, Runtime, Trace, ZLayer, ZLogger}
 import zio.logging.LogFormat
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.SharedImports.canEqual.given
 
 import java.util
@@ -37,13 +38,16 @@ object SyncZLogger {
     slf4jLogger: org.slf4j.Logger,
     a8Logger: a8.common.logging.Logger,
   ) {
-    val fileName: String =
-      zioTrace.indexOf("(") match {
-        case -1 =>
-          ""
-        case i  =>
-          " - " + zioTrace.substring(i)
-      }
+    implicit val pos: Pos = {
+      val (fileName, lineNo) =
+        (zioTrace.indexOf("("), zioTrace.lastIndexOf(":")) match {
+          case (-1, _) | (_, -1) =>
+            "" -> -1
+          case (i, j) =>
+            zioTrace.substring(i + 1, j) -> zioTrace.substring(j + 1, zioTrace.length - 1).toInt
+        }
+      Pos(sourcecode.FileName(fileName), sourcecode.Line(lineNo))
+    }
   }
 
   def slf4jLayer(minLevel: LogLevel): ZLayer[Any, Nothing, Unit] =
@@ -142,14 +146,13 @@ object SyncZLogger {
               }
             }
 
-            append(cachedLogger.fileName)
-
             sb.toString()
 
           }
 
           import cachedLogger.slf4jLogger
           import cachedLogger.a8Logger
+          import cachedLogger.pos
           val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
           if (a8Logger.isLevelEnabled(wvletLogLevel)) {
             try logLevel match {
