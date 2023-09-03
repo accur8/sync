@@ -1,14 +1,15 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.{AtomicMap, NamedToString}
+import a8.shared.NamedToString
 import a8.shared.jdbcf.JdbcMetadata.{JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.{CatalogName, ColumnName, ResolvedTableName, SchemaName, TableLocator, TableName}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
-import zio._
+import zio.*
 
 import java.sql.ResultSetMetaData
+import scala.collection.concurrent.TrieMap
 
 object JdbcMetadata {
 
@@ -148,8 +149,8 @@ object JdbcMetadata {
     new default
   class default extends JdbcMetadata {
 
-      val resolvedTableNameCache = AtomicMap[TableLocator, ResolvedTableName]
-      val tableMetadataCache = AtomicMap[TableLocator, ResolvedJdbcTable]
+      val resolvedTableNameCache = TrieMap.empty[TableLocator, ResolvedTableName]
+      val tableMetadataCache = TrieMap.empty[TableLocator, ResolvedJdbcTable]
 
       override def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedTableName] = {
         resolvedTableNameCache

@@ -80,6 +80,11 @@ lazy val logging =
         zeroWastePlugin,
       )
     )
+    .jvmSettings(
+      libraryDependencies ++= Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
+      )
+    )
     .jsSettings(
       libraryDependencies ++= Seq(
         "org.scala-js" %%% "scalajs-dom" % "2.6.0",
@@ -104,7 +109,6 @@ lazy val logging_logback =
         "org.fusesource.jansi" % "jansi" % "2.4.0",
         "ch.qos.logback" % "logback-core" % "1.4.11",
         "ch.qos.logback" % "logback-classic" % "1.4.11",
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
         "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
         "org.slf4j" % "jul-to-slf4j" % slf4jVersion,
       )

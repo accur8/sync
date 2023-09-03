@@ -3,7 +3,7 @@ package a8.shared
 
 import a8.shared.FileSystem.Directory
 import a8.shared.NamedToString
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 import a8.shared.jdbcf.ISeriesDialect.logger
 
 import java.io.{ByteArrayOutputStream, PrintWriter}

@@ -1,17 +1,17 @@
-package a8.shared.app
+package a8.common.logging
 
-
-import a8.common.logging.Pos
-import a8.shared.{AtomicMap, AtomicRef}
+import a8.common.logging.LoggerF
 import org.slf4j.MDC
 import zio.{Cause, FiberId, FiberRef, LogLevel, LogSpan, Runtime, Trace, ZLayer, ZLogger}
-import zio.logging.LogFormat
-import a8.shared.SharedImports.*
-import a8.shared.SharedImports.canEqual.given
 
 import java.util
+import scala.collection.concurrent.TrieMap
+import LoggingOps._
 
 object SyncZLogger {
+
+  given CanEqual[FiberId, FiberId] = CanEqual.canEqualAny
+  given CanEqual[LogLevel, LogLevel] = CanEqual.canEqualAny
 
   case class Leveler(
     logLevel: LogLevel,
@@ -30,28 +30,21 @@ object SyncZLogger {
 
   val levelersByLogLevel: Map[LogLevel,Leveler] =
     levelers
-      .toMapTransform(_.logLevel)
+      .map(l => l.logLevel -> l)
+      .toMap
 
   case class CachedLogger(
-    zioTrace: String,
-    loggerName: String,
+    traceWrapper: TraceWrapper,
     slf4jLogger: org.slf4j.Logger,
     a8Logger: a8.common.logging.Logger,
   ) {
-    implicit val pos: Pos = {
-      val (fileName, lineNo) =
-        (zioTrace.indexOf("("), zioTrace.lastIndexOf(":")) match {
-          case (-1, _) | (_, -1) =>
-            "" -> -1
-          case (i, j) =>
-            zioTrace.substring(i + 1, j) -> zioTrace.substring(j + 1, zioTrace.length - 1).toInt
-        }
-      Pos(sourcecode.FileName(fileName), sourcecode.Line(lineNo))
-    }
+    implicit def implicitTrace: Trace = traceWrapper.trace
   }
 
-  def slf4jLayer(minLevel: LogLevel): ZLayer[Any, Nothing, Unit] =
-    Runtime.addLogger(slf4jZLogger(minLevel))
+  def slf4jLayer: ZLayer[Any, Nothing, Unit] =
+    Runtime.addLogger(
+      slf4jZLogger(UnifiedLogLevel.apply(LoggingBootstrapConfig.globalBootstrapConfig.defaultLogLevel).zioLogLevel)
+    )
 
   /**
    * lots of mutable code because we feel a strong need to be performant here
@@ -60,7 +53,7 @@ object SyncZLogger {
 
     new ZLogger[String, Unit] {
 
-      val cachedLoggers = AtomicMap[Trace, CachedLogger]
+      val cachedLoggers = TrieMap.empty[Trace, CachedLogger]
 
       override def apply(
         trace: Trace,
@@ -81,14 +74,9 @@ object SyncZLogger {
               case Some(cl) =>
                 cl
               case None =>
-                val traceStr = trace.toString
-                val loggerName =
-                  traceStr
-                    .splitList("\\(", limit = 2)
-                    .headOption
-                    .getOrElse(traceStr)
-                    .intern()
-                val cl = CachedLogger(traceStr, loggerName, org.slf4j.LoggerFactory.getLogger(loggerName), a8.common.logging.LoggerFactory.logger(loggerName))
+                val tw = TraceWrapper.fromTrace(trace)
+                val loggerName = tw.scalaName
+                val cl = CachedLogger(tw, org.slf4j.LoggerFactory.getLogger(loggerName), a8.common.logging.LoggerFactory.logger(loggerName))
                 cachedLoggers += (trace -> cl): @scala.annotation.nowarn
                 cl
             }
@@ -150,9 +138,7 @@ object SyncZLogger {
 
           }
 
-          import cachedLogger.slf4jLogger
-          import cachedLogger.a8Logger
-          import cachedLogger.pos
+          import cachedLogger.{a8Logger, implicitTrace}
           val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
           if (a8Logger.isLevelEnabled(wvletLogLevel)) {
             try logLevel match {

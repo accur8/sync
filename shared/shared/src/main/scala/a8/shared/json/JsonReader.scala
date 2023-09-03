@@ -4,7 +4,7 @@ package a8.shared.json
 import a8.shared.{FileSystem, HoconOps, ZFileSystem}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.SharedImports.*
-import a8.shared.app.{LoggerF, Logging}
+import a8.common.logging.Logging
 import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
@@ -16,7 +16,7 @@ import scala.collection.mutable
 import scala.io.Source
 import scala.util.Try
 import scala.language.implicitConversions
-import a8.common.logging.{Logger, Pos, Level as LogLevel}
+import a8.common.logging.{Logger, LoggerF, Level as LogLevel}
 
 object JsonReader extends Logging { outer =>
 
@@ -215,10 +215,10 @@ object JsonReader extends Logging { outer =>
 
   object JsonReaderOptions {
 
-    implicit def jsonReaderOptions(implicit logLevel: JsonWarningLogLevel, pos: Pos, logger: Logger = outer.logger): JsonReaderOptions =
-      LogWarnings(logLevel, pos, logger)
+    implicit def jsonReaderOptions(implicit logLevel: JsonWarningLogLevel, trace: Trace, logger: Logger = outer.logger): JsonReaderOptions =
+      LogWarnings(logLevel, trace, logger)
 
-    case class LogWarnings(logLevel: JsonWarningLogLevel, pos: Pos, logger: Logger) extends JsonReaderOptions {
+    case class LogWarnings(logLevel: JsonWarningLogLevel, trace: Trace, logger: Logger) extends JsonReaderOptions {
       def logMessage(msg: String): Unit =
 //        ??? logger.log(logLevel.logLevel, pos.asLogSource, msg)
         logger.log(logLevel.logLevel, msg)

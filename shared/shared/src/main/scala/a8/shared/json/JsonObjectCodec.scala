@@ -8,7 +8,7 @@ import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, resolveAliases}
 import cats.{Eval, Foldable}
 import zio.Chunk
 import a8.shared.SharedImports._
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 import a8.shared.json.JsonReadOptions.UnusedFieldsInfo
 
 import scala.reflect.ClassTag

@@ -2,6 +2,7 @@ package a8.common.logging
 
 object Level {
   given CanEqual[Level, Level] = CanEqual.derived
+  lazy val valuesByLc = values.map(l => l.name.toLowerCase -> l).toMap
 }
 
 enum Level extends Ordered[Level] {

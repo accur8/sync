@@ -22,7 +22,7 @@ import a8.common.logging.{Logger, LoggerFactory, LoggingBootstrapConfig}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.time.LocalDate
 import scala.concurrent.duration.Duration
-import a8.common.logging.LoggingIoOps.*
+import a8.common.logging.LoggingOps.*
 
 import java.util.concurrent.{Executors, TimeUnit}
 

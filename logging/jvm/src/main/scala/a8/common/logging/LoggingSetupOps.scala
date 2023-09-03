@@ -1,6 +1,8 @@
 package a8.common.logging
 
+
 import java.lang.Thread.UncaughtExceptionHandler
+import LoggingOps._
 
 object LoggingSetupOps {
 

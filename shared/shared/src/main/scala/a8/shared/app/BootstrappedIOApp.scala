@@ -2,7 +2,7 @@ package a8.shared.app
 
 
 import a8.shared.SharedImports.*
-import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempDir, UnifiedLogLevel, WorkDir}
+import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempDir, WorkDir}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.shared.json.JsonCodec
 import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
@@ -12,12 +12,11 @@ import zio.ULayer
 import a8.common.logging.Level
 import a8.common.logging.LoggingBootstrapConfig
 import a8.shared.ConfigMojo
+import a8.common.logging.SyncZLogger
 
 object BootstrappedIOApp {
 
   type BootstrapEnv = Scope with ZIOAppArgs with Bootstrapper with TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
-
-  case class DefaultLogLevel(value: UnifiedLogLevel)
 
 }
 
@@ -111,7 +110,7 @@ abstract class BootstrappedIOApp
 
   object layers {
 
-    type ConfigInitArgs = AppName & BootstrappedIOApp.DefaultLogLevel & ZIOAppArgs
+    type ConfigInitArgs = AppName & ZIOAppArgs
 
     lazy val appName: ULayer[AppName] = ZLayer.succeed(resolvedAppName)
     lazy val bootstrapConfig: ZLayer[ConfigInitArgs, Throwable, BootstrapConfig] = Bootstrapper.layer.project(_.bootstrapConfig)
@@ -131,8 +130,6 @@ abstract class BootstrappedIOApp
       bootstrapper <- zservice[Bootstrapper]
       config <- bootstrapper.appConfig[A]
     } yield config
-
-  def defaultLogLevel = UnifiedLogLevel(Level.Debug)
 
   def appConfigLayer[A: Tag: JsonCodec](implicit jsonReaderOptions: ZJsonReaderOptions): ZLayer[Bootstrapper,Throwable,A] = ZLayer(appConfig[A])
 
@@ -156,7 +153,7 @@ abstract class BootstrappedIOApp
         _ <- ZIO.scoped(runT)
       } yield ()
 
-    val loggingLayer = SyncZLogger.slf4jLayer(defaultLogLevel.zioLogLevel)
+    val loggingLayer = SyncZLogger.slf4jLayer
 
     effect
       .onExit {
@@ -169,7 +166,6 @@ abstract class BootstrappedIOApp
       }
       .provideSome[zio.Scope & zio.ZIOAppArgs](
         Bootstrapper.layer,
-        ZLayer.succeed(BootstrappedIOApp.DefaultLogLevel(defaultLogLevel)),
         layers.appName,
         layers.logsDir,
         layers.tempDir,

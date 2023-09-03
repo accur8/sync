@@ -3,7 +3,7 @@ package a8.shared.jdbcf
 
 import java.sql.{Connection, PreparedStatement, ResultSet, Statement}
 import a8.shared.SharedImports._
-import a8.shared.app.{Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import zio.stream.{UStream, ZStream}
 import zio._
 

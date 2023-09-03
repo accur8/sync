@@ -1,7 +1,5 @@
 package a8.shared
 
-
-import a8.shared.app.LoggerF
 import a8.shared.json.JsonCodec
 import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, FiniteDurationOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
 import cats.data.Chain
@@ -28,7 +26,7 @@ import cats.syntax
 import cats.instances
 import zio.{Tag, Task, Trace, UIO, ULayer, URIO, ZIO, ZLayer}
 import zio.prelude._
-import a8.common.logging.Logger
+import a8.common.logging.{Logger, LoggerF}
 
 object SharedImports extends SharedImports
 
@@ -85,6 +83,11 @@ trait SharedImports
 {
 
   import zio.prelude._
+
+  type Logger = a8.common.logging.Logger
+  type Logging = a8.common.logging.Logging
+  type LoggerF = a8.common.logging.LoggerF
+  type LoggingF = a8.common.logging.LoggingF
 
   type Resource[A] = zio.ZIO[zio.Scope,Throwable,A]
 

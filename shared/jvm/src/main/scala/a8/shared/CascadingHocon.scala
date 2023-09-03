@@ -5,7 +5,6 @@ import java.nio.file.{Path, Paths}
 import HoconOps._
 import com.typesafe.config.{Config, ConfigMergeable, ConfigObject, ConfigOrigin, ConfigRenderOptions, ConfigValue, ConfigValueType}
 import SharedImports._
-import a8.shared.app.Logging
 
 import java.net.URL
 import java.util

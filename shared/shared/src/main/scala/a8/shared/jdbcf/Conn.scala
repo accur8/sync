@@ -1,8 +1,9 @@
 package a8.shared.jdbcf
 
+import a8.common.logging.LoggerF
 import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, Statement => JStatement}
 import a8.shared.SharedImports._
-import a8.shared.app.{LoggerF, Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId

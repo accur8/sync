@@ -4,22 +4,21 @@ package a8.common.logging
 import a8.common.logging.LogMessage.impl.LogPart.JsonConsoleValue
 import org.scalajs.dom
 import zio.Trace
-
+import LoggingOps._
 import scala.scalajs.js
 
 case class JavascriptLogger(name: String, contextStack: js.Array[String]) extends Logger {
-
-
-  override def log(level: Level, msg: String, th: Throwable)(implicit pos: Pos): Unit = {
+  
+  override def log(level: Level, msg: String, th: Throwable)(implicit trace: Trace): Unit = {
     impl(level, msg, th, IndexedSeq.empty)
   }
 
-  override def log(level: Level, msg: LogMessage)(implicit pos: Pos): Unit = {
+  override def log(level: Level, msg: LogMessage)(implicit trace: Trace): Unit = {
     val resolvedMsg = msg.resolve
     impl(level, resolvedMsg.consoleMessage.getOrElse(resolvedMsg.message), resolvedMsg.throwable.getOrElse(null), resolvedMsg.consoleValues)
   }
 
-  def impl(level: Level, msg: String, th: Throwable, consoleValues: Seq[Any])(implicit pos: Pos): Unit = {
+  def impl(level: Level, msg: String, th: Throwable, consoleValues: Seq[Any])(implicit trace: Trace): Unit = {
     if (isLevelEnabled(level)) {
 
       val seqValues: Seq[js.Any] =
@@ -40,8 +39,9 @@ case class JavascriptLogger(name: String, contextStack: js.Array[String]) extend
         else
           ""
 
-      lazy val stackTrace = new LoggingThrowableOps(th).stackTraceAsString
-      val formattedMessage = f"""${time.getHours().toInt}%02d:${time.getMinutes().toInt}%02d:${time.getSeconds().toInt}%02d.${time.getMilliseconds().toInt}%03d${contextStackStr} | ${level.name.toUpperCase}%5s | ${name} | ${msg}${if (th == null) "" else "\n" + stackTrace}${if (consoleValues.isEmpty) "" else "\n"} - (${pos.fileName}:${pos.line})"""
+      val traceWrapper = trace.wrap
+      lazy val stackTrace = th.stackTraceAsString
+      val formattedMessage = f"""${time.getHours().toInt}%02d:${time.getMinutes().toInt}%02d:${time.getSeconds().toInt}%02d.${time.getMilliseconds().toInt}%03d${contextStackStr} | ${level.name.toUpperCase}%5s | ${name} | ${msg}${if (th == null) "" else "\n" + stackTrace}${if (consoleValues.isEmpty) "" else "\n"} - (${traceWrapper.filename}:${traceWrapper.lineNo})"""
 
       level match {
         case Level.Error | Level.Fatal =>

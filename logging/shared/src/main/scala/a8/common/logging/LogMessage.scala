@@ -1,8 +1,10 @@
 package a8.common.logging
 
 
-import a8.common.logging.LogMessage.impl.LogPart.LogMessageImplicits
+import a8.common.logging.LogMessage.impl.LogPart.TracePart
 import a8.common.logging.LogMessage.impl.ResolvedLogMessage
+import a8.common.logging.LoggingOps.*
+import zio.Trace
 
 import scala.collection.mutable
 import scala.language.implicitConversions
@@ -31,37 +33,8 @@ object LogMessage {
 
       case class ConsoleMessage(value: String) extends LogPart
 
-
-      object LogMessageImplicits {
-        implicit def implicitSupplier(
-          implicit
-            filename: sourcecode.File,
-            line: sourcecode.Line,
-            fullName: sourcecode.FullName,
-        ): LogMessageImplicits = {
-          new LogMessageImplicits(
-            filename,
-            line,
-            fullName,
-          )
-        }
-
-      }
-
-      case class LogMessageImplicits(
-        file: sourcecode.File,
-        line: sourcecode.Line,
-        fullName: sourcecode.FullName,
-      ) extends LogPart {
-
-        def filename: String = {
-          file.value.lastIndexOf("/") match {
-            case -1 =>
-              file.value
-            case i =>
-              file.value.substring(i+1)
-          }
-        }
+      case class TracePart(trace: Trace) extends LogPart {
+        lazy val wrapper = trace.wrap
       }
 
     }
@@ -116,9 +89,8 @@ object LogMessage {
         }
 
         parts.reverse.foreach {
-          case p: LogPart.LogMessageImplicits =>
-            appendMessage(p.filename + ":" + p.line.value)
-            appendMessage(p.fullName.value)
+          case p: LogPart.TracePart =>
+            appendMessage(p.wrapper.filename + ":" + p.wrapper.lineNo)
           case p: LogPart.Message =>
             appendMessage(p.value)
           case p: LogPart.ConsoleMessage =>
@@ -152,10 +124,10 @@ object LogMessage {
 
   def create(
     implicit
-      logMessageImplicits: LogMessageImplicits,
+      trace: Trace,
   ): LogMessage =
     impl.LogMessageInternal(
-      parts = List(logMessageImplicits),
+      parts = List(TracePart(trace)),
     )
 
 
@@ -163,10 +135,10 @@ object LogMessage {
     message: String
   )(
     implicit
-      logMessageImplicits: LogMessageImplicits,
+      trace: Trace,
   ): LogMessage =
     impl.LogMessageInternal(
-      impl.LogPart.Message(message) :: logMessageImplicits :: Nil,
+      impl.LogPart.Message(message) :: TracePart(trace) :: Nil,
     )
 
 }

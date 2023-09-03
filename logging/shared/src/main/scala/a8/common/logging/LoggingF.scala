@@ -1,5 +1,4 @@
-package a8.shared.app
-
+package a8.common.logging
 
 trait LoggingF extends Logging {
 

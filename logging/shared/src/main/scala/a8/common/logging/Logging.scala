@@ -1,10 +1,13 @@
 package a8.common.logging
 
 
+import zio.Trace
+import LoggingOps._
+
 object Logging {
 
-  def logger(implicit name: sourcecode.FullName): Logger =
-    LoggerFactory.logger(name.value)
+  def logger(implicit trace: Trace): Logger =
+    LoggerFactory.logger(trace.wrap.scalaName)
 
   def logger(clazz: Class[_]): Logger =
     LoggerFactory.logger(normalizeClassname(clazz))
@@ -22,3 +25,4 @@ trait PublicLogging {
   @transient implicit lazy val logger: Logger = Logging.logger(getClass)
 
 }
+

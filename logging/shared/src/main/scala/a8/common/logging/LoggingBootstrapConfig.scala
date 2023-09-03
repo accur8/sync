@@ -59,6 +59,7 @@ object LoggingBootstrapConfig {
         fileLogging = Some(true),
         consoleLogging = Some(true),
         hasColorConsole = Some(defaultHasColorConsole),
+        defaultLogLevel = Some(Level.Debug.name),
       )
   }
 
@@ -70,6 +71,7 @@ object LoggingBootstrapConfig {
     fileLogging: Option[Boolean] = None,
     consoleLogging: Option[Boolean] = None,
     hasColorConsole: Option[Boolean] = None,
+    defaultLogLevel: Option[String] = None,
   ) {
 
     def asLoggingBootstrapConfig(
@@ -92,6 +94,7 @@ object LoggingBootstrapConfig {
         appName = appName,
         configDirectory = configDirectory,
         logsDirectory = logsDirectory,
+        defaultLogLevel = Level.valuesByLc(v(_.defaultLogLevel)),
       )
     }
 
@@ -129,6 +132,7 @@ case class LoggingBootstrapConfig(
   appName: String = "",
   configDirectory: java.io.File = fileFromProperty("config.dir", "./config"),
   logsDirectory: java.io.File = fileFromProperty("log.dir", "./logs"),
+  defaultLogLevel: Level,
 ) {
 
   lazy val archivesDirectory = new java.io.File(logsDirectory, "archives")
@@ -157,6 +161,7 @@ case class LoggingBootstrapConfig(
       prefix + "configDirectory" -> configDirectory.getAbsolutePath,
       prefix + "logsDirectory" -> logsDirectory.getAbsolutePath,
       prefix + "archivesDirectory" -> archivesDirectory.getAbsolutePath,
+      prefix + "defaultLogLevel" -> defaultLogLevel.name,
     )
 
 }

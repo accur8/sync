@@ -1,12 +1,13 @@
 package a8.sync
 
 
+import a8.common.logging.LoggerF
 import a8.shared
 import a8.shared.FileSystem.{Directory, File}
 import a8.shared.SharedImports
 import a8.shared.SharedImports._
 import a8.shared.app.BootstrapConfig.TempDir
-import a8.shared.app.{LoggerF, LoggingF}
+import a8.common.logging.LoggingF
 import a8.sync.ReplayableStream.{ConsumptionState, Replay}
 import a8.sync.ReplayableStream.ConsumptionState.StreamingToFile
 import a8.sync.ReplayableStream.{ConsumptionState, Replay}

@@ -1,13 +1,12 @@
 package a8.shared
 
-
-import a8.shared.app.LoggerF
 import a8.shared.json.JsonCodec
 import zio._
 import zio.stream.ZStream
 
 import scala.reflect.ClassTag
 import SharedImports.jsonCodecOps
+import a8.common.logging.LoggerF
 
 import java.util.UUID
 

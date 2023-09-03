@@ -1,10 +1,9 @@
-package a8.shared.app
+package a8.common.logging
 
 
-import a8.shared.SharedImports.*
-import cats.Monad
-import zio.{LogLevel as _, *}
 import a8.common.logging.{Logger, LoggerFactory, Level as LogLevel}
+import zio.{LogLevel as _, *}
+import LoggingOps._
 
 object LoggerF {
 

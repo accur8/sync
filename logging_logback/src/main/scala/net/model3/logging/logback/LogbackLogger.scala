@@ -1,52 +1,43 @@
 package net.model3.logging.logback
 
-import a8.common.logging.{Level, Logger, Pos}
-import net.model3.logging.logback.LogbackLogger.PosMarker
+import a8.common.logging.{Level, Logger}
+import net.model3.logging.logback.LogbackLogger.{TraceMarker}
 import org.slf4j.Marker
+import zio.Trace
+import a8.common.logging.LoggingOps.*
 
 import java.util
 import java.util.Collections
 
 object LogbackLogger {
-  case class PosMarker(pos: Pos) extends Marker {
 
-    override def getName: String =
-      "pos"
+  case class TraceMarker(trace: Trace) extends Marker {
 
-    override def add(reference: Marker): Unit =
-      ()
+    val wrapper = trace.wrap
 
-    override def remove(reference: Marker): Boolean =
-      false
-
-    override def hasChildren: Boolean =
-      false
-
-    override def hasReferences: Boolean =
-      false
-
-    override def iterator(): util.Iterator[Marker] =
-      Collections.emptyIterator()
-
-    override def contains(other: Marker): Boolean =
-      false
-
-    override def contains(name: String): Boolean =
-      getName == name
+    override def getName: String = "trace"
+    override def add(reference: Marker): Unit = ()
+    override def remove(reference: Marker): Boolean = false
+    override def hasChildren: Boolean = false
+    override def hasReferences: Boolean = false
+    override def iterator(): util.Iterator[Marker] = Collections.emptyIterator()
+    override def contains(other: Marker): Boolean = false
+    override def contains(name: String): Boolean = getName == name
 
     override def toString: String =
-      s"(${pos.fileName.value}:${pos.line.value})"
+      s"(${wrapper.filename}:${wrapper.lineNo})"
 
   }
+
 }
 
 case class LogbackLogger(factory: LogbackLoggerFactory.type, delegate: ch.qos.logback.classic.Logger) extends Logger {
 
-  override def log(level: Level, msg: String, th: Throwable)(implicit pos: Pos): Unit = {
+  override def log(level: Level, msg: String, th: Throwable)(implicit trace: Trace): Unit = {
     if ( isLevelEnabled(level) ) {
       val logbackLevel = factory.m3ToLogbackLevelIntMap(level)
-      val posMarker = PosMarker(pos)
-      delegate.log(posMarker, null, logbackLevel, msg, null, th)
+      val traceMarker = TraceMarker(trace)
+      delegate.log(traceMarker, null, logbackLevel, msg, null, th)
     }
   }
 

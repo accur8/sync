@@ -20,16 +20,15 @@ import a8.common.logging.{ Level => LogLevel }
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
 
-  override val layer: ZLayer[AppName & BootstrappedIOApp.DefaultLogLevel & ZIOAppArgs, Throwable, Bootstrapper] =
+  override val layer: ZLayer[AppName & ZIOAppArgs, Throwable, Bootstrapper] =
     ZLayer(live)
 
 
-  val live: ZIO[AppName & BootstrappedIOApp.DefaultLogLevel & ZIOAppArgs, Throwable, Bootstrapper] = {
+  val live: ZIO[AppName & ZIOAppArgs, Throwable, Bootstrapper] = {
 
     for {
       appName <- zservice[AppName]
       args <- zservice[ZIOAppArgs]
-      globalDefaultLogLevel <- zservice[BootstrappedIOApp.DefaultLogLevel]
     } yield {
 
       val configMojoRoot = a8.shared.ConfigMojo.root.mojoRoot

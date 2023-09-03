@@ -3,7 +3,7 @@ package a8.sync
 
 import scala.concurrent.duration.FiniteDuration
 import Imports._
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 
 import zio._
 import zio.stream.ZStream

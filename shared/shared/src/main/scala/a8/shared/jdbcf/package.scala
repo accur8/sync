@@ -1,7 +1,7 @@
 package a8.shared
 
 
-import a8.shared.app.{Logging, LoggingF}
+import a8.common.logging.{LoggingF}
 
 import java.sql.{ResultSet, SQLException}
 import a8.shared.jdbcf.UnsafeResultSetOps._

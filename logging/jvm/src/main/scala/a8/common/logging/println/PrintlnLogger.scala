@@ -1,6 +1,6 @@
 package a8.common.logging.println
 
-import a8.common.logging.{Level, Logger, Pos}
+import a8.common.logging.{Level, Logger}
 import zio.Trace
 
 import java.text.SimpleDateFormat
@@ -20,7 +20,7 @@ class PrintlnLogger(override val name: String) extends Logger {
   import PrintlnLogger._
 
 
-  override def log(level: Level, msg: String, th: Throwable)(implicit pos: Pos): Unit = {
+  override def log(level: Level, msg: String, th: Throwable)(implicit trace: Trace): Unit = {
     if (isLevelEnabled(level)) {
       val printStream = if (level.ordinal >= Level.Warn.ordinal) System.err else System.out
 

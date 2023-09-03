@@ -8,7 +8,7 @@ import a8.sync.Mxhttp.*
 import sttp.model.{StatusCode, Uri}
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
-import a8.shared.app.{LoggerF, Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import a8.shared.json.JsonReader.ReadResult
 import a8.shared.json.ZJsonReader.{ZJsonReaderOptions, ZJsonSource}
 import a8.sync.http.{Body, Response}
@@ -32,7 +32,7 @@ import scala.jdk.DurationConverters.*
 import a8.shared.SharedImports.given
 
 import scala.concurrent.duration
-import a8.common.logging.Level
+import a8.common.logging.{Level, LoggerF}
 
 object http extends LoggingF {
 
