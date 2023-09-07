@@ -29,12 +29,32 @@ Global / resolvers += {
   } catch {
     case e: RuntimeException =>
       val log = sLog.value
-      log.warn("WARNING: a8-repo not found, using default maven repo")
-      "Oracle Repository" at "http://download.oracle.com/maven"
+      log.warn(s"WARNING: a8-repo not found, using default maven repo -- ${e.getMessage}")
+      "Oracle Repository" at "https://download.oracle.com/maven"
   }
 }
-Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
-Global / credentials += Common.readRepoCredentials()
+
+Global / publishTo := {
+  try {
+    Some("a8-repo-releases" at Common.readRepoUrl())
+  } catch {
+    case e: RuntimeException =>
+      val log = sLog.value
+      log.warn(s"WARNING: no publishTo configured -- ${e.getMessage}")
+      None
+  }
+}
+
+Global / credentials ++= {
+  try {
+    Some(Common.readRepoCredentials())
+  } catch {
+    case e: RuntimeException =>
+      val log = sLog.value
+      log.warn(s"WARNING: no credentials configured -- ${e.getMessage}")
+      None
+  }
+}
 
 //Global / publishTo := sonatypePublishToBundle.value
 //Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
