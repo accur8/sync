@@ -28,7 +28,7 @@ Global / resolvers += {
     "a8-repo" at Common.readRepoUrl()
   } catch {
     case e: RuntimeException =>
-      val log = streams.value.log
+      val log = sLog.value
       log.warn("WARNING: a8-repo not found, using default maven repo")
       "Oracle Repository" at "http://download.oracle.com/maven"
   }
