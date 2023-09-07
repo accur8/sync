@@ -4,9 +4,10 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.{AppenderBase, OutputStreamAppender}
-import net.model3.logging.logback.ConsoleAppender._
-import ConsoleAppender._
-import a8.common.logging.LoggingBootstrapConfig
+import net.model3.logging.logback.ConsoleAppender.*
+import ConsoleAppender.*
+import a8.common.logging.{LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
+
 import java.io.{FileDescriptor, FileOutputStream}
 
 object ConsoleAppender {
@@ -20,7 +21,7 @@ object ConsoleAppender {
     case object Daemon extends Kind
 
     lazy val default = {
-      val btc = LoggingBootstrapConfig.globalBootstrapConfig
+      val btc = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig
       if (btc.hasColorConsole) {
         Kind.Stdout
       } else {
@@ -39,7 +40,7 @@ class ConsoleAppender extends AppenderBase[ILoggingEvent] {
 
   var encoder: Encoder[ILoggingEvent] = _
 
-  val hasColorConsole = LoggingBootstrapConfig.globalBootstrapConfig.hasColorConsole
+  val hasColorConsole = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig.hasColorConsole
 
   var botherLevel: Level = Level.WARN
 

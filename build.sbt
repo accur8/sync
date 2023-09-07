@@ -145,6 +145,11 @@ lazy val logging_logback =
       )
     )
 
+lazy val logging_logback_test =
+  Common
+    .jvmProject("a8-logging-logback_test", file("logging_logback_test"), "logging_logback_test")
+    .dependsOn(logging_logback)
+
 lazy val api =
   Common
     .jvmProject("a8-sync-api", file("api"), "api")
@@ -182,6 +187,16 @@ lazy val shared =
         Seq(
           baseDirectory.value / "jvm" / "src" / "main" / "scala",
           baseDirectory.value / "shared" / "src" / "main" / "scala",
+        ),
+      Compile / unmanagedResourceDirectories :=
+        Seq(
+          baseDirectory.value / "jvm" / "src" / "main" / "resources",
+          baseDirectory.value / "shared" / "src" / "main" / "resources",
+        ),
+      Test / unmanagedResourceDirectories :=
+        Seq(
+          baseDirectory.value / "jvm" / "src" / "test" / "resources",
+          baseDirectory.value / "shared" / "src" / "test" / "resources",
         ),
       Test / unmanagedSourceDirectories :=
         Seq(
@@ -238,6 +253,7 @@ lazy val root =
     .aggregate(loggingJVM)
     .aggregate(loggingJS)
     .aggregate(logging_logback)
+    .aggregate(logging_logback_test)
 
 
 

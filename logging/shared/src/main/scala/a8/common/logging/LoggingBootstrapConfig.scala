@@ -24,10 +24,10 @@ object LoggingBootstrapConfig {
     }
   }
 
-  def globalBootstrapConfig =
+  def finalizedConfig =
     _globalBootstrapConfig match {
       case None =>
-        sys.error("globalBootstrapConfig has not been configured")
+        sys.error("globalBootstrapConfig has not been configured via LoggingBootstrapConfig.finalizeConfig")
       case Some(c) =>
         c
     }

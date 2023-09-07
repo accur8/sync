@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
 import scala.concurrent.{Future, blocking}
 import scala.jdk.CollectionConverters.*
-import a8.common.logging.{Logger, LoggerFactory, LoggingBootstrapConfig}
+import a8.common.logging.{Logger, LoggerFactory, LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.time.LocalDate
@@ -57,9 +57,9 @@ class RollingFileAppender extends OutputStreamAppender[ILoggingEvent] {
   var maxFileSize: FileSize = FileSize.valueOf("25mb")
   var maxArchiveSize: FileSize = FileSize.valueOf("1gb")
   var maxAgeInDays: Int = 30
-  var logDir: Path = LoggingBootstrapConfig.globalBootstrapConfig.logsDirectory.getAbsoluteFile.toPath
-  var archiveDir: Path = LoggingBootstrapConfig.globalBootstrapConfig.archivesDirectory.getAbsoluteFile.toPath
-  var filenamePrefix: String = LoggingBootstrapConfig.globalBootstrapConfig.appName.toLowerCase
+  var logDir: Path = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig.logsDirectory.getAbsoluteFile.toPath
+  var archiveDir: Path = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig.archivesDirectory.getAbsoluteFile.toPath
+  var filenamePrefix: String = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig.appName.toLowerCase
   var kind: RollingFileAppender.Kind = RollingFileAppender.Kind.details
 
   var checkEvery: Duration = Duration(60, "seconds")

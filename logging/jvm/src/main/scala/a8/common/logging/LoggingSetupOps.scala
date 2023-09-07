@@ -10,7 +10,7 @@ object LoggingSetupOps {
 
     def logger = loggerFactory.logger(normalizeClassname(getClass))
 
-    val bootstrapConfig = LoggingBootstrapConfig.globalBootstrapConfig
+    val bootstrapConfig = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig
 
 //    scala.Predef.println("boom")
 
