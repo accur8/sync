@@ -1,6 +1,5 @@
 package a8.common.logging
 
-import a8.common.logging.LoggerF
 import org.slf4j.MDC
 import zio.{Cause, FiberId, FiberRef, LogLevel, LogSpan, Runtime, Trace, ZLayer, ZLogger}
 
@@ -34,16 +33,16 @@ object SyncZLogger {
       .toMap
 
   case class CachedLogger(
-    traceWrapper: TraceWrapper,
+    loggerName: String,
     slf4jLogger: org.slf4j.Logger,
     a8Logger: a8.common.logging.Logger,
   ) {
-    implicit def implicitTrace: Trace = traceWrapper.trace
+//    implicit def implicitTrace: Trace = traceWrapper.trace
   }
 
-  def slf4jLayer: ZLayer[Any, Nothing, Unit] =
+  def slf4jLayer(minLevel: Level): ZLayer[Any, Nothing, Unit] =
     Runtime.addLogger(
-      slf4jZLogger(UnifiedLogLevel.apply(LoggingBootstrapConfig.globalBootstrapConfig.defaultLogLevel).zioLogLevel)
+      slf4jZLogger(UnifiedLogLevel(minLevel).zioLogLevel)
     )
 
   /**
@@ -53,7 +52,7 @@ object SyncZLogger {
 
     new ZLogger[String, Unit] {
 
-      val cachedLoggers = TrieMap.empty[Trace, CachedLogger]
+      val cachedLoggers = TrieMap.empty[String, CachedLogger]
 
       override def apply(
         trace: Trace,
@@ -67,17 +66,17 @@ object SyncZLogger {
       ): Unit = {
 
         if (logLevel.ordinal >= minLevel.ordinal) {
+          lazy val traceWrapper = TraceWrapper.fromTrace(trace)
+          val loggerName = annotations.get(a8.common.logging.LoggerF.impl.loggerAnnoKeyName).getOrElse(traceWrapper.scalaName)
           //        formatLogger(trace, fiberId, logLevel, message, cause, context, spans, annotations).foreach { message =>
 
           val cachedLogger: CachedLogger =
-            cachedLoggers.get(trace) match {
+            cachedLoggers.get(loggerName) match {
               case Some(cl) =>
                 cl
               case None =>
-                val tw = TraceWrapper.fromTrace(trace)
-                val loggerName = tw.scalaName
-                val cl = CachedLogger(tw, org.slf4j.LoggerFactory.getLogger(loggerName), a8.common.logging.LoggerFactory.logger(loggerName))
-                cachedLoggers += (trace -> cl): @scala.annotation.nowarn
+                val cl = CachedLogger(loggerName, org.slf4j.LoggerFactory.getLogger(loggerName), a8.common.logging.LoggerFactory.logger(loggerName))
+                cachedLoggers += (loggerName -> cl): @scala.annotation.nowarn
                 cl
             }
 
@@ -138,9 +137,10 @@ object SyncZLogger {
 
           }
 
-          import cachedLogger.{a8Logger, implicitTrace}
-          val wvletLogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
-          if (a8Logger.isLevelEnabled(wvletLogLevel)) {
+          import cachedLogger.a8Logger
+          val a8LogLevel = LoggerF.impl.fromZioLogLevel(logLevel)
+          implicit val implicitTrace = trace
+          if (a8Logger.isLevelEnabled(a8LogLevel)) {
             try logLevel match {
               case LogLevel.Trace =>
                 a8Logger.trace(message)

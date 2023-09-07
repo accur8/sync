@@ -45,6 +45,7 @@ trait SharedImports
   with ContravariantSyntax
   with CovariantSyntax
   with DebugSyntax
+  with DefaultCanEquals
   with DivariantSyntax
   with EqualSyntax
   with ForEachSyntax
@@ -128,7 +129,7 @@ trait SharedImports
   object ParseTimeUnit {
 
     val timeUnitsByName: Map[String,TimeUnit] = {
-      val fromEnum = TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
+      val fromEnum: Map[String, TimeUnit] = TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
 
       (
         fromEnum

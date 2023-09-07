@@ -77,12 +77,14 @@ lazy val logging =
       libraryDependencies ++= Seq(
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
         "dev.zio" %%% "zio" % zioVersion,
+        "dev.zio" %% "zio-logging" % zioLoggingVersion,
         zeroWastePlugin,
       )
     )
     .jvmSettings(
       libraryDependencies ++= Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "dev.zio" %% "zio-logging-slf4j2" % zioLoggingVersion,
       )
     )
     .jsSettings(
@@ -169,7 +171,6 @@ lazy val shared =
         "org.typelevel" %% "jawn-ast" % "1.4.0",
         "dev.zio" %%% "zio-prelude" % "1.0.0-RC16",
         "dev.zio" %%% "zio-streams" % zioVersion,
-        "dev.zio" %%% "zio-logging" % zioLoggingVersion,
         "dev.zio" %%% "zio-test" % zioVersion % Test,
         "dev.zio" %%% "zio-test-sbt" % zioVersion % Test,
         "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test,
@@ -178,7 +179,6 @@ lazy val shared =
 //    .jvmSettings(
 //      libraryDependencies ++= Seq(
         "com.softwaremill.sttp.client3" %% "zio" % "3.8.11",
-        "dev.zio" %% "zio-logging-slf4j" % zioLoggingVersion,
         "org.hsqldb" % "hsqldb" % "2.7.1",
         "dev.zio" %% "zio-cache" % "0.2.2",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",

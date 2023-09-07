@@ -16,6 +16,9 @@ object Logger {
   def logger(clazz: Class[_]): Logger =
     LoggerFactory.logger(normalizeClassname(clazz.getName))
 
+  def logger(name: String): Logger =
+    LoggerFactory.logger(name)
+
 }
 
 trait Logger {

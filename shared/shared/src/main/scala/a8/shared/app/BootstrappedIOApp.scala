@@ -9,10 +9,8 @@ import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
 import a8.shared.SharedImports.*
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import zio.ULayer
-import a8.common.logging.Level
-import a8.common.logging.LoggingBootstrapConfig
+import a8.common.logging.{Level, LoggerFactory, LoggingBootstrapConfig, SyncZLogger}
 import a8.shared.ConfigMojo
-import a8.common.logging.SyncZLogger
 
 object BootstrappedIOApp {
 
@@ -141,19 +139,26 @@ abstract class BootstrappedIOApp
         .foreach(ll => a8.common.logging.LoggerFactory.logger(ll._1).setLevel(ll._2))
     )
 
+  def zioMinLevel = Level.Debug
+
   final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] = {
 
     val effect =
       for {
         bootstrapper <- zservice[Bootstrapper]
         _ <- zblock(LoggingBootstrapConfig.finalizeConfig(bootstrapper.bootstrapConfig.loggingBootstrapConfig))
+        _ <-
+          zblock {
+            val nowarn = loggerF.toString // logging config is forced to be loaded here
+            LoggerFactory.postConfig()
+          }
         _ <- loggerF.info(s"bootstrap config from ${ConfigMojo.rootSources.mkString("  ")}")
         _ <- configureLogLevels(initialLogLevels)
         _ <- appInit
         _ <- ZIO.scoped(runT)
       } yield ()
 
-    val loggingLayer = SyncZLogger.slf4jLayer
+    val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
 
     effect
       .onExit {

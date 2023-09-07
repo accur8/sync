@@ -83,7 +83,6 @@ object BootstrapConfig {
         overrideSystemErr = v[Option[Boolean]]("overrideSystemErr"),
         overrideSystemOut = v[Option[Boolean]]("overrideSystemOut"),
         setDefaultUncaughtExceptionHandler = v[Option[Boolean]]("setDefaultUncaughtExceptionHandler"),
-        autoCreateConfigDirectory = v[Option[Boolean]]("autoCreateConfigDirectory"),
         fileLogging = v[Option[Boolean]]("fileLogging"),
         consoleLogging = v[Option[Boolean]]("consoleLogging"),
         hasColorConsole = v[Option[Boolean]]("hasColorConsole"),

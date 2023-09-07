@@ -115,8 +115,9 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
     val joranConfigurator = new JoranConfigurator
     joranConfigurator.setContext(loggerContext)
 
-    bootstrapConfig
-      .asProperties("bootstrap.")
+    val bootstrapConfigProperties = bootstrapConfig.asProperties("bootstrap.")
+
+    bootstrapConfigProperties
       .foreach(t => System.setProperty(t._1, t._2))
 
     // propagate logging level changes to java.util.logging
@@ -137,7 +138,7 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
       addInfo(s"logging configured using default file from classpath /logback-default.xml")
     }
 
-    if ( configDirectory.exists() || bootstrapConfig.autoCreateConfigDirectory  ) {
+    if ( configDirectory.exists() ) {
       configDirectory.mkdirs(): @scala.annotation.nowarn
       val sampleFile = configDirectory.toPath.resolve("logback-sample.xml").toFile
       val input = getClass.getResourceAsStream("/logback-sample.xml")
@@ -145,6 +146,12 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
       output.write(input.readAllBytes())
       output.close()
     }
+
+    // dummy status listener to avoid logging logback status messages to console
+    context.getStatusManager.add(
+      new StatusListener:
+        override def addStatusEvent(status: Status): Unit = ()
+    )
 
 //    to test error logging
 //    addError("boom")

@@ -1,4 +1,4 @@
-<configuration scan="true" scanPeriod="1 minute">
+<configuration>
 
     <variable name="LayoutPattern" value="%d{HH:mm:ss.SSS} | %-5level | %thread | [%X{ndc}%kvp] | %logger | %msg - %marker%n" />
 
@@ -30,7 +30,7 @@
     <if condition='property("bootstrap.consoleLogging").equals("true")'>
         <then>
 
-            <if condition='property("bootstrap.hasColorCnosole").equals("true")'>
+            <if condition='property("bootstrap.hasColorConsole").equals("true")'>
                 <then>
                     <appender name="console" class="net.model3.logging.logback.ConsoleAppender">
                         <kind>stdout</kind>

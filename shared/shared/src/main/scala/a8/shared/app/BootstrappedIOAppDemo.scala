@@ -1,7 +1,8 @@
 package a8.shared.app
 
 
-import a8.shared.SharedImports._
+import a8.common.logging.{Logger, LoggerF, LoggerFactory}
+import a8.shared.SharedImports.*
 import a8.shared.app.BootstrapConfig.{AppName, WorkDir}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import zio.stream.ZStream
@@ -18,16 +19,18 @@ object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
 //      *> loggerIO2.info("hello from loggerIO2")
 //  )
 
+  lazy val weirdLoggerF = LoggerF.create(LoggerFactory.logger("weird"))
 
   override def runT: ZIO[BootstrapEnv,Throwable,Unit] =
     for {
-      appName <- zservice[AppName]
-      workDir <- zservice[WorkDir]
-      appArgs <- zservice[ZIOAppArgs]
-      _ <- loggerF.info(s"appArgs: $appArgs")
-      _ <- loggerF.info(s"appName: $appName")
-      _ <- loggerF.info(s"workDir: $workDir")
-      _ <- loggerF.warn("boom", new Throwable())
+//      appName <- zservice[AppName]
+//      workDir <- zservice[WorkDir]
+//      appArgs <- zservice[ZIOAppArgs]
+//      _ <- loggerF.info(s"appArgs: $appArgs")
+//      _ <- loggerF.info(s"appName: $appName")
+//      _ <- loggerF.info(s"workDir: $workDir")
+//      _ <- loggerF.warn("boom", new Throwable())
+      _ <- weirdLoggerF.info("something weird")
       _ <-
         ZStream
           .fromIterable(1 to Integer.MAX_VALUE)

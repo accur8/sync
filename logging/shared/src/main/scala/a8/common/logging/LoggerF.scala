@@ -9,6 +9,8 @@ object LoggerF {
 
   object impl {
 
+    val loggerAnnoKeyName = "loggerName"
+
     /**
      * set log level so that TRACE works from slf4j since when using java.util.logging as the
      * underlying logger slf4j treats trait as jul.Level.FINEST where wvlet treats it as jul.Level.FINER
@@ -66,22 +68,19 @@ object LoggerF {
               case Some(th) =>
                 "\n" + th.stackTraceAsString.indent("        ")
             }
-          ZIO.log(message + causeSuffix)
+          ZIO.logAnnotate(LoggerF.impl.loggerAnnoKeyName, delegate.name)
+            (ZIO.log(message + causeSuffix))
         }
       }
 
       override def log(logLevel: LogLevel, message: String, cause: Cause[Any])(implicit trace: Trace): UIO[Unit] = {
         val zioLogLevel = LoggerF.impl.toZioLogLevel(logLevel)
-        ZIO.logLevel(zioLogLevel) {
-          ZIO.logCause(message, cause)
-        }
+        val effect =
+          ZIO.logLevel(zioLogLevel) {
+            ZIO.logCause(message, cause)
+          }
+        ZIO.logAnnotate(LoggerF.impl.loggerAnnoKeyName, delegate.name)(effect)
       }
-//        ZIO
-//          .attemptBlocking {
-//            val logRecord = LogRecord(logLevel, Some(pos.asLogSource), message + "\n" + cause.prettyPrint.indent("    ") , None)
-//            delegate.log(logRecord)
-//          }
-//          .catchAll(_ => ZIO.unit)
     }
   }
 
