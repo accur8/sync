@@ -23,7 +23,16 @@ val zeroWasteVersion = "0.2.12"
 val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
 
-Global / resolvers += "a8-repo" at Common.readRepoUrl()
+Global / resolvers += {
+  try {
+    "a8-repo" at Common.readRepoUrl()
+  } catch {
+    case e: RuntimeException =>
+      val log = streams.value.log
+      log.warn("WARNING: a8-repo not found, using default maven repo")
+      "Oracle Repository" at "http://download.oracle.com/maven"
+  }
+}
 Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
 Global / credentials += Common.readRepoCredentials()
 
