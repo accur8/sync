@@ -1,1 +1,1 @@
-net.model3.logging.logback.LogbackConfigurator
+net.model3.logging.logback.NoopLogbackConfigurator

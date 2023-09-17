@@ -11,6 +11,8 @@ import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import zio.ULayer
 import a8.common.logging.{Level, LoggerFactory, LoggingBootstrapConfig, SyncZLogger}
 import a8.shared.ConfigMojo
+import ch.qos.logback.classic.LoggerContext
+import net.model3.logging.logback.LogbackConfigurator
 
 object BootstrappedIOApp {
 
@@ -147,11 +149,7 @@ abstract class BootstrappedIOApp
       for {
         bootstrapper <- zservice[Bootstrapper]
         _ <- zblock(LoggingBootstrapConfig.finalizeConfig(bootstrapper.bootstrapConfig.loggingBootstrapConfig))
-        _ <-
-          zblock {
-            val nowarn = loggerF.toString // logging config is forced to be loaded here
-            LoggerFactory.postConfig()
-          }
+        _ <- LogbackConfigurator.configureLoggingZ
         _ <- loggerF.info(s"bootstrap config from ${ConfigMojo.rootSources.mkString("  ")}")
         _ <- configureLogLevels(initialLogLevels)
         _ <- appInit
@@ -170,7 +168,9 @@ abstract class BootstrappedIOApp
           loggerF.warn(s"shutdown because of failure/interruption", cause)
       }
       .provideSome[zio.Scope & zio.ZIOAppArgs](
+        ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
         Bootstrapper.layer,
+        Bootstrapper.layer.project(_.bootstrapConfig.loggingBootstrapConfig),
         layers.appName,
         layers.logsDir,
         layers.tempDir,

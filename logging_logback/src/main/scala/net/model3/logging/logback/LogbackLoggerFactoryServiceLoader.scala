@@ -8,7 +8,7 @@ class LogbackLoggerFactoryServiceLoader extends LoggerFactoryServiceLoader {
   /**
    * highest numbered priority takes precedence
    */
-  override def priority: Int = 99
+  override def priority: Int = 100
 
   override def loggerFactory: LoggerFactory =
     LogbackLoggerFactory

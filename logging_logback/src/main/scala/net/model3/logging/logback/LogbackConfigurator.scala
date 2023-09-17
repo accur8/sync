@@ -13,6 +13,7 @@ import ch.qos.logback.core.spi.ContextAwareBase
 import ch.qos.logback.core.status.{InfoStatus, Status, StatusBase, StatusListener, StatusUtil}
 import ch.qos.logback.core.util.StatusPrinter
 import org.slf4j.bridge.SLF4JBridgeHandler
+import zio.ZLayer
 
 import java.io.{File, FileOutputStream}
 import java.nio.file.Paths
@@ -20,6 +21,20 @@ import java.util
 import scala.jdk.CollectionConverters.*
 
 object LogbackConfigurator {
+
+  val configureLoggingZ: zio.ZIO[LoggingBootstrapConfig & LoggerContext, Throwable, Unit] = {
+    for {
+      context <- zio.ZIO.service[LoggerContext]
+      config <- zio.ZIO.service[LoggingBootstrapConfig]
+      _ <-
+        zio.ZIO.attempt {
+          context.reset()
+          val configurator = new LogbackConfigurator
+          configurator.setContext(context)
+          configurator.configure(context, config)
+        }
+    } yield ()
+  }
 
   def statusMessages(): (a8.common.logging.Level,String) = {
     val status =
@@ -102,13 +117,12 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
   lazy val archivesDirectory: java.io.File =
     new File(System.getProperty("archives.dir"), new File(logsDirectory, "archives").getAbsolutePath)
 
-  // ??? setup logback-default.xml
-  // ??? setup logback-sample.xml
-      // ??? uses bootstrap.fileLoging and bootstrap.consoleLoging
-
   override def configure(loggerContext: LoggerContext): Configurator.ExecutionStatus = {
-
     val bootstrapConfig = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig
+    configure(loggerContext, bootstrapConfig)
+  }
+
+  def configure(loggerContext: LoggerContext, bootstrapConfig: LoggingBootstrapConfig): Configurator.ExecutionStatus = {
 
     addInfo(s"""using bootstrapConfig ${bootstrapConfig.asProperties("").mkString("  ")}""")
 
@@ -165,5 +179,29 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
     ExecutionStatus.DO_NOT_INVOKE_NEXT_IF_ANY;
 
   }
+
+  def postConfig(loggerContext: LoggerContext) = {
+
+    val (level, statusStr) = LogbackConfigurator.statusMessages()
+    val indentedStatusStr = statusStr.linesIterator.map("        " + _).mkString("\n")
+    a8.common.logging.Logger.logger(getClass).log(level, s"logging config results\n${indentedStatusStr}")
+
+    LogbackLoggerFactory.loggingConfiguredPromise.success(()): @scala.annotation.nowarn
+
+    loggerContext.getStatusManager.add(
+      new StatusListener {
+        lazy val logger = a8.common.logging.Logger.logger("net.model3.logging.logback.LogbackLoggerFactory")
+
+        override def addStatusEvent(status: Status): Unit = {
+          val t = LogbackConfigurator.statusMessage(status)
+          logger.log(t._1, t._2.trim)
+        }
+
+        override def isResetResistant: Boolean = true
+      }
+    )
+
+  }
+
 
 }

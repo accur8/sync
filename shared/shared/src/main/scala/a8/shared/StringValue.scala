@@ -12,8 +12,11 @@ import scala.reflect.ClassTag
 
 object StringValue {
 
+  import SharedImports.given
+
   abstract class Companion[A <: StringValue] extends AbstractStringValueCompanion[A] {
 
+    given CanEqual[A, A] = CanEqual.derived
 
     override def valueToString(a: A): String = a.value
 
@@ -34,7 +37,7 @@ object StringValue {
 
   abstract class CIStringValueCompanion[A <: CIStringValue] {
 
-    given [A]: CanEqual[A,A] = CanEqual.derived
+    given CanEqual[A,A] = CanEqual.derived
 
     implicit val fromString: FromString[A] =
       new FromString[A] {
