@@ -26,6 +26,8 @@ abstract class BootstrappedIOApp
     with LoggingF
 {
 
+  val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
+
   def initialLogLevels: Iterable[(String,Level)] = {
     val debugs =
       List(
@@ -145,7 +147,7 @@ abstract class BootstrappedIOApp
 
   final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] = {
 
-    val effect =
+    val rawEffect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit] =
       for {
         bootstrapper <- zservice[Bootstrapper]
         _ <- zblock(LoggingBootstrapConfig.finalizeConfig(bootstrapper.bootstrapConfig.loggingBootstrapConfig))
@@ -156,17 +158,23 @@ abstract class BootstrappedIOApp
         _ <- ZIO.scoped(runT)
       } yield ()
 
-    val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
+    val effectWithErrorLogging =
+      rawEffect
+        .onExit {
+          case zio.Exit.Success(_) =>
+            loggerF.info("natural shutdown")
+          case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
+            loggerF.info(s"shutdown because of interruption only", cause)
+          case zio.Exit.Failure(cause) =>
+            loggerF.warn(s"shutdown because of failure/interruption", cause)
+        }
 
+    provideLayers(effectWithErrorLogging)
+
+  }
+
+  def provideLayers(effect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
     effect
-      .onExit {
-        case zio.Exit.Success(_) =>
-          loggerF.info("natural shutdown")
-        case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
-          loggerF.info(s"shutdown because of interruption only", cause)
-        case zio.Exit.Failure(cause) =>
-          loggerF.warn(s"shutdown because of failure/interruption", cause)
-      }
       .provideSome[zio.Scope & zio.ZIOAppArgs](
         ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
         Bootstrapper.layer,
@@ -181,8 +189,6 @@ abstract class BootstrappedIOApp
         loggingLayer,
         zio.logging.removeDefaultLoggers,
       )
-
-  }
 
 
 }
