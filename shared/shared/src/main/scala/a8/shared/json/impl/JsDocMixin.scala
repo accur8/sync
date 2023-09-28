@@ -15,18 +15,6 @@ trait JsDocMixin { self: JsDoc =>
         false
     }
 
-  def merge(right: JsDoc): JsDoc =
-    merge(right.value)
-
-  // ??? TODO fixme
-  def merge(right: JsVal): JsDoc =
-    (value, right) match {
-      case (l: JsObj, r: JsObj) =>
-        JsDocRoot(value = JsObj(l.values ++ r.values))
-      case t =>
-        sys.error(s"don't know how to handle ${t}")
-    }
-
   def error(message: String)(implicit readOptions: JsonReadOptions): ReadError = SingleReadError(message, this)
   def errorL(message: String)(implicit readOptions: JsonReadOptions): Left[ReadError,Nothing] = Left(error(message))
 
