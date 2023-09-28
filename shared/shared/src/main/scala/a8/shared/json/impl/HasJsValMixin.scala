@@ -7,6 +7,7 @@ import a8.shared.json.ast.JsDoc.{JsDocPath, JsDocRoot}
 import a8.shared.json.ast._
 import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
 import zio.{Task, ZIO}
+import a8.shared.SharedImports._
 
 object HasJsValOps {
 }
@@ -15,6 +16,30 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
 
   def toRootDoc: JsDocRoot = JsDocRoot(self.actualJsVal)
 
+  private def toJsObj(prefix: String, hasjsv: HasJsVal): JsObj =
+    hasjsv.actualJsVal match {
+      case jo: JsObj =>
+        jo
+      case ja: JsArr =>
+        ja.asJsObj
+      case JsNothing | JsNull =>
+        JsObj.empty
+      case v =>
+        JsObj(Map(prefix -> v))
+    }
+
+  private def strictToJsObj(hasjsv: HasJsVal): Option[JsObj] =
+    hasjsv.actualJsVal match {
+      case jo: JsObj =>
+        jo.some
+      case ja: JsArr =>
+        ja.asJsObj.some
+      case JsNothing | JsNull =>
+        JsObj.empty.some
+      case _ =>
+        None
+    }
+
   private def toDoc: JsDoc = {
     self match {
       case jsd: JsDoc =>
@@ -22,6 +47,20 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
       case _ =>
         JsDocRoot(self.actualJsVal)
     }
+  }
+
+  def strictMerge(right: HasJsVal): Option[JsVal] = {
+    (strictToJsObj(self), strictToJsObj(right)) match {
+      case (Some(l), Some(r)) =>
+        Some(l.merge(r))
+      case _ =>
+        None
+    }
+  }
+
+  def merge(right: HasJsVal): JsVal = {
+    toJsObj("fromLeftMerge", self)
+      .merge(toJsObj("fromRightMerge", right))
   }
 
   def asObject: Option[JsObj] =

@@ -10,6 +10,8 @@ import language.implicitConversions
 import scala.util.Try
 import zio.prelude.Equal
 
+import scala.annotation.targetName
+
 object ast {
 
   object HasJsVal {
@@ -107,6 +109,7 @@ object ast {
     def removeFields(fieldNames: String*): JsObj = copy(values = values -- fieldNames)
     def addField(fieldName: String, value: JsVal): JsObj = copy(values = (values + (fieldName -> value)))
     def addFields(fields: (String,JsVal)*): JsObj = copy(values = values ++ fields)
+    def merge(right: JsObj): JsObj = JsObj(values ++ right.values)
   }
 
   def resolveAliases(aliases: Iterable[String], jsdoc: JsDoc): JsDoc = {
@@ -128,6 +131,7 @@ object ast {
   }
   case class JsArr(values: List[JsVal]) extends JsVal {
     val size = values.size
+    def asJsObj = JsObj(values.zipWithIndex.map { case (v,i) => i.toString -> v }.toMap)
   }
 
   object JsBool {
