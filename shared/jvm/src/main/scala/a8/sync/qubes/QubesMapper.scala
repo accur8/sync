@@ -73,13 +73,13 @@ object QubesMapper {
       )
 
     override def insertReq(row: A, parameters: Seq[UpdateRowRequest.Parm] = Vector()): UpdateRowRequest =
-      updateRowRequest(row)
+      updateRowRequest(row, parameters)
 
     override def updateReq(row: A, parameters: Seq[UpdateRowRequest.Parm] = Vector()): UpdateRowRequest =
-      updateRowRequest(row)
+      updateRowRequest(row, parameters)
 
     override def deleteReq(row: A, parameters: Seq[UpdateRowRequest.Parm] = Vector()): UpdateRowRequest =
-      updateRowRequest(row)
+      updateRowRequest(row, parameters)
 
     def updateRowRequest(row: A, parameters: Seq[UpdateRowRequest.Parm] = Vector()): UpdateRowRequest =
       UpdateRowRequest(
