@@ -12,15 +12,11 @@ object LoggerFactory extends LoggerFactory with LoggerFactoryCompanion with Logg
   override def withContext[A](context: String)(fn: => A): A =
     delegate.withContext(context)(fn)
 
-  override def postConfig(): Unit =
-    delegate.postConfig()
-
 }
 
 trait LoggerFactory {
 
   def logger(name: String): Logger
   def withContext[A](context: String)(fn: => A): A
-  def postConfig(): Unit = ()
 
 }

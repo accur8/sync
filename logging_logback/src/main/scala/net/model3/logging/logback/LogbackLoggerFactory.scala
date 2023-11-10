@@ -18,7 +18,7 @@ object LogbackLoggerFactory extends LoggerFactory {
 
   val loggerContext: LoggerContext = org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
-  private lazy val loggingConfiguredPromise = Promise[Unit]()
+  private[logback] lazy val loggingConfiguredPromise = Promise[Unit]()
 
   lazy val loggingConfiguredFuture = loggingConfiguredPromise.future
 
@@ -97,26 +97,6 @@ object LogbackLoggerFactory extends LoggerFactory {
           MDC.put(mdcKey, v)
       }
     }
-  }
-
-  override def postConfig(): Unit = {
-
-    val (level, statusStr) = LogbackConfigurator.statusMessages()
-    val indentedStatusStr = statusStr.linesIterator.map("        " + _).mkString("\n")
-    Logger.logger(getClass).log(level, s"logging config results\n${indentedStatusStr}")
-
-    loggingConfiguredPromise.success(()): @scala.annotation.nowarn
-
-    loggerContext.getStatusManager.add(
-      new StatusListener {
-        lazy val logger = LogbackLoggerFactory.logger("net.model3.logging.logback.LogbackLoggerFactory")
-        override def addStatusEvent(status: Status): Unit = {
-          val t = LogbackConfigurator.statusMessage(status)
-          logger.log(t._1, t._2.trim)
-        }
-        override def isResetResistant: Boolean = true
-      }
-    )
   }
 
 }

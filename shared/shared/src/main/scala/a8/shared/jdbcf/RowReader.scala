@@ -44,6 +44,8 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
   implicit lazy val stringReader: RowReader[String] = singleColumnReader[String] {
     case s: String =>
       s
+    case pgo: org.postgresql.util.PGobject =>
+      pgo.getValue
     case clob: java.sql.Clob =>
       clob.getCharacterStream.readFully()
   }

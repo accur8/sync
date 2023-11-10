@@ -43,7 +43,7 @@ object unsafe {
           val columnCount = resultSet.getMetaData.getColumnCount
           val array = new Array[AnyRef](columnCount)
           (1 to columnCount) foreach { i =>
-            val v0 = resultSet.getObject(i)
+            val v0 = scrubResultSetValue(resultSet.getObject(i))
             val v =
               if ( v0 == null || resultSet.wasNull()) {
                 None
@@ -88,6 +88,17 @@ object unsafe {
       //      case po: PGobject if po.getType == "json" || po.getType == "jsonb" => jsonApi.parseJson(po.getValue)
       case other =>
         sys.error(s"toJsVal needs a case for ${other}, ${other.getClass}")
+    }
+  }
+
+  def scrubResultSetValue(v: AnyRef): AnyRef = {
+    v match {
+      case clob: java.sql.Clob =>
+        clob.getCharacterStream.readFully()
+      case pgo: org.postgresql.util.PGobject =>
+        pgo.getValue
+      case _ =>
+        v
     }
   }
 

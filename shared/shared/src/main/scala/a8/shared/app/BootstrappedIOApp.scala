@@ -11,6 +11,8 @@ import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import zio.ULayer
 import a8.common.logging.{Level, LoggerFactory, LoggingBootstrapConfig, SyncZLogger}
 import a8.shared.ConfigMojo
+import ch.qos.logback.classic.LoggerContext
+import net.model3.logging.logback.LogbackConfigurator
 
 object BootstrappedIOApp {
 
@@ -23,6 +25,8 @@ abstract class BootstrappedIOApp
   extends zio.ZIOAppDefault
     with LoggingF
 {
+
+  val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
 
   def initialLogLevels: Iterable[(String,Level)] = {
     val debugs =
@@ -143,34 +147,38 @@ abstract class BootstrappedIOApp
 
   final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] = {
 
-    val effect =
+    val rawEffect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit] =
       for {
         bootstrapper <- zservice[Bootstrapper]
         _ <- zblock(LoggingBootstrapConfig.finalizeConfig(bootstrapper.bootstrapConfig.loggingBootstrapConfig))
-        _ <-
-          zblock {
-            val nowarn = loggerF.toString // logging config is forced to be loaded here
-            LoggerFactory.postConfig()
-          }
+        _ <- LogbackConfigurator.configureLoggingZ
         _ <- loggerF.info(s"bootstrap config from ${ConfigMojo.rootSources.mkString("  ")}")
         _ <- configureLogLevels(initialLogLevels)
         _ <- appInit
         _ <- ZIO.scoped(runT)
       } yield ()
 
-    val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
+    val effectWithErrorLogging =
+      rawEffect
+        .onExit {
+          case zio.Exit.Success(_) =>
+            loggerF.info("natural shutdown")
+          case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
+            loggerF.info(s"shutdown because of interruption only", cause)
+          case zio.Exit.Failure(cause) =>
+            loggerF.warn(s"shutdown because of failure/interruption", cause)
+        }
 
+    provideLayers(effectWithErrorLogging)
+
+  }
+
+  def provideLayers(effect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
     effect
-      .onExit {
-        case zio.Exit.Success(_) =>
-          loggerF.info("natural shutdown")
-        case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
-          loggerF.info(s"shutdown because of interruption only", cause)
-        case zio.Exit.Failure(cause) =>
-          loggerF.warn(s"shutdown because of failure/interruption", cause)
-      }
       .provideSome[zio.Scope & zio.ZIOAppArgs](
+        ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
         Bootstrapper.layer,
+        Bootstrapper.layer.project(_.bootstrapConfig.loggingBootstrapConfig),
         layers.appName,
         layers.logsDir,
         layers.tempDir,
@@ -181,8 +189,6 @@ abstract class BootstrappedIOApp
         loggingLayer,
         zio.logging.removeDefaultLoggers,
       )
-
-  }
 
 
 }
