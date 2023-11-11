@@ -44,6 +44,9 @@ object ast {
         override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, JsDoc] = Right(doc)
       }
 
+    def jsDocRoot(value: JsVal): JsDoc =
+      JsDocRoot(value)
+
     case class JsDocRoot(value: JsVal) extends JsDoc {
       override def root: JsDocRoot = this
       override def parentOpt: Option[JsDoc] = None
@@ -79,6 +82,9 @@ object ast {
       override def parentOpt: Option[JsDoc] = Some(parentDoc)
       override def withValue(value: JsVal): JsDoc = copy(value = value)
     }
+
+    def apply(rootValue: JsVal): JsDoc =
+      JsDocRoot(rootValue)
 
   }
   sealed trait JsDoc extends HasJsVal with JsDocMixin {

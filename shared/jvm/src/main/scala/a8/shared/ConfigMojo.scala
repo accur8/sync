@@ -71,7 +71,7 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
     def name = outer.name
     def ancestry: IndexedSeq[ConfigMojo] = parent.toIndexedSeq.flatMap(_.__internal__.ancestry) :+ outer
     def path: IndexedSeq[String] = ancestry.flatMap(_.__internal__.name)
-    def pathStr: String = .mkString(".")
+    def pathStr: String = path.mkString(".")
     def sources = ancestry.flatMap(_.__internal__.root).flatMap(_.sources)
   }
   import __internal__._

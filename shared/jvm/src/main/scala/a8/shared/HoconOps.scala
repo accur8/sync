@@ -11,7 +11,7 @@ import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ast.*
 import SharedImports.canEqual.given
-import a8.shared.json.ast.JsDoc.JsDocRoot
+import a8.shared.json.ast.JsDoc.{JsDocRoot, jsDocRoot}
 
 object HoconOps extends HoconOps
 
@@ -87,12 +87,12 @@ trait HoconOps {
     }
 
     def toJsDoc(cv: ConfigValue, prefixPath: Iterable[String]): JsDoc = {
-      val jsv = HoconOps.impl.toJsVal(cv, prefixPath)
+      val jsv = HoconOps.impl.toJsVal(cv)
       val rootJsv: JsVal =
         prefixPath.foldRight(jsv) { (n, v) =>
           JsObj(Map(n -> v))
         }
-      prefixPath.foldLeft(JsDocRoot(rootJsv)) { (acc, n) =>
+      prefixPath.foldLeft(jsDocRoot(rootJsv)) { (acc, n) =>
         acc(n)
       }
     }
