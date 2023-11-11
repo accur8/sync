@@ -49,13 +49,8 @@ trait HoconOps {
     }
 
     def internalReadResult[A: JsonCodec](configValue: ConfigValue, prefixPath: Iterable[String] = Iterable.empty)(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
-      val jsv = HoconOps.impl.toJsVal(configValue)
-      val rootJsv: JsVal =
-        prefixPath.foldRight(jsv) { (n,v) =>
-          JsObj(Map(n -> v))
-        }
-      val rootDoc = JsDocRoot(rootJsv)
-      JsonReader[A].readResult(rootDoc) match {
+      val jsd = HoconOps.impl.toJsDoc(configValue, prefixPath)
+      JsonReader[A].readResult(jsd) match {
         case s: ReadResult.Success[A] =>
           s
         case error: ReadResult.Error[A] =>
@@ -89,6 +84,17 @@ trait HoconOps {
           }
           .toMap
       )
+    }
+
+    def toJsDoc(cv: ConfigValue, prefixPath: Iterable[String]): JsDoc = {
+      val jsv = HoconOps.impl.toJsVal(cv, prefixPath)
+      val rootJsv: JsVal =
+        prefixPath.foldRight(jsv) { (n, v) =>
+          JsObj(Map(n -> v))
+        }
+      prefixPath.foldLeft(JsDocRoot(rootJsv)) { (acc, n) =>
+        acc(n)
+      }
     }
 
     def toJsVal(cv: ConfigValue): JsVal = {
