@@ -3,14 +3,15 @@ package a8.shared
 
 import java.nio.file.Path
 import scala.reflect.ClassTag
-import com.typesafe.config._
+import com.typesafe.config.*
 
 import scala.language.implicitConversions
-import SharedImports._
+import SharedImports.*
 import a8.shared.json.{JsonCodec, JsonReader}
-import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
-import a8.shared.json.ast._
+import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
+import a8.shared.json.ast.*
 import SharedImports.canEqual.given
+import a8.shared.json.ast.JsDoc.JsDocRoot
 
 object HoconOps extends HoconOps
 
@@ -38,8 +39,8 @@ trait HoconOps {
 
   object impl {
 
-    def internalRead[A: JsonCodec](configValue: ConfigValue)(implicit jsonReaderOptions: JsonReaderOptions): A = {
-      internalReadResult[A](configValue) match {
+    def internalRead[A: JsonCodec](configValue: ConfigValue, prefixPath: Iterable[String] = Iterable.empty)(implicit jsonReaderOptions: JsonReaderOptions): A = {
+      internalReadResult[A](configValue, prefixPath) match {
         case ReadResult.Success(a, _, _, _) =>
           a
         case error: ReadResult.Error[A] =>
@@ -47,8 +48,14 @@ trait HoconOps {
       }
     }
 
-    def internalReadResult[A: JsonCodec](configValue: ConfigValue)(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
-      JsonReader[A].readResult(configValue) match {
+    def internalReadResult[A: JsonCodec](configValue: ConfigValue, prefixPath: Iterable[String] = Iterable.empty)(implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] = {
+      val jsv = HoconOps.impl.toJsVal(configValue)
+      val rootJsv: JsVal =
+        prefixPath.foldRight(jsv) { (n,v) =>
+          JsObj(Map(n -> v))
+        }
+      val rootDoc = JsDocRoot(rootJsv)
+      JsonReader[A].readResult(rootDoc) match {
         case s: ReadResult.Success[A] =>
           s
         case error: ReadResult.Error[A] =>

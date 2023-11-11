@@ -70,7 +70,8 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
     def root = outer.root
     def name = outer.name
     def ancestry: IndexedSeq[ConfigMojo] = parent.toIndexedSeq.flatMap(_.__internal__.ancestry) :+ outer
-    def path: String = ancestry.flatMap(_.__internal__.name).mkString(".")
+    def path: IndexedSeq[String] = ancestry.flatMap(_.__internal__.name)
+    def pathStr: String = .mkString(".")
     def sources = ancestry.flatMap(_.__internal__.root).flatMap(_.sources)
   }
   import __internal__._
@@ -93,7 +94,7 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
     }
 
   def asReadResult[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] =
-    HoconOps.impl.internalReadResult[A](hoconValueOpt.getOrElse(CascadingHocon.emptyConfigObject))
+    HoconOps.impl.internalReadResult[A](hoconValueOpt.getOrElse(CascadingHocon.emptyConfigObject), path)
 
   def selectDynamic(name: String): ConfigMojo = apply(name)
 
@@ -140,7 +141,7 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
     }
 
   override def toString: String =
-    s"${path} => ${as[JsDoc].prettyJson}"
+    s"${path.mkString(".")} => ${as[JsDoc].prettyJson}"
 
 }
 
