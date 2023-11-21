@@ -14,11 +14,11 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "3.3.0"
-val zioVersion = "2.0.16"
-val zioLoggingVersion = "2.1.9"
-val slf4jVersion = "2.0.7"
-val zeroWasteVersion = "0.2.12"
+val scalaLibVersion = "3.3.1"
+val zioVersion = "2.0.19"
+val zioLoggingVersion = "2.1.15"
+val slf4jVersion = "2.0.9"
+val zeroWasteVersion = "0.2.15"
 
 val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
