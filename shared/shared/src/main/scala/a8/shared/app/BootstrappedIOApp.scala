@@ -190,7 +190,7 @@ abstract class BootstrappedIOApp
 
   }
 
-  def provideLayers(effect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
+  def provideLayers(effect: ZIO[BootstrapEnv & LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
     effect
       .provideSome[zio.Scope & zio.ZIOAppArgs](
         ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
