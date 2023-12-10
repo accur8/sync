@@ -18,7 +18,7 @@ class UriOps(val uri: Uri) extends AnyVal{
     uri.addPathSegment(path)
 
   def queryParms(name: String): Iterable[String] =
-    uri.params.getMulti(name)
+    uri.params.getMulti(name).toSeq.flatten
 
   def queryParm(name: String): Option[String] =
     uri.params.get(name)

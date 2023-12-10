@@ -82,12 +82,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
             dataDir = DataDir(FileSystem.dir(resolvedDto.dataDir.get)),
             configDir = configDir,
             appArgs = args,
-            loggingBootstrapConfig =
-              resolvedDto.logging.asLoggingBootstrapConfig(
-                appName = resolveAppName.value,
-                configDirectory = new java.io.File(configDir.unresolved.canonicalPath),
-                logsDirectory = new java.io.File(logsDir.unresolved.canonicalPath),
-              ),
+            resolvedDto = resolvedDto,
           )
         }
 

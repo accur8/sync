@@ -28,6 +28,22 @@ abstract class BootstrappedIOApp
 
   val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
 
+  def loggingBootstrapConfigLayer: ZLayer[BootstrapConfig, Throwable, LoggingBootstrapConfig] =
+    ZLayer.fromZIO(
+      for {
+        bootstrapConfig <- zservice[BootstrapConfig]
+      } yield {
+        bootstrapConfig
+          .resolvedDto
+          .logging
+          .asLoggingBootstrapConfig(
+            appName = bootstrapConfig.appName.value,
+            configDirectory = new java.io.File(bootstrapConfig.configDir.unresolved.canonicalPath),
+            logsDirectory = new java.io.File(bootstrapConfig.logsDir.unresolved.canonicalPath),
+          )
+      }
+    )
+
   def initialLogLevels: Iterable[(String,Level)] = {
     val debugs =
       List(
@@ -150,7 +166,8 @@ abstract class BootstrappedIOApp
     val rawEffect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit] =
       for {
         bootstrapper <- zservice[Bootstrapper]
-        _ <- zblock(LoggingBootstrapConfig.finalizeConfig(bootstrapper.bootstrapConfig.loggingBootstrapConfig))
+        loggingBootstrapConfig <- zservice[LoggingBootstrapConfig]
+        _ <- zblock(LoggingBootstrapConfig.finalizeConfig(loggingBootstrapConfig))
         _ <- LogbackConfigurator.configureLoggingZ
         _ <- loggerF.info(s"bootstrap config from ${ConfigMojo.rootSources.mkString("  ")}")
         _ <- configureLogLevels(initialLogLevels)
@@ -178,7 +195,7 @@ abstract class BootstrappedIOApp
       .provideSome[zio.Scope & zio.ZIOAppArgs](
         ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
         Bootstrapper.layer,
-        Bootstrapper.layer.project(_.bootstrapConfig.loggingBootstrapConfig),
+        loggingBootstrapConfigLayer,
         layers.appName,
         layers.logsDir,
         layers.tempDir,

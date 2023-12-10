@@ -170,7 +170,7 @@ case class BootstrapConfig(
   dataDir: DataDir,
   configDir: ConfigDir,
   appArgs: zio.ZIOAppArgs,
-  loggingBootstrapConfig: LoggingBootstrapConfig,
+  resolvedDto: BootstrapConfigDto,
 ) extends NamedToString { self =>
 
 }
