@@ -26,7 +26,7 @@ abstract class BootstrappedIOApp
     with LoggingF
 {
 
-  val loggingLayer = SyncZLogger.slf4jLayer(zioMinLevel)
+  val loggingLayer: ZLayer[Any, Nothing, Unit] = SyncZLogger.slf4jLayer(zioMinLevel)
 
   def loggingBootstrapConfigLayer: ZLayer[BootstrapConfig, Throwable, LoggingBootstrapConfig] =
     ZLayer.fromZIO(
