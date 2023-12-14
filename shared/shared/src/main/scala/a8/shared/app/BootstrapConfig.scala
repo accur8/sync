@@ -103,12 +103,15 @@ object BootstrapConfig {
   ) extends NamedToString {
     def +(right: BootstrapConfigDto): BootstrapConfigDto =
       BootstrapConfigDto(
+        source = right.source.orElse(source),
         appName = right.appName.orElse(appName),
         logsDir = right.logsDir orElse logsDir,
         tempDir = right.tempDir orElse tempDir,
         cacheDir = right.cacheDir orElse cacheDir,
         dataDir = right.dataDir orElse dataDir,
         configDir = right.configDir orElse configDir,
+        autoCreateConfigDir = right.autoCreateConfigDir.orElse(autoCreateConfigDir),
+        logging = logging + right.logging,
       )
   }
 

@@ -106,6 +106,7 @@ object LoggingBootstrapConfig {
         fileLogging = resolveValue(_.fileLogging),
         consoleLogging = resolveValue(_.consoleLogging),
         hasColorConsole = resolveValue(_.hasColorConsole),
+        defaultLogLevel = resolveValue(_.defaultLogLevel),
       )
     }
 
