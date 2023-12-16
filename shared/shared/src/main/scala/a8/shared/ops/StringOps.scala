@@ -82,7 +82,6 @@ class StringOps(private val source: String) extends AnyVal {
 
   }
 
-
   def padLeftTo(len: Int, elem: Char): String = {
     val sourceLen = source.length
     if (sourceLen >= len) {
@@ -91,5 +90,17 @@ class StringOps(private val source: String) extends AnyVal {
       (elem.toString * (len - sourceLen)) + source
     }
   }
+
+  def stripPrefix(prefix: String): String =
+    if (source.startsWith(prefix))
+      source.substring(prefix.length)
+    else
+      source
+
+  def stripSuffix(suffix: String): String =
+    if (source.endsWith(suffix))
+      source.substring(0, source.length - suffix.length)
+    else
+      source
 
 }
