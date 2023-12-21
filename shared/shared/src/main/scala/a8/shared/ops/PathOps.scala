@@ -6,6 +6,8 @@ import java.nio.file.{Files, Path, Paths}
 
 object PathOps {
 
+  def userHome = Paths.get(System.getProperty("user.home"))
+
   def readFile(file: java.io.File): String = {
     new String(Files.readAllBytes(Paths.get(file.getCanonicalPath)), UTF_8)
   }
