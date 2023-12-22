@@ -407,9 +407,11 @@ case class ResolvedTable(
 
   def runSync(rootDocument: DynamicJson, conn: Conn, defaultTruncation: TruncateAction): Task[Chain[RowSync]] = {
     targetDataSet(rootDocument, conn)
-      .map { targetDs =>
-        val sourceDs = sourceDataSet(rootDocument)
-        sync(sourceDs, targetDs, defaultTruncation)
+      .flatMap { targetDs =>
+        sourceDataSet(rootDocument)
+          .map { sourceDs =>
+            sync(sourceDs, targetDs, defaultTruncation)
+          }
       }
   }
 
@@ -444,7 +446,7 @@ case class ResolvedTable(
 
   }
 
-  def sourceDataSet(rootDocument: DynamicJson): NormalizedDataSet = {
+  def sourceDataSet(rootDocument: DynamicJson): Task[NormalizedDataSet] = zattempt {
     val table = resolvedTable.table
     val rows =
       table
