@@ -61,7 +61,7 @@ object dsl {
             .map(_.foldLeft(Chain.empty[RowSync])(_ ++ _))
             .map { rowSyncs =>
               val validationMessages = rowSyncs.flatMap(_.validationMessages)
-              validationMessages.find(_._1 <= Level.Error) match {
+              validationMessages.find(_._1 >= Level.Error) match {
                 case Some(firstError) =>
                   MappingResult.Error(document, new RuntimeException(s"Validation error found, the first error is -- ${firstError._2}"), validationMessages) : MappingResult
                 case None =>
