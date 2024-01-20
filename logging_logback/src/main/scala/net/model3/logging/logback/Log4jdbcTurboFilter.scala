@@ -9,7 +9,7 @@ import java.util.regex.Pattern
 
 class Log4jdbcTurboFilter extends TurboFilter {
 
-  val patterns =
+  lazy val patterns =
     List(
       """.*select 1 from INFORMATION_SCHEMA.SYSTEM_USERS LIMIT 1.*""",
       """.*select 1\+1.*""",
@@ -18,11 +18,15 @@ class Log4jdbcTurboFilter extends TurboFilter {
     ).map(Pattern.compile)
 
   override def decide(marker: Marker, logger: Logger, level: Level, format: String, params: Array[AnyRef], t: Throwable): FilterReply = {
-    patterns.find(_.matcher(format).matches()).nonEmpty match {
-      case true =>
-        FilterReply.DENY
-      case false =>
-        FilterReply.NEUTRAL
+    if ( format == null ) {
+      return FilterReply.NEUTRAL
+    } else {
+      patterns.find(_.matcher(format).matches()).nonEmpty match {
+        case true =>
+          FilterReply.DENY
+        case false =>
+          FilterReply.NEUTRAL
+      }
     }
   }
 

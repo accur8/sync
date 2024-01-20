@@ -1,4 +1,4 @@
-<configuration>
+<configuration scan="false">
 
     <variable name="LayoutPattern" value="%d{HH:mm:ss.SSS} | %-5level | %thread | [%X{ndc}%kvp] | %logger | %msg - %marker%n" />
 
