@@ -38,6 +38,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
         temp.setMaxLifetime(1.hour.toMillis)
         temp.setMinimumIdle(minIdle)
         temp.setMaximumPoolSize(maxPoolSize)
+        maxLifeTimeInMillis.foreach(temp.setMaxLifetime)
         dialect.validationQuery.foreach(q => temp.setConnectionTestQuery(q.toString))
         temp.setAutoCommit(autoCommit)
         temp
