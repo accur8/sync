@@ -23,6 +23,6 @@ case class DatabaseConfig(
   password: Password,
   minIdle: Int = 1,
   maxPoolSize: Int = 50,
-  maxLifeTimeInMillis: Option[Int] = None,
+  maxLifeTimeInMillis: Option[Long] = None,
   autoCommit: Boolean = true,
 )

@@ -32,6 +32,7 @@ object MxDatabaseConfig {
           .addField(_.password)
           .addField(_.minIdle)
           .addField(_.maxPoolSize)
+          .addField(_.maxLifeTimeInMillis)
           .addField(_.autoCommit)
       )
       .build
@@ -42,7 +43,7 @@ object MxDatabaseConfig {
     
     
     lazy val generator: Generator[DatabaseConfig,parameters.type] =  {
-      val constructors = Constructors[DatabaseConfig](7, unsafe.iterRawConstruct)
+      val constructors = Constructors[DatabaseConfig](8, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -53,7 +54,8 @@ object MxDatabaseConfig {
       lazy val password: CaseClassParm[DatabaseConfig,Password] = CaseClassParm[DatabaseConfig,Password]("password", _.password, (d,v) => d.copy(password = v), None, 3)
       lazy val minIdle: CaseClassParm[DatabaseConfig,Int] = CaseClassParm[DatabaseConfig,Int]("minIdle", _.minIdle, (d,v) => d.copy(minIdle = v), Some(()=> 1), 4)
       lazy val maxPoolSize: CaseClassParm[DatabaseConfig,Int] = CaseClassParm[DatabaseConfig,Int]("maxPoolSize", _.maxPoolSize, (d,v) => d.copy(maxPoolSize = v), Some(()=> 50), 5)
-      lazy val autoCommit: CaseClassParm[DatabaseConfig,Boolean] = CaseClassParm[DatabaseConfig,Boolean]("autoCommit", _.autoCommit, (d,v) => d.copy(autoCommit = v), Some(()=> true), 6)
+      lazy val maxLifeTimeInMillis: CaseClassParm[DatabaseConfig,Option[Long]] = CaseClassParm[DatabaseConfig,Option[Long]]("maxLifeTimeInMillis", _.maxLifeTimeInMillis, (d,v) => d.copy(maxLifeTimeInMillis = v), Some(()=> None), 6)
+      lazy val autoCommit: CaseClassParm[DatabaseConfig,Boolean] = CaseClassParm[DatabaseConfig,Boolean]("autoCommit", _.autoCommit, (d,v) => d.copy(autoCommit = v), Some(()=> true), 7)
     }
     
     
@@ -67,7 +69,8 @@ object MxDatabaseConfig {
           password = values(3).asInstanceOf[Password],
           minIdle = values(4).asInstanceOf[Int],
           maxPoolSize = values(5).asInstanceOf[Int],
-          autoCommit = values(6).asInstanceOf[Boolean],
+          maxLifeTimeInMillis = values(6).asInstanceOf[Option[Long]],
+          autoCommit = values(7).asInstanceOf[Boolean],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): DatabaseConfig = {
@@ -79,14 +82,15 @@ object MxDatabaseConfig {
             password = values.next().asInstanceOf[Password],
             minIdle = values.next().asInstanceOf[Int],
             maxPoolSize = values.next().asInstanceOf[Int],
+            maxLifeTimeInMillis = values.next().asInstanceOf[Option[Long]],
             autoCommit = values.next().asInstanceOf[Boolean],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(id: DatabaseId, url: Uri, user: String, password: Password, minIdle: Int, maxPoolSize: Int, autoCommit: Boolean): DatabaseConfig =
-        DatabaseConfig(id, url, user, password, minIdle, maxPoolSize, autoCommit)
+      def typedConstruct(id: DatabaseId, url: Uri, user: String, password: Password, minIdle: Int, maxPoolSize: Int, maxLifeTimeInMillis: Option[Long], autoCommit: Boolean): DatabaseConfig =
+        DatabaseConfig(id, url, user, password, minIdle, maxPoolSize, maxLifeTimeInMillis, autoCommit)
     
     }
     
