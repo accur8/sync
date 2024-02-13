@@ -19,6 +19,7 @@ val zioVersion = "2.0.19"
 val zioLoggingVersion = "2.1.15"
 val slf4jVersion = "2.0.9"
 val zeroWasteVersion = "0.2.15"
+val logbackVersion = "1.4.14"
 
 val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
@@ -56,8 +57,8 @@ Global / credentials ++= {
   }
 }
 
-//Global / publishTo := sonatypePublishToBundle.value
-//Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+Global / publishTo := sonatypePublishToBundle.value
+Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 Global / scalaVersion := scalaLibVersion
 
@@ -138,8 +139,8 @@ lazy val logging_logback =
       libraryDependencies ++= Seq(
         "org.codehaus.janino" % "janino" % "3.1.8",
         "org.fusesource.jansi" % "jansi" % "2.4.0",
-        "ch.qos.logback" % "logback-core" % "1.4.11",
-        "ch.qos.logback" % "logback-classic" % "1.4.11",
+        "ch.qos.logback" % "logback-core" % logbackVersion,
+        "ch.qos.logback" % "logback-classic" % logbackVersion,
         "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
         "org.slf4j" % "jul-to-slf4j" % slf4jVersion,
       )
