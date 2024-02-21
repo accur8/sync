@@ -31,23 +31,24 @@ object CascadingHocon {
     def tree(d: Path): Vector[Path] = {
       d.parentOpt() match {
         case None =>
-          Vector.empty
+          Vector(d)
         case Some(p) =>
-          p +: tree(p)
+          d +: tree(p)
       }
     }
 
+    val normalizedPath = dir.toAbsolutePath.normalize()
+
     val chain: Vector[Path] =
       if ( recurse ) {
-        tree(dir) ++ impl.userConfigs
+        tree(normalizedPath) ++ impl.userConfigs
       } else {
-        Vector(dir)
+        Vector(normalizedPath)
       }
 
     impl.loadConfigsInDirectory(chain, resolve)
 
   }
-
 
   object impl {
 

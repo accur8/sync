@@ -57,8 +57,8 @@ Global / credentials ++= {
   }
 }
 
-Global / publishTo := sonatypePublishToBundle.value
-Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+// Global / publishTo := sonatypePublishToBundle.value
+// Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 Global / scalaVersion := scalaLibVersion
 
