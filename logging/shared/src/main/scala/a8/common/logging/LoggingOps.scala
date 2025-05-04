@@ -138,7 +138,7 @@ object LoggingOps {
   def normalizeClassname(classname: String): String =
     classname.replace("$", ".").reverse.dropWhile(_ == '.').reverse
 
-  def normalizeClassname(clazz: Class[_]): String =
+  def normalizeClassname(clazz: Class[?]): String =
     normalizeClassname(clazz.getName)
 
   object canEqual {

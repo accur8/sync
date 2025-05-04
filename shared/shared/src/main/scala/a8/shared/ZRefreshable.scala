@@ -29,7 +29,7 @@ object ZRefreshable {
 
     override def autoExpire(implicit autoExpire: AutoExpire[A]): ZRefreshable[A] =
       copy(
-        isExpiredFn = autoExpire.isExpired _
+        isExpiredFn = autoExpire.isExpired
       )
 
     override def expireAfter(duration: FiniteDuration): ZRefreshable[A] = {
@@ -41,7 +41,7 @@ object ZRefreshable {
       }
 
       copy(
-        isExpiredFn = isExpired _
+        isExpiredFn = isExpired
       )
 
     }

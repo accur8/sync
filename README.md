@@ -45,7 +45,7 @@ sonatypePromote
 - If sbt hangs on `signedArtifacts`, kill the `gpg-agent` process
 - If you get an error like `no javadoc jar found in folder`, then packageDoc in publishArtifact is disabled
   - Add the following line inside `object Common` in `project/Common.scala`:
-    - `override def settings: Seq[Def.Setting[_]] = Seq()`
+    - `override def settings: Seq[Def.Setting[?]] = Seq()`
 
 ### Links
 - https://central.sonatype.org/publish

@@ -1,22 +1,20 @@
 package a8.shared.app
 
 
+import a8.common.logging.{Level, LoggingBootstrapConfig, SyncZLogger}
+import a8.shared.ConfigMojo
 import a8.shared.SharedImports.*
-import a8.shared.app.BootstrapConfig.{AppName, CacheDir, DataDir, LogsDir, TempDir, WorkDir}
+import a8.shared.app.BootstrapConfig.*
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.shared.json.JsonCodec
-import zio.{Scope, Tag, UIO, ZIO, ZIOAppArgs, ZLayer}
-import a8.shared.SharedImports.*
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions
-import zio.ULayer
-import a8.common.logging.{Level, LoggerFactory, LoggingBootstrapConfig, SyncZLogger}
-import a8.shared.ConfigMojo
 import ch.qos.logback.classic.LoggerContext
 import net.model3.logging.logback.LogbackConfigurator
+import zio.{Scope, Tag, ULayer, ZIO, ZIOAppArgs, ZLayer}
 
 object BootstrappedIOApp {
 
-  type BootstrapEnv = Scope with ZIOAppArgs with Bootstrapper with TempDir with CacheDir with DataDir with BootstrapConfig with AppName with LogsDir with WorkDir
+  type BootstrapEnv = Scope & ZIOAppArgs & Bootstrapper & TempDir & CacheDir & DataDir & BootstrapConfig & AppName & LogsDir & WorkDir
 
 }
 
@@ -161,9 +159,9 @@ abstract class BootstrappedIOApp
 
   def zioMinLevel = Level.Debug
 
-  final override def run: zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] = {
+  final override def run: zio.ZIO[Any & zio.ZIOAppArgs & zio.Scope, Any, Any] = {
 
-    val rawEffect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit] =
+    val rawEffect: ZIO[BootstrapEnv & LoggingBootstrapConfig & LoggerContext, Throwable, Unit] =
       for {
         bootstrapper <- zservice[Bootstrapper]
         loggingBootstrapConfig <- zservice[LoggingBootstrapConfig]
@@ -190,7 +188,7 @@ abstract class BootstrappedIOApp
 
   }
 
-  def provideLayers(effect: ZIO[BootstrapEnv & LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): zio.ZIO[Any with zio.ZIOAppArgs with zio.Scope, Any, Any] =
+  def provideLayers(effect: ZIO[BootstrapEnv & LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): zio.ZIO[Any & zio.ZIOAppArgs & zio.Scope, Any, Any] =
     effect
       .provideSome[zio.Scope & zio.ZIOAppArgs](
         ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),

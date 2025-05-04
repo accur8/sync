@@ -94,11 +94,11 @@ case class CaseClassMapper[A, PK](
       .reduceLeft((l,r) => QueryDsl.Or(l,r))
   }
 
-  override def values(a: A): Vector[QueryDsl.Constant[_]] =
+  override def values(a: A): Vector[QueryDsl.Constant[?]] =
     fields
       .flatMap(_.values(a))
 
-  override def fieldExprs(linker: QueryDsl.Path): Vector[QueryDsl.FieldExpr[_]] =
+  override def fieldExprs(linker: QueryDsl.Path): Vector[QueryDsl.FieldExpr[?]] =
     fields
       .flatMap(_.fields(linker, columnNameResolver))
 

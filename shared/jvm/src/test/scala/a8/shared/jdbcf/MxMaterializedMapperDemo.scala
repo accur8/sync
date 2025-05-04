@@ -100,7 +100,7 @@ object MxMaterializedMapperDemo {
     def query(whereFn: TableDsl => jdbcf.querydsl.QueryDsl.Condition): jdbcf.querydsl.SelectQuery[BigBoo, TableDsl] =
       queryDsl.query(whereFn)
     
-    def update(set: TableDsl => Iterable[jdbcf.querydsl.UpdateQuery.Assignment[_]]): jdbcf.querydsl.UpdateQuery[TableDsl] =
+    def update(set: TableDsl => Iterable[jdbcf.querydsl.UpdateQuery.Assignment[?]]): jdbcf.querydsl.UpdateQuery[TableDsl] =
       queryDsl.update(set)
     
     

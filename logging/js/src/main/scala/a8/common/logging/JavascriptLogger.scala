@@ -24,7 +24,7 @@ case class JavascriptLogger(name: String, contextStack: js.Array[String]) extend
       val seqValues: Seq[js.Any] =
         consoleValues
           .map {
-            case jscv: JsonConsoleValue[_] =>
+            case jscv: JsonConsoleValue[?] =>
               val json = jscv.asJsonStr
               js.JSON.parse(json)
             case v =>
@@ -45,13 +45,13 @@ case class JavascriptLogger(name: String, contextStack: js.Array[String]) extend
 
       level match {
         case Level.Error | Level.Fatal =>
-          dom.console.error(formattedMessage, seqValues: _*)
+          dom.console.error(formattedMessage, seqValues*)
         case Level.Warn =>
-          dom.console.warn(formattedMessage, seqValues: _*)
+          dom.console.warn(formattedMessage, seqValues*)
         case Level.Info =>
-          dom.console.info(formattedMessage, seqValues: _*)
+          dom.console.info(formattedMessage, seqValues*)
         case _ =>
-          dom.console.log(formattedMessage, seqValues: _*)
+          dom.console.log(formattedMessage, seqValues*)
       }
     }
   }

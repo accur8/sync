@@ -28,7 +28,7 @@ trait ComponentMapper[A] extends Mapper[A] {
   lazy val columnCount: Int
   def pairs(columnNamePrefix: ColumnName, a: A): Iterable[(ColumnName,SqlString)]
 
-  def fieldExprs(linker: Path): Vector[QueryDsl.FieldExpr[_]]
-  def values(a: A): Vector[QueryDsl.Constant[_]]
+  def fieldExprs(linker: Path): Vector[QueryDsl.FieldExpr[?]]
+  def values(a: A): Vector[QueryDsl.Constant[?]]
 
 }

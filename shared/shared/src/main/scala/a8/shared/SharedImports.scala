@@ -233,7 +233,7 @@ trait SharedImports
 
     def zuri(parms: ZString*): Uri =
       UriInterpolator
-        .interpolate(stringContext, parms:_*)
+        .interpolate(stringContext, parms*)
 
     def zz(parms: ZString*): ZString = {
 
@@ -252,7 +252,7 @@ trait SharedImports
     }
 
     def z(parms: ZString*): String = {
-      val zstr = zz(parms:_*)
+      val zstr = zz(parms*)
       val sb = new StringBuilder
       ZString.impl.append(zstr, sb)
       sb.toString
@@ -266,7 +266,7 @@ trait SharedImports
   implicit def implicitZioOps[R, E, A: Tag](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
     new ZioOps(effect)
 
-  implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope with R,E,A]): ScopedZioOps[R,E,A] =
+  implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope&R,E,A]): ScopedZioOps[R,E,A] =
     new ScopedZioOps[R,E,A](effect)
 
   implicit def implicitZioCollectOps[R, E, A, Collection[+Element] <: Iterable[Element]](

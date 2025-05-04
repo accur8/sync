@@ -25,6 +25,7 @@ import scala.concurrent.duration.Duration
 import a8.common.logging.LoggingOps.*
 
 import java.util.concurrent.{Executors, TimeUnit}
+import scala.compiletime.uninitialized
 
 object RollingFileAppender {
 
@@ -51,7 +52,7 @@ class RollingFileAppender extends OutputStreamAppender[ILoggingEvent] {
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
   val rollOnNext = new AtomicBoolean(false)
-  var activeFile: Path = _
+  var activeFile: Path = uninitialized
   var currentDate = LocalDate.now()
 
   var maxFileSize: FileSize = FileSize.valueOf("25mb")

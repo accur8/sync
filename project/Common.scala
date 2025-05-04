@@ -21,28 +21,28 @@ import sbtcrossproject.CrossType
 
 object Common extends a8.sbt_a8.SharedSettings with a8.sbt_a8.HaxeSettings with a8.sbt_a8.SassSettings with a8.sbt_a8.dobby.DobbySettings {
 
-  override def settings: Seq[Def.Setting[_]] = Seq()
+  override def settings: Seq[Def.Setting[?]] = Seq()
 
   def crossProject(artifactName: String, dir: java.io.File, id: String) =
     sbtcrossproject.CrossProject(id, dir)(JSPlatform, JVMPlatform)
       .crossType(CrossType.Full)
-      .settings(settings: _*)
+      .settings(settings*)
       .settings(Keys.name := artifactName)
-      .platformsSettings(JSPlatform)(jsSettings: _*)
-      .platformsSettings(JVMPlatform)(jvmSettings: _*)
+      .platformsSettings(JSPlatform)(jsSettings*)
+      .platformsSettings(JVMPlatform)(jvmSettings*)
 
 
   def jsProject(artifactName: String, dir: java.io.File, id: String) =
     bareProject(artifactName, dir, id)
-      .settings(jsSettings: _*)
+      .settings(jsSettings*)
       .enablePlugins(ScalaJSPlugin)
 
-  override def jvmSettings: Seq[Def.Setting[_]] =
+  override def jvmSettings: Seq[Def.Setting[?]] =
     super.jvmSettings ++
     Seq(
     )
 
-  override def jsSettings: Seq[Def.Setting[_]] =
+  override def jsSettings: Seq[Def.Setting[?]] =
     super.jsSettings ++
     Seq(
       Compile / fastOptJS / artifactPath := crossTarget.value / "classes" / "webapp" / "scripts" / ((fastOptJS / moduleName).value + "-fastopt.js")

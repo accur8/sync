@@ -13,7 +13,7 @@ object Logger {
   def logger(implicit trace: Trace): Logger =
     LoggerFactory.logger(trace.wrap.scalaName)
 
-  def logger(clazz: Class[_]): Logger =
+  def logger(clazz: Class[?]): Logger =
     LoggerFactory.logger(normalizeClassname(clazz.getName))
 
   def logger(name: String): Logger =

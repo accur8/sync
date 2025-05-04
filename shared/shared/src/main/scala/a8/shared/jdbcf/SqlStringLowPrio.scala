@@ -8,7 +8,7 @@ import scala.language.implicitConversions
 object SqlStringLowPrio {
 
   class SqlFragmentContext(private val stringContext: StringContext) extends AnyVal {
-    def q(args: SqlString*): SqlString = sql(args:_*)
+    def q(args: SqlString*): SqlString = sql(args*)
     def sql(args: SqlString*): SqlString = {
       val parts =
         stringContext

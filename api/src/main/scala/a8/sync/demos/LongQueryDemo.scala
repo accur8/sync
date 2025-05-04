@@ -53,7 +53,7 @@ object LongQueryDemo extends ZIOAppDefault {
 //  }
 
 
-  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
+  override def run: ZIO[Any & ZIOAppArgs & Scope, Any, Any] = {
     for {
       fiber <- program.fork
       _ <-

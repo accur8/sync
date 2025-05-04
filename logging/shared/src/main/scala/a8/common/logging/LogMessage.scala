@@ -99,13 +99,13 @@ object LogMessage {
             if ( consoleValues0 == null )
               consoleValues0 = mutable.Buffer[Any]()
             consoleValues0 += p.value
-          case p: LogPart.JsonConsoleValue[_] =>
+          case p: LogPart.JsonConsoleValue[?] =>
             if ( consoleValues0 == null )
               consoleValues0 = mutable.Buffer[Any]()
             consoleValues0 += p
           case p: LogPart.Throw =>
             throwable0 = p.th
-          case p: LogPart.Expr[_] =>
+          case p: LogPart.Expr[?] =>
             appendMessage("(" + p.asString + ")")
         }
 

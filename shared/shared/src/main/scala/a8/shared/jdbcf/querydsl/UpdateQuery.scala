@@ -24,7 +24,7 @@ object UpdateQuery {
 
   sealed trait UpdateSetClause
 
-  implicit def liftToIterable[T](assignment: Assignment[T]): Iterable[Assignment[_]] =
+  implicit def liftToIterable[T](assignment: Assignment[T]): Iterable[Assignment[?]] =
     List(assignment)
 
 }

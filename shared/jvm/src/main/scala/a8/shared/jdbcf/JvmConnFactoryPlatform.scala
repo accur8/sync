@@ -20,7 +20,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
     )
   }
 
-  override lazy val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory] = {
+  override lazy val constructor: ZIO[DatabaseConfig & Scope,Throwable,ConnFactory] = {
     zservice[DatabaseConfig].flatMap { databaseConfig =>
       def createDs = {
 
@@ -46,11 +46,12 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
 
       def connR(ds: HikariDataSource): Resource[java.sql.Connection] =
         Managed.resource(ds.getConnection)
+          .mapError(th => new RuntimeException(s"Error processing jdbc connection to ${ds.getJdbcUrl}", th))
 
       val dialect = Dialect(databaseConfig.url)
       for {
         ds <- Managed.resource(createDs)
-        cacheRef <- zio.Ref.make(Map.empty[KeyedTableMapper[_, _], KeyedTableMapper.Materialized[_, _]])
+        cacheRef <- zio.Ref.make(Map.empty[KeyedTableMapper[?, ?], KeyedTableMapper.Materialized[?, ?]])
         escaper <- dialect.escaper(connR(ds))
       } yield
         new ConnFactory {

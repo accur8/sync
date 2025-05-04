@@ -128,9 +128,9 @@ object BootstrapConfig {
 
   object WorkDir extends LoggingF {
 
-    val layer: ZLayer[TempDir with Scope, Throwable, WorkDir] = ZLayer(live)
+    val layer: ZLayer[TempDir & Scope, Throwable, WorkDir] = ZLayer(live)
 
-    val live: ZIO[TempDir with Scope, Throwable, WorkDir] = {
+    val live: ZIO[TempDir & Scope, Throwable, WorkDir] = {
       for {
         tempDir <- zservice[TempDir]
         workDir <-

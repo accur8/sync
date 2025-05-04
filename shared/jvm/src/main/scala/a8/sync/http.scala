@@ -125,7 +125,7 @@ object http extends LoggingF {
 
     override def rawSingleExec(retryCounter: RetryCounter, request: RequestImpl): ZIO[Scope, Throwable, Response] = {
 
-      type SttpRequest = RequestT[Identity, (XStream[Byte], ResponseMetadata), capabilities.Effect[Task] with ZioStreams]
+      type SttpRequest = RequestT[Identity, (XStream[Byte], ResponseMetadata), capabilities.Effect[Task] & ZioStreams]
 
       def requestWithReadTimeout(r0: SttpRequest): SttpRequest =
         readTimeout.fold(r0)(r0.readTimeout(_))
@@ -259,7 +259,7 @@ object http extends LoggingF {
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, trace: Trace, loggerF: LoggerF): Task[A] = {
 
       implicit val jsonReaderOptions = {
-        if ( jsonResponseOptions.jsonWarningsLogLevel equals Level.Off) {
+        if ( jsonResponseOptions.jsonWarningsLogLevel.equals(Level.Off) ) {
           ZJsonReaderOptions.NoLogWarnings
         } else {
           ZJsonReaderOptions.LogWarnings(jsonResponseOptions.jsonWarningsLogLevel, trace, loggerF)
@@ -297,7 +297,7 @@ object http extends LoggingF {
                         ResponseAction.Fail(f.context, f.responseInfo)
                       case ResponseAction.Success(validatedJsv) =>
                         JsonReader[A].readResult(validatedJsv.toRootDoc) match {
-                          case rre: ReadResult.Error[_] =>
+                          case rre: ReadResult.Error[?] =>
                             nonSuccessfulResponse(jsonResponseOptions.retryJsonCodecErrors, rre.readError)
                           case ReadResult.Success(a, _, _, _) =>
                             // happy path yay we made it
@@ -470,7 +470,7 @@ object http extends LoggingF {
 
   object RequestProcessor {
 
-    lazy val layer: ZLayer[RequestProcessorConfig with Scope,Throwable,RequestProcessor] =
+    lazy val layer: ZLayer[RequestProcessorConfig & Scope,Throwable,RequestProcessor] =
       ZLayer(
         for {
           config <- zservice[RequestProcessorConfig]

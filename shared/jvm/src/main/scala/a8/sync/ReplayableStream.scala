@@ -107,7 +107,7 @@ object ReplayableStream extends LoggingF {
     }
   }
 
-  def apply(stream: XStream[Byte], eagerlyConsume: Boolean = true): ZIO[Factory with Scope,Throwable,XStream[Byte]] =
+  def apply(stream: XStream[Byte], eagerlyConsume: Boolean = true): ZIO[Factory & Scope,Throwable,XStream[Byte]] =
     ZIO.service[Factory]
       .flatMap(_.makeReplayable(stream, eagerlyConsume))
 

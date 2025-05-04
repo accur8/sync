@@ -80,13 +80,13 @@ object QueryDsl {
     override def isComposite: Boolean = true
   }
 
-  case class IsNull(left: Expr[_], not: Boolean) extends Condition
+  case class IsNull(left: Expr[?], not: Boolean) extends Condition
 
   case class StructuralEquality[A: ComponentMapper](linker: Path, component: Component[A], values: Iterable[A]) extends Condition {
     val mapper: ComponentMapper[A] = implicitly[ComponentMapper[A]]
   }
 
-  case class InClause(left: IndexedSeq[Expr[_]], right: IndexedSeq[IndexedSeq[Expr[_]]]) extends Condition
+  case class InClause(left: IndexedSeq[Expr[?]], right: IndexedSeq[IndexedSeq[Expr[?]]]) extends Condition
 
   case class StructuralInClause[A: ComponentMapper](linker: Path, component: Component[A], values: IndexedSeq[A]) extends Condition {
     val mapper: ComponentMapper[A] = implicitly[ComponentMapper[A]]
@@ -133,7 +133,7 @@ object QueryDsl {
   }
   case class NumericField[T: SqlStringer](name: String, join: Path, resolvedComponentName: Boolean) extends NumericExpr[T] with FieldExpr[T]
 
-  case class Concat(left: Expr[_], right: Expr[_]) extends Expr[String]
+  case class Concat(left: Expr[?], right: Expr[?]) extends Expr[String]
 
   case class Opt[A : SqlStringer](expr: Expr[A]) extends Expr[Option[A]]
 
@@ -196,7 +196,7 @@ object QueryDsl {
 
   case class Parens(inside: Condition) extends Condition
 
-  def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[_]] =
+  def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[?]] =
     cond match {
       case ic@ InClause(left, right) =>
         left.flatMap(fieldExprs) ++ right.flatMap(_.flatMap(fieldExprs))
@@ -222,15 +222,15 @@ object QueryDsl {
         fieldExprs(l) ++ fieldExprs(r)
     }
 
-  def fieldExprs(expr: Expr[_]): IndexedSeq[FieldExpr[_]] =
+  def fieldExprs(expr: Expr[?]): IndexedSeq[FieldExpr[?]] =
     expr match {
       case Opt(e) =>
         fieldExprs(e)
-      case fe: FieldExpr[_] =>
+      case fe: FieldExpr[?] =>
         IndexedSeq(fe)
-      case _: Constant[_] =>
+      case _: Constant[?] =>
         IndexedSeq.empty
-      case _: OptionConstant[_] =>
+      case _: OptionConstant[?] =>
         IndexedSeq.empty
       case Concat(l, r) =>
         fieldExprs(l) ++ fieldExprs(r)
@@ -306,7 +306,7 @@ object QueryDsl {
     def columnName(suffix: ColumnName) = suffix
   }
 
-  case class JoinImpl(parent: Join, name: String, toTableMapper: TableMapper[_], joinExprFn: Join=>QueryDsl.Condition) extends Join {
+  case class JoinImpl(parent: Join, name: String, toTableMapper: TableMapper[?], joinExprFn: Join=>QueryDsl.Condition) extends Join {
     lazy val joinExpr: Condition = joinExprFn(this)
     override def chain: List[Join] = this :: parent.chain
     def depth: Int = parent.depth + 1
@@ -337,7 +337,7 @@ object QueryDsl {
     name: String,
     fromTableDsl: A,
     toTableDsl: Join=>B,
-    toTableMapper: TableMapper[_]
+    toTableMapper: TableMapper[?]
   ) (
     joinExprFn: (A, B) => QueryDsl.Condition
   ): Join = {
@@ -356,7 +356,7 @@ object QueryDsl {
     def :=(value: Expr[T]): UpdateQuery.Assignment[T] =
       UpdateQuery.Assignment(this, value)
 
-    def ||(value: Expr[_]): Expr[String] =
+    def ||(value: Expr[?]): Expr[String] =
       Concat(this, value)
 
     def ===(value: Expr[T]): Condition =
@@ -447,7 +447,7 @@ object QueryDsl {
     import SqlString._
     cond match {
       case InClause(left, right) =>
-        def tupleup(values: IndexedSeq[Expr[_]]): SqlString =
+        def tupleup(values: IndexedSeq[Expr[?]]): SqlString =
           values.size match {
             case 1 =>
               exprAsSql(values.head)
@@ -473,13 +473,13 @@ object QueryDsl {
         asSql(and.left) ~*~ ss.And ~*~ asSql(and.right)
       case or: Or =>
         asSql(or.left) ~*~ ss.Or ~*~ asSql(or.right)
-      case op: BooleanOperation[_] =>
+      case op: BooleanOperation[?] =>
         exprAsSql(op.left) ~*~ op.op.asSql ~*~ exprAsSql(op.right)
       case is: IsNull =>
         exprAsSql(is.left) ~*~ (if (is.not) ss.IsNotNull else ss.IsNull)
-      case in: In[_] if in.set.isEmpty =>
+      case in: In[?] if in.set.isEmpty =>
         exprAsSql(in.left) ~*~ ss.In ~*~ ss.NullWithParens
-      case in: In[_] =>
+      case in: In[?] =>
         exprAsSql(in.left) ~*~ ss.In ~*~ ss.LeftParen ~ in.set.map(exprAsSql).mkSqlString(ss.Comma) ~ ss.RightParen
     }
   }
@@ -513,7 +513,7 @@ object QueryDsl {
     implicit def exprToOrderBy[T](f: Expr[T]): OrderBy = OrderBy(f)
   }
 
-  case class OrderBy(expr: Expr[_], ascending: Boolean = true) {
+  case class OrderBy(expr: Expr[?], ascending: Boolean = true) {
     def asc: OrderBy = copy(ascending=true)
     def desc: OrderBy = copy(ascending=false)
     def asSql(implicit alias: PathCompiler): SqlString =
@@ -543,7 +543,7 @@ class QueryDsl[T, TableDsl, K](
   def query(whereFn: TableDsl => QueryDsl.Condition): SelectQuery[T, TableDsl] =
     SelectQueryImpl(tableDsl, keyedTableMapper, whereFn(tableDsl), Nil)
 
-  def update(set: TableDsl => Iterable[UpdateQuery.Assignment[_]]): UpdateQuery[TableDsl] =
+  def update(set: TableDsl => Iterable[UpdateQuery.Assignment[?]]): UpdateQuery[TableDsl] =
     UpdateQueryImpl(
       tableDsl = tableDsl,
       outerMapper = keyedTableMapper,

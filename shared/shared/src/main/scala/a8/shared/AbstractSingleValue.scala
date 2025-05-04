@@ -31,7 +31,7 @@ object AbstractSingleValue {
 
     implicit lazy val jsonTypedCodec: JsonTypedCodec[A, C] = {
       jsonCodecB.dimap[A](
-        apply _,
+        apply,
         _.value,
       )
     }

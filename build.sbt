@@ -14,14 +14,14 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "3.3.1"
+val scalaLibVersion = "3.6.3"
 val zioVersion = "2.0.19"
 val zioLoggingVersion = "2.1.15"
 val slf4jVersion = "2.0.9"
 val zeroWasteVersion = "0.2.15"
 val logbackVersion = "1.4.14"
 
-val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
+//val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
 
 Global / resolvers += {
@@ -97,6 +97,7 @@ Global / scalacOptions ++= Seq(
   "-language:existentials",
   "-language:postfixOps",
   "-language:strictEquality",
+  "-Xkind-projector",
  // "-Werror",
 )
 
@@ -108,7 +109,7 @@ lazy val logging =
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
         "dev.zio" %%% "zio" % zioVersion,
         "dev.zio" %% "zio-logging" % zioLoggingVersion,
-        zeroWastePlugin,
+//        zeroWastePlugin,
       )
     )
     .jvmSettings(
@@ -159,7 +160,7 @@ lazy val api =
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-        zeroWastePlugin,
+//        zeroWastePlugin,
       )
     )
 
@@ -172,7 +173,21 @@ lazy val http =
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-http" % "3.0.0-RC1",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-        zeroWastePlugin,
+//        zeroWastePlugin,
+      )
+    )
+
+lazy val nats =
+  Common
+    .jvmProject("a8-nats", file("nats"), "nats")
+    .dependsOn(api)
+    .settings(
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      libraryDependencies ++= Seq(
+        "io.nats" % "jnats" % "2.20.4",
+        "com.github.luben" % "zstd-jni" % "1.5.6-8",
+        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+//        zeroWastePlugin,
       )
     )
 
@@ -205,7 +220,7 @@ lazy val shared =
           baseDirectory.value / "shared" / "src" / "test" / "scala",
         ),
       libraryDependencies ++= Seq(
-        zeroWastePlugin,
+//        zeroWastePlugin,
         "org.typelevel" %% "case-insensitive" % "1.3.0",
         "com.beachape" %%% "enumeratum" % "1.7.2",
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",

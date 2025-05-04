@@ -53,7 +53,7 @@ object StringValue {
 
     implicit val jsonCodec: JsonTypedCodec[A, ast.JsStr] =
       JsonCodec.string.dimap[A](
-        apply _,
+        apply,
         _.value.toString,
       )
 

@@ -217,8 +217,9 @@ case class ConnInternalImpl(
 
   override def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A, B]): Task[Option[A]] =
     materializedMapper[A,B].flatMap { mm =>
-      implicit val km = mm.value
-      selectOpt(km.keyToWhereClause(key))(km)
+      implicit val km: KeyedTableMapper[A, B] = mm.value
+//      given TableMapper[A] = km
+      selectOpt[A](km.keyToWhereClause(key))
     }
 
   override def commit: Task[Unit] =

@@ -22,7 +22,7 @@ object ConnFactoryCompanion {
   }
 
   class MapperMaterializerImpl(
-    cacheRef: Ref[Map[KeyedTableMapper[_,_],KeyedTableMapper.Materialized[_,_]]],
+    cacheRef: Ref[Map[KeyedTableMapper[?,?],KeyedTableMapper.Materialized[?,?]]],
     connFactory: ConnFactory,
   ) extends MapperMaterializer {
 
@@ -79,10 +79,10 @@ object ConnFactoryCompanion {
 
 trait ConnFactoryCompanion {
 
-  lazy val layer: ZLayer[DatabaseConfig with Scope, Throwable, ConnFactory] =
+  lazy val layer: ZLayer[DatabaseConfig & Scope, Throwable, ConnFactory] =
     ZLayer(constructor)
 
-  lazy val constructor: ZIO[DatabaseConfig with Scope,Throwable,ConnFactory]
+  lazy val constructor: ZIO[DatabaseConfig & Scope,Throwable,ConnFactory]
 
   def resource(databaseConfig: DatabaseConfig): Resource[ConnFactory] =
     constructor.provideSome[zio.Scope](ZLayer.succeed(databaseConfig))

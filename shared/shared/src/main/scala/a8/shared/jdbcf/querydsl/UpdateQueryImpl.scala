@@ -10,7 +10,7 @@ import scala.language.existentials
 case class UpdateQueryImpl[T,U](
   tableDsl: U,
   outerMapper: TableMapper[T],
-  assignments: Iterable[UpdateQuery.Assignment[_]],
+  assignments: Iterable[UpdateQuery.Assignment[?]],
   where: Condition
 )
   extends UpdateQuery[U]

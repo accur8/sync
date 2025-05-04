@@ -9,6 +9,7 @@ import ConsoleAppender.*
 import a8.common.logging.{LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
 
 import java.io.{FileDescriptor, FileOutputStream}
+import scala.compiletime.uninitialized
 
 object ConsoleAppender {
   sealed trait Kind
@@ -35,10 +36,10 @@ object ConsoleAppender {
 
 class ConsoleAppender extends AppenderBase[ILoggingEvent] {
 
-  var stdoutAppender: OutputStreamAppender[ILoggingEvent] = _
-  var stderrAppender: OutputStreamAppender[ILoggingEvent] = _
+  var stdoutAppender: OutputStreamAppender[ILoggingEvent] = uninitialized
+  var stderrAppender: OutputStreamAppender[ILoggingEvent] = uninitialized
 
-  var encoder: Encoder[ILoggingEvent] = _
+  var encoder: Encoder[ILoggingEvent] = uninitialized
 
   val hasColorConsole = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig.hasColorConsole
 
