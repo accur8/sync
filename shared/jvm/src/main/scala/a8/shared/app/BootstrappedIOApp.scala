@@ -1,16 +1,15 @@
 package a8.shared.app
 
 
-import a8.common.logging.{Level, LoggingBootstrapConfig, SyncZLogger}
+import a8.common.logging.{Level, LoggingBootstrapConfig}
 import a8.shared.ConfigMojo
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.shared.json.JsonCodec
-import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import ch.qos.logback.classic.LoggerContext
 import net.model3.logging.logback.LogbackConfigurator
-import zio.{Scope, Tag, ULayer, ZIO, ZIOAppArgs, ZLayer}
+import zio._
 
 object BootstrappedIOApp {
 
@@ -20,8 +19,7 @@ object BootstrappedIOApp {
 
 
 abstract class BootstrappedIOApp
-  extends zio.ZIOAppDefault
-    with LoggingF
+  extends Logging
 {
 
   val loggingLayer: ZLayer[Any, Nothing, Unit] = SyncZLogger.slf4jLayer(zioMinLevel)

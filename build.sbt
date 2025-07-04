@@ -14,11 +14,11 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "3.6.3"
-val zioVersion = "2.0.19"
-val zioLoggingVersion = "2.1.15"
+val scalaLibVersion = "3.7.1"
+//val zioVersion = "2.0.19"
+//val zioLoggingVersion = "2.1.15"
 val slf4jVersion = "2.0.9"
-val zeroWasteVersion = "0.2.15"
+//val zeroWasteVersion = "0.2.15"
 val logbackVersion = "1.4.14"
 
 //val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
@@ -107,15 +107,15 @@ lazy val logging =
     .settings(
       libraryDependencies ++= Seq(
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
-        "dev.zio" %%% "zio" % zioVersion,
-        "dev.zio" %% "zio-logging" % zioLoggingVersion,
+//        "dev.zio" %%% "zio" % zioVersion,
+//        "dev.zio" %% "zio-logging" % zioLoggingVersion,
 //        zeroWastePlugin,
       )
     )
     .jvmSettings(
       libraryDependencies ++= Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion,
-        "dev.zio" %% "zio-logging-slf4j2" % zioLoggingVersion,
+//        "dev.zio" %% "zio-logging-slf4j2" % zioLoggingVersion,
       )
     )
     .jsSettings(
@@ -157,7 +157,7 @@ lazy val api =
     .jvmProject("a8-sync-api", file("api"), "api")
     .dependsOn(shared)
     .settings(
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
 //        zeroWastePlugin,
@@ -169,9 +169,9 @@ lazy val http =
     .jvmProject("a8-http-server", file("http-server"), "http-server")
     .dependsOn(api)
     .settings(
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-http" % "3.0.0-RC1",
+//        "dev.zio" %% "zio-http" % "3.0.0-RC1",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
 //        zeroWastePlugin,
       )
@@ -182,7 +182,7 @@ lazy val nats =
     .jvmProject("a8-nats", file("nats"), "nats")
     .dependsOn(api)
     .settings(
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       libraryDependencies ++= Seq(
         "io.nats" % "jnats" % "2.20.4",
         "com.github.luben" % "zstd-jni" % "1.5.6-8",
@@ -198,7 +198,7 @@ lazy val shared =
     .dependsOn(logging_logback)
 //    .crossProject("a8-sync-shared", file("shared"), "shared")
     .settings(
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       Compile / unmanagedSourceDirectories :=
         Seq(
           baseDirectory.value / "jvm" / "src" / "main" / "scala",
@@ -229,18 +229,18 @@ lazy val shared =
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
         "org.typelevel" %% "jawn-parser" % "1.4.0",
         "org.typelevel" %% "jawn-ast" % "1.4.0",
-        "dev.zio" %%% "zio-prelude" % "1.0.0-RC16",
-        "dev.zio" %%% "zio-streams" % zioVersion,
-        "dev.zio" %%% "zio-test" % zioVersion % Test,
-        "dev.zio" %%% "zio-test-sbt" % zioVersion % Test,
-        "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test,
+//        "dev.zio" %%% "zio-prelude" % "1.0.0-RC16",
+//        "dev.zio" %%% "zio-streams" % zioVersion,
+//        "dev.zio" %%% "zio-test" % zioVersion % Test,
+//        "dev.zio" %%% "zio-test-sbt" % zioVersion % Test,
+//        "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test,
 //      )
 //    )
 //    .jvmSettings(
 //      libraryDependencies ++= Seq(
-        "com.softwaremill.sttp.client3" %% "zio" % "3.8.11",
+//        "com.softwaremill.sttp.client3" %% "zio" % "3.8.11",
         "org.hsqldb" % "hsqldb" % "2.7.1",
-        "dev.zio" %% "zio-cache" % "0.2.2",
+//        "dev.zio" %% "zio-cache" % "0.2.2",
         "com.github.andyglow" %% "typesafe-config-scala" % "2.0.0",
         "org.postgresql" % "postgresql" % "42.5.3",
         "mysql" % "mysql-connector-java" % "8.0.32",

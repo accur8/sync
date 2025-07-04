@@ -3,11 +3,9 @@ package a8.shared.jdbcf
 
 import java.sql.{Connection, PreparedStatement, ResultSet, Statement}
 import a8.shared.SharedImports._
-import a8.common.logging.{Logging, LoggingF}
-import zio.stream.{UStream, ZStream}
-import zio._
+import a8.common.logging.{Logging}
 
-object Managed extends LoggingF {
+object Managed extends Logging {
 
   abstract class AbstractManaged[A] extends Managed[A] {
     override def safeClose(a: A): UIO[Unit] =

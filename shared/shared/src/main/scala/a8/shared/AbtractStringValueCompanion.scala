@@ -21,8 +21,8 @@ abstract class AbstractStringValueCompanion[A] {
   def valueFromString(s: String): A
 
 
-  implicit lazy val zioEq: zio.prelude.Equal[A] =
-    zio.prelude.Equal.make((a, b) => valueToString(a) == valueToString(b))
+  implicit lazy val zioEq: zio.Equal[A] =
+    zio.Equal.make((a, b) => valueToString(a) == valueToString(b))
 
   implicit lazy val catsEq: cats.kernel.Eq[A] =
     cats.kernel.Eq.by[A, String](valueToString)

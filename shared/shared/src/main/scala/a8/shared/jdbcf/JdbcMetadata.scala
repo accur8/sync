@@ -6,7 +6,6 @@ import a8.shared.jdbcf.JdbcMetadata.{JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.{CatalogName, ColumnName, ResolvedTableName, SchemaName, TableLocator, TableName}
 import a8.shared.SharedImports.*
 import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
-import zio.*
 
 import java.sql.ResultSetMetaData
 import scala.collection.concurrent.TrieMap
@@ -156,7 +155,7 @@ object JdbcMetadata {
         resolvedTableNameCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(a => ZIO.succeed(a))
+          .map(a => zsucceed(a))
           .getOrElse {
             impl.resolveTableName(tableLocator, conn)
               .map { table =>
@@ -181,7 +180,7 @@ object JdbcMetadata {
         tableMetadataCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(a => ZIO.succeed(a))
+          .map(a => zsucceed(a))
           .getOrElse {
             impl.tableMeta(tableLocator, conn)
               .map { table =>

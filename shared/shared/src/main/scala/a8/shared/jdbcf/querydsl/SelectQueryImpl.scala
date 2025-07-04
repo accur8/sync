@@ -9,7 +9,6 @@ import scala.language.implicitConversions
 import scala.language.existentials
 import a8.shared.SharedImports._
 import SqlString._
-import zio._
 
 case class SelectQueryImpl[T,U](
   tableDsl: U,
@@ -80,7 +79,7 @@ case class SelectQueryImpl[T,U](
           _.iterator
             .collect { case (ji: JoinImpl, i) => ji -> i }
             .map { case (join, alias) =>
-              val joinExpr = QueryDsl.asSql(join.joinExpr)(linkCompiler)
+              val joinExpr = QueryDsl.asSql(join.joinExpr)(using linkCompiler)
               sql"left join ${join.toTableMapper.tableName} ${alias} on ${joinExpr}"
             }
             .mkSqlString(keyword("\n"))
@@ -92,7 +91,7 @@ case class SelectQueryImpl[T,U](
     }
 
     lazy val whereSqlNoAlias: SqlString = {
-      val w = QueryDsl.asSql(where)(PathCompiler.empty)
+      val w = QueryDsl.asSql(where)(using PathCompiler.empty)
       w
     }
 
@@ -122,20 +121,20 @@ case class SelectQueryImpl[T,U](
     fetchOpt
       .flatMap {
         case None =>
-          ZIO.fail(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
+          zfail(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
         case Some(t) =>
-          ZIO.succeed(t)
+          zsucceed(t)
       }
 
   override def fetchOpt(implicit conn: Conn): Task[Option[T]] =
     select
       .flatMap {
         case Vector() =>
-          ZIO.succeed(None)
+          zsucceed(None)
         case Vector(t) =>
-          ZIO.succeed(Some(t))
+          zsucceed(Some(t))
         case v =>
-          ZIO.fail(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
+          zfail(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
       }
 
   override def select(implicit conn: Conn): Task[Vector[T]] =
@@ -144,7 +143,7 @@ case class SelectQueryImpl[T,U](
       .select
       .map(_.toVector)
 
-  override def streamingSelect(implicit conn: Conn): XStream[ T] =
+  override def streamingSelect(implicit conn: Conn): zio.XStream[ T] =
     conn
       .streamingQuery[T](sqlString)
       .run

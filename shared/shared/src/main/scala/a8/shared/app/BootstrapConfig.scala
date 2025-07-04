@@ -8,7 +8,6 @@ import a8.shared.app.MxBootstrapConfig.*
 
 import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports.*
-import zio.{Duration, Scope, Task, ZIO, ZLayer}
 
 import scala.concurrent.duration.FiniteDuration
 import a8.common.logging.LoggingBootstrapConfig.LoggingBootstrapConfigDto
@@ -126,7 +125,7 @@ object BootstrapConfig {
 
   case class ConfigDir(unresolved: Directory) extends DirectoryValue
 
-  object WorkDir extends LoggingF {
+  object WorkDir extends Logging {
 
     val layer: ZLayer[TempDir & Scope, Throwable, WorkDir] = ZLayer(live)
 

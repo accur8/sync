@@ -5,9 +5,10 @@ import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey}
 import a8.shared.jdbcf.SqlString.{DefaultEscaper, DefaultJdbcEscaper, Escaper, RawSqlString}
 import sttp.model.Uri
-import UnsafeResultSetOps._
-import a8.shared.SharedImports._
-import zio._
+import UnsafeResultSetOps.*
+import a8.shared.SharedImports.*
+import a8.shared.zreplace.Resource
+
 import java.sql.Connection
 
 object Dialect {
@@ -55,7 +56,7 @@ trait Dialect {
         for {
           keywordSet <- KeywordSet.fromMetadata(conn.getMetaData)
           escaper0 <-
-            ZIO.attemptBlocking {
+            zblock {
               val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
               new DefaultEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {}
             }
@@ -110,7 +111,7 @@ trait Dialect {
   }
 
   def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): Task[ResolvedTableName] =
-    ZIO.succeed(
+    zsucceed(
       foundTables.head
     )
 

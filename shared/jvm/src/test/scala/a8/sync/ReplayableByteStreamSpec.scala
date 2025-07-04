@@ -44,7 +44,7 @@ object ReplayableByteStreamSpec extends ZIOSpecDefault {
     val counter = new AtomicInteger()
     val streamCountingHead = ZIO.attempt(counter.incrementAndGet()).zstreamExec
     val countedStream = streamCountingHead ++ sourceStream
-    val effect: ZIO[Factory with Scope, Throwable, TestResult] =
+    val effect: ZIO[Factory & Scope, Throwable, TestResult] =
       for {
         replayableStream <- ReplayableStream(countedStream)
         baseLine <- sourceStream.runCollect

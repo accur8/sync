@@ -6,6 +6,7 @@ import a8.shared.jdbcf.SqlString.CompiledSql
 import a8.shared.jdbcf.querydsl.QueryDsl.Expr
 
 import scala.language.implicitConversions
+import a8.shared.SharedImports._
 
 
 trait UpdateQuery[TableDsl] {

@@ -3,7 +3,7 @@ package a8.shared.jdbcf
 
 import a8.shared.jdbcf.{ResolvedTableName, SchemaName, TableLocator, TableName}
 import SqlString._
-import zio.Task
+import a8.shared.SharedImports._
 
 object PostgresDialect extends Dialect {
 
@@ -20,7 +20,7 @@ object PostgresDialect extends Dialect {
   /**
    * will do a case insensitive lookup
    */
-  override def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] = {
+  override def resolveTableName(tableLocator: TableLocator, conn: Conn): zio.Task[ResolvedTableName] = {
     import tableLocator._
     val schemaPart = tableLocator.schemaName.map(s=>q" and schemaname = ${s.asString.escape}").getOrElse(q"")
     val sql = q"""

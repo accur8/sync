@@ -2,7 +2,6 @@ package a8.common.logging
 
 
 import a8.common.logging.LoggingOps.TraceWrapper
-import zio.Trace
 
 import java.io.{PrintWriter, StringWriter}
 import java.nio.charset.StandardCharsets.*

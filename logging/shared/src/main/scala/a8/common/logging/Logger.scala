@@ -1,7 +1,6 @@
 package a8.common.logging
 
 
-import zio.Trace
 import scala.reflect.{ClassTag, classTag}
 import LoggingOps._
 

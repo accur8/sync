@@ -1,22 +1,20 @@
 package a8.shared.json
 
 
-import a8.shared.{FileSystem, HoconOps, ZFileSystem}
+import a8.shared.{FileSystem, HoconOps}
 import a8.shared.json.JsonReadOptions.UnusedFieldAction
 import a8.shared.SharedImports.*
-import a8.common.logging.Logging
+import a8.common.logging.{Logger, Logging, Trace, Level as LogLevel}
 import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ast.JsDoc.{JsDocRoot, empty}
 import a8.shared.json.ast.{JsDoc, JsVal}
-import zio.{Trace, UIO, ZIO}
 
 import scala.collection.mutable
 import scala.io.Source
 import scala.util.Try
 import scala.language.implicitConversions
-import a8.common.logging.{Logger, LoggerF, Level as LogLevel}
 
 object JsonReader extends Logging { outer =>
 
@@ -102,7 +100,7 @@ object JsonReader extends Logging { outer =>
           unusedFieldAction,
         )
 
-      val readResult = jsonCodec.read(doc)(readOptions)
+      val readResult = jsonCodec.read(doc)(using readOptions)
 
       if ( warnings.nonEmpty ) {
         jsonReaderOptions match {

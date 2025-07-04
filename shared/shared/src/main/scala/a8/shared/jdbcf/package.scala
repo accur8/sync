@@ -1,33 +1,28 @@
 package a8.shared
 
 
-import a8.common.logging.{LoggingF}
-
 import java.sql.{ResultSet, SQLException}
 import a8.shared.jdbcf.UnsafeResultSetOps._
-import zio._
-import zio.stream.ZStream
 import SharedImports._
 import a8.shared.jdbcf.SqlString.CompiledSql
 
-package object jdbcf extends LoggingF {
+package object jdbcf extends Logging {
 
   def resultSetToVector(resultSet: ResultSet): Vector[Row] = {
     resultSet.runAsIterator(_.toVector)
   }
 
-  def resultSetToStream(resultSet: ResultSet, chunkSize: Int = 1000): XStream[Row] = {
+  def resultSetToStream(resultSet: ResultSet, chunkSize: Int = 1000): zio.XStream[Row] = {
 
-    val acquire = ZIO.succeed(resultSet)
+    val acquire = zsucceed(resultSet)
 
     def release(rs: ResultSet): UIO[Unit] =
-      ZIO
-        .attemptBlocking {
-          if ( resultSet.isClosed )
-            ()
-          else
-            resultSet.close()
-        }
+      zblock {
+        if ( resultSet.isClosed )
+          ()
+        else
+          resultSet.close()
+      }
         .catchAllAndLog
 
     ZStream.acquireReleaseWith(acquire)(release)

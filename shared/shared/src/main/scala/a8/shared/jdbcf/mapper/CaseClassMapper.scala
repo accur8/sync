@@ -14,7 +14,6 @@ import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, PathCompiler, StructuralProperty}
 
 import java.sql.PreparedStatement
-import zio._
 
 object CaseClassMapper {
 //  val QuestionMark = SqlString.keyword("?")

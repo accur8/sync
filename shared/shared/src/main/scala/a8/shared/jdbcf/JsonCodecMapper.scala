@@ -12,14 +12,12 @@ object JsonCodecMapper {
 
 class JsonCodecMapper[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions) extends SqlStringer[A] with RowReader[A] {
 
-  override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): zio.Task[SqlStringer[A]] = {
-    for {
-      delegate <- SqlStringer.jsDocSqlStringer.materialize(conn, resolvedColumn)
-    } yield
-      new SqlStringer[A] {
-        override def toSqlString(a: A): SqlString =
-          delegate.toSqlString(a.toJsRootDoc)
-      }
+  override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): SqlStringer[A] = {
+    val delegate = SqlStringer.jsDocSqlStringer.materialize(conn, resolvedColumn)
+    new SqlStringer[A] {
+      override def toSqlString(a: A): SqlString =
+        delegate.toSqlString(a.toJsRootDoc)
+    }
   }
 
   override def toSqlString(a: A): SqlString =

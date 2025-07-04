@@ -3,7 +3,6 @@ package a8.common.logging
 
 import a8.common.logging.LogMessage.impl.LogPart.JsonConsoleValue
 import org.scalajs.dom
-import zio.Trace
 import LoggingOps._
 import scala.scalajs.js
 

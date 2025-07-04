@@ -13,7 +13,6 @@ import ch.qos.logback.core.spi.ContextAwareBase
 import ch.qos.logback.core.status.{InfoStatus, Status, StatusBase, StatusListener, StatusUtil}
 import ch.qos.logback.core.util.StatusPrinter
 import org.slf4j.bridge.SLF4JBridgeHandler
-import zio.ZLayer
 
 import java.io.{File, FileOutputStream}
 import java.nio.file.Paths
@@ -22,19 +21,19 @@ import scala.jdk.CollectionConverters.*
 
 object LogbackConfigurator {
 
-  val configureLoggingZ: zio.ZIO[LoggingBootstrapConfig & LoggerContext, Throwable, Unit] = {
-    for {
-      context <- zio.ZIO.service[LoggerContext]
-      config <- zio.ZIO.service[LoggingBootstrapConfig]
-      _ <-
-        zio.ZIO.attempt {
-          context.reset()
-          val configurator = new LogbackConfigurator
-          configurator.setContext(context)
-          configurator.configure(context, config)
-        }
-    } yield ()
-  }
+//  val configureLoggingZ: zio.ZIO[LoggingBootstrapConfig & LoggerContext, Throwable, Unit] = {
+//    for {
+//      context <- zio.ZIO.service[LoggerContext]
+//      config <- zio.ZIO.service[LoggingBootstrapConfig]
+//      _ <-
+//        zio.ZIO.attempt {
+//          context.reset()
+//          val configurator = new LogbackConfigurator
+//          configurator.setContext(context)
+//          configurator.configure(context, config)
+//        }
+//    } yield ()
+//  }
 
   def statusMessages(): (a8.common.logging.Level,String) = {
     val status =

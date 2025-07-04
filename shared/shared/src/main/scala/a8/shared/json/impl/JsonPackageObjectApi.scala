@@ -1,11 +1,9 @@
 package a8.shared.json.impl
 
-import a8.shared.ZFileSystem
 import a8.shared.json.ReadError.{ParseError, SingleReadError}
 import a8.shared.json.ast.{JsObj, JsVal}
-import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
+import a8.shared.json.{JsonCodec, JsonReader, ReadError}
 import org.typelevel.jawn.Parser
-import zio._
 import a8.shared.SharedImports._
 import a8.shared.json.JsonReader.JsonReaderOptions
 import a8.shared.json.ZJsonReader.ZJsonReaderOptions

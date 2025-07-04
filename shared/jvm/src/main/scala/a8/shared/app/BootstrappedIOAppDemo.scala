@@ -1,16 +1,14 @@
 package a8.shared.app
 
 
-import a8.common.logging.{Logger, LoggerF, LoggerFactory}
+import a8.common.logging.{Logger, LoggerFactory}
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrapConfig.{AppName, WorkDir}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
-import zio.stream.ZStream
-import zio.{ZIO, ZIOAppArgs}
 
 import scala.concurrent.duration.DurationInt
 
-object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
+object BootstrappedIOAppDemo extends BootstrappedIOApp with Logging {
 
 //  lazy val loggerIO2 = LoggerF.create
 
@@ -19,7 +17,7 @@ object BootstrappedIOAppDemo extends BootstrappedIOApp with LoggingF {
 //      *> loggerIO2.info("hello from loggerIO2")
 //  )
 
-  lazy val weirdLoggerF = LoggerF.create(LoggerFactory.logger("weird"))
+  lazy val weirdLoggerF = Logger.create(LoggerFactory.logger("weird"))
 
   override def runT: ZIO[BootstrapEnv,Throwable,Unit] =
     for {

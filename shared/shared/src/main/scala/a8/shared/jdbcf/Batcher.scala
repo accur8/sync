@@ -3,9 +3,6 @@ package a8.shared.jdbcf
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.SqlString.CompiledSql
-import zio.stream.{UStream, ZSink, ZStream}
-
-import scala.language.higherKinds
 
 object Batcher {
 

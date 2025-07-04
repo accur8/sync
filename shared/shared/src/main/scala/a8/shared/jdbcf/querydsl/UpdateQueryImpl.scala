@@ -4,6 +4,7 @@ package a8.shared.jdbcf.querydsl
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
 import QueryDsl.{Condition, PathCompiler, ss}
+import a8.shared.zreplace.Task
 
 import scala.language.existentials
 
@@ -28,8 +29,8 @@ case class UpdateQueryImpl[T,U](
     val assignmentSql: SqlString =
       assignments
         .map { assignment =>
-          val left = QueryDsl.exprAsSql(assignment.left)(PathCompiler.empty)
-          val right = QueryDsl.exprAsSql(assignment.right)(qr.linkCompiler)
+          val left = QueryDsl.exprAsSql(assignment.left)(using PathCompiler.empty)
+          val right = QueryDsl.exprAsSql(assignment.right)(using qr.linkCompiler)
           left * ss.Equal * right
         }
         .mkSqlString(ss.CommaSpace)
@@ -55,6 +56,6 @@ case class UpdateQueryImpl[T,U](
     )
   }
 
-  override def execute(implicit conn: Conn): zio.Task[Int] =
+  override def execute(implicit conn: Conn): Task[Int] =
     conn.update(sqlString)
 }

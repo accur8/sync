@@ -9,7 +9,8 @@ import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
 import a8.shared.json.ast.JsVal
 import cats.data.Chain
-import zio.Task
+
+import a8.shared.zreplace._
 
 /*
 
@@ -203,9 +204,9 @@ object QueryDsl {
       case Parens(c) =>
         fieldExprs(c)
       case se@ StructuralEquality(_, _, _) =>
-        fieldExprs(generateStructuralComparison(se)(PathCompiler.empty))
+        fieldExprs(generateStructuralComparison(se)(using PathCompiler.empty))
       case sic@ StructuralInClause(_, _, _) =>
-        fieldExprs(generateStructuralInClause(sic)(PathCompiler.empty))
+        fieldExprs(generateStructuralInClause(sic)(using PathCompiler.empty))
       case Condition.TRUE =>
         IndexedSeq.empty
       case Condition.FALSE =>
@@ -247,10 +248,10 @@ object QueryDsl {
     def isAnd: Boolean = this.isInstanceOf[And]
     def isOr: Boolean= this.isInstanceOf[Or]
 
-    def and(right: Condition): Condition =
+    infix def and(right: Condition): Condition =
       And(safeParens(this, true), safeParens(right, true))
 
-    def or(right: Condition): Condition =
+    infix def or(right: Condition): Condition =
       Or(safeParens(this, false), safeParens(right, false))
 
   }
@@ -523,9 +524,9 @@ object QueryDsl {
   abstract class Component[A](join: QueryDsl.Path) {
     def ===(right: A)(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, Iterable(right))
-    def in(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
+    infix def in(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
       StructuralInClause(join, this, right.toVector)
-    def in2(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
+    infix def in2(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, right)
   }
 

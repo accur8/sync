@@ -10,9 +10,9 @@ object ConnFactoryCompanion {
   object MapperMaterializer {
     object noop extends MapperMaterializer {
       override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper.Materialized[A, B]] =
-        ZIO.succeed(KeyedTableMapper.Materialized(ktm))
+        zsucceed(KeyedTableMapper.Materialized(ktm))
       override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] =
-        ZIO.succeed(tm)
+        zsucceed(tm)
     }
   }
 

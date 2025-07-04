@@ -3,12 +3,11 @@ package a8.sync.qubes
 import a8.shared.SharedImports.*
 import a8.shared.jdbcf.SqlString.*
 import a8.shared.jdbcf.{SqlString, TableName}
-import a8.shared.json.ZJsonReader.ZJsonReaderOptions
+import a8.shared.json.JsonReader.JsonReaderOptions
 import a8.shared.json.{JsonObjectCodec, JsonTypedCodec}
 import a8.shared.json.ast.JsObj
 import a8.sync.qubes.QubesApiClient.{QueryRequest, UpdateRowRequest}
 import a8.sync.qubes.QubesMapperBuilder.{Parm, PrimaryKey}
-import zio.*
 
 object QubesMapper {
 
@@ -48,16 +47,16 @@ object QubesMapper {
     }
 
 
-    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: ZJsonReaderOptions): Task[A] =
+    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Task[A] =
       fetchOpt(key)
         .flatMap {
           case None =>
-            ZIO.fail(new RuntimeException(s"no record ${key} found in ${cubeName}"))
+            zfail(new RuntimeException(s"no record ${key} found in ${cubeName}"))
           case Some(i) =>
-            ZIO.succeed(i)
+            zsucceed(i)
         }
 
-    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: ZJsonReaderOptions): Task[Option[A]] = {
+    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Task[Option[A]] = {
       implicit def qm: QubesMapperImpl[A, B] = this
       import SqlString._
       qubesApiClient

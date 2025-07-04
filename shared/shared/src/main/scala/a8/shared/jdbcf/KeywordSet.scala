@@ -5,7 +5,6 @@ import org.typelevel.ci.CIString
 
 import java.sql.DatabaseMetaData
 import a8.shared.SharedImports._
-import zio._
 
 object KeywordSet {
 
@@ -850,7 +849,7 @@ ZONE
   }
 
   def fromMetadata(dbm: DatabaseMetaData): Task[KeywordSet] =
-    ZIO.attemptBlocking {
+    zblock {
       val databaseSpecificKeywordSet =
         dbm
           .getSQLKeywords

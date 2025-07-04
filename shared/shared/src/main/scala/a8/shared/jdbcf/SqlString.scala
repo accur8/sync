@@ -10,7 +10,6 @@ import a8.shared.SharedImports._
 import a8.shared.jdbcf.JdbcMetadata.ResolvedColumn
 import a8.shared.jdbcf.SqlString.{CompiledSql, DefaultJdbcEscaper, Escaper}
 import a8.shared.json.ast.JsDoc
-import zio._
 
 object SqlString extends SqlStringLowPrio {
 
@@ -129,7 +128,7 @@ object SqlString extends SqlStringLowPrio {
     def asSqlFragment: SqlString
   }
 
-  object SqlStringer {
+  object SqlStringer extends Logging {
 
     implicit val jsDocSqlStringer: SqlStringer[JsDoc] =
       JsDocSqlStringer(false, None)
@@ -149,8 +148,8 @@ object SqlString extends SqlStringLowPrio {
 
     case class StringSqlStringer(maxLength: Int, resolvedColumn: Option[ResolvedColumn] = None) extends SqlStringer[String] {
 
-      override def materialize(conn: Conn, resolvedColumn: ResolvedColumn): Task[SqlStringer[String]] =
-        ZIO.succeed(copy(maxLength = resolvedColumn.jdbcColumn.columnSize))
+      override def materialize(conn: Conn, resolvedColumn: ResolvedColumn): SqlStringer[String] =
+        copy(maxLength = resolvedColumn.jdbcColumn.columnSize)
 
       override def toSqlString(a: String): SqlString = {
         val trimmed =
@@ -184,10 +183,9 @@ object SqlString extends SqlStringLowPrio {
 
     case class OptionSqlStringer[A](delegate: SqlStringer[A]) extends SqlStringer[Option[A]] {
 
-      override def materialize(conn: Conn, resolvedColumn: ResolvedColumn): Task[SqlStringer[Option[A]]] = {
-        delegate
-          .materialize(conn, resolvedColumn)
-          .map(OptionSqlStringer.apply)
+      override def materialize(conn: Conn, resolvedColumn: ResolvedColumn): SqlStringer[Option[A]] = {
+        val m = delegate.materialize(conn, resolvedColumn)
+        OptionSqlStringer(m)
       }
 
       override def toSqlString(opt: Option[A]): SqlString = {
@@ -204,8 +202,7 @@ object SqlString extends SqlStringLowPrio {
   }
 
   trait SqlStringer[A] {
-    def materialize(conn: Conn, resolvedColumn: ResolvedColumn): Task[SqlStringer[A]] =
-      ZIO.succeed(this)
+    def materialize(conn: Conn, resolvedColumn: ResolvedColumn): SqlStringer[A] = this
     def toSqlString(a: A): SqlString
   }
 

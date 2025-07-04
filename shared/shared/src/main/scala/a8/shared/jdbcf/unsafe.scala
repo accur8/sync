@@ -1,7 +1,6 @@
 package a8.shared.jdbcf
 
 
-import zio.Chunk
 import java.sql.ResultSet
 
 import a8.shared.json.ast._
@@ -51,7 +50,7 @@ object unsafe {
                 v0
             array(i - 1) = v
           }
-          Row(Chunk.fromArray(array), dsm)
+          Row(zio.Chunk.fromArray(array), dsm)
         }
       }
     }

@@ -45,9 +45,6 @@ object StringValue {
           Some(apply(value))
       }
 
-    implicit lazy val zioEq: zio.prelude.Equal[A] =
-      zio.prelude.Equal.make((a, b) => a.value == b.value)
-
     implicit val catsEq: cats.kernel.Eq[A] =
       cats.kernel.Eq.by[A,CIString](_.value)
 

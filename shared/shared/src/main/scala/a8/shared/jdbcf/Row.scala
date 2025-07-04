@@ -6,7 +6,7 @@ import org.typelevel.ci.CIString
 import scala.reflect.{ClassTag, classTag}
 import a8.shared.SharedImports._
 import a8.shared.json.ast.JsObj
-import zio.Chunk
+import zio._
 
 object Row {
 

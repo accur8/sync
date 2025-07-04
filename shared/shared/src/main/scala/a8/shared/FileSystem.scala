@@ -9,7 +9,6 @@ import SharedImports._
 import a8.shared.ops.IteratorOps
 
 import scala.util.Try
-import a8.shared.ZFileSystem
 
 object FileSystem {
 

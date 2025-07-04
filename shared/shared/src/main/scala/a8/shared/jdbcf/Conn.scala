@@ -1,9 +1,8 @@
 package a8.shared.jdbcf
 
-import a8.common.logging.LoggerF
 import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, Statement => JStatement}
 import a8.shared.SharedImports._
-import a8.common.logging.{Logging, LoggingF}
+import a8.common.logging.{Logging}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
@@ -15,13 +14,12 @@ import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
 import a8.shared.jdbcf.UnsafeResultSetOps._
 import zio._
-import zio.stream.UStream
 
 object Conn extends Logging {
 
   object impl {
 
-    def makeResource(connFn: =>java.sql.Connection, mapperCache: MapperMaterializer, jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): ZIO[Scope,Throwable,Conn] = {
+    def makeResource(connFn: =>java.sql.Connection, mapperCache: MapperMaterializer, jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): Resource[Conn] = {
       val jdbcMetadata = JdbcMetadata.default
       Managed
         .resource(connFn)
@@ -34,7 +32,7 @@ object Conn extends Logging {
     url: Uri,
     user: String,
     password: String
-  ): Resource[Conn] = ZIO.suspend {
+  ): Resource[Conn] = zsuspend {
     val config =
       DatabaseConfig(
         DatabaseId(url.toString),
@@ -63,8 +61,8 @@ object Conn extends Logging {
     val jdbcMetadata: JdbcMetadata
     def compile(sql: SqlString): CompiledSql
     def withInternalConn[A](fn: JdbcConnection=>A): Task[A]
-    def statement: ZIO[Scope, Throwable, JStatement]
-    def prepare(sql: SqlString): ZIO[Scope, Throwable, JdbcPreparedStatement]
+    def statement: Resource[JStatement]
+    def prepare(sql: SqlString): Resource[JdbcPreparedStatement]
 
     def withStatement[A](fn: JStatement=>Task[A]): Task[A]
 

@@ -4,7 +4,6 @@ package a8.common.logging
 import a8.common.logging.LogMessage.impl.LogPart.TracePart
 import a8.common.logging.LogMessage.impl.ResolvedLogMessage
 import a8.common.logging.LoggingOps.*
-import zio.Trace
 
 import scala.collection.mutable
 import scala.language.implicitConversions

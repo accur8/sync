@@ -9,13 +9,12 @@ import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Path, PathCompiler, Str
 import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, RowWriter, SqlString}
 import a8.shared.SharedImports._
 import cats.data.Chain
-import zio._
 
 import java.sql.PreparedStatement
 
 object Mapper {
 
-  def apply[A : RowWriter : RowReader]: Mapper[A] = {
+  def apply[A : {RowWriter, RowReader}]: Mapper[A] = {
     val rowReader = RowReader[A]
     val rowWriter = RowWriter[A]
     new Mapper[A] {
@@ -115,7 +114,7 @@ object Mapper {
       componentMapper
         .materializeComponentMapper(columnNamePrefix, conn, resolvedJdbcTable)
         .map { materializedComponentMapper =>
-          new ComponentFieldHandler[A]()(materializedComponentMapper)
+          new ComponentFieldHandler[A]()(using materializedComponentMapper)
         }
 
     val rowReader = componentMapper

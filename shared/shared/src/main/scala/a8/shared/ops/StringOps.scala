@@ -5,7 +5,6 @@ import sttp.model.Uri
 
 import java.util.regex.Pattern
 import a8.shared.SharedImports._
-import zio.stream.{UStream, ZStream}
 
 
 object StringOps {
@@ -23,15 +22,15 @@ class StringOps(private val source: String) extends AnyVal {
   def rtrim: String = StringOps.rtrimPattern.matcher(source).replaceAll("")
   def toUri: Uri = Uri.unsafeParse(source)
 
-  def toChunk: zio.Chunk[Byte] =
-    zio.Chunk.fromArray(
-      Utf8Charset.encode(source).array()
-    )
-
-  def toChunkyStream[F[_]]: UStream[Byte] = {
-    ZStream
-      .fromChunk(toChunk)
-  }
+//  def toChunk: zio.Chunk[Byte] =
+//    zio.Chunk.fromArray(
+//      Utf8Charset.encode(source).array()
+//    )
+//
+//  def toChunkyStream[F[_]]: UStream[Byte] = {
+//    ZStream
+//      .fromChunk(toChunk)
+//  }
 
   def indent(indent: String): String =
     source

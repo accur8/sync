@@ -2,15 +2,14 @@ package a8.sync
 
 
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
-import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
+import a8.shared.json.{JsonCodec, JsonReader, ReadError}
 import a8.shared.json.ast.JsVal
 import a8.sync.Mxhttp.*
 import sttp.model.{StatusCode, Uri}
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
-import a8.common.logging.{Logging, LoggingF}
+import a8.common.logging.{Logging}
 import a8.shared.json.JsonReader.ReadResult
-import a8.shared.json.ZJsonReader.{ZJsonReaderOptions, ZJsonSource}
 import a8.sync.http.{Body, Response}
 import a8.sync.http.Body.StringBody
 import a8.sync.http.Request.ResponseAction
@@ -32,9 +31,9 @@ import scala.jdk.DurationConverters.*
 import a8.shared.SharedImports.given
 
 import scala.concurrent.duration
-import a8.common.logging.{Level, LoggerF}
+import a8.common.logging.{Level}
 
-object http extends LoggingF {
+object http extends Logging {
 
   object RetryConfig extends MxRetryConfig {
     val noRetries: RetryConfig = RetryConfig(0, 1.second, 1.minute)
@@ -253,7 +252,7 @@ object http extends LoggingF {
 
     def formBody(fields: Iterable[(String,String)]): Request
 
-    def execWithStringResponse(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[String] =
+    def execWithStringResponse(implicit processor: RequestProcessor, trace: Trace, logger: Logger): Task[String] =
       processor.exec(this)
 
     def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, trace: Trace, loggerF: LoggerF): Task[A] = {
@@ -329,7 +328,7 @@ object http extends LoggingF {
     /**
      * caller must supply a responseEffect that is responsible for things like checking http status codes, etc, etc
      */
-    def execWithEffect[A](responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit processor: RequestProcessor, trace: Trace, loggerF: LoggerF): Task[A] =
+    def execWithEffect[A](responseEffect: Either[Throwable,Response]=>Task[ResponseAction[A]])(implicit processor: RequestProcessor, trace: Trace, logger: Logger): Task[A] =
       processor.execWithEffect[A](this, responseEffect)
 
     def curlCommand: String

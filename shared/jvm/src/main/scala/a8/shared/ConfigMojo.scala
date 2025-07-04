@@ -10,11 +10,9 @@ import SharedImports._
 import a8.shared
 import a8.shared.ConfigMojoOps.impl.{ConfigMojoEmpty, ConfigMojoRoot, ConfigMojoValue}
 import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
-import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.{JsonCodec, JsonReader, ReadError}
 import a8.shared.json.ast.{JsDoc, JsNothing, JsVal}
 import com.typesafe.config.{ConfigMergeable, ConfigValue}
-import zio.{Task, ZIO}
 
 import java.nio.file.Paths
 
@@ -84,14 +82,6 @@ abstract class ConfigMojo(name: Option[String], parent: Option[ConfigMojo], hoco
         sys.error(re.prettyMessage)
     }
   }
-
-  def asF[A: JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): Task[A] =
-    asReadResult[A] match {
-      case ReadResult.Success(v, _, _, _) =>
-        zsucceed(v)
-      case ReadResult.Error(re, _, _) =>
-        zfail(re.asException)
-    }
 
   def asReadResult[A : JsonCodec](implicit jsonReaderOptions: JsonReaderOptions): ReadResult[A] =
     HoconOps.impl.internalReadResult[A](hoconValueOpt.getOrElse(CascadingHocon.emptyConfigObject), path)

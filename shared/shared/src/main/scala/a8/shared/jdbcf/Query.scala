@@ -3,8 +3,6 @@ package a8.shared.jdbcf
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.SqlString.CompiledSql
-import zio._
-import zio.stream.{UStream, ZSink, ZStream}
 
 object Query {
 
@@ -18,8 +16,8 @@ object Query {
 
       override val reader: RowReader[A] = implicitly[RowReader[A]]
 
-      def stream: XStream[A] = {
-        val effect: ZIO[Scope, Throwable, XStream[A]] =
+      def stream: zio.XStream[A] = {
+        val effect: zio.Resource[zio.XStream[A]] =
           conn
             .statement
             .flatMap { st =>
@@ -30,7 +28,8 @@ object Query {
                     .map(reader.read)
                 )
             }
-        ZStream.unwrapScoped(effect)
+        !!!
+//        ZStream.unwrapScoped(effect)
       }
 
       override def select: Task[Iterable[A]] =
@@ -58,9 +57,9 @@ trait Query[A] { query =>
     fetchOpt
       .flatMap {
         case None =>
-          ZIO.fail(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
+          zfail(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
         case Some(v) =>
-          ZIO.succeed(v)
+          zsucceed(v)
       }
 }
 

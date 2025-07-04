@@ -8,7 +8,6 @@ import scala.reflect.ClassTag
 import a8.shared.SharedImports.*
 import a8.shared.jdbcf.JdbcMetadata.{ResolvedColumn, ResolvedJdbcTable}
 import a8.shared.jdbcf.mapper.MapperBuilder
-import zio.{Task, ZIO}
 
 import java.io.BufferedReader
 import a8.shared.jdbcf.RowReader.noneAnyRef
@@ -152,7 +151,7 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
 trait RowReader[A] { outer =>
 
   def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[RowReader[A]] =
-    ZIO.succeed(this)
+    zsucceed(this)
 
   /**
    * index counts from 0 (even though jdbc result set values start from 1)

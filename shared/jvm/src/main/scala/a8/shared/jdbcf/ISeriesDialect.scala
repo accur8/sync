@@ -7,7 +7,6 @@ import sttp.model.Uri
 import SqlString._
 import a8.shared.SharedImports._
 import cats.data.OptionT
-import zio._
 import a8.common.logging.Logger
 
 object ISeriesDialect extends Dialect {

@@ -17,7 +17,7 @@ case class JsDocSqlStringer(nullable: Boolean, typeSuffix: Option[String]) exten
         .isPostgres
         .toOption("::"  + resolvedColumn.jdbcColumn.typeName)
 
-    ZIO.succeed(
+    zsucceed(
       JsDocSqlStringer(resolvedColumn.isNullable, typeSuffix)
     )
   }

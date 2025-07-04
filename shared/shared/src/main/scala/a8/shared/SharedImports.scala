@@ -24,47 +24,46 @@ import scala.reflect.ClassTag
 import scala.util.Try
 import cats.syntax
 import cats.instances
-import zio.{Tag, Task, Trace, UIO, ULayer, URIO, ZIO, ZLayer}
-import zio.prelude._
-import a8.common.logging.{Logger, LoggerF}
+import a8.common.logging.Logger
+import a8.shared.zreplace.Equal
 
 object SharedImports extends SharedImports
 
 trait SharedImports
-  extends AssociativeSyntax
-  with AsJavaExtensions
+//  extends AssociativeSyntax
+  extends AsJavaExtensions
   with AsScalaExtensions
-  with AssociativeBothSyntax
-  with AssociativeComposeSyntax
-  with AssociativeEitherSyntax
-  with AssociativeFlattenSyntax
-  with BicovariantSyntax
-  with CommutativeBothSyntax
-  with CommutativeEitherSyntax
-  with ConstExports
-  with ContravariantSyntax
-  with CovariantSyntax
-  with DebugSyntax
+//  with AssociativeBothSyntax
+//  with AssociativeComposeSyntax
+//  with AssociativeEitherSyntax
+//  with AssociativeFlattenSyntax
+//  with BicovariantSyntax
+//  with CommutativeBothSyntax
+//  with CommutativeEitherSyntax
+//  with ConstExports
+//  with ContravariantSyntax
+//  with CovariantSyntax
+//  with DebugSyntax
   with DefaultCanEquals
-  with DivariantSyntax
-  with EqualSyntax
-  with ForEachSyntax
-  with HashSyntax
-  with IdExports
-  with IdentityBothSyntax
-  with IdentityEitherSyntax
-  with IdentitySyntax
-  with InvariantSyntax
-  with InverseSyntax
-  with NewtypeFExports
-  with NonEmptyForEachSyntax
-  with NonEmptyListSyntax
-  with NonEmptySetSyntax
-  with OrdSyntax
-  with PartialOrdSyntax
-  with ZNonEmptySetSyntax
-  with ZSetSyntax
-  with ZivariantSyntax
+//  with DivariantSyntax
+//  with EqualSyntax
+//  with ForEachSyntax
+//  with HashSyntax
+//  with IdExports
+//  with IdentityBothSyntax
+//  with IdentityEitherSyntax
+//  with IdentitySyntax
+//  with InvariantSyntax
+//  with InverseSyntax
+//  with NewtypeFExports
+//  with NonEmptyForEachSyntax
+//  with NonEmptyListSyntax
+//  with NonEmptySetSyntax
+//  with OrdSyntax
+//  with PartialOrdSyntax
+//  with ZNonEmptySetSyntax
+//  with ZSetSyntax
+//  with ZivariantSyntax
 //    with syntax.AllSyntax
 //    with syntax.AllSyntaxBinCompat0
 //    with syntax.AllSyntaxBinCompat1
@@ -83,16 +82,8 @@ trait SharedImports
 //    with instances.AllInstancesBinCompat6
 {
 
-  import zio.prelude._
-
   type Logger = a8.common.logging.Logger
   type Logging = a8.common.logging.Logging
-  type LoggerF = a8.common.logging.LoggerF
-  type LoggingF = a8.common.logging.LoggingF
-
-  type Resource[A] = zio.ZIO[zio.Scope,Throwable,A]
-
-  type XStream[A] = zio.stream.ZStream[Any,Throwable,A]
 
   type CIString = org.typelevel.ci.CIString
   val CIString = org.typelevel.ci.CIString
@@ -151,8 +142,8 @@ trait SharedImports
 
   }
 
-  implicit def sharedImportsZStreamOps[R,E,A](stream: zio.stream.ZStream[R,E,A]): ZStreamOps[R,E,A] =
-    new ZStreamOps(stream)
+//  implicit def sharedImportsZStreamOps[R,E,A](stream: zio.stream.ZStream[R,E,A]): ZStreamOps[R,E,A] =
+//    new ZStreamOps(stream)
 
   implicit def sharedImportsStringOps(s: String): ops.StringOps =
     new a8.shared.ops.StringOps(s)
@@ -263,33 +254,33 @@ trait SharedImports
   implicit def uriOps(uri: Uri): UriOps =
     new UriOps(uri)
 
-  implicit def implicitZioOps[R, E, A: Tag](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
-    new ZioOps(effect)
-
-  implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope&R,E,A]): ScopedZioOps[R,E,A] =
-    new ScopedZioOps[R,E,A](effect)
-
-  implicit def implicitZioCollectOps[R, E, A, Collection[+Element] <: Iterable[Element]](
-    in: Collection[zio.ZIO[R, E, A]]
-  )(implicit
-    bf: zio.BuildFrom[Collection[zio.ZIO[R, E, A]], A, Collection[A]],
-    trace: zio.Trace
-  ): ZioCollectOps[R, E, A, Collection] =
-    new ZioCollectOps[R, E, A, Collection](in)
+//  implicit def implicitZioOps[R, E, A: Tag](effect: zio.ZIO[R,E,A]): ZioOps[R,E,A] =
+//    new ZioOps(effect)
+//
+//  implicit def implicitScopedZioOps[R, E, A](effect: zio.ZIO[zio.Scope&R,E,A]): ScopedZioOps[R,E,A] =
+//    new ScopedZioOps[R,E,A](effect)
+//
+//  implicit def implicitZioCollectOps[R, E, A, Collection[+Element] <: Iterable[Element]](
+//    in: Collection[zio.ZIO[R, E, A]]
+//  )(implicit
+//    bf: zio.BuildFrom[Collection[zio.ZIO[R, E, A]], A, Collection[A]],
+//    trace: zio.Trace
+//  ): ZioCollectOps[R, E, A, Collection] =
+//    new ZioCollectOps[R, E, A, Collection](in)
 
 
   def none[A]: Option[A] = None
   def some[A](a: A): Option[A] = Some(a)
 
-  def zblock[A](fn: =>A)(implicit trace: Trace): Task[A] = ZIO.attemptBlocking(fn)
-  def zunit: UIO[Unit] = zio.ZIO.unit
-  def zsucceed[A](a: A)(implicit trace: Trace): ZIO[Any, Nothing, A] = zio.ZIO.succeed(a)
-  def zfail[A](a: A)(implicit trace: Trace): ZIO[Any, A, Nothing] = zio.ZIO.fail(a)
-  def zservice[A: zio.Tag](implicit trace: Trace): URIO[A, A] = zio.ZIO.service[A]
-  def zattempt[A](code: => A)(implicit trace: Trace): Task[A] = zio.ZIO.attempt(code)
-  def zsuspend[R,A](code: => ZIO[R,Throwable,A])(implicit trace: Trace): ZIO[R,Throwable,A] = zio.ZIO.suspend(code)
+  def zblock[A](fn: =>A)(implicit trace: Trace): Task[A] = ???
+//  def zunit: UIO[Unit] = zio.ZIO.unit
+  def zsucceed[A](a: A)(implicit trace: Trace): Task[A] = ???
+  def zfail[A](a: A)(implicit trace: Trace): Task[Nothing] = ???
+//  def zservice[A: zio.Tag](implicit trace: Trace): URIO[A, A] = zio.ZIO.service[A]
+//  def zattempt[A](code: => A)(implicit trace: Trace): Task[A] = zio.ZIO.attempt(code)
+  def zsuspend[R,A](code: => Task[A])(implicit trace: Trace): Task[A] = ???
 
-  def zl_succeed[A: Tag](a: A): ULayer[A] = ZLayer.succeed(a)
+//  def zl_succeed[A: Tag](a: A): ULayer[A] = ZLayer.succeed(a)
 
 //  type &[+A, +B] = A with B
 
@@ -300,21 +291,36 @@ trait SharedImports
   implicit final def finiteDurationOps(fd: FiniteDuration): FiniteDurationOps =
     new FiniteDurationOps(fd)
 
-  implicit class TaskOps[R, A](effect: zio.ZIO[R, Throwable, A]) {
-    /**
-     * Will log and swallow any errors
-     */
-    def logVoid(implicit loggerF: LoggerF, trace: Trace): zio.URIO[R, Unit] =
-      effect
-        .catchAll(th =>
-          loggerF.warn("fatal error catching, logging and swallowing", th)
-        )
-        .map(_ => ())
+//  implicit class TaskOps[R, A](effect: zio.ZIO[R, Throwable, A]) {
+//    /**
+//     * Will log and swallow any errors
+//     */
+//    def logVoid(implicit loggerF: LoggerF, trace: Trace): zio.URIO[R, Unit] =
+//      effect
+//        .catchAll(th =>
+//          loggerF.warn("fatal error catching, logging and swallowing", th)
+//        )
+//        .map(_ => ())
+//
+//  }
 
+  extension [A](inline a: A)(using equal: Equal[A]) {
+    inline def ===(inline b: A): Boolean =
+      equal.equal(a, b)
   }
 
   object canEqual {
     given[A]: CanEqual[A, A] = CanEqual.canEqualAny
   }
+
+  type Task[A] = zreplace.Task[A]
+  val Task = zreplace.Task
+
+  val zio = zreplace
+
+  type Trace = a8.common.logging.Trace
+
+
+  def !!! = ???
 
 }

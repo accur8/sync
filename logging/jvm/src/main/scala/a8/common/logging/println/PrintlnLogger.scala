@@ -1,7 +1,6 @@
 package a8.common.logging.println
 
-import a8.common.logging.{Level, Logger}
-import zio.Trace
+import a8.common.logging.{Level, Logger, Trace}
 
 import java.text.SimpleDateFormat
 import java.util.Calendar

@@ -1,21 +1,20 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.SharedImports
+import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString._
-import zio.{Task, ZIO}
 
 import java.sql.Connection
 
 object MySqlDialect extends Dialect {
 
-  override def escaper(jdbcConnR: SharedImports.Resource[Connection]): SharedImports.Resource[Escaper] =
+  override def escaper(jdbcConnR: zio.Resource[Connection]): zio.Resource[Escaper] =
     jdbcConnR
       .flatMap { conn =>
         for {
           keywordSet <- KeywordSet.fromMetadata(conn.getMetaData)
           escaper0 <-
-            ZIO.attemptBlocking {
+            zblock {
               val st = conn.createStatement()
               val noBackslashEscapes =
                 try {
@@ -68,9 +67,9 @@ object MySqlDialect extends Dialect {
 //  }
 
 
-  override def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): Task[ResolvedTableName] = {
+  override def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): zio.Task[ResolvedTableName] = {
     val currentCatalog = conn.jdbcUrl.path.last
-    ZIO.succeed(
+    zsucceed(
       foundTables
         .find(_.catalog.exists(_.value.toString.equalsIgnoreCase(currentCatalog)))
         .getOrElse(foundTables.head)

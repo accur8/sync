@@ -17,7 +17,6 @@ import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join,
 import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
 import language.implicitConversions
-import zio._
 
 object MapperBuilder {
 

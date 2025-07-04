@@ -1,11 +1,9 @@
 package a8.shared.mail
 
 import a8.shared.SharedImports._
-import a8.common.logging.LoggingF
 import jakarta.mail.{Authenticator, PasswordAuthentication, Session, Transport}
 
 import java.util.Properties
-import zio._
 /**
  * Usage:
  *
@@ -22,12 +20,12 @@ import zio._
  *   mailApi.send(message)
  * }
  */
-object MailApi extends LoggingF {
+object MailApi extends Logging {
 
-  def asResource(config: MailConfig): ZIO[Scope,Throwable,MailApi] = {
+  def asResource(config: MailConfig): zio.Resource[MailApi] = {
 
     def acquire: Task[MailApi] =
-      ZIO.attemptBlocking {
+      zblock {
         val props = new Properties()
         def put(name: String, value: String): Unit =
           props.put(name,value): @scala.annotation.nowarn
@@ -59,16 +57,17 @@ object MailApi extends LoggingF {
         MailApi(session, transport)
       }
 
-    def release(mailApi: MailApi): ZIO[Any,Nothing,Unit] =
-      ZIO
-        .attemptBlocking(
-          mailApi.transport.close()
-        )
-        .catchAll(th =>
-          loggerF.debug("catching and swallowing likely benign error on release", th)
-        )
+//    def release(mailApi: MailApi): ZIO[Any,Nothing,Unit] =
+//      ZIO
+//        .attemptBlocking(
+//          mailApi.transport.close()
+//        )
+//        .catchAll(th =>
+//          loggerF.debug("catching and swallowing likely benign error on release", th)
+//        )
 
-    ZIO.acquireRelease(acquire)(release)
+    !!!
+//    ZIO.acquireRelease(acquire)(release)
   }
 
 }
@@ -76,7 +75,7 @@ object MailApi extends LoggingF {
 case class MailApi(session: Session, transport: Transport) {
 
   def send(message: MailMessage): Task[Unit] = {
-    ZIO.attemptBlocking {
+    zblock {
       val mimeMessage = message.toMimeMessage(session)
       transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients)
     }

@@ -13,30 +13,14 @@ object UnifiedLogLevel {
   val Off = UnifiedLogLevel(Level.Off)
 
   def apply(a8LogLevel: Level): UnifiedLogLevel = {
-    val zioLogLevel =
-      a8LogLevel match {
-        case Level.All =>
-          zio.LogLevel.All
-        case Level.Trace =>
-          zio.LogLevel.Trace
-        case Level.Debug =>
-          zio.LogLevel.Debug
-        case Level.Info =>
-          zio.LogLevel.Info
-        case Level.Warn =>
-          zio.LogLevel.Warning
-        case Level.Error =>
-          zio.LogLevel.Error
-        case Level.Fatal =>
-          zio.LogLevel.Fatal
-        case Level.Off =>
-          zio.LogLevel.None
-      }
-    UnifiedLogLevel(a8LogLevel, zioLogLevel)
+    UnifiedLogLevel(a8LogLevel)
   }
 }
 
-case class UnifiedLogLevel(a8LogLevel: Level, zioLogLevel: zio.LogLevel) {
+case class UnifiedLogLevel(
+  a8LogLevel: Level,
+//  zioLogLevel: zio.LogLevel,
+) {
 
   lazy val isTrace = a8LogLevel == Level.Trace
 

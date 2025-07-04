@@ -10,7 +10,6 @@ import a8.shared.jdbcf.querydsl.QueryDsl.{Path, PathCompiler}
 import java.sql.PreparedStatement
 import SharedImports._
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
-import zio._
 
 trait ComponentMapper[A] extends Mapper[A] {
 

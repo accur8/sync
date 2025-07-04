@@ -5,6 +5,7 @@ import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
 import SqlString._
 import a8.shared.ZString.ZStringer
 import a8.shared.json.ast.{JsNum, JsVal}
+import SharedImports._
 
 import language.implicitConversions
 
@@ -20,8 +21,8 @@ object AbstractSingleValue {
   ) {
 
 
-    implicit lazy val zioEq: zio.prelude.Equal[A] =
-      zio.prelude.Equal.make((a, b) => a.value == b.value)
+    implicit lazy val zioEq: zio.Equal[A] =
+      zio.Equal.make((a, b) => a.value == b.value)
 
     implicit lazy val catsEq: cats.kernel.Eq[A] =
       cats.kernel.Eq.by[A,B](_.value)

@@ -6,21 +6,17 @@ import a8.shared.jdbcf.SqlString
 import a8.shared.json.ast.*
 import a8.shared.json.{JsonCodec, ast}
 import a8.shared.SharedImports.*
-import a8.common.logging.{Logging, LoggingF}
+import a8.common.logging.{Logging}
 import a8.shared.jdbcf.SqlString.SqlStringer
-import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.sync.http.{Backend, Method, RequestProcessor, RequestProcessorConfig, RetryConfig}
 import a8.sync.http
 import a8.sync.qubes.MxQubesApiClient.*
 import a8.sync.qubes.QubesApiClient.UpdateRowRequest.Parm
-import sttp.client3.*
-import sttp.client3.logging.LogLevel
 import sttp.model.Uri
-import zio.{durationInt as _, *}
 
 import scala.concurrent.duration.FiniteDuration
 
-object QubesApiClient extends LoggingF {
+object QubesApiClient extends Logging {
 
   lazy val layer: ZLayer[Scope & Config,Throwable,QubesApiClient] = ZLayer(constructor)
 

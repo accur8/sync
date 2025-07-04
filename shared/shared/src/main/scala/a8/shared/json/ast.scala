@@ -4,12 +4,11 @@ package a8.shared.json
 import a8.shared.SingleArgConstructor
 import a8.shared.json.ast.JsDoc.JsDocRoot
 import a8.shared.json.impl.{HasJsValOps, JawnFacade, JsDocMixin}
+import a8.shared.zreplace.Equal
 import org.typelevel.jawn.Facade
 
 import language.implicitConversions
 import scala.util.Try
-import zio.prelude.Equal
-
 import scala.annotation.targetName
 
 object ast {
@@ -25,7 +24,7 @@ object ast {
   object JsVal {
 
     implicit def jawnFacade: Facade[JsVal] = JawnFacade
-    implicit val equal: Equal[JsVal] = zio.prelude.Equal.default[JsVal]
+    implicit val equal: Equal[JsVal] = Equal.default[JsVal]
 
     given [A <: JsVal, B <: JsVal]: CanEqual[A,B] = CanEqual.derived
     
