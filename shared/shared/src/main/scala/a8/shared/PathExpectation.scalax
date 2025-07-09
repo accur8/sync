@@ -13,7 +13,7 @@ object PathExpectation {
 
 
   def emptyDirectory(dir: String): Task[Directory] = {
-    ZIO.blocking {
+    zsuspend {
       val nioPath = NioPaths.get(dir)
       FileSystem.path(dir) match {
         case Some(d: Directory) =>
@@ -22,14 +22,14 @@ object PathExpectation {
           p.delete()
           emptyDirectory(FileSystem.dir(dir))
         case None =>
-          ZIO.succeed(FileSystem.dir(dir))
+          zsucceed(FileSystem.dir(dir))
       }
     }
   }
 
 
   def emptyDirectory(dir: Directory): Task[Directory] =
-    ZIO.attemptBlocking {
+    zblock {
       if ( dir.exists() ) {
         dir.deleteChildren()
       } else {
@@ -40,7 +40,7 @@ object PathExpectation {
 
 
   def symlinkWithContents(symLink: NioPath, contents: NioPath): Task[Boolean] = {
-    ZIO.attemptBlocking {
+    zblock {
       implicit val pathEq = Eq.fromUniversalEquals[java.nio.file.Path]
       val createSymLink =
         if ( Files.exists(symLink, LinkOption.NOFOLLOW_LINKS) ) {

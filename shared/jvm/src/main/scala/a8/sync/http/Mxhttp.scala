@@ -9,7 +9,7 @@ package a8.sync
 */
 
 //====
-import a8.sync.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
+import a8.sync.http.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
 import scala.concurrent.duration.FiniteDuration
 import a8.shared.SharedImports._
 //====
@@ -30,8 +30,6 @@ object Mxhttp {
           .addField(_.maxRetries)
           .addField(_.initialBackoff)
           .addField(_.maxBackoff)
-          .addField(_.jitterFactor)
-          .addField(_.backoffFactor)
       )
       .build
     
@@ -49,8 +47,6 @@ object Mxhttp {
       lazy val maxRetries: CaseClassParm[RetryConfig,Int] = CaseClassParm[RetryConfig,Int]("maxRetries", _.maxRetries, (d,v) => d.copy(maxRetries = v), Some(()=> 5), 0)
       lazy val initialBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("initialBackoff", _.initialBackoff, (d,v) => d.copy(initialBackoff = v), Some(()=> 1.second), 1)
       lazy val maxBackoff: CaseClassParm[RetryConfig,FiniteDuration] = CaseClassParm[RetryConfig,FiniteDuration]("maxBackoff", _.maxBackoff, (d,v) => d.copy(maxBackoff = v), Some(()=> 1.minute), 2)
-      lazy val jitterFactor: CaseClassParm[RetryConfig,Double] = CaseClassParm[RetryConfig,Double]("jitterFactor", _.jitterFactor, (d,v) => d.copy(jitterFactor = v), Some(()=> 0.2d), 3)
-      lazy val backoffFactor: CaseClassParm[RetryConfig,Double] = CaseClassParm[RetryConfig,Double]("backoffFactor", _.backoffFactor, (d,v) => d.copy(backoffFactor = v), Some(()=> 1.2d), 4)
     }
     
     
@@ -61,8 +57,6 @@ object Mxhttp {
           maxRetries = values(0).asInstanceOf[Int],
           initialBackoff = values(1).asInstanceOf[FiniteDuration],
           maxBackoff = values(2).asInstanceOf[FiniteDuration],
-          jitterFactor = values(3).asInstanceOf[Double],
-          backoffFactor = values(4).asInstanceOf[Double],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): RetryConfig = {
@@ -71,15 +65,13 @@ object Mxhttp {
             maxRetries = values.next().asInstanceOf[Int],
             initialBackoff = values.next().asInstanceOf[FiniteDuration],
             maxBackoff = values.next().asInstanceOf[FiniteDuration],
-            jitterFactor = values.next().asInstanceOf[Double],
-            backoffFactor = values.next().asInstanceOf[Double],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
       def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration, jitterFactor: Double, backoffFactor: Double): RetryConfig =
-        RetryConfig(maxRetries, initialBackoff, maxBackoff, jitterFactor, backoffFactor)
+        RetryConfig(maxRetries, initialBackoff, maxBackoff)
     
     }
     
