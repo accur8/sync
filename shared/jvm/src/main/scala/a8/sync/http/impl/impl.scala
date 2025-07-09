@@ -19,17 +19,6 @@ object bld {
 
 val logger = bld.logger
 
-//def standardResponseProcessor[A](responseProcessor: Response=>Either[Throwable,A])(using Logger): Either[Throwable,Response]=>ResponseAction[A] =
-//  { responseE =>
-//      !!!
-////      responseE match {
-////        case l@Left(th) =>
-////          !!!
-////        case r@Right(response) =>
-////          standardResponseProcessorImpl(r, responseProcessor(response))
-////      }
-//  }
-
 def standardResponseActionProcessor[A](responseFn: Response => ResponseAction[A])(using Logger): Either[Throwable, Response] => ResponseAction[A] =
   { responseE =>
       standardResponseProcessorImpl(responseE, responseFn)
@@ -74,70 +63,3 @@ def charsetFromContentType(contentType: String): Option[String] =
       case s if s.startsWith("charset=") && s.substring(8).trim != "" =>
         s.substring(8).trim
     }
-
-// !!!
-//def execWithStringResponse(implicit processor: RequestProcessor, trace: Trace, logger: Logger): Attempt[String] =
-//  processor.exec(this)
-//
-//def execWithJsonResponse[A : JsonCodec](implicit processor: RequestProcessor, jsonResponseOptions: JsonResponseOptions, logger: Logger): A = {
-//
-//  implicit val jsonReaderOptions: JsonReaderOptions = {
-//    if ( jsonResponseOptions.jsonWarningsLogLevel.equals(Level.Off) ) {
-//      JsonReaderOptions.NoLogWarnings
-//    } else {
-//      JsonReaderOptions.LogWarnings(jsonResponseOptions.jsonWarningsLogLevel, trace, logger)
-//    }
-//  }
-//
-//  // some mildly unruly code because all of the JsonResponseOptions come together here
-//  def responseEffect(response: Response): ResponseAction[A] = {
-//    val responseBodyStr = response.responseBodyAsString
-//
-//    def nonSuccessfulResponse(retry: Boolean, error: ReadError): ResponseAction[A] = {
-//      if (jsonResponseOptions.retryJsonParseErrors) {
-//        ResponseAction.Retry(error.prettyMessage)
-//      } else {
-//        ResponseAction.Fail(error.prettyMessage, ResponseInfo(response.responseMetadata, responseBodyStr.some).some)
-//      }
-//    }
-//
-//    val responseAction: ResponseAction[A] =
-//      json.parse(responseBodyStr) match {
-//        case Left(parseError) =>
-//          nonSuccessfulResponse(jsonResponseOptions.retryJsonParseErrors, parseError)
-//        case Right(unvalidatedJsv) =>
-//          jsonResponseOptions.responseValidator(unvalidatedJsv) match {
-//            case r@ ResponseAction.Retry(_) =>
-//              ResponseAction.Retry(r.context)
-//            case f@ ResponseAction.Fail(_, _) =>
-//              ResponseAction.Fail(f.context, f.responseInfo)
-//            case ResponseAction.Success(validatedJsv) =>
-//              JsonReader[A].readResult(validatedJsv.toRootDoc) match {
-//                case rre: ReadResult.Error[?] =>
-//                  nonSuccessfulResponse(jsonResponseOptions.retryJsonCodecErrors, rre.readError)
-//                case ReadResult.Success(a, _, _, _) =>
-//                  // happy path yay we made it
-//                  ResponseAction.Success(a)
-//              }
-//          }
-//      }
-//    if (jsonResponseOptions.logJsonResponseBody) {
-//      logger.debug(s"response body --\n${responseBodyStr}")
-//    }
-//    responseAction
-//  }
-//
-//  execWithEffect(standardResponseActionProcessor(responseEffect))
-//}
-//
-//def execWithResponse[A](responseFn: Response=>Attempt[A])(using RequestProcessor, Logger): Attempt[A] =
-//  summon[RequestProcessor].execWithResponse[A](this, responseFn)
-//
-//def execWithString[A](fn: String=>Attempt[A])(using RequestProcessor, Logger): Attempt[A] =
-//  summon[RequestProcessor].execWithStringResponse(this, fn)
-//
-///**
-// * caller must supply a responseEffect that is responsible for things like checking http status codes, etc, etc
-// */
-//def execWithEffect[A](responseActionFn: Attempt[Response]=>ResponseAction[A])(using processor: RequestProcessor, logger: Logger): Attempt[A] =
-//  processor.execWithEffect[A](this, responseActionFn)

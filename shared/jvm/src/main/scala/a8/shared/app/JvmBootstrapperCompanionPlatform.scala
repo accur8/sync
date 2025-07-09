@@ -18,10 +18,6 @@ import a8.shared.zreplace.CommandLineArgs
 @scala.annotation.nowarn
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
-// !!! ???
-//  override val layer: ZLayer[AppName & ZIOAppArgs, Throwable, Bootstrapper] =
-//    ZLayer(live)
-
   def constructBootstrapper(appName: AppName, args: CommandLineArgs): Bootstrapper = {
 
     val configMojoRoot = a8.shared.ConfigMojo.root.mojoRoot

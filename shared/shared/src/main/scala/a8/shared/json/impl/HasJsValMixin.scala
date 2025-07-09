@@ -85,12 +85,6 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
         Left(re)
     }
 
-//  !!! ???
-//  def asF[A: JsonCodec](implicit jsonReaderZOptions: JsonReaderOptions): Task[A] =
-//    !!!
-//    ZJsonReader[A]
-//      .read(self.actualJsVal)
-
   def compactPrintSortedKeys: String =
     JsValOps
       .toCompactJsonChord(self.actualJsVal, true)

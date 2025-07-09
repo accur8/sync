@@ -19,8 +19,8 @@ import java.nio.charset.Charset
 import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.*
-
 import a8.shared.zreplace.Chunk.toByteBuffer
+import a8.sync.http.impl.RequestProcessorImpl
 
 object RetryConfig extends MxRetryConfig {
   val noRetries: RetryConfig = RetryConfig(0, 1.second, 1.minute)
@@ -85,6 +85,7 @@ case class RequestProcessorConfig(
  */
 trait Backend {
   def runSingleRequest(request: Request): Result[Response]
+  def shutdown(): Unit
 }
 
 
@@ -172,13 +173,6 @@ trait Request {
   def execWithStringResponse(using RequestProcessor, Logger): String
   def execWithJsonResponse[A : JsonCodec](using RequestProcessor, JsonResponseOptions, Logger): A
   def execWithResponseActionFn[A](responseFn: Response=>ResponseAction[A])(using RequestProcessor, Logger): A
-// !!!
-  //  def execWithStringFn[A](fn: String=>Result[A])(using RequestProcessor, Logger): A
-
-//  /**
-//   * caller must supply a responseActionFn that is responsible for things like checking http status codes, etc, etc
-//   */
-//  def execWithEffect[A](responseActionFn: Result[Response]=>ResponseAction[A])(using RequestProcessor, Logger): A
 
   def curlCommand: String
 
@@ -296,13 +290,12 @@ trait RequestProcessor {
 object RequestProcessor {
 
   def asResource(config: RequestProcessorConfig): Resource[RequestProcessor] = {
-    def acquire: RequestProcessor = {
+    def acquire: RequestProcessorImpl = {
       val sttpBackend = sttp.client4.DefaultSyncBackend(sttp.client4.BackendOptions.Default.connectionTimeout(config.connectionTimeout))
       val semaphore = Semaphore(config.maxConnections)
-      !!!
-//      RequestProcessorImpl(config, SttpBackend(sttpBackend, config.readTimeout.some, config.retryConfig), semaphore)
+      RequestProcessorImpl(config, SttpBackend(sttpBackend, config.readTimeout.some, config.retryConfig), semaphore)
     }
-    !!!
+    Resource.acquireRelease(acquire)(_.shutdown())
   }
 
   def asResource(retry: RetryConfig = RetryConfig.noRetries, maxConnections: Int = 50): Resource[RequestProcessor] = {

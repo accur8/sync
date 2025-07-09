@@ -51,33 +51,6 @@ case class AutoBoostrap(
       app.run()
     }
 
-
-    //    !!! ???
-    //    val rawEffect: ZIO[BootstrapEnv & LoggingBootstrapConfig & LoggerContext, Throwable, Unit] =
-    //      for {
-    //        bootstrapper <- zservice[Bootstrapper]
-    //        loggingBootstrapConfig <- zservice[LoggingBootstrapConfig]
-    //        _ <- zblock(LoggingBootstrapConfig.finalizeConfig(loggingBootstrapConfig))
-    //        _ <- LogbackConfigurator.configureLoggingZ
-    //        _ <- loggerF.info(s"bootstrap config from ${ConfigMojo.rootSources.mkString("  ")}")
-    //        _ <- configureLogLevels(initialLogLevels)
-    //        _ <- appInit
-    //        _ <- ZIO.scoped(runT)
-    //      } yield ()
-    //
-    //    val effectWithErrorLogging =
-    //      rawEffect
-    //        .onExit {
-    //          case zio.Exit.Success(_) =>
-    //            loggerF.info("natural shutdown")
-    //          case zio.Exit.Failure(cause) if cause.isInterruptedOnly =>
-    //            loggerF.info(s"shutdown because of interruption only", cause)
-    //          case zio.Exit.Failure(cause) =>
-    //            loggerF.warn(s"shutdown because of failure/interruption", cause)
-    //        }
-    //
-    //    provideLayers(effectWithErrorLogging)
-
   }
 
 }

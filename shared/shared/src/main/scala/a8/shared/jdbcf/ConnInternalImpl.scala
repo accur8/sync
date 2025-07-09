@@ -27,6 +27,25 @@ case class ConnInternalImpl(
   with ConnInternal
 {
 
+  /**
+   * provides a statement scoped to the current Ctx
+   *
+   * @return
+   */
+  override def unsafeStatement(): JStatement = {
+    val st = jdbcConn.createStatement()
+    lazy val release = {
+      if ( !st.isClosed )
+        st.close()
+    }
+    ctx.register(new Ctx.Listener {
+      override def onCompletion(ctx: Ctx, completion: Ctx.Completion): Unit =
+        release
+    })
+    st
+  }
+
+
   override def ctx: Ctx = ctx0
 
   override def asInternal: ConnInternal = this

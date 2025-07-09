@@ -11,20 +11,12 @@ import ch.qos.logback.classic.LoggerContext
 import net.model3.logging.logback.LogbackConfigurator
 import zio.*
 
-object BootstrappedIOApp {
-
-//  !!! ???
-//  type BootstrapEnv = Scope & ZIOAppArgs & Bootstrapper & TempDir & CacheDir & DataDir & BootstrapConfig & AppName & LogsDir & WorkDir
-
-}
+object BootstrappedIOApp
 
 
 abstract class BootstrappedIOApp
   extends Logging
 {
-
-//  !!! ???
-//  val loggingLayer: ZLayer[Any, Nothing, Unit] = SyncZLogger.slf4jLayer(zioMinLevel)
 
   def initialLogLevels: Iterable[(String,Level)] = {
     val debugs =
@@ -114,9 +106,6 @@ abstract class BootstrappedIOApp
       logger.error(s"Uncaught exception in thread ${t.getName}", e)
     }
   }
-
-  lazy val logbackLoggerContext: LoggerContext =
-    !!!
 
   def main(args: Array[String]): Unit = {
 

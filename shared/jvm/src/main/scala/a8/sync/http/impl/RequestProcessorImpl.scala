@@ -79,7 +79,12 @@ case class RequestProcessorImpl(
    *
    */
   override def execWithResponseActionFn[A](request: Request, responseFn: Either[Throwable,Response] => ResponseAction[A])(using shared.SharedImports.Logger): A =
-    !!!
+    runWithRetry(request.asInstanceOf[RequestImpl], responseFn) match {
+      case Result.Success(v) =>
+        v
+      case Result.Failure(message, throwOpt) =>
+        throw new RuntimeException(s"request failed - ${message.getOrElse("no message")}", throwOpt.orNull)
+    }
 
   def runWithRetry[A](request: RequestImpl, responseTestFn: Either[Throwable, Response] => ResponseAction[A])(using logger: Logger): Result[A] = {
 
@@ -93,7 +98,7 @@ case class RequestProcessorImpl(
       )
 
     def afterAttempt(attempt: Int, result: Either[Throwable,ResponseAction[A]]): Unit = {
-      !!!
+      !!!!
 //      responseAction match {
 //        case ResponseAction.Success(_) =>
 //          logger.debug(s"retry attempt ${attempt} succeeded with response ${response.responseMetadata.statusCode.code} -- ${response.responseMetadata.statusText}")
@@ -103,6 +108,7 @@ case class RequestProcessorImpl(
 //          logger.debug(s"retry attempt ${attempt} failed with response ${response.responseMetadata.statusCode.code} -- ${response.responseMetadata.statusText} -- context: ${f.context} -- responseInfo: ${f.responseInfo.map(_.compactJson).getOrElse("none")}")
 //      }
     }
+
 
     val oxRetryConfig =
       ox.resilience.RetryConfig(
@@ -141,4 +147,7 @@ case class RequestProcessorImpl(
       }
   }
 
+  def shutdown(): Unit = {
+    backend.shutdown()
+  }
 }

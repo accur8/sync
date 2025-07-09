@@ -43,45 +43,21 @@ trait JsonPackageObjectApi {
         v
     }
 
-//  !!! ???
-//  def parseF(jsonStr: String): Task[JsVal] =
-//    fromDeferredEither(
-//      parse(jsonStr)
-//    )
-
-//  !!! ???
-//  def readF[A : JsonCodec](jsonStr: String)(implicit jsonReaderZOptions: ZJsonReaderOptions): Task[A] =
-//    ZJsonReader[A]
-//      .read(jsonStr)
-//
-//  protected def fromDeferredEither[A](eitherFn: => Either[ReadError,A]): Task[A] =
-//    ZIO.fromEither(
-//      eitherFn
-//        .left
-//        .map(_.asException)
-//    )
-
   def read[A : JsonCodec](jsonStr: String)(implicit jsonReaderOptions: JsonReaderOptions): Either[ReadError,A] =
     parse(jsonStr)
       .flatMap(_.as[A])
 
-//  def fromFile[A: JsonCodec](file: FileSystem.File)(using JsonReaderOptions): Task[A] =
-//    !!!
-//    file
-//      .readAsStringOpt()
-//      .flatMap {
-//        case None =>
-//          zfail(new RuntimeException(z"${file} not found"))
-//        case Some(fileContents) =>
-//          readF[A](fileContents)
-//            .either
-//            .flatMap {
-//              case Right(a) =>
-//                zsucceed(a)
-//              case Left(e) =>
-//                zfail(new RuntimeException(z"error parsing json from ${file}", e))
-//            }
-//
-//      }
+   def fromFile[A: JsonCodec](file: FileSystem.File)(using JsonReaderOptions): A =
+     file
+       .readAsStringOpt()
+       .map { fileContents =>
+         read[A](fileContents) match {
+           case Right(a) =>
+             a
+           case Left(re) =>
+             throw new RuntimeException(z"error parsing json from ${file.absolutePath}", re.asException)
+         }
+       }
+       .getOrError(z"${file.absolutePath} not found")
 
 }

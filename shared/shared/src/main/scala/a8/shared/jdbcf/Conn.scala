@@ -81,6 +81,12 @@ object Conn extends Logging {
 
     def withStatement[A](fn: JStatement=>A): A
 
+    /**
+     * provides a statement scoped to the current Ctx
+     * @return
+     */
+    def unsafeStatement(): JStatement
+
     override def resolveTableName(tableLocator: TableLocator, useCache: Boolean): ResolvedTableName =
       jdbcMetadata.resolveTableName(tableLocator, this, useCache)
 

@@ -28,14 +28,6 @@ object Query {
           }
         }
       }
-//                .map(rs =>
-//                  resultSetToStream(rs)
-//                    .map(reader.read)
-//                )
-//            }
-//        !!!
-//        ZStream.unwrapScoped(effect)
-//      }
 
       override def select: Iterable[A] = {
         given Ctx = conn.ctx

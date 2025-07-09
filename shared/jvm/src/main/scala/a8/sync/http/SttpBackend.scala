@@ -2,6 +2,7 @@ package a8.sync.http
 
 import a8.shared.SharedImports.*
 import a8.shared.app.Ctx
+import a8.shared.zreplace.Chunk
 import a8.sync.http.{Result, impl}
 import a8.sync.http
 import a8.sync.http.impl.RequestImpl
@@ -37,11 +38,15 @@ case class SttpBackend(
   extends http.Backend
   with Logging
 {
+
+  override def shutdown(): Unit =
+    sttpBackend.close()
+
   override def runSingleRequest(httpRequest: http.Request): Result[http.Response] = {
 
     val httpRequestImpl = httpRequest.asInstanceOf[RequestImpl]
 
-    type SttpRequest = Request[String]
+    type SttpRequest = Request[Array[Byte]]
 
     def requestWithReadTimeout(r0: SttpRequest): SttpRequest =
       readTimeout.fold(r0)(r0.readTimeout(_))
@@ -70,7 +75,7 @@ case class SttpBackend(
 
     val request0: SttpRequest =
       basicRequest
-        .response(asStringAlways)
+        .response(asByteArrayAlways)
         .method(sttp.model.Method(httpRequestImpl.method.value), httpRequestImpl.uri)
         .headers(httpRequestImpl.headers)
 
@@ -88,7 +93,7 @@ case class SttpBackend(
         http.Response(
           httpRequestImpl,
           SttpBackend(sttpResponse),
-          !!!, //response.body,
+          Chunk.fromArray(sttpResponse.body),
         )
       Result.Success(response)
     } catch {

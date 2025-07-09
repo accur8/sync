@@ -126,24 +126,6 @@ object BootstrapConfig {
   case class ConfigDir(unresolved: Directory) extends DirectoryValue
 
   object WorkDir extends Logging {
-//  !!! ???
-//    val layer: ZLayer[TempDir & Scope, Throwable, WorkDir] = ZLayer(live)
-//
-//    val live: ZIO[TempDir & Scope, Throwable, WorkDir] = {
-//      for {
-//        tempDir <- zservice[TempDir]
-//        workDir <-
-//          ZIO.acquireRelease(
-//            ZIO.attempt(WorkDir(tempDir.unresolved.subdir(FileSystem.fileSystemCompatibleTimestamp())))
-//          )(
-//            workDir =>
-//              ZIO.attemptBlocking {
-//                if ( workDir.unresolved.exists() )
-//                  workDir.unresolved.delete()
-//              }.logVoid
-//          )
-//      } yield workDir
-//    }
   }
   case class WorkDir(unresolved: Directory) extends DirectoryValue
 
@@ -170,7 +152,7 @@ case class BootstrapConfig(
   resolvedDto: BootstrapConfigDto,
 ) extends NamedToString { self =>
 
-  lazy val workDir = !!!
+  lazy val workDir = WorkDir(tempDir.unresolved.subdir("workdir-" + FileSystem.fileSystemCompatibleTimestamp()))
 
   lazy val loggingBootstrapConfig: LoggingBootstrapConfig =
     resolvedDto
