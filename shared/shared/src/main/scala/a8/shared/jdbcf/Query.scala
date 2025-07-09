@@ -1,6 +1,7 @@
 package a8.shared.jdbcf
 
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
+import a8.shared.app.Ctx
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.SqlString.CompiledSql
 
@@ -12,35 +13,39 @@ object Query {
 
     new Query[A] {
 
-      override val sql = sql0
+      override val sql: CompiledSql = sql0
 
       override val reader: RowReader[A] = implicitly[RowReader[A]]
 
       def stream: zio.XStream[A] = {
-        val effect: zio.Resource[zio.XStream[A]] =
-          conn
-            .statement
-            .flatMap { st =>
-              val effect = Managed.scoped[java.sql.ResultSet](st.executeQuery(sql.value))
-              withSqlCtxT(sql, effect)
-                .map(rs =>
-                  resultSetToStream(rs)
-                    .map(reader.read)
-                )
-            }
-        !!!
+        withSqlCtx(sql) {
+          conn.withInternalConn { jdbcConn =>
+            // no cleanup since the result set will break out of the scope of this function
+            val st = jdbcConn.createStatement()
+            val rs = st.executeQuery(sql.value)
+            resultSetToStream(rs)
+              .map(reader.read)
+          }
+        }
+      }
+//                .map(rs =>
+//                  resultSetToStream(rs)
+//                    .map(reader.read)
+//                )
+//            }
+//        !!!
 //        ZStream.unwrapScoped(effect)
+//      }
+
+      override def select: Iterable[A] = {
+        given Ctx = conn.ctx
+        stream.runCollect()
       }
 
-      override def select: Task[Iterable[A]] =
-        stream
-          .run(ZSink.collectAll)
-          .map(values => values: Iterable[A])
-
-      override def fetchOpt: Task[Option[A]] =
-        stream
-          .take(1)
-          .run(ZSink.last)
+      override def fetchOpt: Option[A] = {
+        given Ctx = conn.ctx
+        select.headOption
+      }
 
     }
   }
@@ -48,18 +53,20 @@ object Query {
 }
 
 
+/**
+ * a lazy representation of a query where select, fetchOpt, and fetch will actually run the query
+ */
 trait Query[A] { query =>
   val sql: CompiledSql
   val reader: RowReader[A]
-  def select: Task[Iterable[A]]
-  def fetchOpt: Task[Option[A]]
-  def fetch: Task[A] =
-    fetchOpt
-      .flatMap {
-        case None =>
-          zfail(throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}"))
-        case Some(v) =>
-          zsucceed(v)
-      }
+  def select: Iterable[A]
+  def fetchOpt: Option[A]
+  def fetch: A =
+    fetchOpt match {
+      case None =>
+        throw new java.sql.SQLException(s"query return 0 records expected 1 -- ${sql}")
+      case Some(v) =>
+        v
+    }
 }
 

@@ -2,11 +2,9 @@ package a8.shared.json.impl
 
 
 import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
-import a8.shared.json.ZJsonReader.ZJsonReaderOptions
 import a8.shared.json.ast.JsDoc.{JsDocPath, JsDocRoot}
 import a8.shared.json.ast._
-import a8.shared.json.{JsonCodec, JsonReader, ReadError, ZJsonReader}
-import zio.{Task, ZIO}
+import a8.shared.json.{JsonCodec, JsonReader, ReadError}
 import a8.shared.SharedImports._
 
 object HasJsValOps {
@@ -87,9 +85,11 @@ class HasJsValOps(private val self: HasJsVal) extends AnyVal {
         Left(re)
     }
 
-  def asF[A: JsonCodec](implicit jsonReaderZOptions: ZJsonReaderOptions): Task[A] =
-    ZJsonReader[A]
-      .read(self.actualJsVal)
+//  !!! ???
+//  def asF[A: JsonCodec](implicit jsonReaderZOptions: JsonReaderOptions): Task[A] =
+//    !!!
+//    ZJsonReader[A]
+//      .read(self.actualJsVal)
 
   def compactPrintSortedKeys: String =
     JsValOps

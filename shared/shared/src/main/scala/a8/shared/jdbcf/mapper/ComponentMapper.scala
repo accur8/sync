@@ -13,13 +13,14 @@ import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 
 trait ComponentMapper[A] extends Mapper[A] {
 
-  override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[RowReader[A]] =
+  override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): RowReader[A] =
     materializeComponentMapper(columnNamePrefix, conn, resolvedJdbcTable)
       .map {
-        case rr: RowReader[A] => rr
+        case rr: RowReader[A] =>
+          rr
       }
 
-  def materializeComponentMapper(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[ComponentMapper[A]]
+  def materializeComponentMapper(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): ComponentMapper[A]
 
   def inClause(linker: QueryDsl.Path, values: Iterable[A])(implicit alias: PathCompiler): QueryDsl.InClause
   def structuralEquality(linker: QueryDsl.Path, values: Iterable[A])(implicit alias: PathCompiler): QueryDsl.Condition

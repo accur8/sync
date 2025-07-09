@@ -13,10 +13,10 @@ object QubesMapper {
 
   implicit object QubesEscaper extends Escaper {
 
-    override def unsafeSqlEscapeStringValue(value: String): String =
+    override def escapeStringValue(value: String): String =
       "'" + value.replace("'","''") + "'"
 
-    override def unsafeSqlQuotedIdentifier(identifier: String): String =
+    override def quoteSqlIdentifier(identifier: String): String =
       identifier
 
   }
@@ -46,22 +46,21 @@ object QubesMapper {
       // success
     }
 
+    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): A =
+      fetchOpt(key) match {
+        case None =>
+          throw new RuntimeException(s"no record ${key} found in ${cubeName}")
+        case Some(i) =>
+          i
+      }
 
-    override def fetch(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Task[A] =
-      fetchOpt(key)
-        .flatMap {
-          case None =>
-            zfail(new RuntimeException(s"no record ${key} found in ${cubeName}"))
-          case Some(i) =>
-            zsucceed(i)
-        }
-
-    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Task[Option[A]] = {
+    override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Option[A] = {
       implicit def qm: QubesMapperImpl[A, B] = this
       import SqlString._
-      qubesApiClient
-        .query[A](primaryKey.whereClause(key))
-        .map(_.headOption)
+      val rows =
+        qubesApiClient
+          .query[A](primaryKey.whereClause(key))
+      rows.headOption
     }
 
     override def queryReq(whereClause: SqlString): QueryRequest =

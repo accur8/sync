@@ -1,9 +1,9 @@
 package a8.shared.mail
 
 
-import a8.shared.SharedImports._
-import a8.shared.app.BootstrappedIOApp
-import zio._
+import a8.shared.SharedImports.*
+import a8.shared.app.{AppCtx, BootstrappedIOApp}
+import zio.*
 
 object MailApiDemo extends BootstrappedIOApp {
 
@@ -20,18 +20,17 @@ object MailApiDemo extends BootstrappedIOApp {
     debug = true,
   )
 
-  lazy val mailApiR: ZIO[Scope, Throwable, MailApi] = MailApi.asResource(mailConfig)
+  lazy val mailApiR: Resource[MailApi] = MailApi.asResource(mailConfig)
 
-  override def runT: Task[Unit] = {
-    mailApiR.use { mailApi =>
-      val message =
-        MailMessage()
-         .from("Raphael <raphael@accur8software.com>")
-         .to("raphael@accur8software.com")
-         .subject("Test")
-         .body("This is a test")
-      mailApi.send(message)
-    }
+  override def run()(using appCtx: AppCtx): Unit = {
+    val mailApi = mailApiR.unwrap
+    val message =
+      MailMessage()
+       .from("Raphael <raphael@accur8software.com>")
+       .to("raphael@accur8software.com")
+       .subject("Test")
+       .body("This is a test")
+    mailApi.send(message)
   }
 
 }

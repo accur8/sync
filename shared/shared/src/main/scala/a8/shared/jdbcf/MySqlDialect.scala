@@ -8,48 +8,42 @@ import java.sql.Connection
 
 object MySqlDialect extends Dialect {
 
-  override def escaper(jdbcConnR: zio.Resource[Connection]): zio.Resource[Escaper] =
-    jdbcConnR
-      .flatMap { conn =>
-        for {
-          keywordSet <- KeywordSet.fromMetadata(conn.getMetaData)
-          escaper0 <-
-            zblock {
-              val st = conn.createStatement()
-              val noBackslashEscapes =
-                try {
-                  val rs = st.executeQuery("SELECT @@SESSION.sql_mode")
-                  try {
-                    if ( rs.next() ) {
-                      rs.getString(1).contains("NO_BACKSLASH_ESCAPES")
-                    } else {
-                      false
-                    }
-                  } finally {
-                    rs.close()
-                  }
-                } finally {
-                  st.close()
-              }
 
-              val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
-              new DefaultEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {
-                override def unsafeSqlEscapeStringValue(value: String): String = {
-                  val content =
-                    value.replace("\\", "\\\\") match {
-                      case s if noBackslashEscapes =>
-                        s
-                      case s =>
-                        value.replace("\\", "\\\\")
-                    }
-                  "'" + content + "'"
-                }
+  override def buildEscaper(conn: Connection): Escaper = {
+    val keywordSet = KeywordSet.fromMetadata(conn.getMetaData)
+    val st = conn.createStatement()
+    val noBackslashEscapes =
+      try {
+        val rs = st.executeQuery("SELECT @@SESSION.sql_mode")
+        try {
+          if ( rs.next() ) {
+            rs.getString(1).contains("NO_BACKSLASH_ESCAPES")
+          } else {
+            false
+          }
+        } finally {
+          rs.close()
+        }
+      } finally {
+        st.close()
+    }
 
-              }
-            }
-        } yield escaper0
+    val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
+    new DefaultEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {
+      override def escapeStringValue(value: String): String = {
+        val content =
+          value.replace("\\", "\\\\") match {
+            case s if noBackslashEscapes =>
+              s
+            case s =>
+              value.replace("\\", "\\\\")
+          }
+        "'" + content + "'"
       }
-//  class DefaultEscaper(identifierQuoteStr: String, keywordSet: KeywordSet, defaultCaseFn: String=>Boolean) extends Escaper {
+    }
+  }
+
+  //  class DefaultEscaper(identifierQuoteStr: String, keywordSet: KeywordSet, defaultCaseFn: String=>Boolean) extends Escaper {
 //
 //    override def unsafeSqlEscapeStringValue(value: String): String =
 //      "'" + value.replace("'","''") + "'"
@@ -67,13 +61,11 @@ object MySqlDialect extends Dialect {
 //  }
 
 
-  override def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): zio.Task[ResolvedTableName] = {
+  override def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): ResolvedTableName = {
     val currentCatalog = conn.jdbcUrl.path.last
-    zsucceed(
-      foundTables
-        .find(_.catalog.exists(_.value.toString.equalsIgnoreCase(currentCatalog)))
-        .getOrElse(foundTables.head)
-    )
+    foundTables
+      .find(_.catalog.exists(_.value.toString.equalsIgnoreCase(currentCatalog)))
+      .getOrElse(foundTables.head)
   }
 
   implicit def self: Dialect = this

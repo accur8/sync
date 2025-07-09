@@ -14,5 +14,6 @@ trait ConnFactory {
 
   val config: DatabaseConfig
   def connR: zio.Resource[Conn]
+  def safeClose(): Unit
 
 }

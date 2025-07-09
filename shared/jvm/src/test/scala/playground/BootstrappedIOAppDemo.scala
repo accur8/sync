@@ -1,13 +1,11 @@
 package playground
 
 
-import a8.shared.app.BootstrappedIOApp
-import a8.shared.app.BootstrappedIOApp.BootstrapEnv
-import zio.ZIO
+import a8.shared.app.{AppCtx, BootstrappedIOApp}
 
 object BootstrappedIOAppDemo extends BootstrappedIOApp {
 
-  override def runT: ZIO[BootstrapEnv, Throwable, Unit] =
-    loggerF.info("boom")
+  override def run()(using appCtx: AppCtx): Unit =
+    logger.info("boom")
 
 }

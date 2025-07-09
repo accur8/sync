@@ -26,15 +26,11 @@ trait KeyedTableMapper[A, PK] extends TableMapper[A] {
   def fetchSql(key: PK): SqlString
   def key(row: A): PK
 
-  override def materializeTableMapper(implicit conn: Conn): Task[TableMapper[A]] =
+  override def materializeTableMapper(using Conn): TableMapper[A] =
     materializeKeyedTableMapper
-      .map(_.value)
-      .map {
-        case tm: TableMapper[A] =>
-          tm
-      }
+      .asInstanceOf[TableMapper[A]]
 
-  def materializeKeyedTableMapper(implicit conn: Conn): Task[Materialized[A,PK]]
+  def materializeKeyedTableMapper(using Conn): Materialized[A,PK]
 //  def materializeKeyedTableMapper(implicit conn: Conn): Task[Materialized[A,PK]]
 
 }

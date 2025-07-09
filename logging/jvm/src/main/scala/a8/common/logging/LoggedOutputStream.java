@@ -41,7 +41,15 @@ import a8.common.logging.Logger;
  */
 public class LoggedOutputStream extends PrintStream {
 
-	static LoggingOps.TraceWrapper traceWrapper = LoggingOps.TraceWrapper.fromStr("a8.common.logging.LoggedOutputStream(LoggedOutputStream.java:187)");
+
+//	static LoggingOps.TraceWrapper traceWrapper = LoggingOps.TraceWrapper.fromStr("a8.common.logging.LoggedOutputStream(LoggedOutputStream.java:187)");
+
+	private final static Trace trace =
+		new Trace(
+			new sourcecode.File("/a8/common/logging/LoggedOutputStream.java"),
+			new sourcecode.Line(47),
+			new sourcecode.FullName("a8.common.logging.LoggedOutputStream")
+		);
 
 	protected static final String LINE_SEPERATOR = System.getProperty("line.separator");
 
@@ -186,7 +194,7 @@ public class LoggedOutputStream extends PrintStream {
 
 		System.arraycopy(buffer_, 0, theBytes, 0, bufferIndex_);
 
-		logger_.log(level_, new String(theBytes), null, traceWrapper.trace());
+		logger_.log(level_, new String(theBytes), null, trace);
 
 		reset();
 	}

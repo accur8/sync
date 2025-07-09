@@ -13,10 +13,10 @@ trait SelectQuery[T, U] {
   def orderBys(order: U => Iterable[OrderBy]): SelectQuery[T,U]
   def maxRows(count: Int): SelectQuery[T,U]
 
-  def fetch(implicit conn: Conn): Task[T]
-  def fetchOpt(implicit conn: Conn): Task[Option[T]]
+  def fetch(implicit conn: Conn): T
+  def fetchOpt(implicit conn: Conn): Option[T]
   def streamingSelect(implicit conn: Conn): zio.XStream[T]
-  def select(implicit conn: Conn): Task[Vector[T]]
+  def select(implicit conn: Conn): Vector[T]
   def sqlString: SqlString
 
 }

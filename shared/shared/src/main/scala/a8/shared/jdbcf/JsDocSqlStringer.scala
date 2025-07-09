@@ -9,7 +9,7 @@ import zio._
 case class JsDocSqlStringer(nullable: Boolean, typeSuffix: Option[String]) extends SqlStringer[JsDoc] {
 
 
-  override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): Task[SqlStringer[JsDoc]] = {
+  override def materialize(conn: Conn, resolvedColumn: JdbcMetadata.ResolvedColumn): SqlStringer[JsDoc] = {
 
     val typeSuffix =
       conn
@@ -17,9 +17,8 @@ case class JsDocSqlStringer(nullable: Boolean, typeSuffix: Option[String]) exten
         .isPostgres
         .toOption("::"  + resolvedColumn.jdbcColumn.typeName)
 
-    zsucceed(
-      JsDocSqlStringer(resolvedColumn.isNullable, typeSuffix)
-    )
+    JsDocSqlStringer(resolvedColumn.isNullable, typeSuffix)
+
   }
 
   /**

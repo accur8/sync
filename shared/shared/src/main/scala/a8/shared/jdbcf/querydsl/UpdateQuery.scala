@@ -13,7 +13,7 @@ trait UpdateQuery[TableDsl] {
 
   def where(whereFn: TableDsl => QueryDsl.Condition): UpdateQuery[TableDsl]
 
-  def execute(implicit conn: Conn): zio.Task[Int]
+  def execute(implicit conn: Conn): Int
 
   def sqlString: SqlString
 

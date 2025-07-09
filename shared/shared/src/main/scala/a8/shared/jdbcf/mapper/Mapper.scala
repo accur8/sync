@@ -51,7 +51,7 @@ object Mapper {
   }
 
   sealed trait FieldHandler[A] {
-    def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[FieldHandler[A]]
+    def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): FieldHandler[A]
     val rowReader: RowReader[A]
     def booleanOp(linker: QueryDsl.Path, name: String, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
     def fieldExprs(linker: QueryDsl.Path, name: String, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[?]]
@@ -76,19 +76,18 @@ object Mapper {
     override def values(a: A): Vector[QueryDsl.Constant[?]] =
       Vector(QueryDsl.Constant(a))
 
-    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[FieldHandler[A]] =
-      for {
-        materializedRowReader <- rowReader.materialize(columnNamePrefix, conn, resolvedJdbcTable)
-        resolvedColumn <-
-          resolvedJdbcTable.columnsByName.get(columnNamePrefix) match {
-            case None =>
-              ZIO.fail(new RuntimeException(s"no column named ${columnNamePrefix} found in ${resolvedJdbcTable.resolvedTableName}"))
-            case Some(rc) =>
-              ZIO.succeed(rc)
-          }
-        materializedSqlStringer <- sqlStringer.materialize(conn, resolvedColumn)
-      } yield
-        new SingleFieldHandler[A]()(materializedRowReader, materializedSqlStringer)
+    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): FieldHandler[A] = {
+      val materializedRowReader = rowReader.materialize(columnNamePrefix, conn, resolvedJdbcTable)
+      val resolvedColumn =
+        resolvedJdbcTable.columnsByName.get(columnNamePrefix) match {
+          case None =>
+            throw new RuntimeException(s"no column named ${columnNamePrefix} found in ${resolvedJdbcTable.resolvedTableName}")
+          case Some(rc) =>
+            rc
+        }
+      val materializedSqlStringer = sqlStringer.materialize(conn, resolvedColumn)
+      new SingleFieldHandler[A]()(using materializedRowReader, materializedSqlStringer)
+    }
 
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName] = Iterable(columnNamePrefix)
     val columnCount = 1
@@ -110,12 +109,12 @@ object Mapper {
     override def values(a: A): Vector[QueryDsl.Constant[?]] =
       ???
 
-    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[FieldHandler[A]] =
-      componentMapper
-        .materializeComponentMapper(columnNamePrefix, conn, resolvedJdbcTable)
-        .map { materializedComponentMapper =>
-          new ComponentFieldHandler[A]()(using materializedComponentMapper)
-        }
+    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): FieldHandler[A] = {
+      val materializedComponentMapper =
+        componentMapper
+          .materializeComponentMapper(columnNamePrefix, conn, resolvedJdbcTable)
+      new ComponentFieldHandler[A]()(using materializedComponentMapper)
+    }
 
     val rowReader = componentMapper
     def columnNames(columnNamePrefix: ColumnName): Iterable[ColumnName] = componentMapper.columnNames(columnNamePrefix)

@@ -20,7 +20,7 @@ object PostgresDialect extends Dialect {
   /**
    * will do a case insensitive lookup
    */
-  override def resolveTableName(tableLocator: TableLocator, conn: Conn): zio.Task[ResolvedTableName] = {
+  override def resolveTableName(tableLocator: TableLocator, conn: Conn): ResolvedTableName = {
     import tableLocator._
     val schemaPart = tableLocator.schemaName.map(s=>q" and schemaname = ${s.asString.escape}").getOrElse(q"")
     val sql = q"""

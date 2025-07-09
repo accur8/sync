@@ -1,25 +1,26 @@
-package a8.sync
-
+package a8.sync.http
 
 import a8.shared.SharedImports.*
 import a8.shared.app.Ctx
-import a8.shared.zreplace.{ScopedInputStream, Task}
 import a8.sync.http.{Result, impl}
+import a8.sync.http
+import a8.sync.http.impl.RequestImpl
 import sttp.client4.*
+import a8.shared.zreplace.Chunk.toArray
 
 import scala.concurrent.duration.FiniteDuration
 
 object SttpBackend {
 
-  def apply[A](sttpResponse: sttp.client4.Response[A]): http.http.ResponseMetadata =
-    http.http.ResponseMetadata(
+  def apply[A](sttpResponse: sttp.client4.Response[A]): http.ResponseMetadata =
+    http.ResponseMetadata(
       sttpResponse.code.code,
       sttpResponse.statusText,
       sttpResponse.headers.map(h => h.name -> h.value).toVector,
     )
 
-  def apply[A](sttpResponseMetadata: sttp.model.ResponseMetadata): http.http.ResponseMetadata =
-    http.http.ResponseMetadata(
+  def apply[A](sttpResponseMetadata: sttp.model.ResponseMetadata): http.ResponseMetadata =
+    http.ResponseMetadata(
       sttpResponseMetadata.code.code,
       sttpResponseMetadata.statusText,
       sttpResponseMetadata.headers.map(h => h.name -> h.value).toVector,
@@ -28,16 +29,17 @@ object SttpBackend {
 }
 
 case class SttpBackend(
-                        sttpBackend: sttp.client4.WebSocketSyncBackend,
-                        readTimeout: Option[FiniteDuration],
-                        retryConfig: http.http.RetryConfig,
-                        //    replayableStreamFactory: ReplayableStream.Factory
+  sttpBackend: sttp.client4.WebSocketSyncBackend,
+  readTimeout: Option[FiniteDuration],
+  retryConfig: http.RetryConfig,
+  //    replayableStreamFactory: ReplayableStream.Factory
 )
-  extends http.http.Backend
+  extends http.Backend
   with Logging
 {
+  override def runSingleRequest(httpRequest: http.Request): Result[http.Response] = {
 
-  override def runSingleRequest(request: impl.RequestImpl): Attempt[http.http.Response] = {
+    val httpRequestImpl = httpRequest.asInstanceOf[RequestImpl]
 
     type SttpRequest = Request[String]
 
@@ -45,19 +47,19 @@ case class SttpBackend(
       readTimeout.fold(r0)(r0.readTimeout(_))
 
     def requestWithBody(r0: SttpRequest): SttpRequest =
-      request.body match {
-        case http.http.Body.BytesBody(bytes) =>
+      httpRequestImpl.body match {
+        case http.Body.BytesBody(bytes) =>
           r0.body(bytes.toArray)
-        case http.http.Body.Empty =>
+        case http.Body.Empty =>
           r0
-        case http.http.Body.StringBody(content) =>
+        case http.Body.StringBody(content) =>
           r0.body(content)
-        case http.http.Body.JsonBody(json) =>
+        case http.Body.JsonBody(json) =>
           r0.body(json.compactJson)
       }
 
     def requestWithFollowRedirects(r0: SttpRequest): SttpRequest =
-      r0.followRedirects(request.followRedirects)
+      r0.followRedirects(httpRequestImpl.followRedirects)
 
 //    val responseAs: ResponseAs[(XStream[Byte], ResponseMetadata), ZioStreams] =
 //      client3
@@ -69,8 +71,8 @@ case class SttpBackend(
     val request0: SttpRequest =
       basicRequest
         .response(asStringAlways)
-        .method(sttp.model.Method(request.method.value), request.uri)
-        .headers(request.headers)
+        .method(sttp.model.Method(httpRequestImpl.method.value), httpRequestImpl.uri)
+        .headers(httpRequestImpl.headers)
 
     val requestUpdaters: Vector[SttpRequest => SttpRequest] =
       Vector(requestWithBody, requestWithFollowRedirects, requestWithReadTimeout)
@@ -83,16 +85,16 @@ case class SttpBackend(
       val sttpResponse = resolvedSttpRequest.send(sttpBackend)
 
       val response =
-        http.http.Response(
-          request,
+        http.Response(
+          httpRequestImpl,
           SttpBackend(sttpResponse),
           !!!, //response.body,
         )
-      Right(response)
+      Result.Success(response)
     } catch {
       case IsNonFatal(e) =>
-        logger.debug(s"error with http request -- \n${request.curlCommand}", e)
-        Left(e)
+        logger.debug(s"error with http request -- \n${httpRequestImpl.curlCommand}", e)
+        Result.Failure(error = e.some)
     }
   }
 }

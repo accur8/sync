@@ -117,43 +117,37 @@ case class SelectQueryImpl[T,U](
   override def maxRows(count: Int): SelectQuery[T, U] =
     copy(maxRows=count)
 
-  override def fetch(implicit conn: Conn): Task[T] =
-    fetchOpt
-      .flatMap {
-        case None =>
-          zfail(new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}"))
-        case Some(t) =>
-          zsucceed(t)
-      }
+  override def fetch(using Conn): T =
+    fetchOpt match {
+      case None =>
+        throw new RuntimeException(s"expected 1 record and got 0 -- ${sqlForErrorMessage}")
+      case Some(t) =>
+        t
+    }
 
-  override def fetchOpt(implicit conn: Conn): Task[Option[T]] =
-    select
-      .flatMap {
-        case Vector() =>
-          zsucceed(None)
-        case Vector(t) =>
-          zsucceed(Some(t))
-        case v =>
-          zfail(new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}"))
-      }
+  override def fetchOpt(using Conn): Option[T] =
+    select match {
+      case Vector() =>
+        None
+      case Vector(t) =>
+        Some(t)
+      case v =>
+        throw new RuntimeException(s"expected 0 or 1 records and got ${v.size} -- ${sqlForErrorMessage} -- ${v}")
+    }
 
-  override def select(implicit conn: Conn): Task[Vector[T]] =
+  override def select(using conn: Conn): Vector[T] =
     conn
       .query[T](sqlString)
       .select
-      .map(_.toVector)
+      .toVector
 
-  override def streamingSelect(implicit conn: Conn): zio.XStream[ T] =
+  override def streamingSelect(using conn: Conn): zio.XStream[T] =
     conn
       .streamingQuery[T](sqlString)
-      .run
+      .stream
 
-  def sqlForErrorMessage(implicit conn: Conn): String = {
-    import conn._
-    sqlString
-      .compile
-      .value
-  }
+  def sqlForErrorMessage(using conn: Conn): String =
+    conn.compile(sqlString).value
 
 }
 

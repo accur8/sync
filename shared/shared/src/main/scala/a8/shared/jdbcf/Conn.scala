@@ -1,8 +1,9 @@
 package a8.shared.jdbcf
 
-import java.sql.{Connection => JdbcConnection, DriverManager => JdbcDriverManager, PreparedStatement => JdbcPreparedStatement, Statement => JStatement}
-import a8.shared.SharedImports._
-import a8.common.logging.{Logging}
+import java.sql.{Connection as JdbcConnection, DriverManager as JdbcDriverManager, PreparedStatement as JdbcPreparedStatement, Statement as JStatement}
+import a8.shared.SharedImports.*
+import a8.common.logging.Logging
+import a8.shared.app.Ctx
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
@@ -12,38 +13,52 @@ import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
-import a8.shared.jdbcf.UnsafeResultSetOps._
-import zio._
+import a8.shared.jdbcf.UnsafeResultSetOps.*
+import zio.*
 
 object Conn extends Logging {
 
   object impl {
 
-    def makeResource(connFn: =>java.sql.Connection, mapperCache: MapperMaterializer, jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): Resource[Conn] = {
+    def makeResource(connFn: Ctx ?=> java.sql.Connection, mapperCache: MapperMaterializer, jdbcUrl: Uri, dialect: Dialect, escaper: Escaper): Resource[Conn] = {
       val jdbcMetadata = JdbcMetadata.default
-      Managed
-        .resource(connFn)
-        .map(jdbcConn => toConn(jdbcConn, jdbcMetadata, mapperCache, jdbcUrl, dialect, escaper))
+      Resource
+        .acquireRelease {
+          val jdbcConn = connFn
+          toConn(jdbcConn, jdbcMetadata, mapperCache, jdbcUrl, dialect, escaper)
+        } {
+          _.asInternal.withInternalConn { conn =>
+            tryLogDebug(s"closing connection to ${conn.getMetaData.getURL}") {
+              if ( !conn.isClosed ) {
+                conn.close()
+              }
+            }
+          }
+        }
     }
 
   }
 
-  def fromNewConnection(
+  def newConnection(
     url: Uri,
     user: String,
     password: String
-  ): Resource[Conn] = zsuspend {
+  )(using Ctx): Conn = {
+
     val config =
       DatabaseConfig(
         DatabaseId(url.toString),
         url = url,
         user = user,
         password = DatabaseConfig.Password(password),
+        maxPoolSize = 1,
+        minIdle = 1,
       )
-    ConnFactory
-      .constructor
-      .flatMap(_.connR)
-      .provideSome[zio.Scope](ZLayer.succeed(config))
+
+    val factory = ConnFactory.constructor(config)
+
+    factory.connR.unwrap
+
   }
 
   def toConn(
@@ -53,29 +68,29 @@ object Conn extends Logging {
     jdbcUrl: Uri,
     dialect: Dialect,
     escaper: Escaper,
-  ): Conn = {
+  )(using Ctx): Conn = {
     ConnInternalImpl(jdbcMetadata, jdbcConn, mapperCache, jdbcUrl, dialect, escaper)
   }
 
   trait ConnInternal extends Conn {
     val jdbcMetadata: JdbcMetadata
     def compile(sql: SqlString): CompiledSql
-    def withInternalConn[A](fn: JdbcConnection=>A): Task[A]
+    def withInternalConn[A](fn: JdbcConnection=>A): A
     def statement: Resource[JStatement]
     def prepare(sql: SqlString): Resource[JdbcPreparedStatement]
 
-    def withStatement[A](fn: JStatement=>Task[A]): Task[A]
+    def withStatement[A](fn: JStatement=>A): A
 
-    override def resolveTableName(tableLocator: TableLocator, useCache: Boolean): Task[ResolvedTableName] =
+    override def resolveTableName(tableLocator: TableLocator, useCache: Boolean): ResolvedTableName =
       jdbcMetadata.resolveTableName(tableLocator, this, useCache)
 
-    def tables: Task[Iterable[JdbcTable]] =
+    def tables: Iterable[JdbcTable] =
       jdbcMetadata.tables(this)
 
-    def tableMetadata(tableLocator: TableLocator, useCache: Boolean): Task[ResolvedJdbcTable] =
+    def tableMetadata(tableLocator: TableLocator, useCache: Boolean): ResolvedJdbcTable =
       jdbcMetadata.tableMetadata(tableLocator, this, useCache)
 
-    def materializedMapper[A,PK](implicit keyedTableMapper: KeyedTableMapper[A,PK]): Task[KeyedTableMapper.Materialized[A,PK]]
+    def materializedMapper[A,PK](implicit keyedTableMapper: KeyedTableMapper[A,PK]): KeyedTableMapper.Materialized[A,PK]
 
   }
 
@@ -85,36 +100,49 @@ trait Conn {
 
   val jdbcUrl: Uri
 
-  def resolveTableName(tableLocator: TableLocator, useCache: Boolean = true): Task[ResolvedTableName]
-  def tables: Task[Iterable[JdbcTable]]
-  def tableMetadata(tableLocator: TableLocator, useCache: Boolean = true): Task[ResolvedJdbcTable]
-  def query[A : RowReader](sql: SqlString): Query[A]
-  def streamingQuery[A : RowReader](sql: SqlString): StreamingQuery[A]
-  def update(updateQuery: SqlString): Task[Int]
+  def ctx: Ctx
+  def dialect: Dialect
+  def escaper: Escaper
+
+  /**
+   * The returned value is lazy meaning that the sql isn't run til you call `select` or `fetch` or `fetchOpt` on the Query object
+   */
+  def query[A: RowReader](sql: SqlString): Query[A]
+
+  /**
+   * The returned value is lazy meaning that the sql isn't run til you actually run the stream in the returned StreamingQuery
+   */
+  def streamingQuery[A: RowReader](sql: SqlString): StreamingQuery[A]
+
+  def compile(sql: SqlString): SqlString.CompiledSql
+  def resolveTableName(tableLocator: TableLocator, useCache: Boolean = true): ResolvedTableName
+  def tables: Iterable[JdbcTable]
+  def tableMetadata(tableLocator: TableLocator, useCache: Boolean = true): ResolvedJdbcTable
+  def update(updateQuery: SqlString): Int
   def batcher[A : RowWriter](sql: SqlString): Batcher[A]
-  def isAutoCommit: Task[Boolean]
+  def isAutoCommit: Boolean
 
-  def insertRow[A : TableMapper](row: A): Task[A]
-  def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[(A,UpsertResult)]
-  def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[A]
-  def updateRowWhere[A, B](row: A)(where: SqlString)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[Option[A]]
-  def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[A]
+  def insertRow[A : TableMapper](row: A): A
+  def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): (A,UpsertResult)
+  def updateRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): A
+  def updateRowWhere[A, B](row: A)(where: SqlString)(implicit keyedMapper: KeyedTableMapper[A,B]): Option[A]
+  def deleteRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A,B]): A
 
-  def selectRows[A : TableMapper](whereClause: SqlString): Task[Iterable[A]]
-  def streamingSelectRows[A : TableMapper: Tag](whereClause: SqlString): XStream[A]
+  def selectRows[A : TableMapper](whereClause: SqlString): Iterable[A]
+  def streamingSelectRows[A : TableMapper](whereClause: SqlString): XStream[A]
 
-  def selectOne[A : TableMapper](whereClause: SqlString): Task[A]
-  def selectOpt[A : TableMapper](whereClause: SqlString): Task[Option[A]]
+  def selectOne[A : TableMapper](whereClause: SqlString): A
+  def selectOpt[A : TableMapper](whereClause: SqlString): Option[A]
 
-  def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[A]
-  def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A,B]): Task[Option[A]]
+  def fetchRow[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A,B]): A
+  def fetchRowOpt[A, B](key: B)(implicit keyedMapper: KeyedTableMapper[A,B]): Option[A]
 
   def asInternal: ConnInternal
 
-  def commit: Task[Unit]
-  def rollback: Task[Unit]
+  def commit: Unit
+  def rollback: Unit
 
-  implicit val escaper: Escaper
-  implicit val dialect: Dialect
+  given Escaper = escaper
+  given Dialect = dialect
 
 }

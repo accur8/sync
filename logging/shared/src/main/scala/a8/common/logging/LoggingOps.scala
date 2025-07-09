@@ -1,8 +1,6 @@
 package a8.common.logging
 
 
-import a8.common.logging.LoggingOps.TraceWrapper
-
 import java.io.{PrintWriter, StringWriter}
 import java.nio.charset.StandardCharsets.*
 import java.nio.file.attribute.{FileAttribute, FileTime}
@@ -81,30 +79,6 @@ object LoggingOps {
     }
 
   }
-
-  object TraceWrapper {
-
-    def fromStr(traceStr: String): TraceWrapper = {
-      val (scalaName, filename, lineNo) =
-        (traceStr.lastIndexOf("("), traceStr.lastIndexOf(":"), traceStr.lastIndexOf(")")) match {
-          case (i, j, k) if i >= 0 && j >= 0 && k >= 0 =>
-            (traceStr.substring(0, i), traceStr.substring(i + 1, j), traceStr.substring(j + 1, k).toInt)
-          case _ =>
-            (traceStr, "", -1)
-        }
-      TraceWrapper(traceStr.asInstanceOf[Trace], scalaName, filename, lineNo)
-    }
-
-    def fromTrace(trace: Trace): TraceWrapper =
-      fromStr(trace.toString)
-
-  }
-  case class TraceWrapper(trace: Trace, scalaName: String, filename: String, lineNo: Int)
-
-  implicit class TraceOps(trace: Trace) extends AnyVal {
-    def wrap = TraceWrapper.fromTrace(trace)
-  }
-
 
   object StringOps {
     val ltrimPattern: Pattern = Pattern.compile("^\\s+")

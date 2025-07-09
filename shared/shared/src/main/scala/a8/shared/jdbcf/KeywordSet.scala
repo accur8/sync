@@ -848,18 +848,17 @@ ZONE
 
   }
 
-  def fromMetadata(dbm: DatabaseMetaData): Task[KeywordSet] =
-    zblock {
-      val databaseSpecificKeywordSet =
-        dbm
-          .getSQLKeywords
-          .splitList(",")
-          .map(_.trim)
-          .filter(_.nonEmpty)
-          .map(CIString.apply)
-          .toSet
-      KeywordSet(databaseSpecificKeywordSet ++ default.rawSet)
-    }
+  def fromMetadata(dbm: DatabaseMetaData): KeywordSet = {
+    val databaseSpecificKeywordSet =
+      dbm
+        .getSQLKeywords
+        .splitList(",")
+        .map(_.trim)
+        .filter(_.nonEmpty)
+        .map(CIString.apply)
+        .toSet
+    KeywordSet(databaseSpecificKeywordSet ++ default.rawSet)
+  }
 
 
 }

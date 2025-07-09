@@ -40,7 +40,7 @@ object Row {
     new RowReader[Row] {
       override def rawRead(row: Row, index: Int): (Row, Int) = {
         val subRow = row.subRow(index)
-        subRow -> subRow.size
+        subRow -> subRow.size.toInt
       }
     }
 }
@@ -53,6 +53,12 @@ trait Row { outer =>
 
   protected val metadata: Row.Metadata
   protected val values: Chunk[AnyRef]
+
+  def value(i: Int): AnyRef = {
+    if ( i < 0 || i >= values.size )
+      sys.error(s"index out of bounds: ${i} for row with size ${values.size}")
+    values.get(i).getOrElse(sys.error(s"no value at index ${i}"))
+  }
 
   lazy val unsafeAsJsObj: JsObj = {
     JsObj(
@@ -75,7 +81,7 @@ trait Row { outer =>
    * indexed from 0 like any sane api should
    */
   def coerceByIndex[A : ClassTag](i: Int)(pf: PartialFunction[AnyRef, A]): A = {
-    val v = values(i)
+    val v = values.get(i).get
     if ( pf.isDefinedAt(v) )
       pf.apply(v)
     else
@@ -85,8 +91,8 @@ trait Row { outer =>
   def coerceByName[A : ClassTag](name: String)(pf: PartialFunction[AnyRef, A]): A =
     coerceByIndex(metadata.columnIndex(name))(pf)
 
-  def rawValueByName(name: String): AnyRef = values(metadata.columnIndex(name))
-  def rawValueByIndex(i: Int): AnyRef = values(i)
+  def rawValueByName(name: String): AnyRef = value(metadata.columnIndex(name))
+  def rawValueByIndex(i: Int): AnyRef = value(i)
   def opt[T](i: Int)(implicit mapper: RowReader[T]): Option[T] = mapper.readOpt(this, i)
   def opt[T](name: String)(implicit mapper: RowReader[T]): Option[T] = mapper.readOpt(this, columnIndex(name))
   def get[T](i: Int)(implicit mapper: RowReader[T]): T = mapper.read(this, i)
@@ -98,12 +104,15 @@ trait Row { outer =>
     else
       new Row {
         override protected val metadata: Row.Metadata = Row.Metadata(outer.metadata.columnNames.drop(start))
-        override protected val values: Chunk[AnyRef] = outer.values.drop(start)
+        override protected val values: Chunk[AnyRef] = {
+          // ??? needs optimization
+          Chunk.fromArray(outer.values.iterator.drop(start).toArray)
+        }
       }
 
   override def toString: String = {
     try {
-      s"Row(${values.map(_.toString).mkString(",")})"
+      s"Row(${values.map(_.toString).iterator.mkString(",")})"
     } catch {
       case e: Exception =>
         ""

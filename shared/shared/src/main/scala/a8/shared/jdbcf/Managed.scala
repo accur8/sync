@@ -2,37 +2,56 @@ package a8.shared.jdbcf
 
 
 import java.sql.{Connection, PreparedStatement, ResultSet, Statement}
-import a8.shared.SharedImports._
-import a8.common.logging.{Logging}
+import a8.shared.SharedImports.*
+import a8.common.logging.Logging
+import a8.shared.app.Ctx
+import a8.shared.app.Ctx.Completion
+import a8.shared.zreplace.Resource
 
 object Managed extends Logging {
 
   abstract class AbstractManaged[A] extends Managed[A] {
-    override def safeClose(a: A): UIO[Unit] =
-      isClosed(a)
-        .flatMap {
-          case true =>
-            ZIO.unit
-          case false =>
-            close(a)
+    override def safeClose(a: A): Unit = {
+      try {
+        if (!isClosed(a)) {
+          close(a)
         }
-        .catchAll(th =>
-          loggerF.debug(s"catching and swallowing error in safeClose(${a}) this is likely benign", th)
-        )
+      } catch {
+        case th: Throwable =>
+          logger.debug(s"catching and swallowing error in safeClose(${a}) this is likely benign", th)
+      }
+    }
   }
 
   object impl {
+
+    def doSafely(thunk: =>Unit): Unit = {
+      try {
+        thunk
+      } catch {
+        case th: Throwable =>
+          logger.debug(s"catching and swallowing error in doSafely, this is likely benign", th)
+      }
+    }
+
     def create[A](isClosedFn: A=>Boolean, closeFn: A=>Unit, cancelFn: Option[A=>Unit] = None): Managed[A] = {
       val isCancelable0 = cancelFn.isDefined
       new AbstractManaged[A] {
-        override def complete(exitCase: Exit[Any, Any], a: A): ZIO[Any, Nothing, Unit] = safeClose(a)
-        override def cancel(a: A): Task[Unit] =
-          cancelFn
-            .map(fn => ZIO.attemptBlocking(fn(a)))
-            .getOrElse(ZIO.unit)
+        override def complete(completion: Completion, a: A): Unit = {
+          safeClose(a)
+        }
+        override def cancel(a: A): Unit = {
+          doSafely(
+            cancelFn
+              .map(fn => fn(a))
+          )
+        }
+
         val isCancelable = isCancelable0
-        override def isClosed(a: A): Task[Boolean] = ZIO.attemptBlocking(isClosedFn(a))
-        override def close(a: A): Task[Unit] = ZIO.attemptBlocking(closeFn(a))
+        override def isClosed(a: A): Boolean =
+          isClosedFn(a)
+        override def close(a: A): Unit =
+          doSafely(closeFn(a))
       }
     }
   }
@@ -42,40 +61,30 @@ object Managed extends Logging {
     new AbstractManaged[Connection] {
 
       override val isCancelable: Boolean = false
-      override def cancel(conn: Connection): Task[Unit] = ZIO.unit
+      override def cancel(conn: Connection): Unit = ()
 
-      override def complete(exitCase: Exit[Any, Any], conn: Connection): UIO[Unit] =
-        ZIO.suspendSucceed {
-          val effect =
-            if (!conn.getAutoCommit && !conn.isClosed) {
-              exitCase match {
-                case _ if exitCase.isInterrupted || exitCase.isFailure =>
-                  val exitName = {
-                    if (exitCase.isInterrupted) "canceled"
-                    else if (exitCase.isFailure) "failed"
-                    else "success"
-                  }
-                  for {
-                    _ <- loggerF.debug(s"Transaction ${exitName}. Rolling back and closing connection.")
-                    _ <- ZIO.attempt(conn.rollback())
-                  } yield ()
-                case _ =>
-                  ZIO.attemptBlocking(
-                    conn.commit()
-                  )
-              }
-            } else {
-              ZIO.unit
+      override def complete(completion: Completion, conn: Connection): Unit = {
+        if (!conn.getAutoCommit && !conn.isClosed) {
+          if ( !completion.isSuccess ) {
+            val exitName = {
+              if (completion.isCancelled) "canceled"
+              else if (completion.isThrown) "failed"
+              else "success"
             }
-          val safeEffect = effect.catchAll(th => loggerF.debug(s"logging and swallowing error completing connection ${conn} it is likely bening", th))
-          safeEffect *> safeClose(conn)
+            logger.debug(s"Transaction ${conn}. Rolling back and closing connection.")
+            conn.rollback()
+          } else {
+            conn.commit()
+          }
+          safeClose(conn)
         }
+      }
 
-      override def isClosed(conn: Connection): Task[Boolean] =
-        ZIO.attemptBlocking(conn.isClosed)
+      override def isClosed(conn: Connection): Boolean =
+        conn.isClosed()
 
-      override def close(conn: Connection): Task[Unit] =
-        ZIO.attemptBlocking(conn.close())
+      override def close(conn: Connection): Unit =
+        conn.close()
 
     }
 
@@ -101,35 +110,39 @@ object Managed extends Logging {
 
   def apply[A : Managed]: Managed[A] = implicitly[Managed[A]]
 
-  def resource[A : Managed](thunk: =>A): Resource[A] = {
-    val Managed = implicitly[Managed[A]]
-    ZIO.acquireRelease(
-      ZIO.attemptBlocking(thunk)
+  def resource[A : Managed](thunk: Ctx ?=> A): Resource[A] = {
+    val managed = implicitly[Managed[A]]
+    Resource.acquireRelease(
+      acquire = thunk
     )(
-      a => Managed.complete(Exit.succeed(a), a)
+      release = a => {
+        if (!managed.isClosed(a)) {
+          managed.close(a)
+        }
+      }
     )
   }
 
   def resourceWithContext[A : Managed](contextOpt: Option[String])(thunk: =>A): Resource[A] = {
-    val managed = implicitly[Managed[A]]
-
-    val acquire: ZIO[Any, Throwable, A] =
-      ZIO
-        .attemptBlocking(thunk)
-        .onError( th =>
-          contextOpt match {
-            case Some(context) =>
-              loggerF.debug(s"error acquiring resource with context ${context}", th)
-            case None =>
-              ZIO.unit
-          }
-        )
-
-    def release(a: A, exit: Exit[Any,Any]): ZIO[Any,Nothing,Unit] =
-      managed.complete(exit, a)
-
-    ZIO.acquireReleaseExit(acquire)(release)
-
+    !!!
+//    val managed = implicitly[Managed[A]]
+//
+//    val acquire: ZIO[Any, Throwable, A] =
+//      ZIO
+//        .attemptBlocking(thunk)
+//        .onError( th =>
+//          contextOpt match {
+//            case Some(context) =>
+//              loggerF.debug(s"error acquiring resource with context ${context}", th)
+//            case None =>
+//              ZIO.unit
+//          }
+//        )
+//
+//    def release(a: A, exit: Exit[Any,Any]): ZIO[Any,Nothing,Unit] =
+//      managed.complete(exit, a)
+//
+//    ZIO.acquireReleaseExit(acquire)(release)
   }
 
   def scoped[A : Managed](thunk: =>A): Resource[A] =
@@ -139,13 +152,13 @@ object Managed extends Logging {
 
 trait Managed[A] {
   val isCancelable: Boolean
-  def cancel(a: A): Task[Unit]
-  def complete(exitCase: Exit[Any,Any], a: A): UIO[Unit]
-  def isClosed(a: A): Task[Boolean]
-  def close(a: A): Task[Unit]
+  def cancel(a: A): Unit
+  def complete(completion: Completion, a: A): Unit
+  def isClosed(a: A): Boolean
+  def close(a: A): Unit
 
   /**
    * only closes if isClosed = false
    */
-  def safeClose(a: A): UIO[Unit]
+  def safeClose(a: A): Unit
 }

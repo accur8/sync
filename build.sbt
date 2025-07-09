@@ -152,44 +152,44 @@ lazy val logging_logback_test =
     .jvmProject("a8-logging-logback_test", file("logging_logback_test"), "logging_logback_test")
     .dependsOn(logging_logback)
 
-lazy val api =
-  Common
-    .jvmProject("a8-sync-api", file("api"), "api")
-    .dependsOn(shared)
-    .settings(
-//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-      libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-//        zeroWastePlugin,
-      )
-    )
+//lazy val api =
+//  Common
+//    .jvmProject("a8-sync-api", file("api"), "api")
+//    .dependsOn(shared)
+//    .settings(
+////      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      libraryDependencies ++= Seq(
+//        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+////        zeroWastePlugin,
+//      )
+//    )
 
-lazy val http =
-  Common
-    .jvmProject("a8-http-server", file("http-server"), "http-server")
-    .dependsOn(api)
-    .settings(
-//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-      libraryDependencies ++= Seq(
-//        "dev.zio" %% "zio-http" % "3.0.0-RC1",
-        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-//        zeroWastePlugin,
-      )
-    )
+//lazy val http =
+//  Common
+//    .jvmProject("a8-http-server", file("http-server"), "http-server")
+//    .dependsOn(api)
+//    .settings(
+////      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      libraryDependencies ++= Seq(
+////        "dev.zio" %% "zio-http" % "3.0.0-RC1",
+//        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+////        zeroWastePlugin,
+//      )
+//    )
 
-lazy val nats =
-  Common
-    .jvmProject("a8-nats", file("nats"), "nats")
-    .dependsOn(api)
-    .settings(
-//      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-      libraryDependencies ++= Seq(
-        "io.nats" % "jnats" % "2.20.4",
-        "com.github.luben" % "zstd-jni" % "1.5.6-8",
-        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-//        zeroWastePlugin,
-      )
-    )
+//lazy val nats =
+//  Common
+//    .jvmProject("a8-nats", file("nats"), "nats")
+//    .dependsOn(api)
+//    .settings(
+////      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+//      libraryDependencies ++= Seq(
+//        "io.nats" % "jnats" % "2.20.4",
+//        "com.github.luben" % "zstd-jni" % "1.5.6-8",
+//        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+////        zeroWastePlugin,
+//      )
+//    )
 
 
 lazy val shared =
@@ -221,10 +221,11 @@ lazy val shared =
         ),
       libraryDependencies ++= Seq(
 //        zeroWastePlugin,
+        "com.softwaremill.ox" %% "core" % "0.7.0",
         "org.typelevel" %% "case-insensitive" % "1.3.0",
         "com.beachape" %%% "enumeratum" % "1.7.2",
         "com.lihaoyi" %%% "sourcecode" % "0.3.0",
-        "com.softwaremill.sttp.model" %% "core" % "1.5.5",
+        "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
         "org.scalactic" %% "scalactic" % "3.2.15" % "test",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
         "org.typelevel" %% "jawn-parser" % "1.4.0",
@@ -263,8 +264,9 @@ lazy val root =
   Common.jvmProject("root", file("target/root"), id = "root")
     .settings( publish := {} )
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
-    .aggregate(api)
-    .aggregate(http)
+//    .aggregate(api)
+//    .aggregate(http)
+//    .aggregate(nats)
     .aggregate(shared)
     .aggregate(loggingJVM)
     .aggregate(loggingJS)

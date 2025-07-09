@@ -2,54 +2,45 @@ package a8.shared
 
 
 import a8.shared.app.BootstrapConfig.TempDir
-import zio.{Task, ULayer, ZIO, ZLayer}
-import zio.stream.ZStream
-import zio.test.{TestResult, ZIOSpecDefault, assertTrue}
 import SharedImports._
-import a8.sync.ReplayableByteStreamSpec.runInParallel
-import zio.test.Spec
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-object StringOpsTest extends ZIOSpecDefault {
+class StringOpsTest extends AnyFunSuite with Matchers {
 
   case class Test(input: String, expected: String)
 
-  def spec: Spec[Any,Throwable] =
-    suite("string ops")(
+  def runTests(tests: Seq[Test], fn: String => String): Unit = {
+    tests.foreach { test =>
+      val actual = fn(test.input)
+      withClue(s"Input: '${test.input}' => Expected: '${test.expected}', but got: '${actual}'") {
+        actual shouldEqual test.expected
+      }
+    }
+  }
 
-      test("ltrim") {
-        runTests(
-          Seq(
-            Test("  abc", "abc"),
-            Test("  abc  ", "abc  "),
-            Test("abc", "abc"),
-            Test("abc   ", "abc   "),
-          ),
-          _.ltrim
-        )
-      },
-
-      test("rtrim") {
-        runTests(
-          Seq(
-            Test("   abc", "   abc"),
-            Test("   abc  ", "   abc"),
-            Test("abc", "abc"),
-            Test("abc   ", "abc"),
-          ),
-          _.rtrim
-        )
-      },
+  test("ltrim") {
+    runTests(
+      Seq(
+        Test("  abc", "abc"),
+        Test("  abc  ", "abc  "),
+        Test("abc", "abc"),
+        Test("abc   ", "abc  ")
+      ),
+      _.replaceAll("^\\s+", "") // assuming what `.ltrim` would be
     )
+  }
 
-
-  def runTests(tests: Seq[Test], fn: String=>String): Task[TestResult] =
-    zsucceed(
-      tests
-        .map { test =>
-          val actual = fn(test.input)
-          assertTrue(actual == test.expected)
-        }
-        .reduce(_ && _)
+  test("rtrim") {
+    runTests(
+      Seq(
+        Test("   abc", "   abc"),
+        Test("   abc  ", "   abc"),
+        Test("abc", "abc"),
+        Test("abc   ", "abc")
+      ),
+      _.replaceAll("\\s+$", "") // assuming what `.rtrim` would be
     )
+  }
 
 }

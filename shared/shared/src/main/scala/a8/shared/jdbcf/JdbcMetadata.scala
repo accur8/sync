@@ -143,30 +143,27 @@ object JdbcMetadata {
   }
 
 
-  val default: default =
+  val default: Default =
+    new Default
 
-    new default
-  class default extends JdbcMetadata {
+  class Default extends JdbcMetadata {
 
       val resolvedTableNameCache = TrieMap.empty[TableLocator, ResolvedTableName]
       val tableMetadataCache = TrieMap.empty[TableLocator, ResolvedJdbcTable]
 
-      override def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedTableName] = {
+      override def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): ResolvedTableName = {
         resolvedTableNameCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(a => zsucceed(a))
           .getOrElse {
-            impl.resolveTableName(tableLocator, conn)
-              .map { table =>
-                resolvedTableNameCache.put(tableLocator, table): @scala.annotation.nowarn
-                table
-              }
+            val table = impl.resolveTableName(tableLocator, conn)
+            resolvedTableNameCache.put(tableLocator, table): @scala.annotation.nowarn
+            table
           }
       }
 
 
-      override def tables(conn: Conn): Task[Iterable[JdbcTable]] = {
+      override def tables(conn: Conn): Iterable[JdbcTable] = {
         conn.asInternal.withInternalConn { jdbcConn =>
           resultSetToVector(
             jdbcConn
@@ -176,55 +173,49 @@ object JdbcMetadata {
         }
       }
 
-      override def tableMetadata(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedJdbcTable] = {
+      override def tableMetadata(tableLocator: TableLocator, conn: Conn, useCache: Boolean): ResolvedJdbcTable = {
         tableMetadataCache
           .get(tableLocator)
           .filter(_ => useCache)
-          .map(a => zsucceed(a))
+          .map(a => a)
           .getOrElse {
-            impl.tableMeta(tableLocator, conn)
-              .map { table =>
-                tableMetadataCache.put(tableLocator, table): @scala.annotation.nowarn
-                table
-              }
+            val table = impl.tableMeta(tableLocator, conn)
+            tableMetadataCache.put(tableLocator, table): @scala.annotation.nowarn
+            table
           }
       }
     }
 
   object impl {
 
-    def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] =
+    def resolveTableName(tableLocator: TableLocator, conn: Conn): ResolvedTableName =
       conn.dialect.resolveTableName(tableLocator, conn)
 
-    def tableMeta(tableLocator: TableLocator, conn: Conn): Task[ResolvedJdbcTable] = {
+    def tableMeta(tableLocator: TableLocator, conn: Conn): ResolvedJdbcTable = {
       import conn.dialect
-      for {
-        resolvedTableName <- dialect.resolveTableName(tableLocator, conn)
-        jdbcKeys <- dialect.primaryKeys(resolvedTableName, conn)
-        jdbcColumns <- dialect.columns(resolvedTableName, conn)
-        result <-
-          conn.asInternal.withInternalConn { jdbcConn =>
+      val resolvedTableName = dialect.resolveTableName(tableLocator, conn)
+      val jdbcKeys = dialect.primaryKeys(resolvedTableName, conn)
+      val jdbcColumns = dialect.columns(resolvedTableName, conn)
 
-            val jdbcTable: JdbcTable =
-              jdbcConn
-                .getMetaData
-                .getTables(
-                  resolvedTableName.catalog.map(_.asString).orNull,
-                  resolvedTableName.schema.map(_.asString).orNull,
-                  resolvedTableName.name.asString,
-                  null,
-                )
-                .runAsIterator { iter =>
-                  iter
-                    .map(row => JdbcTable(row, tableLocator))
-                    .take(1)
-                    .toList
-                    .head
-                }
-
-            ResolvedJdbcTable(resolvedTableName, jdbcTable, jdbcKeys, jdbcColumns)
-          }
-      } yield result
+      conn.asInternal.withInternalConn { jdbcConn =>
+        val jdbcTable: JdbcTable =
+          jdbcConn
+            .getMetaData
+            .getTables(
+              resolvedTableName.catalog.map(_.asString).orNull,
+              resolvedTableName.schema.map(_.asString).orNull,
+              resolvedTableName.name.asString,
+              null,
+            )
+            .runAsIterator { iter =>
+              iter
+                .map(row => JdbcTable(row, tableLocator))
+                .take(1)
+                .toList
+                .head
+            }
+        ResolvedJdbcTable(resolvedTableName, jdbcTable, jdbcKeys, jdbcColumns)
+      }
 
     }
 
@@ -234,8 +225,8 @@ object JdbcMetadata {
 
 trait JdbcMetadata {
 
-  def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedTableName]
-  def tables(conn: Conn): Task[Iterable[JdbcTable]]
-  def tableMetadata(tableLocator: TableLocator, conn: Conn, useCache: Boolean): Task[ResolvedJdbcTable]
+  def resolveTableName(tableLocator: TableLocator, conn: Conn, useCache: Boolean): ResolvedTableName
+  def tables(conn: Conn): Iterable[JdbcTable]
+  def tableMetadata(tableLocator: TableLocator, conn: Conn, useCache: Boolean): ResolvedJdbcTable
 
 }

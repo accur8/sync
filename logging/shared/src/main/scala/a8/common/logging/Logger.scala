@@ -10,7 +10,7 @@ object Logger {
     logger(classTag[A].runtimeClass)
 
   def logger(implicit trace: Trace): Logger =
-    LoggerFactory.logger(trace.wrap.scalaName)
+    LoggerFactory.logger(trace.loggerName)
 
   def logger(clazz: Class[?]): Logger =
     LoggerFactory.logger(normalizeClassname(clazz.getName))
@@ -22,11 +22,11 @@ object Logger {
 
 trait Logger {
 
-  def log(msg: String, th: Option[Throwable])(implicit trace: Trace): Unit = {
+  def log(msg: String, th: Option[Throwable])(using Trace): Unit = {
     log(Level.Debug, msg, th.getOrElse(null))
   }
 
-  def log(level: Level, msg: String = null, th: Throwable = null)(implicit trace: Trace): Unit
+  def log(level: Level, msg: String = null, th: Throwable = null)(using Trace): Unit
   def name: String
 
   def log(level: Level, msg: LogMessage)(implicit trace: Trace): Unit = {

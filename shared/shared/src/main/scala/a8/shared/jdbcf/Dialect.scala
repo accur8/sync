@@ -3,7 +3,7 @@ package a8.shared.jdbcf
 import a8.shared.Chord
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey}
-import a8.shared.jdbcf.SqlString.{DefaultEscaper, DefaultJdbcEscaper, Escaper, RawSqlString}
+import a8.shared.jdbcf.SqlString.{DefaultEscaper, DefaultJdbcEscaper, Escaper, RawSqlString, keyword}
 import sttp.model.Uri
 import UnsafeResultSetOps.*
 import a8.shared.SharedImports.*
@@ -50,18 +50,11 @@ trait Dialect {
 
   val validationQuery: Option[SqlString] = None
 
-  def escaper(jdbcConnR: Resource[Connection]): Resource[Escaper] =
-    jdbcConnR
-      .flatMap { conn =>
-        for {
-          keywordSet <- KeywordSet.fromMetadata(conn.getMetaData)
-          escaper0 <-
-            zblock {
-              val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
-              new DefaultEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase) {}
-            }
-        } yield escaper0
-      }
+  def buildEscaper(conn: Connection): Escaper = {
+    val keywordSet = KeywordSet.fromMetadata(conn.getMetaData)
+    val identifierQuoteString = conn.getMetaData.getIdentifierQuoteString
+    new DefaultEscaper(identifierQuoteString, keywordSet, defaultCaseFn = isIdentifierDefaultCase)
+  }
 
   def isIdentifierDefaultCase(name: String): Boolean
 
@@ -75,12 +68,11 @@ trait Dialect {
   def apply(jdbcUri: Uri): Option[Dialect] =
     DialectPlatform(jdbcUri)
 
-    /**
+  /**
    * will do a case insensitive lookup
    */
-  def resolveTableName(tableLocator: TableLocator, conn: Conn): Task[ResolvedTableName] = {
-    for {
-      resolveTableTask <-
+  def resolveTableName(tableLocator: TableLocator, conn: Conn): ResolvedTableName = {
+    val resolveTableName =
         conn.asInternal.withInternalConn { jdbcConn =>
           jdbcConn
             .getMetaData
@@ -106,17 +98,14 @@ trait Dialect {
 
             }
         }
-      rtn <- resolveTableTask
-    } yield rtn
+    resolveTableName
   }
 
-  def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): Task[ResolvedTableName] =
-    zsucceed(
-      foundTables.head
-    )
+  def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): ResolvedTableName =
+    foundTables.head
 
 
-  def primaryKeys(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcPrimaryKey]] = {
+  def primaryKeys(table: ResolvedTableName, conn: Conn): Vector[JdbcPrimaryKey] = {
     val locator = table.asLocator
     conn
       .asInternal
@@ -136,7 +125,7 @@ trait Dialect {
       }
   }
 
-  def columns(table: ResolvedTableName, conn: Conn): Task[Vector[JdbcColumn]] = {
+  def columns(table: ResolvedTableName, conn: Conn): Vector[JdbcColumn] = {
     conn
       .asInternal
       .withInternalConn { jdbcConn =>

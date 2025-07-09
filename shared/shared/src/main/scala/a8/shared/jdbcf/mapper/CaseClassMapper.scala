@@ -1,11 +1,11 @@
 package a8.shared.jdbcf.mapper
 
 
-import a8.shared.SharedImports._
-import a8.shared.jdbcf.{ColumnName, Conn, JdbcMetadata, Row, RowReader, SqlString, TableLocator, TableName}
+import a8.shared.SharedImports.*
+import a8.shared.jdbcf.{ColumnName, Conn, JdbcMetadata, ResolvedTableName, Row, RowReader, SqlString, TableLocator, TableName}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.MapperBuilder.{AuditProvider, FromCaseClassParm, Parm, PrimaryKey}
-import SqlString._
+import SqlString.*
 import a8.shared
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
@@ -40,6 +40,7 @@ case class CaseClassMapper[A, PK](
   tableName: TableName,
   auditProvider: AuditProvider[A],
   columnNameResolver: ColumnNameResolver = ColumnNameResolver.noop,
+  resolvedTableNameOpt: Option[ResolvedTableName] = None,
 ) extends KeyedTableMapper[A, PK] { self =>
 
   import CaseClassMapper._
@@ -60,13 +61,14 @@ case class CaseClassMapper[A, PK](
   }
 
 
-  override def materializeComponentMapper(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[ComponentMapper[A]] =
-    rawFields
-      .map { parm =>
-        parm.materialize(columnNamePrefix, conn, resolvedJdbcTable)
-      }
-      .sequence
-      .map(materializedParms => copy(rawFields = materializedParms))
+  override def materializeComponentMapper(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): ComponentMapper[A] = {
+    val materializedParms =
+      rawFields
+        .map { parm =>
+          parm.materialize(columnNamePrefix, conn, resolvedJdbcTable)
+        }
+    copy(rawFields = materializedParms)
+  }
 
   lazy val columnCount: Int = fields.map(_.columnCount).sum
 
@@ -190,7 +192,7 @@ case class CaseClassMapper[A, PK](
     sql"insert into ${tableName} (${valuePairs.map(_._1).mkSqlString(Comma)}) values(${valuePairs.map(_._2).mkSqlString(SqlString.Comma)})"
   }
 
-  override def materializeKeyedTableMapper(implicit conn: Conn): Task[KeyedTableMapper.Materialized[A, PK]] = {
+  override def materializeKeyedTableMapper(using conn: Conn): KeyedTableMapper.Materialized[A, PK] = {
     def columnNameResolver0(tableMeta: ResolvedJdbcTable) = {
       val mappedColumnNames: Map[ColumnName, DialectQuotedIdentifier] =
         tableMeta
@@ -211,25 +213,22 @@ case class CaseClassMapper[A, PK](
 //        }
 
     val columnNamePrefix = ColumnName("")
-    for {
-      tableName <- conn.resolveTableName(TableLocator(tableName))
-      resolvedJdbcTable <- conn.tableMetadata(tableName.asLocator)
-      columnNameResolver = columnNameResolver0(resolvedJdbcTable)
-      materializedRawFields <-
-        rawFields
-          .map { parm =>
-            parm.materialize(columnNamePrefix, conn, resolvedJdbcTable)
-          }
-          .sequence
-    } yield {
-      KeyedTableMapper.Materialized(
-        copy(
-          tableName = tableName.name,
-          rawFields = materializedRawFields,
-          columnNameResolver = columnNameResolver,
-        )
+    val resolvedTableName = conn.resolveTableName(TableLocator(tableName))
+    val resolvedJdbcTable = conn.tableMetadata(resolvedTableName.asLocator)
+    val columnNameResolver = columnNameResolver0(resolvedJdbcTable)
+    val materializedRawFields =
+      rawFields
+        .map { parm =>
+          parm.materialize(columnNamePrefix, conn, resolvedJdbcTable)
+        }
+    KeyedTableMapper.Materialized(
+      copy(
+        tableName = resolvedTableName.name,
+        rawFields = materializedRawFields,
+        columnNameResolver = columnNameResolver,
+        resolvedTableNameOpt = Some(resolvedTableName),
       )
-    }
+    )
   }
 
 }

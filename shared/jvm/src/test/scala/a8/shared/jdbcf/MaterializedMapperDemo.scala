@@ -4,13 +4,14 @@ package a8.shared.jdbcf
 import a8.shared.CompanionGen
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import sttp.model.Uri
-import a8.shared.SharedImports._
-import SqlString._
-import a8.shared.jdbcf.MxMaterializedMapperDemo._
+import a8.shared.SharedImports.*
+import SqlString.*
+import a8.shared.app.{AppCtx, BootstrappedIOApp, Ctx}
+import a8.shared.jdbcf.MxMaterializedMapperDemo.*
 import a8.shared.jdbcf.mapper.{PK, SqlTable}
-import zio._
+import zio.*
 
-object MaterializedMapperDemo extends ZIOAppDefault {
+object MaterializedMapperDemo extends BootstrappedIOApp {
 
   lazy val databaseConfig: DatabaseConfig =
     DatabaseConfig(
@@ -35,23 +36,16 @@ object MaterializedMapperDemo extends ZIOAppDefault {
   )
 
 
-  override def run: ZIO[Any & ZIOAppArgs & Scope, Any, Any] =
-    ConnFactory.resource(databaseConfig).use { connFactory =>
-      for {
-        _ <-
-          connFactory.connR.use(conn =>
-            conn.update(sql"""create table BIGBOO ("GrouP" int, name varchar(255))""")
-          )
-        _ <- runit(connFactory)
-      } yield ()
-    }
+  override def run()(using AppCtx): Unit = {
+    val connFactory = ConnFactory.resource(databaseConfig).unwrap
+    val conn = connFactory.connR.unwrap
+    conn.update(sql"""create table BIGBOO ("GrouP" int, name varchar(255))""")
+    runit(connFactory)
+  }
 
-  def runit(connFactory: ConnFactory): Task[Unit] = {
-    connFactory.connR.use { implicit conn =>
-      conn
-        .selectRows[BigBoo](sql"1 = 0")
-        .as(())
-    }
+  def runit(connFactory: ConnFactory)(using Ctx): Unit = {
+    val conn = connFactory.connR.unwrap
+    conn.selectRows[BigBoo](sql"1 = 0")
   }
 
 }

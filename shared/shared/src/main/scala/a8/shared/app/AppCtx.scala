@@ -1,33 +1,23 @@
 package a8.shared.app
 
 import a8.shared.app.BootstrapConfig.*
+import a8.shared.app.Ctx.InternalCtx
 import a8.shared.zreplace.Chunk
 
-case class AppLifecycle(
+case class AppCtx(
   bootstrapper: Bootstrapper,
-) extends Lifecycle {
+  ox0: ox.Ox,
+) extends Ctx with InternalCtx {
 
-  override def label: Option[String] = Some(bootstrapper.bootstrapConfig.appName.value)
+  override def appCtx: AppCtx = this
 
-  override def ancestry: Iterator[Lifecycle] =
+  override def label: Option[String] =
+    Some(bootstrapper.bootstrapConfig.appName.value)
+
+  override def ancestry: Iterator[Ctx] =
     Iterator(this)
 
-  override def parent: Lifecycle =
+  override def parent: Ctx =
     this
-
-  override def appLifecycle: Lifecycle =
-    this
-
-  override def cancel(): Unit =
-    ???
-
-  override def isCancelled(): Boolean =
-    ???
-
-  override def isRunning(): Boolean =
-    ???
-
-  override def register(listener: Lifecycle.Listener): Unit =
-    ???
 
 }

@@ -6,7 +6,7 @@ import LoggingOps._
 object Logging {
 
   def logger(implicit trace: Trace): Logger =
-    LoggerFactory.logger(trace.wrap.scalaName)
+    LoggerFactory.logger(trace.loggerName)
 
   def logger(clazz: Class[?]): Logger =
     LoggerFactory.logger(normalizeClassname(clazz))

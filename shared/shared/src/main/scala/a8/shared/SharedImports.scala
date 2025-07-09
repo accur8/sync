@@ -195,7 +195,7 @@ trait SharedImports
   def unsafeParseUri(uriStr: String): Uri =
     Uri.unsafeParse(uriStr)
 
-  def trylog[A](context: String)(fn: =>A)(implicit logger: Logger): A = {
+  def trylog[A](context: =>String)(fn: =>A)(implicit logger: Logger): A = {
     try {
       fn
     } catch {
@@ -205,7 +205,17 @@ trait SharedImports
     }
   }
 
-  def trylogo[A](context: String)(fn: =>A)(implicit logger: Logger): Option[A] = {
+  def tryLogDebug[A](context: =>String)(fn: =>A)(using logger: Logger): A = {
+    try {
+      fn
+    } catch {
+      case IsNonFatal(th) =>
+        logger.debug(context, th)
+        throw th
+    }
+  }
+
+  def trylogo[A](context: =>String)(fn: =>A)(implicit logger: Logger): Option[A] = {
     try {
       Some(fn)
     } catch {
@@ -272,13 +282,14 @@ trait SharedImports
   def none[A]: Option[A] = None
   def some[A](a: A): Option[A] = Some(a)
 
-  def zblock[A](fn: =>A)(implicit trace: Trace): Task[A] = ???
-//  def zunit: UIO[Unit] = zio.ZIO.unit
-  def zsucceed[A](a: A)(implicit trace: Trace): Task[A] = ???
-  def zfail[A](a: A)(implicit trace: Trace): Task[Nothing] = ???
-//  def zservice[A: zio.Tag](implicit trace: Trace): URIO[A, A] = zio.ZIO.service[A]
-//  def zattempt[A](code: => A)(implicit trace: Trace): Task[A] = zio.ZIO.attempt(code)
-  def zsuspend[R,A](code: => Task[A])(implicit trace: Trace): Task[A] = ???
+  // !!!
+//  def zblock[A](fn: =>A)(implicit trace: Trace): Task[A] = !!!
+//  def zunit: Task[Unit] = !!!
+//  def zsucceed[A](a: A)(implicit trace: Trace): Task[A] = !!!
+//  def zfail[A](a: A)(implicit trace: Trace): Task[Nothing] = !!!
+////  def zservice[A: zio.Tag](implicit trace: Trace): URIO[A, A] = zio.ZIO.service[A]
+//  def zattempt[A](code: => A)(implicit trace: Trace): Task[A] = !!!
+//  def zsuspend[R,A](code: => Task[A])(implicit trace: Trace): Task[A] = !!!
 
 //  def zl_succeed[A: Tag](a: A): ULayer[A] = ZLayer.succeed(a)
 
@@ -313,8 +324,8 @@ trait SharedImports
     given[A]: CanEqual[A, A] = CanEqual.canEqualAny
   }
 
-  type Task[A] = zreplace.Task[A]
-  val Task = zreplace.Task
+//  type Task[A] = zreplace.Task[A]
+//  val Task = zreplace.Task
 
   val zio = zreplace
 

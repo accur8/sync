@@ -21,19 +21,12 @@ import scala.jdk.CollectionConverters.*
 
 object LogbackConfigurator {
 
-//  val configureLoggingZ: zio.ZIO[LoggingBootstrapConfig & LoggerContext, Throwable, Unit] = {
-//    for {
-//      context <- zio.ZIO.service[LoggerContext]
-//      config <- zio.ZIO.service[LoggingBootstrapConfig]
-//      _ <-
-//        zio.ZIO.attempt {
-//          context.reset()
-//          val configurator = new LogbackConfigurator
-//          configurator.setContext(context)
-//          configurator.configure(context, config)
-//        }
-//    } yield ()
-//  }
+  def configureLogging(config: LoggingBootstrapConfig, context: LoggerContext): Unit = {
+    context.reset()
+    val configurator = new LogbackConfigurator
+    configurator.setContext(context)
+    configurator.configure(context, config)
+  }
 
   def statusMessages(): (a8.common.logging.Level,String) = {
     val status =

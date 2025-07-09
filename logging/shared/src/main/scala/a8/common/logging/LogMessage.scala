@@ -32,9 +32,7 @@ object LogMessage {
 
       case class ConsoleMessage(value: String) extends LogPart
 
-      case class TracePart(trace: Trace) extends LogPart {
-        lazy val wrapper = trace.wrap
-      }
+      case class TracePart(trace: Trace) extends LogPart
 
     }
 
@@ -89,7 +87,7 @@ object LogMessage {
 
         parts.reverse.foreach {
           case p: LogPart.TracePart =>
-            appendMessage(p.wrapper.filename + ":" + p.wrapper.lineNo)
+            appendMessage(p.trace.file.value + ":" + p.trace.line.value)
           case p: LogPart.Message =>
             appendMessage(p.value)
           case p: LogPart.ConsoleMessage =>

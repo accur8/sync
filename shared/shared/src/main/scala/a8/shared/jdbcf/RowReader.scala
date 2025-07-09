@@ -150,8 +150,8 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
 
 trait RowReader[A] { outer =>
 
-  def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[RowReader[A]] =
-    zsucceed(this)
+  def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): RowReader[A] =
+    this
 
   /**
    * index counts from 0 (even though jdbc result set values start from 1)

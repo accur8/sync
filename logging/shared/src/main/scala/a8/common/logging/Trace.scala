@@ -1,11 +1,14 @@
 package a8.common.logging
 
+import sourcecode.FullName
+
 object Trace {
-  val empty: Trace = new Trace {}
 //  implicit def apply(): Trace = empty
-  given trace: Trace = empty
+  inline given trace(using file: sourcecode.File, line: sourcecode.Line, fullName: FullName): Trace =
+    Trace(file, line, fullName)
 }
 
-trait Trace {
-
+case class Trace(file: sourcecode.File, line: sourcecode.Line, fullName: FullName) {
+  def loggerName: String = fullName.value
 }
+

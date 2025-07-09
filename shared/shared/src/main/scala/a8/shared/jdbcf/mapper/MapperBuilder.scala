@@ -44,8 +44,8 @@ object MapperBuilder {
     def values(a: A): Vector[QueryDsl.Constant[?]]
     def fields(path: QueryDsl.Path, columnNameResolver: ColumnNameResolver): Vector[QueryDsl.FieldExpr[?]]
     def rawRead(row: Row, index: Int): (Any, Int)
-    def booleanOp(linker: QueryDsl.Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition
-    def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Task[Parm[A]]
+    def booleanOp(linker: QueryDsl.Path, a: A, columnNameResolver: ColumnNameResolver)(using PathCompiler): QueryDsl.Condition
+    def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): Parm[A]
 
   }
 
@@ -62,14 +62,13 @@ object MapperBuilder {
     def rawRead(row: Row, index: Int): (Any, Int) =
       fieldHandler.rowReader.rawRead(row, index)
 
-    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Task[Parm[A]] = {
+    override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): Parm[A] = {
       val columnName = ColumnName(columnNamePrefix.asString + parm.name)
-      fieldHandler
-        .materialize(columnName, conn, resolvedJdbcTable)
-        .map { (materializedFieldHandler: FieldHandler[B]) =>
-          given FieldHandler[B] = materializedFieldHandler
-          FromCaseClassParm[A,B](parm, ordinal)
-        }
+      val materializedFieldHandler: FieldHandler[B] =
+        fieldHandler
+          .materialize(columnName, conn, resolvedJdbcTable)
+      given FieldHandler[B] = materializedFieldHandler
+      FromCaseClassParm[A,B](parm, ordinal)
     }
 
     override def booleanOp(linker: Path, a: A, columnNameResolver: ColumnNameResolver)(implicit alias: PathCompiler): QueryDsl.Condition =

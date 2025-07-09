@@ -552,7 +552,7 @@ class QueryDsl[T, TableDsl, K](
       where = Condition.TRUE
     )
 
-  def updateRow(row: T)(where: TableDsl => QueryDsl.Condition)(implicit conn: Conn): Task[Option[T]] = {
+  def updateRow(row: T)(where: TableDsl => QueryDsl.Condition)(using conn: Conn): Option[T] = {
     val selectQuery = SelectQueryImpl(tableDsl, keyedTableMapper, where(tableDsl), Nil)
     conn
       .updateRowWhere(row)(selectQuery.queryResolver.whereSqlNoAlias)

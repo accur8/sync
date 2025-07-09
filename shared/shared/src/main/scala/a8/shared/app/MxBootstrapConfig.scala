@@ -11,7 +11,6 @@ package a8.shared.app
 //====
 import a8.common.logging.LoggingBootstrapConfig.LoggingBootstrapConfigDto
 import a8.shared.app.BootstrapConfig.*
-import zio.Duration
 import scala.concurrent.duration.FiniteDuration
 //====
 

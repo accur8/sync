@@ -4,7 +4,6 @@ package a8.shared.jdbcf.querydsl
 import a8.shared.jdbcf.{Conn, SqlString}
 import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
 import QueryDsl.{Condition, PathCompiler, ss}
-import a8.shared.zreplace.Task
 
 import scala.language.existentials
 
@@ -56,6 +55,6 @@ case class UpdateQueryImpl[T,U](
     )
   }
 
-  override def execute(implicit conn: Conn): Task[Int] =
+  override def execute(implicit conn: Conn): Int =
     conn.update(sqlString)
 }

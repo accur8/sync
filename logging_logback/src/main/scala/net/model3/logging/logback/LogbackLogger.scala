@@ -12,8 +12,6 @@ object LogbackLogger {
 
   case class TraceMarker(trace: Trace) extends Marker {
 
-    val wrapper = trace.wrap
-
     override def getName: String = "trace"
     override def add(reference: Marker): Unit = ()
     override def remove(reference: Marker): Boolean = false
@@ -24,7 +22,7 @@ object LogbackLogger {
     override def contains(name: String): Boolean = getName == name
 
     override def toString: String =
-      s"(${wrapper.filename}:${wrapper.lineNo})"
+      s"(${trace.file.value}:${trace.line.value})"
 
   }
 

@@ -11,7 +11,7 @@ import a8.shared.json.JsonReader.JsonReaderOptions
  */
 trait QubesKeyedMapper[A,B] extends QubesMapper[A] {
 
- def fetch(b: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Task[A]
- def fetchOpt(b: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Task[Option[A]]
+ def fetch(b: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): A
+ def fetchOpt(b: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Option[A]
 
 }

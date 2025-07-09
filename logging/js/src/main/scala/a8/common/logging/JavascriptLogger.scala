@@ -38,9 +38,8 @@ case class JavascriptLogger(name: String, contextStack: js.Array[String]) extend
         else
           ""
 
-      val traceWrapper = trace.wrap
       lazy val stackTrace = th.stackTraceAsString
-      val formattedMessage = f"""${time.getHours().toInt}%02d:${time.getMinutes().toInt}%02d:${time.getSeconds().toInt}%02d.${time.getMilliseconds().toInt}%03d${contextStackStr} | ${level.name.toUpperCase}%5s | ${name} | ${msg}${if (th == null) "" else "\n" + stackTrace}${if (consoleValues.isEmpty) "" else "\n"} - (${traceWrapper.filename}:${traceWrapper.lineNo})"""
+      val formattedMessage = f"""${time.getHours().toInt}%02d:${time.getMinutes().toInt}%02d:${time.getSeconds().toInt}%02d.${time.getMilliseconds().toInt}%03d${contextStackStr} | ${level.name.toUpperCase}%5s | ${name} | ${msg}${if (th == null) "" else "\n" + stackTrace}${if (consoleValues.isEmpty) "" else "\n"} - (${trace.file.value}:${trace.line.value})"""
 
       level match {
         case Level.Error | Level.Fatal =>

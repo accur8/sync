@@ -1,11 +1,11 @@
 package a8.shared.jdbcf
 
-import a8.shared.SharedImports.{sharedImportsIntOps=>_, _}
-import a8.shared.jdbcf.SqlString._
-import a8.shared.app.BootstrappedIOApp
+import a8.shared.SharedImports.{sharedImportsIntOps as _, *}
+import a8.shared.jdbcf.SqlString.*
+import a8.shared.app.{AppCtx, BootstrappedIOApp}
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
-import sttp.model.Uri._
-import zio._
+import sttp.model.Uri.*
+import zio.*
 
 object ConnAutoCommitDemo extends BootstrappedIOApp {
 
@@ -22,35 +22,36 @@ object ConnAutoCommitDemo extends BootstrappedIOApp {
   lazy val noAutoCommitConnFactoryR: Resource[ConnFactory] = ConnFactory.resource(config.copy(autoCommit = false))
 
 
-  override def runT: Task[Unit] = {
-    ZIO.scoped {
-      for {
-        autoCommitConnFactory <- autoCommitConnFactoryR
-        noAutoCommitConnFactory <- noAutoCommitConnFactoryR
-        _ <- autoCommitConnFactory.connR.use(deleteRows)
-        _ <- autoCommitConnFactory.connR.use(doInserts).catchAll(th => loggerF.error(th.getMessage))
-        _ <- noAutoCommitConnFactory.connR.use(doInserts).catchAll(th => loggerF.error(th.getMessage))
-      } yield ()
-    }
+  override def run()(using appCtx: AppCtx): Unit = {
+    val autoCommitConnFactory = autoCommitConnFactoryR.unwrap
+    val noAutoCommitConnFactory = noAutoCommitConnFactoryR.unwrap
+
+    val autoConn = autoCommitConnFactory.connR.unwrap
+    deleteRows(autoConn)
+
+    val noAutoConn = noAutoCommitConnFactory.connR.unwrap
+    deleteRows(noAutoConn)
+
+    doInserts(autoConn)
+    doInserts(noAutoConn)
+
   }
 
-  def deleteRows(connIO: Conn): Task[Int] =
-    loggerF.info("Delete rows") *>
-      connIO.update(q"delete from keyvalue where createdbyuid = 'ConnDemo'")
+  def deleteRows(connIO: Conn): Int = {
+    logger.info("Delete rows")
+    connIO.update(q"delete from keyvalue where createdbyuid = 'ConnDemo'")
+  }
 
 
-  def doInserts(connIO: Conn): Task[Unit] = {
-    import zio.durationInt
-    for {
-      isAutoCommit <- connIO.isAutoCommit
-      _ <- loggerF.info(s"Inserting with auto-commit = ${isAutoCommit}")
-      key1 = s"ConnDemo-1-${isAutoCommit}"
-      key2 = s"ConnDemo-2-${isAutoCommit}"
-      _ <- connIO.update(q"insert into keyvalue (ky, value, created, createdbyuid) values (${key1.escape}, '', now(), 'ConnDemo')")
-      _ <- loggerF.info("Sleeping for 10 seconds")
-      _ <- ZIO.sleep(10.seconds)
-      _ <- connIO.update(q"insert into keyvalue (ky, value, created, createdbyuid) values (${key2.escape}, null, now(), 'ConnDemo')")
-    } yield ()
+  def doInserts(connIO: Conn): Unit = {
+    val isAutoCommit = connIO.isAutoCommit
+    logger.info(s"Inserting with auto-commit = ${isAutoCommit}")
+    val key1 = s"ConnDemo-1-${isAutoCommit}"
+    val key2 = s"ConnDemo-2-${isAutoCommit}"
+    connIO.update(q"insert into keyvalue (ky, value, created, createdbyuid) values (${key1.escape}, '', now(), 'ConnDemo')")
+    logger.info("Sleeping for 10 seconds")
+    Thread.sleep(10_000)
+    connIO.update(q"insert into keyvalue (ky, value, created, createdbyuid) values (${key2.escape}, null, now(), 'ConnDemo')")
   }
 
 }

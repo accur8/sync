@@ -1,74 +1,55 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
+import a8.shared.app.Ctx
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
-import zio._
+import zio.*
+
+import scala.collection.concurrent.TrieMap
 
 object ConnFactoryCompanion {
 
   object MapperMaterializer {
     object noop extends MapperMaterializer {
-      override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper.Materialized[A, B]] =
-        zsucceed(KeyedTableMapper.Materialized(ktm))
-      override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] =
-        zsucceed(tm)
+      override def materialize[A, B](ktm: KeyedTableMapper[A, B]): KeyedTableMapper.Materialized[A, B] =
+        KeyedTableMapper.Materialized(ktm)
+      override def materialize[A](tm: TableMapper[A]): TableMapper[A] =
+        tm
     }
   }
 
   abstract class MapperMaterializer {
-    def materialize[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]]
-    def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]]
+    def materialize[A,B](ktm: KeyedTableMapper[A,B]): KeyedTableMapper.Materialized[A,B]
+    def materialize[A](tm: TableMapper[A]): TableMapper[A]
   }
 
   class MapperMaterializerImpl(
-    cacheRef: Ref[Map[KeyedTableMapper[?,?],KeyedTableMapper.Materialized[?,?]]],
     connFactory: ConnFactory,
+  )(
+    using ctx: Ctx
   ) extends MapperMaterializer {
 
-    def materializeImpl[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]] =
-      ZIO
-        .scoped {
-          connFactory
-            .connR
-            .flatMap(implicit conn =>
-              ktm.materializeKeyedTableMapper
-            )
-        }
+    lazy val cache = TrieMap.empty[KeyedTableMapper[?,?],KeyedTableMapper.Materialized[?,?]]
 
-    def create[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]] =
-      for {
-        cache <- cacheRef.get
-        materialized <- materializeImpl(ktm)
-        _ <- cacheRef.update(_ + (ktm -> materialized))
-      } yield materialized
+    def createMaterializedMapper[A,B](ktm: KeyedTableMapper[A,B]): KeyedTableMapper.Materialized[A,B] =
+      ctx.withSubCtx {
+        given Conn = connFactory.connR.unwrap
+        ktm.materializeKeyedTableMapper
+      }
 
-    def fetchOrCreate[A,B](ktm: KeyedTableMapper[A,B]): Task[KeyedTableMapper.Materialized[A,B]] = {
-      for {
-        cache <- cacheRef.get
-        materialized <- {
-          cache.get(ktm) match {
-            case None =>
-              create(ktm)
-            case Some(m) =>
-              ZIO.succeed(m.asInstanceOf[KeyedTableMapper.Materialized[A,B]])
-          }
-        }
-      } yield materialized
-    }
+    def fetchOrCreate[A,B](ktm: KeyedTableMapper[A,B]): KeyedTableMapper.Materialized[A,B] =
+      cache
+        .getOrElseUpdate(ktm, createMaterializedMapper(ktm))
+        .asInstanceOf[KeyedTableMapper.Materialized[A,B]]
 
-    override def materialize[A, B](ktm: KeyedTableMapper[A, B]): Task[KeyedTableMapper.Materialized[A, B]] =
+    override def materialize[A, B](ktm: KeyedTableMapper[A, B]): KeyedTableMapper.Materialized[A, B] =
       fetchOrCreate(ktm)
 
-    override def materialize[A](tm: TableMapper[A]): Task[TableMapper[A]] = {
+    override def materialize[A](tm: TableMapper[A]): TableMapper[A] = {
       tm match {
         case ktm: KeyedTableMapper[A,_] =>
-          fetchOrCreate(ktm)
-            .map(_.value)
-            .map {
-              case mtm: TableMapper[A] =>
-                mtm
-            }
+          fetchOrCreate(ktm).value
       }
     }
 
@@ -79,12 +60,18 @@ object ConnFactoryCompanion {
 
 trait ConnFactoryCompanion {
 
-  lazy val layer: ZLayer[DatabaseConfig & Scope, Throwable, ConnFactory] =
-    ZLayer(constructor)
+//  lazy val layer: ZLayer[DatabaseConfig & Scope, Throwable, ConnFactory] =
+//    ZLayer(constructor)
 
-  lazy val constructor: ZIO[DatabaseConfig & Scope,Throwable,ConnFactory]
+  def constructor(databaseConfig: DatabaseConfig)(using Ctx): ConnFactory
 
-  def resource(databaseConfig: DatabaseConfig): Resource[ConnFactory] =
-    constructor.provideSome[zio.Scope](ZLayer.succeed(databaseConfig))
+  def resource(databaseConfig: DatabaseConfig): Resource[ConnFactory] = {
+    Resource
+      .acquireRelease(
+        constructor(databaseConfig)
+      )(
+        _.safeClose()
+      )
+  }
 
 }

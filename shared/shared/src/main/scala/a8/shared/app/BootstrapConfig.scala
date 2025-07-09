@@ -2,7 +2,7 @@ package a8.shared.app
 
 import a8.common.logging.{Level, LoggingBootstrapConfig}
 import a8.shared.FileSystem.Directory
-import a8.shared.{CompanionGen, ConfigMojo, FileSystem, NamedToString, StringValue, ZFileSystem}
+import a8.shared.{CompanionGen, ConfigMojo, FileSystem, NamedToString, StringValue, zreplace}
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.app.MxBootstrapConfig.*
 
@@ -126,24 +126,24 @@ object BootstrapConfig {
   case class ConfigDir(unresolved: Directory) extends DirectoryValue
 
   object WorkDir extends Logging {
-
-    val layer: ZLayer[TempDir & Scope, Throwable, WorkDir] = ZLayer(live)
-
-    val live: ZIO[TempDir & Scope, Throwable, WorkDir] = {
-      for {
-        tempDir <- zservice[TempDir]
-        workDir <-
-          ZIO.acquireRelease(
-            ZIO.attempt(WorkDir(tempDir.unresolved.subdir(FileSystem.fileSystemCompatibleTimestamp())))
-          )(
-            workDir =>
-              ZIO.attemptBlocking {
-                if ( workDir.unresolved.exists() )
-                  workDir.unresolved.delete()
-              }.logVoid
-          )
-      } yield workDir
-    }
+//  !!! ???
+//    val layer: ZLayer[TempDir & Scope, Throwable, WorkDir] = ZLayer(live)
+//
+//    val live: ZIO[TempDir & Scope, Throwable, WorkDir] = {
+//      for {
+//        tempDir <- zservice[TempDir]
+//        workDir <-
+//          ZIO.acquireRelease(
+//            ZIO.attempt(WorkDir(tempDir.unresolved.subdir(FileSystem.fileSystemCompatibleTimestamp())))
+//          )(
+//            workDir =>
+//              ZIO.attemptBlocking {
+//                if ( workDir.unresolved.exists() )
+//                  workDir.unresolved.delete()
+//              }.logVoid
+//          )
+//      } yield workDir
+//    }
   }
   case class WorkDir(unresolved: Directory) extends DirectoryValue
 
@@ -151,14 +151,9 @@ object BootstrapConfig {
 
   trait DirectoryValue {
     val unresolved: Directory
-    lazy val unresolvedZ: ZFileSystem.Directory = ZFileSystem.dir(unresolved.absolutePath)
     lazy val resolved: Directory = {
       unresolved.makeDirectories()
       unresolved
-    }
-    lazy val resolvedZ: Task[ZFileSystem.Directory] = {
-      unresolvedZ.makeDirectories
-        .as(unresolvedZ)
     }
   }
 
@@ -171,8 +166,19 @@ case class BootstrapConfig(
   cacheDir: CacheDir,
   dataDir: DataDir,
   configDir: ConfigDir,
-  appArgs: zio.ZIOAppArgs,
+  commandLineArgs: zio.CommandLineArgs,
   resolvedDto: BootstrapConfigDto,
 ) extends NamedToString { self =>
+
+  lazy val workDir = !!!
+
+  lazy val loggingBootstrapConfig: LoggingBootstrapConfig =
+    resolvedDto
+      .logging
+      .asLoggingBootstrapConfig(
+        appName = appName.value,
+        configDirectory = new java.io.File(configDir.unresolved.canonicalPath),
+        logsDirectory = new java.io.File(logsDir.unresolved.canonicalPath),
+      )
 
 }

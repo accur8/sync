@@ -1,4 +1,4 @@
-package a8.sync
+package a8.sync.http
 
 /**
 
@@ -9,12 +9,13 @@ package a8.sync
 */
 
 //====
-import a8.sync.http.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
+import a8.shared.SharedImports.*
+import a8.sync.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
+
 import scala.concurrent.duration.FiniteDuration
-import a8.shared.SharedImports._
 //====
 
-import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
+import a8.shared.Meta.{CaseClassParm, Constructors, Generator}
 
 
 

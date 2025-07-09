@@ -64,13 +64,13 @@ object SqlString extends SqlStringLowPrio {
           case RawSqlString(v) =>
             sb.append(v): @scala.annotation.nowarn
           case EscapedSqlString(s) =>
-            sb.append(escaper.unsafeSqlEscapeStringValue(s)): @scala.annotation.nowarn
+            sb.append(escaper.escapeStringValue(s)): @scala.annotation.nowarn
           case CompositeString(parts) =>
             parts.foreach(sb.append)
           case CompositeSqlString(parts) =>
             parts.foreach(run)
           case DialectQuotedIdentifier(v) =>
-            sb.append(escaper.unsafeSqlQuotedIdentifier(v)): @scala.annotation.nowarn
+            sb.append(escaper.quoteSqlIdentifier(v)): @scala.annotation.nowarn
           case SeparatedSqlString(iter, sep) =>
             if ( iter.nonEmpty ) {
               var first = true
@@ -239,16 +239,16 @@ object SqlString extends SqlStringLowPrio {
   }
 
   trait Escaper {
-    def unsafeSqlEscapeStringValue(value: String): String
-    def unsafeSqlQuotedIdentifier(identifier: String): String
+    def escapeStringValue(value: String): String
+    def quoteSqlIdentifier(identifier: String): String
   }
 
   class DefaultEscaper(identifierQuoteStr: String, keywordSet: KeywordSet, defaultCaseFn: String=>Boolean) extends Escaper {
 
-    override def unsafeSqlEscapeStringValue(value: String): String =
+    override def escapeStringValue(value: String): String =
       "'" + value.replace("'","''") + "'"
 
-    def unsafeSqlQuotedIdentifier(identifier: String): String = {
+    override def quoteSqlIdentifier(identifier: String): String = {
       val isDefaultCase = defaultCaseFn(identifier)
       val isKeyword = keywordSet.isKeyword(identifier)
       if ( isDefaultCase && !isKeyword ) {
@@ -263,9 +263,9 @@ object SqlString extends SqlStringLowPrio {
   object DefaultJdbcEscaper extends DefaultEscaper("\"", KeywordSet.default, _ => false)
 
   object NoopEscaper extends Escaper {
-    override def unsafeSqlEscapeStringValue(value: String): String =
+    override def escapeStringValue(value: String): String =
       "'" + value.replace("'","''") + "'"
-    override def unsafeSqlQuotedIdentifier(identifier: String): String =
+    override def quoteSqlIdentifier(identifier: String): String =
       identifier
   }
 
@@ -287,7 +287,7 @@ object SqlString extends SqlStringLowPrio {
 
 sealed trait SqlString {
 
-  def compile(implicit escaper: Escaper): CompiledSql =
+  def compile(using escaper: Escaper): CompiledSql =
     SqlString.unsafe.compile(this, escaper)
 
   override def toString: String =
