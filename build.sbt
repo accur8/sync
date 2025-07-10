@@ -10,7 +10,7 @@
 // 
 // 
 // 
-//      
+//
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
@@ -125,7 +125,7 @@ lazy val logging =
     )
 
 lazy val loggingJVM = logging.jvm
-lazy val loggingJS = logging.js
+//lazy val loggingJS = logging.js
 
 lazy val logging_logback =
   Common
@@ -259,6 +259,19 @@ lazy val shared =
 //lazy val sharedJVM = shared.jvm
 //lazy val sharedJS = shared.js
 
+lazy val stager =
+  Common
+    .jvmProject("ahs-stager", file("stager"), "stager")
+    .dependsOn(shared)
+    .settings(
+      libraryDependencies ++= Seq(
+        //        zeroWastePlugin,
+      )
+    )
+
+//lazy val sharedJVM = shared.jvm
+//lazy val sharedJS = shared.js
+
 
 lazy val root =
   Common.jvmProject("root", file("target/root"), id = "root")
@@ -268,8 +281,9 @@ lazy val root =
 //    .aggregate(http)
 //    .aggregate(nats)
     .aggregate(shared)
+    .aggregate(stager)
     .aggregate(loggingJVM)
-    .aggregate(loggingJS)
+//    .aggregate(loggingJS)
     .aggregate(logging_logback)
     .aggregate(logging_logback_test)
 

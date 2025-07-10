@@ -1,5 +1,14 @@
 # Accur8 Sync
 
+
+
+
+# tasks
+- drop typelevel case-instensitive since it pulls in all of cats
+
+
+
+
 ## Sonatype Deployment
 
 ### Prerequisites

@@ -18,7 +18,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxQubesApiClientDemo {
   
-  trait MxUserGroup {
+  trait MxUserGroup { self: UserGroup.type =>
   
     implicit lazy val qubesMapper: a8.sync.qubes.QubesKeyedMapper[UserGroup,String] =
       a8.sync.qubes.QubesMapperBuilder(generator)

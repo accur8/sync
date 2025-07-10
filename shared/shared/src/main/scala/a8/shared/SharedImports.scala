@@ -26,6 +26,8 @@ import cats.syntax
 import cats.instances
 import a8.common.logging.Logger
 
+import scala.quoted.{Expr, Quotes, Type}
+
 object SharedImports extends SharedImports
 
 trait SharedImports
@@ -231,5 +233,5 @@ trait SharedImports
   val zio = zreplace
 
   type Trace = a8.common.logging.Trace
-
+  
 }

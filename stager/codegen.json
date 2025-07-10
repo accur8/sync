@@ -1,0 +1,13 @@
+{
+  "template": "template2",
+  "defaults": [
+    {
+      "anno": {
+        "jsonCodec": true,
+        "zio": true,
+        "cats": false,
+        "scala3": true
+      }
+    }
+  ]
+}

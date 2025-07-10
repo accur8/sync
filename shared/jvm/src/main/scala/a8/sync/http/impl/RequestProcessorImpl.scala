@@ -98,15 +98,16 @@ case class RequestProcessorImpl(
       )
 
     def afterAttempt(attempt: Int, result: Either[Throwable,ResponseAction[A]]): Unit = {
-      !!!!
-//      responseAction match {
-//        case ResponseAction.Success(_) =>
-//          logger.debug(s"retry attempt ${attempt} succeeded with response ${response.responseMetadata.statusCode.code} -- ${response.responseMetadata.statusText}")
-//        case ResponseAction.Retry(_) =>
-//          logger.debug(s"retry attempt ${attempt} will retry response ${response.responseMetadata.statusCode.code} -- ${response.responseMetadata.statusText}")
-//        case f@ResponseAction.Fail(_, _) =>
-//          logger.debug(s"retry attempt ${attempt} failed with response ${response.responseMetadata.statusCode.code} -- ${response.responseMetadata.statusText} -- context: ${f.context} -- responseInfo: ${f.responseInfo.map(_.compactJson).getOrElse("none")}")
-//      }
+      result match {
+        case Right(ResponseAction.Success(_)) =>
+          logger.debug(s"retry attempt ${attempt} succeeded")
+        case Right(ResponseAction.Retryable(m)) =>
+          logger.debug(s"retry attempt ${attempt} had Retryable response ${m}")
+        case Right(f@ResponseAction.Fail(_, _)) =>
+          logger.debug(s"retry attempt ${attempt} had Fail response ${f.context} -- ${f.responseInfo.map(_.compactJson).getOrElse("none")}")
+        case Left(th) =>
+          logger.debug(s"retry attempt ${attempt} failed with throwable", th)
+      }
     }
 
 

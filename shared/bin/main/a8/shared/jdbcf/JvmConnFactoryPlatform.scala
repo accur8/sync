@@ -55,7 +55,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
       lazy val mapperCache: MapperMaterializer = new MapperMaterializerImpl(this)
       val config = databaseConfig
       def connR: Resource[Conn] =
-        Conn.impl.makeResource(ds.getConnection, mapperCache, databaseConfig.url, dialect, escaper)
+        Conn.impl.makeResource(ds.getConnection, mapperCache, databaseConfig.url, dialect, escaper, config)
       override def safeClose(): Unit =
         tryLogDebug("")(ds.close())
     }

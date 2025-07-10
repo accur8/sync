@@ -4,6 +4,7 @@ import a8.shared.app.Ctx
 import ox.flow.Flow
 
 import scala.collection.immutable.ArraySeq
+import scala.quoted.{Quotes, Type}
 import scala.reflect.ClassTag
 
 object zreplace {
@@ -12,9 +13,9 @@ object zreplace {
   trait Scope
 
   object CommandLineArgs {
-    def apply(args: Array[String]): CommandLineArgs =
+    def apply(args: Seq[String]): CommandLineArgs =
       new CommandLineArgs {
-        val value: Seq[String] = args.toIndexedSeq
+        val value: Seq[String] = args
       }
   }
 
@@ -24,17 +25,42 @@ object zreplace {
 
   object Resource {
 
+    object AttributeKey {
+
+      def apply[A: ClassTag] =
+        Impl(summon[ClassTag[A]].toString)
+
+      case class Impl(key: String) extends AttributeKey {
+        override def withSuffix(suffix: String): AttributeKey =
+          Impl(s"${key}.${suffix}")
+      }
+
+    }
+
+    sealed trait AttributeKey {
+      def key: String
+      def withSuffix(suffix: String): AttributeKey
+    }
+
     val unit: Resource[Unit] = acquireRelease[Unit](())(_ => ())
 
     def acquireRelease[A](acquire: Ctx ?=> A)(release: A => Unit): Resource[A] =
       free.AcquireRelease(
         acquire = ctx => acquire(using ctx),
+        attributeKey = None,
+        release = release
+      )
+
+    def acquireReleaseWithKey[A](attributeKey: AttributeKey)(acquire: Ctx ?=> A)(release: A => Unit): Resource[A] =
+      free.AcquireRelease(
+        acquire = ctx => acquire(using ctx),
+        attributeKey = Some(attributeKey),
         release = release
       )
 
     object free {
 
-      case class AcquireRelease[A](acquire: Ctx => A, release: A => Unit) extends Resource[A]
+      case class AcquireRelease[A](acquire: Ctx => A, attributeKey: Option[AttributeKey], release: A => Unit) extends Resource[A]
       case class Map[A, B](resource: Resource[A], f: A => B) extends Resource[B]
       case class FlatMap[A, B](resource: Resource[A], f: A => Resource[B]) extends Resource[B]
       case class CatchAll[A](resource: Resource[A], f: Throwable => Resource[A]) extends Resource[A]
@@ -42,15 +68,21 @@ object zreplace {
 
       def run[A](resource: Resource[A])(using ctx: Ctx): A = {
         resource match {
-          case AcquireRelease(acquire, release) =>
-            val a = acquire(ctx)
-            ctx.register(
-              new Ctx.Listener {
-                override def onCompletion(ctx: Ctx, completion: Ctx.Completion): Unit =
-                  release(a)
+          case AcquireRelease(acquire, attributeKeyOpt, release) =>
+            attributeKeyOpt
+              .flatMap(ak => ctx.get[A](ak))
+              .getOrElse {
+                val a = acquire(ctx)
+                attributeKeyOpt
+                  .foreach(ctx.put(_, a))
+                ctx.register(
+                  new Ctx.Listener {
+                    override def onCompletion(ctx: Ctx, completion: Ctx.Completion): Unit =
+                      release(a)
+                  }
+                )
+                a
               }
-            )
-            a
           case Map(resource, f) =>
             f(run(resource))
           case FlatMap(resource, f) =>
