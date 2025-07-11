@@ -57,7 +57,7 @@ trait Row { outer =>
   def value(i: Int): AnyRef = {
     if ( i < 0 || i >= values.size )
       sys.error(s"index out of bounds: ${i} for row with size ${values.size}")
-    values.get(i).getOrElse(sys.error(s"no value at index ${i}"))
+    values.get(i)
   }
 
   lazy val unsafeAsJsObj: JsObj = {
@@ -81,7 +81,7 @@ trait Row { outer =>
    * indexed from 0 like any sane api should
    */
   def coerceByIndex[A : ClassTag](i: Int)(pf: PartialFunction[AnyRef, A]): A = {
-    val v = values.get(i).get
+    val v = values.get(i)
     if ( pf.isDefinedAt(v) )
       pf.apply(v)
     else

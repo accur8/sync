@@ -3,7 +3,7 @@ package ahs.stager
 import a8.shared.app.Ctx
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.{Conn, JdbcMetadata, ResolvedTableName, TableLocator, TableName}
-import ahs.stager.GenerateTableAndIndexDdl.{Ddl, DdlKind}
+import ahs.stager.GenerateTableAndIndexDdl.{Ddl, DdlKind, postgresType}
 import ahs.stager.model.{ClientId, StagerConfig, TableNameResolver, VmDatabaseId}
 import model.*
 
@@ -20,6 +20,27 @@ object GenerateTableAndIndexDdl {
     tableName: TableName,
     sql: String,
   )
+
+  def postgresType(col: JdbcMetadata.JdbcColumn): String = {
+    if ( col.columnName.value.toString.toLowerCase == "ocuid" ) {
+      "char(32)"
+    } else {
+      col.typeName.toLowerCase match {
+        case "char" =>
+          s"CHAR(${col.columnSize})"
+        case "decimal" | "numeric" =>
+          s"NUMERIC(${col.bufferLength.get}, ${col.decimalDigits.get})"
+        case "date" =>
+          "DATE"
+        case "time" =>
+          "TIME"
+        case "timestamp" =>
+          "TIMESTAMP"
+        case _ =>
+          throw new IllegalArgumentException(s"Unsupported data type: ${col}")
+      }
+    }
+  }
 
 }
 
@@ -51,7 +72,7 @@ case class GenerateTableAndIndexDdl(
     table
       .indexes
       .map { index =>
-        val tableName = services.tableNameResolver.resolveTableName(table, clientId)
+        val tableName = services.tableNameResolver.resolveTableName(table, clientId).postgresTable
         val indexName = s"${tableName.value}_${index.nameSuffix}"
         val indexDdl =
           index
@@ -71,7 +92,7 @@ case class GenerateTableAndIndexDdl(
 
     val jdbcTable = given_Conn.tableMetadata(TableLocator(schemaName = vmDbId.schemaName, tableName = table.name))
 
-    val resolvedTableName = services.tableNameResolver.resolveTableName(table, clientId)
+    val resolvedTableName = services.tableNameResolver.resolveTableName(table, clientId).postgresTable
 
     val cols =
       jdbcTable
@@ -100,20 +121,4 @@ case class GenerateTableAndIndexDdl(
 
   }
 
-  def postgresType(col: JdbcMetadata.JdbcColumn): String = {
-    col.typeName.toLowerCase match {
-      case "char" =>
-        s"CHAR(${col.columnSize})"
-      case "decimal" | "numeric" =>
-        s"NUMERIC(${col.bufferLength.get}, ${col.decimalDigits.get})"
-      case "date" =>
-        "DATE"
-      case "time" =>
-        "TIME"
-      case "timestamp" =>
-        "TIMESTAMP"
-      case _ =>
-        throw new IllegalArgumentException(s"Unsupported data type: ${col}")
-    }
-  }
 }

@@ -13,7 +13,7 @@ object Services {
 
 case class Services(
   config: model.StagerConfig,
-  defaultVmId: VmDatabaseId = VmDatabaseId("0007"),
+  vmDatabaseId: VmDatabaseId,
 )(using Ctx) {
 
   lazy val connectionManager: ConnectionManager =
@@ -21,7 +21,7 @@ case class Services(
 
   lazy val tableNameResolver: TableNameResolver =
     summon[Ctx].withSubCtx(
-      model.loadTableNameResolver()(using connectionManager.conn(defaultVmId.asDatabaseId))
+      model.loadTableNameResolver(vmDatabaseId)(using summon[Ctx], connectionManager)
     )
 
   def fetchDatabaseConfig(id: DatabaseId): Option[DatabaseConfig] = {

@@ -196,7 +196,7 @@ object zreplace {
   object Chunk {
 
     def fromArray[A](array: Array[A]): Chunk[A] = {
-      cats.data.Chain.fromSeq(ArraySeq.unsafeWrapArray(array))
+      ChunkImpl(array)
     }
 
     extension (chunk: Chunk[Byte])
@@ -204,12 +204,36 @@ object zreplace {
         java.nio.ByteBuffer.wrap(chunk.toArray)
 
     extension [A: ClassTag](chunk: Chunk[A])
-      def toArray: Array[A] =
-        chunk.iterator.toArray
+      def toArray: Array[A] = {
+        chunk match {
+          case chunkImpl: ChunkImpl[A] =>
+            chunkImpl.arr
+        }
+      }
+
+    private case class ChunkImpl[A](arr: Array[A]) extends Chunk[A] {
+      override def size: Int = arr.size
+      override def iterator: Iterator[A] = arr.iterator
+      override def get(i: Int): A = arr(i)
+      override def map[B: ClassTag](f: A => B): Chunk[B] = {
+        val newArr = new Array[B](arr.length)
+        var i = 0
+        while (i < arr.length) {
+          newArr(i) = f(arr(i))
+          i += 1
+        }
+        ChunkImpl(newArr)
+      }
+    }
 
   }
 
-  type Chunk[A] = cats.data.Chain[A]
+  sealed trait Chunk[A] {
+    def size: Int
+    def iterator: Iterator[A]
+    def map[B: ClassTag](f: A=>B): Chunk[B]
+    def get(i: Int): A
+  }
 
 
 }

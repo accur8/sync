@@ -16,13 +16,13 @@ object CopyDataDemo extends StagerApp {
 
     val targetDatabaseId = DatabaseId("primelinkstaging")
 
-    given Services = Services(config)
+    given Services = Services(config, sourceVmDbId)
 
     copyTables(
       sourceVmDatabaseId = sourceVmDbId,
       targetDatabaseId = targetDatabaseId,
       clientId = clientId,
-      tables = AhsData.tables,
+      tables = AhsData.tables.dropRight(1),
     )
 
   }
@@ -39,9 +39,12 @@ object CopyDataDemo extends StagerApp {
   ): Unit = {
     tables
       .foreach( table =>
+        val resolvedTable = summon[Services].tableNameResolver.resolveTableName(table, clientId)
         summon[Ctx].withSubCtx(
           CopyData.runFullDataCopy(
-            sourceVmInfo = Some((sourceVmDatabaseId, clientId)),
+            vmId = sourceVmDatabaseId,
+            clientId = clientId,
+            vmMember = resolvedTable.vmMember,
             source =
               TableHandle(
                 databaseId = sourceVmDatabaseId.asDatabaseId,
@@ -52,7 +55,7 @@ object CopyDataDemo extends StagerApp {
               TableHandle(
                 databaseId = targetDatabaseId,
                 schema = SchemaName("public"),
-                tableName = summon[Services].tableNameResolver.resolveTableName(table, clientId),
+                tableName = summon[Services].tableNameResolver.resolveTableName(table, clientId).postgresTable,
               )
           )
         )

@@ -13,7 +13,7 @@ object CreateTablesDemo extends StagerApp {
     val vmDbId = VmDatabaseId("0013")
     val clientId = model.ClientId("PWAY")
 
-    given Services = Services(config)
+    given Services = Services(config, vmDbId)
 
     val gtni = GenerateTableAndIndexDdl(config, vmDbId, clientId, AhsData.tables, includeDropTables = true)
 

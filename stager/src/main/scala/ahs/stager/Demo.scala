@@ -18,17 +18,8 @@ object Demo extends BootstrappedIOApp {
     val vmDbId = VmDatabaseId("0002")
     val clientId = model.ClientId("BASA")
 
-    given conn: Conn =
-      Conn.newConnection(
-        url = vmDbId.jdbcUrl,
-//        url = Uri.unsafeParse("jdbc:as400://vmd0002;naming=system;libraries=VMD0002;errors=full"),
-        user = config.vmDatabaseUser,
-        password = config.vmDatabasePassword,
-      )
-
+    val services = Services(config, vmDbId)
     logger.debug("we have a db connection")
-
-    val tableNameResolver = model.loadTableNameResolver()
 
     val blpcar =
       model.Table(
@@ -37,9 +28,11 @@ object Demo extends BootstrappedIOApp {
         correlationColumns = Seq("BACAR"),
       )
 
-    val resolvedTableName =
-      tableNameResolver
+    val resolvedTableName = {
+      services
+        .tableNameResolver
         .resolveTableName(blpcar, model.ClientId("BASA"))
+    }
 
     logger.info("resolved table name: " + resolvedTableName)
 

@@ -1,13 +1,14 @@
 package ahs.stager
 
 import a8.shared.StringValue.CIStringValue
-import a8.shared.jdbcf.{ColumnName, Conn, DatabaseConfig, SchemaName, TableName}
+import a8.shared.jdbcf.{ColumnName, Conn, DatabaseConfig, SchemaName, SqlIdentifierValue, TableName}
 import a8.shared.jdbcf.SqlString.sqlStringContextImplicit
 import a8.shared.{CompanionGen, StringValue}
 import a8.shared.jdbcf.mapper.{PK, SqlTable}
 import ahs.stager.Mxmodel.{MxClientInfo, MxStagerConfig, MxTableInfo}
 import org.typelevel.ci.CIString
 import a8.shared.SharedImports.*
+import a8.shared.app.Ctx
 import a8.shared.jdbcf.DatabaseConfig.{DatabaseId, Password}
 import sttp.model.Uri
 
@@ -31,6 +32,9 @@ object model {
     }
 
   }
+
+  object VmMember extends StringValue.CIStringValueCompanion[VmMember]
+  case class VmMember(value: CIString) extends SqlIdentifierValue
 
   object ClientId extends StringValue.CIStringValueCompanion[ClientId]
   case class ClientId(value: CIString) extends CIStringValue
@@ -120,6 +124,12 @@ object model {
 
   }
 
+  case class ResolvedTableName(
+    vmTable: TableName,
+    vmMember: Option[VmMember],
+    postgresTable: TableName,
+  )
+
   case class TableNameResolver(
     tableInfos: Iterable[TableInfo],
     clientInfos: Iterable[ClientInfo],
@@ -135,25 +145,34 @@ object model {
         .map(ci => ci.cbdiv -> ci)
         .toMap
 
-    def resolveTableName(table: Table, clientId: ClientId): TableName = {
+    def resolveTableName(table: Table, clientId: ClientId): ResolvedTableName = {
 
       val result =
         tableInfosByTableName.get(table.name) match {
           case Some(tableInfo) =>
             val clientInfo = clientsById(clientId)
             val memberName = clientInfo.memberName(tableInfo.okdiv)
-            TableName(table.name.value.toString + "_" + memberName)
+            ResolvedTableName(
+              vmTable = table.name,
+              vmMember = Some(VmMember(memberName)),
+              postgresTable = TableName(table.name.value.toString + "_" + memberName),
+            )
           case None =>
-            table.name
+            ResolvedTableName(
+              vmTable = table.name,
+              vmMember = None,
+              postgresTable = table.name,
+            )
         }
 
-      result.toLowerCase
+      result.copy(postgresTable = result.postgresTable.toLowerCase)
 
     }
 
   }
 
-  def loadTableNameResolver()(using conn: Conn): TableNameResolver = {
+  def loadTableNameResolver(vmDatabaseId: VmDatabaseId)(using Ctx, ConnectionManager): TableNameResolver = {
+    val conn = summon[ConnectionManager].conn(vmDatabaseId.asDatabaseId)
     val selectAll = sql"""1 = 1"""
     val tableInfos = conn.selectRows[TableInfo](selectAll)
     val clientInfos = conn.selectRows[ClientInfo](selectAll)
@@ -176,7 +195,8 @@ object model {
     def transformForPostgres: ColumnName = {
       var raw = cn.value.toString.toLowerCase()
       if (raw.contains("#")) {
-        raw = '"' + raw + '"'
+        val q = '"'.toString
+        raw = q + raw + q
       }
       ColumnName(raw)
     }
