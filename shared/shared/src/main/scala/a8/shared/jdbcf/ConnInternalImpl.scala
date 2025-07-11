@@ -11,9 +11,11 @@ import a8.shared.SharedImports.*
 import a8.shared.app.Ctx
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
+import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import zio.*
 
 case class ConnInternalImpl(
+  databaseId: DatabaseId,
   jdbcMetadata: JdbcMetadata,
   jdbcConn: java.sql.Connection,
   mapperMaterializer: MapperMaterializer,
@@ -111,7 +113,7 @@ case class ConnInternalImpl(
     val resolvedSql = compile(sql)
     def acquire =
       withSqlCtx[JdbcPreparedStatement](
-        resolvedSql
+        databaseId, resolvedSql
       )(
         jdbcConn.prepareStatement(resolvedSql.value)
       )
@@ -121,7 +123,7 @@ case class ConnInternalImpl(
   protected def withPreparedStatement[A](sql: SqlString)(fn: JdbcPreparedStatement=>A): A = {
     val resolvedSql = compile(sql)
     withSqlCtx[A](
-      resolvedSql
+      databaseId, resolvedSql
     ) {
       val ps = jdbcConn.prepareStatement(resolvedSql.value)
       try {

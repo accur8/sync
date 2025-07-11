@@ -27,7 +27,7 @@ object Conn extends Logging {
       Resource
         .acquireReleaseWithKey(key) {
           val jdbcConn = connFn
-          toConn(jdbcConn, jdbcMetadata, mapperCache, jdbcUrl, dialect, escaper)
+          toConn(config.id, jdbcConn, jdbcMetadata, mapperCache, jdbcUrl, dialect, escaper)
         } {
           _.asInternal.withInternalConn { conn =>
             tryLogDebug(s"closing connection to ${conn.getMetaData.getURL}") {
@@ -64,6 +64,7 @@ object Conn extends Logging {
   }
 
   def toConn(
+    databaseId: DatabaseId,
     jdbcConn: JdbcConnection,
     jdbcMetadata: JdbcMetadata,
     mapperCache: MapperMaterializer,
@@ -71,7 +72,7 @@ object Conn extends Logging {
     dialect: Dialect,
     escaper: Escaper,
   )(using Ctx): Conn = {
-    ConnInternalImpl(jdbcMetadata, jdbcConn, mapperCache, jdbcUrl, dialect, escaper)
+    ConnInternalImpl(databaseId, jdbcMetadata, jdbcConn, mapperCache, jdbcUrl, dialect, escaper)
   }
 
   trait ConnInternal extends Conn {
@@ -106,6 +107,7 @@ object Conn extends Logging {
 
 trait Conn {
 
+  val databaseId: DatabaseId
   val jdbcUrl: Uri
 
   def ctx: Ctx

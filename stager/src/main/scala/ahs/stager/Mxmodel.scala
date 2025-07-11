@@ -11,7 +11,8 @@ package ahs.stager
 //====
 // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 import _root_.scala
-import a8.shared.jdbcf.TableName
+import a8.shared.jdbcf.DatabaseConfig.Password
+import a8.shared.jdbcf.{DatabaseConfig, TableName}
 import ahs.stager.model.*
 //====
 
@@ -333,6 +334,69 @@ object Mxmodel {
     
     
     lazy val typeName = "ClientInfo"
+  
+  }
+  
+  
+  
+  
+  trait MxStagerConfig { self: StagerConfig.type =>
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[StagerConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[StagerConfig,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[StagerConfig,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.vmDatabaseUser)
+          .addField(_.vmDatabasePassword)
+          .addField(_.postgresStagingDb)
+      )
+      .build
+    
+    
+    given scala.CanEqual[StagerConfig, StagerConfig] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[StagerConfig,parameters.type] =  {
+      val constructors = Constructors[StagerConfig](3, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val vmDatabaseUser: CaseClassParm[StagerConfig,String] = CaseClassParm[StagerConfig,String]("vmDatabaseUser", _.vmDatabaseUser, (d,v) => d.copy(vmDatabaseUser = v), None, 0)
+      lazy val vmDatabasePassword: CaseClassParm[StagerConfig,Password] = CaseClassParm[StagerConfig,Password]("vmDatabasePassword", _.vmDatabasePassword, (d,v) => d.copy(vmDatabasePassword = v), None, 1)
+      lazy val postgresStagingDb: CaseClassParm[StagerConfig,DatabaseConfig] = CaseClassParm[StagerConfig,DatabaseConfig]("postgresStagingDb", _.postgresStagingDb, (d,v) => d.copy(postgresStagingDb = v), None, 2)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): StagerConfig = {
+        StagerConfig(
+          vmDatabaseUser = values(0).asInstanceOf[String],
+          vmDatabasePassword = values(1).asInstanceOf[Password],
+          postgresStagingDb = values(2).asInstanceOf[DatabaseConfig],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): StagerConfig = {
+        val value =
+          StagerConfig(
+            vmDatabaseUser = values.next().asInstanceOf[String],
+            vmDatabasePassword = values.next().asInstanceOf[Password],
+            postgresStagingDb = values.next().asInstanceOf[DatabaseConfig],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(vmDatabaseUser: String, vmDatabasePassword: Password, postgresStagingDb: DatabaseConfig): StagerConfig =
+        StagerConfig(vmDatabaseUser, vmDatabasePassword, postgresStagingDb)
+    
+    }
+    
+    
+    lazy val typeName = "StagerConfig"
   
   }
 }

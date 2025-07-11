@@ -29,7 +29,7 @@ object Batcher {
             ps.addBatch()
           }
 
-        withSqlCtx(sql) {
+        withSqlCtx(conn.databaseId, sql) {
           ps.executeBatch()
         }
       }

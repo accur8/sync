@@ -33,6 +33,7 @@ object StringValue {
   trait CIStringValue {
     val value: CIString
     def asString = value.toString
+    override def toString = value.toString
   }
 
   abstract class CIStringValueCompanion[A <: CIStringValue] {

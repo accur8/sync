@@ -2,67 +2,102 @@ package ahs.stager
 
 import a8.shared.app.Ctx
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
-import a8.shared.jdbcf.{Conn, JdbcMetadata, TableLocator}
-import ahs.stager.Demo.DemoConfig
-import ahs.stager.model.{ClientId, TableNameResolver, VmDatabaseId}
+import a8.shared.jdbcf.{Conn, JdbcMetadata, ResolvedTableName, TableLocator, TableName}
+import ahs.stager.GenerateTableAndIndexDdl.{Ddl, DdlKind}
+import ahs.stager.model.{ClientId, StagerConfig, TableNameResolver, VmDatabaseId}
+import model.*
+
+object GenerateTableAndIndexDdl {
+
+  enum DdlKind {
+    case CreateTable
+    case CreateIndex
+    case DropTable
+  }
+
+  case class Ddl(
+    kind: DdlKind,
+    tableName: TableName,
+    sql: String,
+  )
+
+}
 
 case class GenerateTableAndIndexDdl(
-  config: DemoConfig,
+  config: StagerConfig,
   vmDbId: VmDatabaseId,
   clientId: model.ClientId,
   tables: Iterable[model.Table],
-)(using Ctx) {
+  includeDropTables: Boolean = false,
+)(
+  using
+    ctx: Ctx,
+    services: Services,
+) {
 
-  given Conn =
-    Conn.newConnection(
-      url = vmDbId.jdbcUrl,
-      user = config.vmDatabaseUser,
-      password = config.vmDatabasePassword,
-    )
+  given Conn = summon[Services].connectionManager.conn(vmDbId.asDatabaseId)
 
-  given TableNameResolver = model.loadTableNameResolver()
-
-  lazy val massiveDdl =
+  lazy val allDdl: Iterable[Ddl] =
     tables
       .flatMap { table =>
         postgresTableDdl(table)
       }
-      .mkString("\n\n;;;\n\n")
 
-  def postgresTableDdl(table: model.Table): List[String] = {
-    postgresCreateTableDdl(table) :: postgresCreateIndexesDdl(table)
+  def postgresTableDdl(table: model.Table): Iterable[Ddl] = {
+    postgresCreateTableDdl(table) ++ postgresCreateIndexesDdl(table)
   }
 
-  def postgresCreateIndexesDdl(table: model.Table): List[String] = {
+  def postgresCreateIndexesDdl(table: model.Table): Iterable[Ddl] = {
     table
       .indexes
       .map { index =>
-        val tableName = given_TableNameResolver.resolveTableName(table, clientId)
+        val tableName = services.tableNameResolver.resolveTableName(table, clientId)
         val indexName = s"${tableName.value}_${index.nameSuffix}"
         val indexDdl =
           index
             .ddl
-            .replace("{{tableName}}", tableName.value)
+            .replace("{{tableName}}", tableName.value.toString)
             .replace("{{indexName}}", indexName)
-        indexDdl
+        Ddl(
+          kind = DdlKind.CreateIndex,
+          tableName = tableName,
+          sql = indexDdl,
+        )
       }
       .toList
   }
 
-  def postgresCreateTableDdl(table: model.Table): String = {
+  def postgresCreateTableDdl(table: model.Table): Iterable[Ddl] = {
 
     val jdbcTable = given_Conn.tableMetadata(TableLocator(schemaName = vmDbId.schemaName, tableName = table.name))
 
-    val resolvedTableName = given_TableNameResolver.resolveTableName(table, clientId)
+    val resolvedTableName = services.tableNameResolver.resolveTableName(table, clientId)
 
     val cols =
       jdbcTable
         .columns
         .map { col =>
-          col.name.value.toString.toLowerCase + " " + postgresType(col.jdbcColumn)
+          col.name.transformForPostgres.value.toString + " " + postgresType(col.jdbcColumn)
         }
         .mkString(",")
-    s"CREATE TABLE ${resolvedTableName.value} ($cols)"
+
+    val drop =
+      Some(Ddl(
+        kind = DdlKind.DropTable,
+        tableName = resolvedTableName,
+        sql = "DROP TABLE IF EXISTS " + resolvedTableName.value
+      ))
+        .filter(_ => includeDropTables)
+
+    val create =
+      Some(Ddl(
+        kind = DdlKind.CreateTable,
+        tableName = resolvedTableName,
+        sql = s"CREATE TABLE ${resolvedTableName.value} ($cols)",
+      ))
+
+    drop ++ create
+
   }
 
   def postgresType(col: JdbcMetadata.JdbcColumn): String = {

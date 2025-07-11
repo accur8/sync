@@ -5,6 +5,8 @@ import a8.shared.{jdbcf, zreplace}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.SqlString.CompiledSql
 
+import java.sql.ResultSet
+
 object StreamingQuery {
 
   def create[A : RowReader](conn: ConnInternal, sql: SqlString): StreamingQuery[A] = {
@@ -16,17 +18,26 @@ object StreamingQuery {
     override val reader: RowReader[A] = implicitly[RowReader[A]]
 
     override def stream: zreplace.XStream[A] = {
+      def run = {
+        val st = conn.unsafeStatement()
+        st.getConnection.setAutoCommit(false)
+        st.setFetchSize(batchSize)
+        st.executeQuery(sql.value)
+      }
+      withSqlCtx(conn.databaseId, sql) {
+        resultSetToStream(run, batchSize)
+          .map(reader.read)
+      }
+    }
+
+    override def runIterator: Iterator[A] = {
       val st = conn.unsafeStatement()
       st.getConnection.setAutoCommit(false)
       st.setFetchSize(batchSize)
-      withSqlCtx(sql) {
-        resultSetToStream(st.executeQuery(sql.value), batchSize)
+      withSqlCtx(conn.databaseId, sql) {
+        val rs = st.executeQuery(sql.value)
+        unsafe.resultSetToIterator(rs)
           .map(reader.read)
-          .onComplete(
-            if ( !st.isClosed ) {
-              st.close()
-            }
-          )
       }
     }
 
@@ -45,4 +56,5 @@ trait StreamingQuery[A] {
   val reader: RowReader[A]
   def stream: zio.XStream[A]
   def batchSize(size: Int): StreamingQuery[A]
+  def runIterator: Iterator[A]
 }

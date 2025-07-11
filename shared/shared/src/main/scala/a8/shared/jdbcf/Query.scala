@@ -18,7 +18,7 @@ object Query {
       override val reader: RowReader[A] = implicitly[RowReader[A]]
 
       def stream: zio.XStream[A] = {
-        withSqlCtx(sql) {
+        withSqlCtx(conn.databaseId, sql) {
           conn.withInternalConn { jdbcConn =>
             // no cleanup since the result set will break out of the scope of this function
             val st = jdbcConn.createStatement()

@@ -21,6 +21,7 @@ object SqlString extends SqlStringLowPrio {
   val LeftParen: SqlString = keyword("(")
   val RightParen: SqlString = keyword(")")
   val OrWs: SqlString = keyword(" or ")
+  val QuestionMark: SqlString = keyword("?")
 
   def parens(sql: SqlString): SqlString =
     CompositeSqlString(Iterable(LeftParen, sql, RightParen))

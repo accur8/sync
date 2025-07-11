@@ -18,22 +18,27 @@ object AhsData {
     model.Table(
       name = TableName("O1PMBR"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("OKFIL"),
     ),
     model.Table(
       name = TableName("C1PDBR"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("CBDIV"),
     ),
     model.Table(
       name = TableName("C1PLOS"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("CDDIV"),
     ),
     model.Table(
       name = TableName("M1PUSR"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("MCUSR"),
     ),
     model.Table(
       name = TableName("BLPCAR"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("BACAR"),
       indexes = Seq(
         model.Index(
           nameSuffix = "div_car",
@@ -44,6 +49,7 @@ object AhsData {
     model.Table(
       name = TableName("BLPPAT"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("BDPAT"),
       indexes = Seq(
         model.Index(
           nameSuffix = "pat",
@@ -54,11 +60,13 @@ object AhsData {
     model.Table(
       name = TableName("SDPPRO"),
       syncType = SyncType.Full,
+      correlationColumns = Seq("SEPRO"),
     ),
     model.Table(
       name = TableName("OLPCHG"),
       syncType = SyncType.Timestamp,
       timestampColumn = Some("OCJRNTSP"),
+      correlationColumns = Seq("BRENC", "BSSQ3", "OCRECTYP", "OCJRNTSP"),
     ),
   )
 

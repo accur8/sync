@@ -3,21 +3,15 @@ package ahs.stager
 import a8.shared.CompanionGen
 import a8.shared.app.{AppCtx, BootstrappedIOApp}
 import a8.shared.jdbcf.DatabaseConfig.Password
-import a8.shared.jdbcf.{Conn, ConnFactory, TableName}
-import ahs.stager.MxDemo.MxDemoConfig
-import ahs.stager.model.{TableNameResolver, VmDatabaseId}
+import a8.shared.jdbcf.{Conn, ConnFactory, DatabaseConfig, TableName}
+import ahs.stager.model.{StagerConfig, TableNameResolver, VmDatabaseId}
 import sttp.model.Uri
 
 object Demo extends BootstrappedIOApp {
 
-  object DemoConfig extends MxDemoConfig
-  @CompanionGen()
-  case class DemoConfig(
-    vmDatabaseUser: String,
-    vmDatabasePassword: Password,
-  )
+  override lazy val defaultAppName: String = "ahsstager"
 
-  lazy val config = appConfig[DemoConfig]
+  lazy val config = appConfig[StagerConfig]
 
   override def run()(using AppCtx): Unit = {
 
@@ -40,6 +34,7 @@ object Demo extends BootstrappedIOApp {
       model.Table(
         name = TableName("BLPCAR"),
         syncType = model.SyncType.Full,
+        correlationColumns = Seq("BACAR"),
       )
 
     val resolvedTableName =

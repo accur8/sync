@@ -4,6 +4,7 @@ package a8.shared
 import java.sql.{ResultSet, SQLException}
 import a8.shared.jdbcf.UnsafeResultSetOps.*
 import SharedImports.*
+import a8.shared.jdbcf.DatabaseConfig.DatabaseId
 import a8.shared.jdbcf.SqlString.CompiledSql
 import a8.shared.zreplace.XStream
 
@@ -27,8 +28,8 @@ package object jdbcf extends Logging {
 
   }
 
-  def withSqlCtx[A](sql: CompiledSql)(fn: =>A): A = {
-    logger.debug(s"running sql -- ${sql.value}")
+  def withSqlCtx[A](databaseId: DatabaseId, sql: CompiledSql)(fn: =>A): A = {
+    logger.debug(s"running ${databaseId.value} sql -- ${sql.value}")
     try {
       val a = fn
       a

@@ -1,13 +1,14 @@
 package ahs.stager
 
 import a8.shared.StringValue.CIStringValue
-import a8.shared.jdbcf.{Conn, SchemaName, TableName}
+import a8.shared.jdbcf.{ColumnName, Conn, DatabaseConfig, SchemaName, TableName}
 import a8.shared.jdbcf.SqlString.sqlStringContextImplicit
 import a8.shared.{CompanionGen, StringValue}
 import a8.shared.jdbcf.mapper.{PK, SqlTable}
-import ahs.stager.Mxmodel.{MxClientInfo, MxTableInfo}
+import ahs.stager.Mxmodel.{MxClientInfo, MxStagerConfig, MxTableInfo}
 import org.typelevel.ci.CIString
 import a8.shared.SharedImports.*
+import a8.shared.jdbcf.DatabaseConfig.{DatabaseId, Password}
 import sttp.model.Uri
 
 object model {
@@ -15,15 +16,17 @@ object model {
   object VmDatabaseId extends StringValue.CIStringValueCompanion[VmDatabaseId]
   case class VmDatabaseId(value: CIString) extends CIStringValue {
 
+    def asDatabaseId = DatabaseId(value)
+
     require(value.toString.startsWith("00"), "value must start with '00'")
+
+    def programLibrary = z"VMP${value.toString.toUpperCase}"
 
     lazy val schemaName = SchemaName(z"VMD${value.toString.toUpperCase}")
 
-    def jdbcUrl = {
+    def jdbcUrl: Uri = {
       val uriStr = s"jdbc:as400://${schemaName.value.toString};naming=system;libraries=${schemaName.value.toString};errors=full"
       val uri = Uri.unsafeParse(uriStr)
-      val s = uri.toString
-      s.toString
       uri
     }
 
@@ -35,9 +38,6 @@ object model {
   object DivX extends StringValue.CIStringValueCompanion[DivX]
   case class DivX(value: CIString) extends CIStringValue
 
-  object ResolvedTableName extends StringValue.Companion[ResolvedTableName]
-  case class ResolvedTableName(value: String) extends StringValue
-
   enum SyncType {
     case Timestamp
     case Full
@@ -46,9 +46,16 @@ object model {
   case class Table(
     name: TableName,
     syncType: SyncType,
+    correlationColumns: Seq[String],
     timestampColumn: Option[String] = None,
-    indexes: Iterable[Index] = Iterable.empty,
-  )
+    indexes: Seq[Index] = Seq.empty,
+  ) {
+
+    lazy val resolvedCorrelationColumns =
+      correlationColumns
+        .map(cn => ColumnName(cn))
+
+  }
 
   case class Index(
     nameSuffix: String,
@@ -128,16 +135,19 @@ object model {
         .map(ci => ci.cbdiv -> ci)
         .toMap
 
-    def resolveTableName(table: Table, clientId: ClientId): ResolvedTableName = {
+    def resolveTableName(table: Table, clientId: ClientId): TableName = {
 
-      tableInfosByTableName.get(table.name) match {
-        case Some(tableInfo) =>
-          val clientInfo = clientsById(clientId)
-          val memberName = clientInfo.memberName(tableInfo.okdiv)
-          ResolvedTableName(table.name.value.toString + "_" + memberName)
-        case None =>
-          ResolvedTableName(table.name.value.toString)
-      }
+      val result =
+        tableInfosByTableName.get(table.name) match {
+          case Some(tableInfo) =>
+            val clientInfo = clientsById(clientId)
+            val memberName = clientInfo.memberName(tableInfo.okdiv)
+            TableName(table.name.value.toString + "_" + memberName)
+          case None =>
+            table.name
+        }
+
+      result.toLowerCase
 
     }
 
@@ -151,6 +161,25 @@ object model {
       tableInfos = tableInfos,
       clientInfos = clientInfos,
     )
+  }
+
+  object StagerConfig extends MxStagerConfig
+  @CompanionGen()
+  case class StagerConfig(
+    vmDatabaseUser: String,
+    vmDatabasePassword: Password,
+    postgresStagingDb: DatabaseConfig,
+  )
+
+
+  extension (cn: ColumnName) {
+    def transformForPostgres: ColumnName = {
+      var raw = cn.value.toString.toLowerCase()
+      if (raw.contains("#")) {
+        raw = '"' + raw + '"'
+      }
+      ColumnName(raw)
+    }
   }
 
 }

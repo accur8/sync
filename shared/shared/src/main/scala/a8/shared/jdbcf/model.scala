@@ -14,6 +14,7 @@ import scala.language.implicitConversions
 object ColumnName extends CIStringValueCompanion[ColumnName] {
 }
 case class ColumnName(value: CIString) extends SqlIdentifierValue {
+  def toLowerCase: ColumnName = ColumnName(value.toString.toLowerCase)
   def ~(right: ColumnName) =
     ColumnName(value.toString + right.value.toString)
 }
@@ -47,7 +48,7 @@ trait SqlIdentifierValue extends CIStringValue with HasSqlString {
 object TableName extends CIStringValueCompanion[TableName]
 case class TableName(value: CIString) extends SqlIdentifierValue {
   def asLowerCaseStringValue: SqlString.EscapedSqlString = SqlString.EscapedSqlString(asString.toLowerCase)
-  def asSqlString: SqlString = ???
+  def toLowerCase = TableName(value.toString.toLowerCase)
 }
 
 object SchemaName extends CIStringValueCompanion[SchemaName] {

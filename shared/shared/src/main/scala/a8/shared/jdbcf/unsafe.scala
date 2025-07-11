@@ -36,9 +36,14 @@ object unsafe {
 
     lazy val iter = {
       new Iterator[Row] {
-        def hasNext = resultSet.next()
+        private var hasNextRow: Boolean = resultSet.next()
+
+        override def hasNext: Boolean = hasNextRow
 
         def next() = {
+          if (!hasNextRow)
+            throw new NoSuchElementException("No more rows in the ResultSet")
+
           val columnCount = resultSet.getMetaData.getColumnCount
           val array = new Array[AnyRef](columnCount)
           (1 to columnCount) foreach { i =>
@@ -50,6 +55,14 @@ object unsafe {
                 v0
             array(i - 1) = v
           }
+
+          hasNextRow = resultSet.next()
+          if ( !hasNextRow ) {
+            tryLogDebug(s"closing resultSet") {
+              resultSet.close()
+            }
+          }
+
           Row(zio.Chunk.fromArray(array), dsm)
         }
       }
