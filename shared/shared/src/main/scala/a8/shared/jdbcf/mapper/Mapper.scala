@@ -15,7 +15,7 @@ import java.sql.PreparedStatement
 
 object Mapper {
 
-  def apply[A : RowWriter : RowReader]: Mapper[A] = {
+  def apply[A : {RowWriter, RowReader}]: Mapper[A] = {
     val rowReader = RowReader[A]
     val rowWriter = RowWriter[A]
     new Mapper[A] {

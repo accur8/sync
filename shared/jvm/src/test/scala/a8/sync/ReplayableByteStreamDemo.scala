@@ -8,7 +8,7 @@ object ReplayableByteStreamDemo extends ZIOAppDefault {
 
   val stream: ZStream[Any,Nothing,Byte] = ReplayableByteStreamSpec.newStream(1024)
 
-  def run: ZIO[Environment with ZIOAppArgs with Scope,Any,Any] = {
+  def run: ZIO[Environment & ZIOAppArgs & Scope,Any,Any] = {
     for {
       buffer <-
         stream

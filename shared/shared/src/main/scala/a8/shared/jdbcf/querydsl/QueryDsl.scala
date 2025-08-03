@@ -247,10 +247,10 @@ object QueryDsl {
     def isAnd: Boolean = this.isInstanceOf[And]
     def isOr: Boolean= this.isInstanceOf[Or]
 
-    def and(right: Condition): Condition =
+    infix def and(right: Condition): Condition =
       And(safeParens(this, true), safeParens(right, true))
 
-    def or(right: Condition): Condition =
+    infix def or(right: Condition): Condition =
       Or(safeParens(this, false), safeParens(right, false))
 
   }
@@ -523,9 +523,9 @@ object QueryDsl {
   abstract class Component[A](join: QueryDsl.Path) {
     def ===(right: A)(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, Iterable(right))
-    def in(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
+    infix def in(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
       StructuralInClause(join, this, right.toVector)
-    def in2(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
+    infix def in2(right: Iterable[A])(implicit mapper: ComponentMapper[A]): Condition =
       StructuralEquality(join, this, right)
   }
 
