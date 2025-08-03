@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Code Examples - Accur8 Sync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .examples {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .example {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .example h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .example p {
+            color: #666;
+            margin: 5px 0;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="../index.html">← Back to Documentation Index</a>
+    </div>
+    
+    <h1>Accur8 Sync Code Examples</h1>
+    
+    <div class="examples">
+        <p>These examples demonstrate common use cases and patterns for using Accur8 Sync.</p>
+        
+        <div class="example">
+            <h3><a href="../code-viewer.html?file=examples/BasicDatabaseSync.scala">BasicDatabaseSync.scala</a></h3>
+            <p>Shows how to synchronize data between two databases with different database systems (PostgreSQL to MySQL).</p>
+            <p><strong>Key concepts:</strong> Database configuration, connection factories, RowSync, sync results</p>
+        </div>
+        
+        <div class="example">
+            <h3><a href="../code-viewer.html?file=examples/StreamingLargeDataset.scala">StreamingLargeDataset.scala</a></h3>
+            <p>Demonstrates memory-efficient processing of large datasets using streaming APIs.</p>
+            <p><strong>Key concepts:</strong> Streaming queries, batch processing, memory management</p>
+        </div>
+        
+        <div class="example">
+            <h3><a href="../code-viewer.html?file=examples/JsonApiIntegration.scala">JsonApiIntegration.scala</a></h3>
+            <p>Shows how to integrate with external JSON APIs and sync the data to a database.</p>
+            <p><strong>Key concepts:</strong> JSON codecs, API clients, async operations, error handling</p>
+        </div>
+        
+        <div class="example">
+            <h3><a href="../code-viewer.html?file=examples/DataValidationExample.scala">DataValidationExample.scala</a></h3>
+            <p>Illustrates data validation and cleansing during sync operations.</p>
+            <p><strong>Key concepts:</strong> Validation rules, data transformation, error reporting</p>
+        </div>
+        
+        <h2>Download Examples</h2>
+        
+        <p>You can download the raw Scala files here:</p>
+        <ul>
+            <li><a href="BasicDatabaseSync.scala" download>BasicDatabaseSync.scala</a></li>
+            <li><a href="StreamingLargeDataset.scala" download>StreamingLargeDataset.scala</a></li>
+            <li><a href="JsonApiIntegration.scala" download>JsonApiIntegration.scala</a></li>
+            <li><a href="DataValidationExample.scala" download>DataValidationExample.scala</a></li>
+        </ul>
+        
+        <h2>Running the Examples</h2>
+        
+        <p>To run these examples in your project:</p>
+        
+        <pre>
+1. Add Accur8 Sync dependencies to your build.sbt:
+   libraryDependencies ++= Seq(
+     "io.accur8" %% "a8-sync-shared" % "latest-version",
+     "io.accur8" %% "a8-sync-api" % "latest-version"
+   )
+
+2. Copy the example code to your project
+
+3. Update the database configurations to match your environment
+
+4. Run with: sbt "runMain examples.BasicDatabaseSync"
+        </pre>
+        
+        <h2>Additional Resources</h2>
+        
+        <ul>
+            <li><a href="../md-viewer.html?file=HOW_TO_USE.md">How to Use Guide</a></li>
+            <li><a href="../shared/index.html">API Documentation</a></li>
+            <li><a href="https://github.com/accur8/sync">GitHub Repository</a></li>
+        </ul>
+    </div>
+</body>
+</html>

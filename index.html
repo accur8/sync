@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Accur8 Sync API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .modules {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .module {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .description {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Accur8 Sync API Documentation</h1>
+    
+    <div class="modules">
+        <h2>Modules</h2>
+        
+        <div class="module">
+            <a href="shared/index.html">a8-sync-shared</a>
+            <div class="description">Core utilities, JDBC functional layer, JSON processing</div>
+        </div>
+        
+        <div class="module">
+            <a href="loggingJVM/index.html">a8-logging</a>
+            <div class="description">Cross-platform logging abstraction</div>
+        </div>
+        
+        <div class="module">
+            <a href="logging_logback/index.html">a8-logging-logback</a>
+            <div class="description">Logback implementation for logging</div>
+        </div>
+        
+        <div class="module">
+            <a href="stager/index.html">ahs-stager</a>
+            <div class="description">Business-specific data staging application</div>
+        </div>
+    </div>
+    
+    <div class="modules" style="margin-top: 20px;">
+        <h2>Additional Documentation</h2>
+        <ul>
+            <li><a href="md-viewer.html?file=HOW_TO_USE.md">How to Use Guide</a></li>
+            <li><a href="md-viewer.html?file=DATABASE_SETUP.md">Database Setup Guide</a></li>
+            <li><a href="md-viewer.html?file=LOGGING_BEST_PRACTICES.md">Logging Best Practices</a></li>
+            <li><a href="md-viewer.html?file=API_DOCUMENTATION.md">API Documentation Guide</a></li>
+            <li><a href="examples/">Code Examples</a></li>
+        </ul>
+        <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+            Note: You can also view the raw markdown files directly: 
+            <a href="HOW_TO_USE.md">HOW_TO_USE.md</a>, 
+            <a href="DATABASE_SETUP.md">DATABASE_SETUP.md</a>, 
+            <a href="LOGGING_BEST_PRACTICES.md">LOGGING_BEST_PRACTICES.md</a>
+        </p>
+    </div>
+    
+    <p style="margin-top: 40px; color: #999; font-size: 0.8em;">
+        Generated on $(date)
+    </p>
+</body>
+</html>
