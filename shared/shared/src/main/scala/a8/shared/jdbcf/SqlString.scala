@@ -11,18 +11,47 @@ import a8.shared.jdbcf.JdbcMetadata.ResolvedColumn
 import a8.shared.jdbcf.SqlString.{CompiledSql, DefaultJdbcEscaper, Escaper}
 import a8.shared.json.ast.JsDoc
 
+/**
+ * Companion object for [[SqlString]] providing factory methods and common SQL fragments.
+ * 
+ * SqlString is the foundation of the type-safe SQL DSL, allowing construction of
+ * parameterized SQL queries with proper escaping and dialect support.
+ */
 object SqlString extends SqlStringLowPrio {
 
+  /** Double quote character */
   val DoubleQuote: String = '"'.toString
+  
+  /** SQL NULL keyword */
   val Null: SqlString = keyword("null")
+  
+  /** Comma separator */
   val Comma: SqlString = keyword(",")
+  
+  /** Comma with space separator */
   val CommaSpace: SqlString = keyword(", ")
+  
+  /** Space character */
   val Space: SqlString = keyword(" ")
+  
+  /** Left parenthesis */
   val LeftParen: SqlString = keyword("(")
+  
+  /** Right parenthesis */
   val RightParen: SqlString = keyword(")")
+  
+  /** OR keyword with spaces */
   val OrWs: SqlString = keyword(" or ")
+  
+  /** Question mark placeholder */
   val QuestionMark: SqlString = keyword("?")
 
+  /**
+   * Wraps a SQL fragment in parentheses.
+   * 
+   * @param sql The SQL to wrap
+   * @return SQL wrapped in parentheses
+   */
   def parens(sql: SqlString): SqlString =
     CompositeSqlString(Iterable(LeftParen, sql, RightParen))
 
@@ -202,8 +231,36 @@ object SqlString extends SqlStringLowPrio {
 
   }
 
+  /**
+   * Type class for converting Scala values to SQL fragments.
+   * 
+   * SqlStringer provides the conversion logic for embedding Scala values
+   * into SQL queries with proper escaping and type handling.
+   * 
+   * @tparam A The Scala type to convert
+   * 
+   * @example
+   * {{{n   * implicit val uuidStringer: SqlStringer[UUID] = new SqlStringer[UUID] {
+   *   def toSqlString(uuid: UUID): SqlString = uuid.toString.escape
+   * }
+   * }}}
+   */
   trait SqlStringer[A] {
+    /**
+     * Optionally refines this stringer based on database column metadata.
+     * 
+     * @param conn The database connection
+     * @param resolvedColumn Column metadata
+     * @return A refined stringer (default returns this)
+     */
     def materialize(conn: Conn, resolvedColumn: ResolvedColumn): SqlStringer[A] = this
+    
+    /**
+     * Converts a value to a SQL fragment.
+     * 
+     * @param a The value to convert
+     * @return SQL representation of the value
+     */
     def toSqlString(a: A): SqlString
   }
 
@@ -239,8 +296,33 @@ object SqlString extends SqlStringLowPrio {
         .getOrElse(Null)
   }
 
+  /**
+   * Handles SQL escaping and quoting for different database dialects.
+   * 
+   * Escaper provides dialect-specific logic for:
+   * - Escaping string values (handling quotes)
+   * - Quoting identifiers (table/column names)
+   */
   trait Escaper {
+    /**
+     * Escapes a string value for safe inclusion in SQL.
+     * 
+     * @param value The string to escape
+     * @return Escaped string with quotes
+     */
     def escapeStringValue(value: String): String
+    
+    /**
+     * Quotes a SQL identifier if necessary.
+     * 
+     * Identifiers are quoted if they:
+     * - Are SQL keywords
+     * - Contain special characters
+     * - Don't match the default case convention
+     * 
+     * @param identifier The identifier to quote
+     * @return Quoted identifier if necessary
+     */
     def quoteSqlIdentifier(identifier: String): String
   }
 
@@ -276,9 +358,31 @@ object SqlString extends SqlStringLowPrio {
 //    def mkSqlString(separator: SqlString): SqlString = SeparatedSqlString(iter, separator)
 //  }
 
+  /**
+   * Extension methods for building SQL strings using operators.
+   * 
+   * @param left The left-hand SQL fragment
+   */
   implicit class SqlStringOps(private val left: SqlString) extends AnyVal {
+    /**
+     * Concatenates two SQL fragments without spacing.
+     * 
+     * @example {{{nsql"SELECT" ~ sql"*" // SELECT*
+     * }}}
+     */
     @inline def ~(r: SqlString): SqlString = Concat(left, r)
+    
+    /**
+     * Concatenates two SQL fragments with a space between.
+     * 
+     * @example {{{nsql"SELECT" * sql"*" // SELECT *
+     * }}}
+     */
     @inline def *(r: SqlString): SqlString = Concat3(left, Space, r)
+    
+    /**
+     * Alias for * operator.
+     */
     @inline def ~*~(r: SqlString): SqlString = left * r
   }
 
@@ -286,11 +390,56 @@ object SqlString extends SqlStringLowPrio {
 
 }
 
+/**
+ * Type-safe representation of SQL fragments.
+ * 
+ * SqlString is the core type of the SQL DSL, representing SQL fragments that can be
+ * safely composed and executed. It handles:
+ * - Parameter binding
+ * - SQL injection prevention through proper escaping
+ * - Dialect-specific SQL generation
+ * 
+ * == Creating SqlString ==
+ * 
+ * Use the sql string interpolator:
+ * {{{n * val name = "John"
+ * val age = 25
+ * val query = sql"SELECT * FROM users WHERE name = \${name} AND age > \${age}"
+ * }}}
+ * 
+ * == Composing SqlString ==
+ * 
+ * SqlStrings can be composed using operators:
+ * {{{n * val select = sql"SELECT * FROM users"
+ * val where = sql"WHERE active = true"
+ * val query = select * where
+ * }}}
+ * 
+ * == Execution ==
+ * 
+ * SqlString compiles to SQL with bound parameters:
+ * {{{n * conn.query(sql"SELECT * FROM users WHERE id = \${userId}")
+ * }}}
+ * 
+ * @see [[SqlStringOps]] for composition operators
+ * @see [[SqlStringer]] for custom type conversions
+ */
 sealed trait SqlString {
 
+  /**
+   * Compiles this SQL fragment using the given escaper.
+   * 
+   * @param escaper The escaper for dialect-specific quoting
+   * @return Compiled SQL ready for execution
+   */
   def compile(using escaper: Escaper): CompiledSql =
     SqlString.unsafe.compile(this, escaper)
 
+  /**
+   * Returns a string representation using default JDBC escaping.
+   * 
+   * Note: This is for debugging only. Use compile() for execution.
+   */
   override def toString: String =
     SqlString.unsafe.compile(this, DefaultJdbcEscaper).value
 
