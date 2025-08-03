@@ -7,6 +7,28 @@ import scala.language.implicitConversions
 
 object SqlStringLowPrio {
 
+  /**
+   * Extension methods for StringContext to enable the sql"..." string interpolator.
+   * 
+   * This enables type-safe SQL query construction using string interpolation.
+   * Values interpolated into the query are automatically parameterized to prevent SQL injection.
+   * 
+   * @example {{{
+   * val userId = 123
+   * val status = "active"
+   * 
+   * val query = sql"""
+   *   SELECT id, name, email
+   *   FROM users
+   *   WHERE user_id = $userId
+   *     AND status = $status
+   * """
+   * 
+   * // This produces parameterized SQL:
+   * // SELECT id, name, email FROM users WHERE user_id = ? AND status = ?
+   * // With parameters: [123, "active"]
+   * }}}
+   */
   class SqlFragmentContext(private val stringContext: StringContext) extends AnyVal {
     def q(args: SqlString*): SqlString = sql(args*)
     def sql(args: SqlString*): SqlString = {
@@ -61,6 +83,29 @@ object SqlStringLowPrio {
 
 }
 
+/**
+ * Provides implicit conversions for SQL string construction.
+ * 
+ * Import this trait's members to enable the sql"..." string interpolator and
+ * various convenience methods for building SQL queries safely.
+ * 
+ * @example {{{
+ * import a8.shared.jdbcf.SqlString._
+ * 
+ * // String interpolation
+ * val query = sql"SELECT * FROM users WHERE id = $userId"
+ * 
+ * // Building identifiers
+ * val table = "users".identifier  // Will be properly quoted
+ * 
+ * // Escaping values
+ * val name = userInput.escape  // Will be properly escaped
+ * 
+ * // Combining SQL fragments
+ * val fields = List("id", "name", "email").map(_.identifier)
+ * val select = sql"SELECT ${fields.mkSqlString(", ")} FROM users"
+ * }}}
+ */
 trait SqlStringLowPrio {
 
   import SqlStringLowPrio._

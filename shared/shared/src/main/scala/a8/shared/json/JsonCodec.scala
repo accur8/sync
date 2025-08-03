@@ -11,6 +11,22 @@ import a8.shared.json.JsonReadOptions.UnusedFieldAction
 
 import scala.collection.mutable
 
+/**
+ * Companion object for JsonCodec providing factory methods and implicit conversions.
+ * 
+ * Extends JsonCodecs to provide built-in codec instances for common types.
+ * 
+ * @example {{{
+ * // Using automatic derivation for case classes
+ * case class User(id: Long, name: String, email: String)
+ * implicit val userCodec: JsonCodec[User] = JsonCodec.caseCodec[User]
+ * 
+ * // Using the codec
+ * val user = User(1, "Alice", "alice@example.com")
+ * val json = user.toJsVal
+ * val jsonString = user.prettyJson
+ * }}}
+ */
 object JsonCodec extends JsonCodecs {
 
   // these are here temporarily to keep code compiling while we decide whether JsonTypedCodec is moved to a top level Api or stays hidden in impl
@@ -20,6 +36,11 @@ object JsonCodec extends JsonCodecs {
   @inline
   final def apply[A : JsonCodec]: JsonCodec[A] = implicitly[JsonCodec[A]]
 
+  /**
+   * Extension methods for any type that has a JsonCodec instance.
+   * 
+   * Provides convenient methods to convert values to JSON.
+   */
   class JsonCodecOps[A: JsonCodec](private val a: A) {
     def toJsVal: JsVal = JsonCodec[A].write(a)
     def toJsRootDoc: JsDoc = toJsVal.toRootDoc
@@ -54,9 +75,42 @@ object JsonCodec extends JsonCodecs {
 
 }
 
+/**
+ * Type class for JSON serialization and deserialization.
+ * 
+ * A JsonCodec[A] provides bidirectional conversion between Scala values of type A
+ * and JSON representation (JsVal).
+ * 
+ * @tparam A The Scala type this codec can encode/decode
+ * 
+ * @example {{{
+ * // Define a custom codec
+ * implicit val dateCodec: JsonCodec[LocalDate] = new JsonCodec[LocalDate] {
+ *   def write(date: LocalDate): JsVal = JsStr(date.toString)
+ *   
+ *   def read(doc: JsDoc)(implicit options: JsonReadOptions): Either[ReadError, LocalDate] =
+ *     doc.as[JsStr].map(str => LocalDate.parse(str.value))
+ * }
+ * 
+ * // Use with automatic codec for case classes
+ * case class Event(name: String, date: LocalDate)
+ * implicit val eventCodec: JsonCodec[Event] = JsonCodec.caseCodec[Event]
+ * }}}
+ */
 trait JsonCodec[A] { jsonCodecA =>
 
+  /**
+   * Encode a value of type A to JSON representation.
+   */
   def write(a: A): JsVal
+  
+  /**
+   * Decode a JSON document to a value of type A.
+   * 
+   * @param doc The JSON document to decode
+   * @param readOptions Options controlling the decoding behavior (e.g., handling of extra fields)
+   * @return Either a ReadError (left) or the decoded value (right)
+   */
   def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError,A]
 
   def read(doc: JsDoc, default: Option[() => A])(implicit readOptions: JsonReadOptions): Either[ReadError,A] = {

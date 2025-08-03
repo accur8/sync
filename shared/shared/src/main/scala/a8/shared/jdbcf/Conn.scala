@@ -105,6 +105,37 @@ object Conn extends Logging {
 
 }
 
+/**
+ * Represents an active database connection with query execution capabilities.
+ * 
+ * Conn provides a functional interface for executing SQL queries and updates,
+ * managing transactions, and working with database metadata. It wraps a JDBC
+ * connection with additional safety and convenience features.
+ * 
+ * Conn instances are typically obtained through a [[ConnFactory]] and should
+ * be used within a resource scope to ensure proper cleanup.
+ * 
+ * @example {{{
+ * connFactory.use { conn =>
+ *   // Execute a query
+ *   val users = conn.query(sql"SELECT * FROM users WHERE active = true")
+ *     .fetch[User]()
+ *   
+ *   // Execute an update
+ *   val rowsUpdated = conn.execute(
+ *     sql"UPDATE users SET last_login = NOW() WHERE id = $userId"
+ *   )
+ *   
+ *   // Use a transaction
+ *   conn.transaction {
+ *     conn.execute(sql"INSERT INTO audit_log ...")
+ *     conn.execute(sql"UPDATE users ...")
+ *   }
+ * }
+ * }}}
+ * 
+ * @note All query methods return lazy values that only execute when explicitly materialized
+ */
 trait Conn {
 
   val databaseId: DatabaseId

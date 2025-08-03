@@ -148,26 +148,64 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
       }
 }
 
+/**
+ * Type class for reading values of type A from database result set rows.
+ * 
+ * RowReader instances define how to convert JDBC ResultSet data into Scala types.
+ * Instances are provided for common types and tuples, and can be derived for case classes
+ * using the provided macros.
+ * 
+ * @tparam A The Scala type that this reader can produce from database rows
+ * 
+ * @example {{{
+ * // Implicit instances for basic types are provided
+ * val nameReader: RowReader[String] = implicitly[RowReader[String]]
+ * 
+ * // Tuple readers are automatically available
+ * val tupleReader: RowReader[(Long, String, Boolean)] = 
+ *   implicitly[RowReader[(Long, String, Boolean)]]
+ * 
+ * // Case class readers can be derived
+ * case class User(id: Long, name: String, active: Boolean)
+ * implicit val userReader: RowReader[User] = RowReader.derived[User]
+ * 
+ * // Use with queries
+ * val users = conn.query[User](sql"SELECT id, name, active FROM users").select
+ * }}}
+ */
 trait RowReader[A] { outer =>
 
   def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: ResolvedJdbcTable): RowReader[A] =
     this
 
   /**
-   * index counts from 0 (even though jdbc result set values start from 1)
+   * Read a value from the row starting at column index 0.
+   * 
+   * @param row The database row to read from
+   * @return The value of type A read from the row
    */
   def read(row: Row): A = read(row, 0)
 
   /**
-   * index counts from 0 (even though jdbc result set values start from 1)
+   * Read a value from the row starting at the specified column index.
+   * 
+   * @param row The database row to read from
+   * @param index The column index to start reading from (0-based)
+   * @return The value of type A read from the row
+   * @note index counts from 0 (even though jdbc result set values start from 1)
    */
   final def read(row: Row, index: Int): A = rawRead(row, index)._1
 
   /**
-   * returns the value and the number of values read
+   * Read a value from the row and return both the value and number of columns consumed.
+   * 
+   * This is used internally to support reading composite types (like tuples and case classes)
+   * where multiple columns need to be read sequentially.
    *
-   * index counts from 0 (even though jdbc result set values start from 1)
-   *
+   * @param row The database row to read from
+   * @param index The column index to start reading from (0-based)
+   * @return A tuple of (value read, number of columns consumed)
+   * @note index counts from 0 (even though jdbc result set values start from 1)
    */
   def rawRead(row: Row, index: Int): (A,Int)
 

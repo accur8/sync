@@ -46,13 +46,59 @@ object Query {
 
 
 /**
- * a lazy representation of a query where select, fetchOpt, and fetch will actually run the query
+ * A lazy representation of a database query that can be executed to retrieve results.
+ * 
+ * Query instances are created by calling `conn.query(sql)` and are lazy, meaning
+ * the SQL is not executed until you call one of the fetch methods.
+ * 
+ * @tparam A The type of rows this query returns, determined by the implicit RowReader
+ * 
+ * @example {{{
+ * // Create a query (lazy - no execution yet)
+ * val userQuery = conn.query[User](
+ *   sql"SELECT id, name, email FROM users WHERE active = true"
+ * )
+ * 
+ * // Execute and fetch all results
+ * val allUsers: Iterable[User] = userQuery.select
+ * 
+ * // Execute and fetch optional single result
+ * val maybeUser: Option[User] = conn.query[User](
+ *   sql"SELECT * FROM users WHERE id = $userId"
+ * ).fetchOpt
+ * 
+ * // Execute and fetch required single result (throws if not found)
+ * val user: User = conn.query[User](
+ *   sql"SELECT * FROM users WHERE id = $userId"
+ * ).fetch
+ * }}}
+ * 
+ * @note All fetch methods will execute the query each time they are called
  */
 trait Query[A] { query =>
   val sql: CompiledSql
   val reader: RowReader[A]
+  
+  /**
+   * Execute the query and return all results as an Iterable.
+   * 
+   * @return All rows returned by the query
+   */
   def select: Iterable[A]
+  
+  /**
+   * Execute the query and return the first result, if any.
+   * 
+   * @return Some(firstRow) if the query returned at least one row, None otherwise
+   */
   def fetchOpt: Option[A]
+  
+  /**
+   * Execute the query and return exactly one result.
+   * 
+   * @return The single row returned by the query
+   * @throws SQLException if the query returns no rows
+   */
   def fetch: A =
     fetchOpt match {
       case None =>

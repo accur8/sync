@@ -42,7 +42,10 @@ for module in "${MODULES[@]}"; do
     
     if [ $? -eq 0 ]; then
         # Copy generated docs to unified location
-        if [ -d "${module}/target/scala-3.7.1/api" ]; then
+        if [ "$module" = "loggingJVM" ] && [ -d "logging/jvm/target/scala-3.7.1/api" ]; then
+            cp -r "logging/jvm/target/scala-3.7.1/api" "$DOCS_DIR/loggingJVM"
+            echo -e "  ${GREEN}✓${NC} ${module} docs generated"
+        elif [ -d "${module}/target/scala-3.7.1/api" ]; then
             cp -r "${module}/target/scala-3.7.1/api" "$DOCS_DIR/${module}"
             echo -e "  ${GREEN}✓${NC} ${module} docs generated"
         elif [ -d "${module}/target/scala-3.7.1/doc" ]; then
@@ -55,7 +58,49 @@ for module in "${MODULES[@]}"; do
 done
 
 echo
-echo -e "${YELLOW}Step 3: Creating index page...${NC}"
+echo -e "${YELLOW}Step 3: Copying documentation files...${NC}"
+
+# Copy markdown documentation to the docs directory
+if [ -f "HOW_TO_USE.md" ]; then
+    cp HOW_TO_USE.md "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied HOW_TO_USE.md"
+fi
+
+if [ -f "DATABASE_SETUP.md" ]; then
+    cp DATABASE_SETUP.md "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied DATABASE_SETUP.md"
+fi
+
+if [ -f "LOGGING_BEST_PRACTICES.md" ]; then
+    cp LOGGING_BEST_PRACTICES.md "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied LOGGING_BEST_PRACTICES.md"
+fi
+
+if [ -f "API_DOCUMENTATION.md" ]; then
+    cp API_DOCUMENTATION.md "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied API_DOCUMENTATION.md"
+fi
+
+# Copy examples directory
+if [ -d "examples" ]; then
+    cp -r examples "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied examples directory"
+fi
+
+# Copy markdown viewer if it exists
+if [ -f "md-viewer.html" ]; then
+    cp md-viewer.html "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied markdown viewer"
+fi
+
+# Copy code viewer if it exists
+if [ -f "code-viewer.html" ]; then
+    cp code-viewer.html "$DOCS_DIR/"
+    echo -e "  ${GREEN}✓${NC} Copied code viewer"
+fi
+
+echo
+echo -e "${YELLOW}Step 4: Creating index page...${NC}"
 
 # Create a simple index.html
 cat > "$DOCS_DIR/index.html" << 'EOF'
@@ -127,11 +172,18 @@ cat > "$DOCS_DIR/index.html" << 'EOF'
     <div class="modules" style="margin-top: 20px;">
         <h2>Additional Documentation</h2>
         <ul>
-            <li><a href="../../../HOW_TO_USE.md">How to Use Guide</a></li>
-            <li><a href="../../../DATABASE_SETUP.md">Database Setup Guide</a></li>
-            <li><a href="../../../LOGGING_BEST_PRACTICES.md">Logging Best Practices</a></li>
-            <li><a href="../../../examples/">Code Examples</a></li>
+            <li><a href="md-viewer.html?file=HOW_TO_USE.md">How to Use Guide</a></li>
+            <li><a href="md-viewer.html?file=DATABASE_SETUP.md">Database Setup Guide</a></li>
+            <li><a href="md-viewer.html?file=LOGGING_BEST_PRACTICES.md">Logging Best Practices</a></li>
+            <li><a href="md-viewer.html?file=API_DOCUMENTATION.md">API Documentation Guide</a></li>
+            <li><a href="examples/">Code Examples</a></li>
         </ul>
+        <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+            Note: You can also view the raw markdown files directly: 
+            <a href="HOW_TO_USE.md">HOW_TO_USE.md</a>, 
+            <a href="DATABASE_SETUP.md">DATABASE_SETUP.md</a>, 
+            <a href="LOGGING_BEST_PRACTICES.md">LOGGING_BEST_PRACTICES.md</a>
+        </p>
     </div>
     
     <p style="margin-top: 40px; color: #999; font-size: 0.8em;">
@@ -144,7 +196,19 @@ EOF
 echo -e "${GREEN}✓ Index page created${NC}"
 echo
 
+# Count what was generated
+MODULE_COUNT=$(find "$DOCS_DIR" -maxdepth 1 -type d -name "*" | grep -v "^$DOCS_DIR$" | grep -v "/examples$" | wc -l | tr -d ' ')
+DOC_COUNT=$(find "$DOCS_DIR" -maxdepth 1 -name "*.md" -type f | wc -l | tr -d ' ')
+EXAMPLE_COUNT=0
+if [ -d "$DOCS_DIR/examples" ]; then
+    EXAMPLE_COUNT=$(find "$DOCS_DIR/examples" -name "*.scala" -type f | wc -l | tr -d ' ')
+fi
+
 echo -e "${GREEN}Documentation generated successfully!${NC}"
+echo -e "  • ${MODULE_COUNT} module API docs"
+echo -e "  • ${DOC_COUNT} documentation guides"
+echo -e "  • ${EXAMPLE_COUNT} code examples"
+echo
 echo -e "View documentation at: ${DOCS_DIR}/index.html"
 echo
 echo "To view in browser:"

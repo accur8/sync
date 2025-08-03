@@ -15,6 +15,35 @@ object DatabaseConfig extends MxDatabaseConfig {
   case class Password(value: String) extends SecretValue
 }
 
+/**
+ * Configuration for database connections with connection pooling support.
+ * 
+ * This configuration is used to create a [[ConnFactory]] which manages database
+ * connections through HikariCP connection pooling.
+ * 
+ * @param id Unique identifier for this database configuration
+ * @param url JDBC connection URL (e.g., "jdbc:postgresql://localhost:5432/mydb")
+ * @param user Database username for authentication
+ * @param password Database password wrapped in a secure Password type
+ * @param minIdle Minimum number of idle connections to maintain in the pool
+ * @param maxPoolSize Maximum number of connections in the pool
+ * @param maxLifeTimeInMillis Maximum lifetime of a connection in milliseconds (None = infinite)
+ * @param autoCommit Whether connections should auto-commit (default: true)
+ * 
+ * @example {{{
+ * val config = DatabaseConfig(
+ *   id = DatabaseId("primary"),
+ *   url = Uri.parse("jdbc:postgresql://localhost:5432/myapp"),
+ *   user = "appuser",
+ *   password = Password("secret"),
+ *   maxPoolSize = 20
+ * )
+ * 
+ * val connFactory = ConnFactory.constructor(config)
+ * }}}
+ * 
+ * @since 1.0.0
+ */
 @CompanionGen
 case class DatabaseConfig(
   id: DatabaseId,

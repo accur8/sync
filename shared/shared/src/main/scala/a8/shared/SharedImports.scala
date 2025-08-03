@@ -28,8 +28,37 @@ import a8.common.logging.Logger
 
 import scala.quoted.{Expr, Quotes, Type}
 
+/**
+ * Central import object providing common utilities and implicit conversions.
+ * 
+ * Import this to get access to most commonly used functionality in Accur8 Sync.
+ * 
+ * @example {{{
+ * import a8.shared.SharedImports._
+ * 
+ * // Now you have access to:
+ * // - Logging trait and Logger
+ * // - JSON codecs and conversions
+ * // - Enhanced string operations
+ * // - Java/Scala collection conversions
+ * // - Common type aliases
+ * // - Utility methods
+ * }}}
+ */
 object SharedImports extends SharedImports
 
+/**
+ * Trait containing all shared imports and implicit conversions.
+ * 
+ * Provides:
+ * - Type aliases for commonly used types (Logger, Logging, CIString)
+ * - String parsing utilities (ParseInt, ParseLong, ParseBigInt)
+ * - Enhanced operations on common types via implicit classes
+ * - JSON codec operations
+ * - Java/Scala collection conversions
+ * 
+ * @note This trait is mixed into many other parts of the library for convenience
+ */
 trait SharedImports
   extends AsJavaExtensions
   with AsScalaExtensions
