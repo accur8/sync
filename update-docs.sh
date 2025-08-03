@@ -7,8 +7,14 @@ set -e
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
+echo -e "${BLUE}=== Quick Documentation Update ===${NC}"
+echo
+echo "This script updates existing documentation on gh-pages branch."
+echo "It's less destructive than publish-docs.sh but still replaces all docs."
+echo
 echo -e "${YELLOW}Updating GitHub Pages documentation...${NC}"
 
 # Check for uncommitted changes

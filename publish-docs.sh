@@ -13,6 +13,38 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}=== Accur8 Sync Documentation Publisher ===${NC}"
 echo
 
+# Check for safety parameter
+if [ "$1" != "yes-i-like-danger" ] && [ "$1" != "fire-the-rocket" ] && [ "$1" != "i-accept-the-risks" ]; then
+    echo -e "${RED}⚠️  WARNING: This script is DESTRUCTIVE! ⚠️${NC}"
+    echo
+    echo "This script will:"
+    echo "  1. Switch to the 'gh-pages' branch (creating it if needed)"
+    echo "  2. ${RED}DELETE ALL FILES${NC} in the gh-pages branch"
+    echo "  3. Replace them with newly generated documentation"
+    echo "  4. Commit and push changes to GitHub"
+    echo "  5. Switch back to your current branch"
+    echo
+    echo "The gh-pages branch is typically used ONLY for documentation."
+    echo "If you have other content there, it will be ${RED}PERMANENTLY DELETED${NC}."
+    echo
+    echo "To proceed, you must explicitly accept the risk by running:"
+    echo
+    echo -e "  ${GREEN}./publish-docs.sh yes-i-like-danger${NC}"
+    echo "  ${GREEN}./publish-docs.sh fire-the-rocket${NC}"
+    echo "  ${GREEN}./publish-docs.sh i-accept-the-risks${NC}"
+    echo
+    echo "If you just want to update docs without the safety check, use:"
+    echo -e "  ${BLUE}./update-docs.sh${NC} (still replaces docs but with fewer checks)"
+    echo
+    echo -e "${YELLOW}Tip: First time? Use 'yes-i-like-danger' to create gh-pages branch.${NC}"
+    echo -e "${YELLOW}     Updating? Use './update-docs.sh' for a simpler workflow.${NC}"
+    echo
+    exit 1
+fi
+
+echo -e "${YELLOW}Safety parameter accepted. Proceeding with documentation publish...${NC}"
+echo
+
 # Save current branch
 CURRENT_BRANCH=$(git branch --show-current)
 echo -e "${YELLOW}Current branch: ${CURRENT_BRANCH}${NC}"
