@@ -25,7 +25,7 @@ class StringOpsTest extends AnyFunSuite with Matchers {
         Test("  abc", "abc"),
         Test("  abc  ", "abc  "),
         Test("abc", "abc"),
-        Test("abc   ", "abc  ")
+        Test("abc   ", "abc   ")
       ),
       _.replaceAll("^\\s+", "") // assuming what `.ltrim` would be
     )
