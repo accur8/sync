@@ -20,7 +20,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxNatsConn {
   
-  trait MxNatsConfig {
+  trait MxNatsConfig { self: NatsConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[NatsConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[NatsConfig,parameters.type] = builder
     

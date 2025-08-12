@@ -8,17 +8,32 @@ import ahs.stager.model.{ClientId, StagerConfig, TableNameResolver, VmDatabaseId
 
 object CreateTablesDemo extends StagerApp {
 
-  override def run()(using AppCtx): Unit = {
+  override def run()(using AppCtx): Unit =
 
     val vmDbId = VmDatabaseId("0013")
     val clientId = model.ClientId("PWAY")
 
     given Services = Services(config, vmDbId)
 
+    val pgConn = given_Services.connectionManager.conn(config.postgresStagingDb.id)
+
+    println(
+      pgConn
+        .dialect
+        .resolveTableName(
+          TableLocator(
+            SchemaName("public"),
+            TableName("blpcar_lom2"),
+          ),
+          pgConn,
+        )
+    )
+
+//    pgConn.tables.foreach: table =>
+//      println(table)
+
     val gtni = GenerateTableAndIndexDdl(config, vmDbId, clientId, AhsData.tables, includeDropTables = true)
 
     logger.info("Massive DDL:\n\n\n" + gtni.allDdl.map(_.sql).mkString("\n\n;;;\n\n"))
-
-  }
 
 }

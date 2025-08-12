@@ -29,7 +29,7 @@ object unsafe {
 
   def resultSetToIterator(resultSet: ResultSet): Iterator[Row] = {
 
-    lazy val dsm =
+    val dsm =
       Row.Metadata(
         (1 to resultSet.getMetaData.getColumnCount).map(i => resultSet.getMetaData.getColumnName(i)).toVector
       )

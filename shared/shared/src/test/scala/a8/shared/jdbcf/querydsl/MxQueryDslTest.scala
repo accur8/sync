@@ -18,7 +18,7 @@ import a8.shared.jdbcf
 
 object MxQueryDslTest {
   
-  trait MxWidget {
+  trait MxWidget { self: Widget.type =>
   
     implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[Widget,String] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
@@ -113,7 +113,7 @@ object MxQueryDslTest {
   
   
   
-  trait MxContainer {
+  trait MxContainer { self: Container.type =>
   
     implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[Container,String] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)
@@ -208,7 +208,7 @@ object MxQueryDslTest {
   
   
   
-  trait MxAddress {
+  trait MxAddress { self: Address.type =>
   
     implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.ComponentMapper[Address] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)

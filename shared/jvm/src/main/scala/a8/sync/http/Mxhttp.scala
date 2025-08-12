@@ -11,17 +11,16 @@ package a8.sync.http
 //====
 import a8.shared.SharedImports.*
 import a8.sync.http.{RequestProcessorConfig, ResponseInfo, ResponseMetadata, RetryConfig}
-
 import scala.concurrent.duration.FiniteDuration
 //====
 
-import a8.shared.Meta.{CaseClassParm, Constructors, Generator}
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 
 
 object Mxhttp {
   
-  trait MxRetryConfig {
+  trait MxRetryConfig { self: RetryConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RetryConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RetryConfig,parameters.type] = builder
     
@@ -40,7 +39,7 @@ object Mxhttp {
     
     
     lazy val generator: Generator[RetryConfig,parameters.type] =  {
-      val constructors = Constructors[RetryConfig](5, unsafe.iterRawConstruct)
+      val constructors = Constructors[RetryConfig](3, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -71,7 +70,7 @@ object Mxhttp {
            sys.error("")
         value
       }
-      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration, jitterFactor: Double, backoffFactor: Double): RetryConfig =
+      def typedConstruct(maxRetries: Int, initialBackoff: FiniteDuration, maxBackoff: FiniteDuration): RetryConfig =
         RetryConfig(maxRetries, initialBackoff, maxBackoff)
     
     }
@@ -84,7 +83,7 @@ object Mxhttp {
   
   
   
-  trait MxRequestProcessorConfig {
+  trait MxRequestProcessorConfig { self: RequestProcessorConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RequestProcessorConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RequestProcessorConfig,parameters.type] = builder
     
@@ -167,7 +166,7 @@ object Mxhttp {
   
   
   
-  trait MxResponseInfo {
+  trait MxResponseInfo { self: ResponseInfo.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ResponseInfo,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ResponseInfo,parameters.type] = builder
     
@@ -226,7 +225,7 @@ object Mxhttp {
   
   
   
-  trait MxResponseMetadata {
+  trait MxResponseMetadata { self: ResponseMetadata.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ResponseMetadata,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ResponseMetadata,parameters.type] = builder
     

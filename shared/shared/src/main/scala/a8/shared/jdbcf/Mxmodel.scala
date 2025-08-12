@@ -18,7 +18,7 @@ import a8.shared.jdbcf
 
 object Mxmodel {
   
-  trait MxResolvedTableName {
+  trait MxResolvedTableName { self: ResolvedTableName.type =>
   
     implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.ComponentMapper[ResolvedTableName] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)

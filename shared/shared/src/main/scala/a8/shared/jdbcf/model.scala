@@ -31,6 +31,7 @@ object TableLocator {
     new TableLocator(tableName = tableName, schemaName = schemaName)
 
 }
+@CompanionGen
 case class TableLocator(catalogName: Option[CatalogName] = None, schemaName: Option[SchemaName] = None, tableName: TableName) {
   /**
    * catalog appropriate for use in Connection.getMetadata calls (noting this value could be null

@@ -18,7 +18,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxMailConfig {
   
-  trait MxMailConfig {
+  trait MxMailConfig { self: MailConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[MailConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[MailConfig,parameters.type] = builder
     

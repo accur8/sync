@@ -19,7 +19,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxHoconDemo {
   
-  trait MxBigFoo {
+  trait MxBigFoo { self: BigFoo.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[BigFoo,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[BigFoo,parameters.type] = builder
     

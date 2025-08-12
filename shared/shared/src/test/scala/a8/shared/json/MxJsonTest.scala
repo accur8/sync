@@ -18,7 +18,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxJsonTest {
   
-  trait MxPerson {
+  trait MxPerson { self: Person.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Person,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Person,parameters.type] = builder
     
@@ -77,7 +77,7 @@ object MxJsonTest {
   
   
   
-  trait MxGroup {
+  trait MxGroup { self: Group.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Group,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Group,parameters.type] = builder
     
@@ -136,7 +136,7 @@ object MxJsonTest {
   
   
   
-  trait MxA {
+  trait MxA { self: A.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[A,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[A,parameters.type] = builder
     

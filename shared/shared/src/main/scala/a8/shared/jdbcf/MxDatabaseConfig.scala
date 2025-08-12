@@ -19,7 +19,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxDatabaseConfig {
   
-  trait MxDatabaseConfig {
+  trait MxDatabaseConfig { self: DatabaseConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseConfig,parameters.type] = builder
     

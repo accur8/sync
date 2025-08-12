@@ -19,7 +19,7 @@ import a8.shared.jdbcf
 
 object MxMaterializedMapperDemo {
   
-  trait MxJsonCC {
+  trait MxJsonCC { self: JsonCC.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JsonCC,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JsonCC,parameters.type] = builder
     
@@ -78,7 +78,7 @@ object MxMaterializedMapperDemo {
   
   
   
-  trait MxBigBoo {
+  trait MxBigBoo { self: BigBoo.type =>
   
     implicit lazy val jdbcMapper: a8.shared.jdbcf.mapper.KeyedTableMapper[BigBoo,Int] =
       a8.shared.jdbcf.mapper.MapperBuilder(generator)

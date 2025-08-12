@@ -20,7 +20,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxBootstrapConfig {
   
-  trait MxLogLevelConfig {
+  trait MxLogLevelConfig { self: LogLevelConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[LogLevelConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[LogLevelConfig,parameters.type] = builder
     

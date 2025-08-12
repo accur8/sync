@@ -1,7 +1,7 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.NamedToString
+import a8.shared.{CompanionGen, NamedToString}
 import a8.shared.jdbcf.JdbcMetadata.{JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.{CatalogName, ColumnName, ResolvedTableName, SchemaName, TableLocator, TableName}
 import a8.shared.SharedImports.*
@@ -12,7 +12,7 @@ import scala.collection.concurrent.TrieMap
 
 object JdbcMetadata {
 
-  object JdbcPrimaryKey {
+  object JdbcPrimaryKey extends MxJdbcMetadata.MxJdbcPrimaryKey {
     def fromMetadataRow(row: Row): JdbcPrimaryKey =
       new JdbcPrimaryKey(
         ResolvedTableName.fromMetadataRow(row),
@@ -21,6 +21,7 @@ object JdbcMetadata {
         row.opt[String]("PK_NAME")
       )
   }
+  @CompanionGen
   case class JdbcPrimaryKey(
     resolvedTableName: ResolvedTableName,
     columnName: ColumnName,
@@ -29,7 +30,7 @@ object JdbcMetadata {
   )
 
 
-  object JdbcColumn {
+  object JdbcColumn extends MxJdbcMetadata.MxJdbcColumn {
     def fromMetadataRow(row: Row): JdbcColumn =
       new JdbcColumn(
         ResolvedTableName.fromMetadataRow(row),
@@ -47,6 +48,7 @@ object JdbcMetadata {
         row.opt[Boolean]("IS_AUTOINCREMENT"),
       )
   }
+  @CompanionGen
   case class JdbcColumn(
     resolvedTableName: ResolvedTableName,
     columnName: ColumnName,
@@ -70,7 +72,7 @@ object JdbcMetadata {
     lazy val columnNames: Vector[ColumnName] = alternativeNames.prepended(columnName)
   }
 
-  object JdbcTable {
+  object JdbcTable extends MxJdbcMetadata.MxJdbcTable {
     def apply(row: Row, origin: TableLocator): JdbcTable = {
       apply(row).copy(origin = Some(origin))
     }
@@ -86,6 +88,7 @@ object JdbcMetadata {
         None,
       )
   }
+  @CompanionGen(jsonCodec = false)
   case class JdbcTable(
       catalog: Option[CatalogName],
       schema: Option[SchemaName],
