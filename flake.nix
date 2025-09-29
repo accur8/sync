@@ -1,38 +1,26 @@
 {
-  description = "sync project";
+  description = "Project using centralized nix-pins";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-    devshell.url = "github:numtide/devshell";
-    a8-scripts.url = "github:fizzy33/a8-scripts";
-    a8-scripts.inputs.nixpkgs.follows = "nixpkgs";
+    nix-pins.url = "git+ssh://git@git.accur8.net/a8/nix-pins";
+    nixpkgs.follows = "nix-pins/nixpkgs";
+    devshell.follows = "nix-pins/devshell";
   };
 
-  outputs = { self, nixpkgs, flake-utils, devshell, a8-scripts }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs = { self, nix-pins, nixpkgs, devshell }:
+  let
+    forEachSystem = nix-pins.lib.forEachSystem;
+  in {
+    devShells = forEachSystem (system:
       let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ devshell.overlays.default ];
-        };
-
-        # Java setup
-        my-java = pkgs.openjdk11_headless;
-        my-sbt = pkgs.sbt.override { jre = my-java; };
-
+        pkgs = nix-pins.pkgsFor system;
+        # Add any project-specific packages or overrides here
       in {
-        devShells.default = pkgs.devshell.mkShell {
-          name = "sync";
-
-          packages = [
-            a8-scripts.packages.${system}.a8-scripts
-            my-java
-            my-sbt
-            pkgs.python3
-            pkgs.gnupg
-          ];
+        default = nix-pins.lib.shells.scala3 {
+          inherit pkgs;
+          # Add project-specific packages here:
+          # extraInputs = [ pkgs.postgresql ];
         };
-      }
-    );
+      });
+  };
 }
