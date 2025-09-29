@@ -99,15 +99,7 @@
     },
     "root": {
       "inputs": {
-        "devshell": [
-          "nix-pins",
-          "devshell"
-        ],
-        "nix-pins": "nix-pins",
-        "nixpkgs": [
-          "nix-pins",
-          "nixpkgs"
-        ]
+        "nix-pins": "nix-pins"
       }
     },
     "systems": {
