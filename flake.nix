@@ -8,10 +8,8 @@
   };
 
   outputs = { self, nix-pins, nixpkgs, devshell }:
-  let
-    forEachSystem = nix-pins.lib.forEachSystem;
-  in {
-    devShells = forEachSystem (system:
+  {
+    devShells = nix-pins.lib.forEachSystem (system:
       let
         pkgs = nix-pins.pkgsFor system;
         # Add any project-specific packages or overrides here
