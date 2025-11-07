@@ -8,6 +8,8 @@ object LoggingBootstrapConfig {
   private var _globalBootstrapConfig: Option[LoggingBootstrapConfig] =
     None
 
+  def isConfigured: Boolean = _globalBootstrapConfig.isDefined
+
   def finalizeConfig(bootstrapConfig: LoggingBootstrapConfig, applySystemPropertyOverrides: Boolean = true): Unit = {
     _globalBootstrapConfig match {
       case Some(c) =>
