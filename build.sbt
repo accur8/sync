@@ -14,7 +14,7 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "3.7.1"
+val scalaLibVersion = "3.7.3"
 //val zioVersion = "2.0.19"
 //val zioLoggingVersion = "2.1.15"
 val slf4jVersion = "2.0.9"
@@ -97,7 +97,6 @@ Global / scalacOptions ++= Seq(
   "-language:existentials",
   "-language:postfixOps",
   "-language:strictEquality",
-  "-Xkind-projector",
  // "-Werror",
 )
 

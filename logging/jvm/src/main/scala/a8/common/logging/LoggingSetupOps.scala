@@ -23,7 +23,7 @@ object LoggingSetupOps {
       Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler {
         override def uncaughtException(t: Thread, e: Throwable): Unit = {
           val logger = LoggerFactory.logger("UncaughtExceptionHandler")
-          logger.fatal(s"uncaughtException on thread ${t.getName} - ${t.getId}", e)
+          logger.fatal(s"uncaughtException on thread ${t.getName} - ${t.threadId}", e)
         }
       })
     }
