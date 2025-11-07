@@ -8,7 +8,7 @@ import org.typelevel.jawn.Parser
 import a8.shared.SharedImports.*
 import a8.shared.json.JsonReader.JsonReaderOptions
 
-trait JsonPackageObjectApi {
+trait JsonPackageObjectApi extends JsonPackageObjectApiPlatform {
 
   def parseObj(jsonStr: String): Either[ReadError,JsObj] =
     Parser
