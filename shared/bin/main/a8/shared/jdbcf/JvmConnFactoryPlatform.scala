@@ -35,6 +35,7 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
       temp.setMaxLifetime(maxLifeTimeInSeconds.inMillis)
       temp.setIdleTimeout(idleTimeoutInSeconds.inMillis)
       temp.setConnectionTimeout(connectionTimeoutInSeconds.inMillis)
+      driverClassName.foreach(temp.setDriverClassName)
       dialect.validationQuery.foreach(q => temp.setConnectionTestQuery(q.toString))
       temp.setAutoCommit(autoCommit)
       temp
