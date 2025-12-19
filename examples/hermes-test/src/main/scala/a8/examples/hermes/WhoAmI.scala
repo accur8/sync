@@ -27,15 +27,8 @@ object WhoAmI extends BootstrappedIOApp {
     // Bootstrap Hermes components
     val hermes = Resource.free.run(HermesBootstrap.resource())(using appCtx)
 
-    // Determine auth service mailbox
-    val authServiceMailboxName = hermes.config.namedMailboxes.get("auth")
-      .orElse(hermes.config.namedMailboxes.get("nefario"))
-      .getOrElse {
-        throw new RuntimeException("No auth service mailbox configured")
-      }
-
-    // Named mailboxes use their literal address (e.g., "nefario-rpc"), not "aaa_nefario-rpc"
-    val authMailbox = a8.hermes.core.Mailbox.MailboxAddress(authServiceMailboxName)
+    // Use static service discovery to find auth service
+    val authMailbox = hermes.staticServiceDiscovery.getMailbox("auth")
 
     // Step 1: Authenticate using SSH
     logger.info("Authenticating with SSH...")
@@ -58,8 +51,8 @@ object WhoAmI extends BootstrappedIOApp {
     logger.info(s"Binding auth token to mailbox...")
     import a8.hermes.proto.mailbox.mailbox.{BindIdentityRequest, BindIdentityResponse}
 
-    // Find mailbox service
-    val mailboxServiceMailbox = Mailbox.MailboxAddress("nefario-rpc")  // TODO: Use service discovery
+    // Use static service discovery to find mailbox service
+    val mailboxServiceMailbox = hermes.staticServiceDiscovery.getMailbox("mailbox")
 
     val bindResp = hermes.rpcClient.callTyped[BindIdentityRequest, BindIdentityResponse](
       targetMailbox = mailboxServiceMailbox,

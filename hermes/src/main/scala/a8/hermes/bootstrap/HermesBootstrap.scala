@@ -40,7 +40,8 @@ object HermesBootstrap extends Logging {
     mailbox: Mailbox,
     rpcServer: RpcServer,
     rpcClient: RpcClient,
-    serviceDiscovery: Option[ServiceDiscovery] = None,
+    staticServiceDiscovery: StaticServiceDiscovery,
+    dynamicServiceDiscovery: Option[ServiceDiscovery] = None,
   )
 
   /**
@@ -64,10 +65,11 @@ object HermesBootstrap extends Logging {
         )
       )
 
-      // Step 2: Service Discovery (static resolution for now)
-      // Static pattern: {environment}.{serviceName} → mailbox address
+      // Step 2: Service Discovery (static resolution using namedMailboxes)
+      // Simple map lookup: serviceName → mailbox address
       // Example: config.namedMailboxes = {"nefario": "nefario-rpc"}
-      // This maps service names to mailbox addresses
+      staticServiceDiscovery = new StaticServiceDiscovery(config.namedMailboxes)
+      _ = logger.info(s"Static service discovery initialized with ${config.namedMailboxes.size} named mailboxes")
 
       // Step 3: Create/Acquire Mailbox
       // For direct NATS transport, create a non-durable mailbox
@@ -114,7 +116,7 @@ object HermesBootstrap extends Logging {
       )(using ctx)
 
       // Step 6: Optionally start dynamic service discovery
-      serviceDiscovery <- if (config.enableDynamicDiscovery.getOrElse(false)) {
+      dynamicServiceDiscovery <- if (config.enableDynamicDiscovery.getOrElse(false)) {
         logger.info("Starting dynamic service discovery...")
         Resource.acquireRelease {
           val discovery = new ServiceDiscovery(
@@ -140,7 +142,8 @@ object HermesBootstrap extends Logging {
       logger.info(s"  Mailbox: ${mailbox.address.value}")
       logger.info(s"  RPC Server: Running")
       logger.info(s"  RPC Client: Running")
-      logger.info(s"  Service Discovery: ${if (serviceDiscovery.isDefined) "Enabled" else "Disabled"}")
+      logger.info(s"  Static Service Discovery: ${config.namedMailboxes.size} named mailboxes")
+      logger.info(s"  Dynamic Service Discovery: ${if (dynamicServiceDiscovery.isDefined) "Enabled" else "Disabled"}")
 
       Components(
         config = config,
@@ -148,7 +151,8 @@ object HermesBootstrap extends Logging {
         mailbox = mailbox,
         rpcServer = rpcServer,
         rpcClient = rpcClient,
-        serviceDiscovery = serviceDiscovery,
+        staticServiceDiscovery = staticServiceDiscovery,
+        dynamicServiceDiscovery = dynamicServiceDiscovery,
       )
     }
   }
