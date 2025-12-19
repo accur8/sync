@@ -37,3 +37,4 @@ project/.boot/
 project/.ivy/
 project/.sbtboot/
 logging_logback/logs
+examples/hermes-test/logs

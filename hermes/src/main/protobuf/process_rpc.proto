@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package process_rpc;
+option java_package = "a8.hermes.proto.process";
+option java_multiple_files = true;
+option go_package = "accur8.io/godev/pkg/rpc/process";
+
+// Shutdown messages
+message ShutdownRequest {
+  int32  timeout_seconds = 1;  // Maximum time to wait for graceful shutdown
+  bool   force           = 2;  // Force shutdown if graceful shutdown times out
+  string reason          = 3;  // Reason for shutdown (optional, for logging/auditing)
+}
+
+message ShutdownResponse {
+  bool                          success                    = 1;  // Shutdown was initiated successfully
+  string                        message                    = 2;  // Details about the shutdown
+  google.protobuf.Timestamp     estimated_shutdown_time   = 3;  // When the process expects to complete shutdown
+}
+
+// Restart messages
+message RestartRequest {
+  int32  timeout_seconds = 1;  // Maximum time to wait for graceful shutdown before restart
+  string reason          = 2;  // Reason for restart (optional, for logging/auditing)
+}
+
+message RestartResponse {
+  bool                          success                  = 1;  // Restart was initiated successfully
+  string                        message                  = 2;  // Details about the restart
+  google.protobuf.Timestamp     estimated_restart_time  = 3;  // When the process expects to be restarted
+}
+
+// Config reload messages
+message ReloadConfigRequest {
+  string config_path = 1;  // Specific config file to reload (optional)
+}
+
+message ReloadConfigResponse {
+  bool                          success      = 1;  // Config reload was successful
+  string                        message      = 2;  // Details about the reload
+  google.protobuf.Timestamp     reloaded_at  = 3;  // When the config was reloaded
+  string                        config_path  = 4;  // Path to the config that was reloaded
+}
+
+// Log level messages
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_DEBUG       = 1;
+  LOG_LEVEL_INFO        = 2;
+  LOG_LEVEL_WARN        = 3;
+  LOG_LEVEL_ERROR       = 4;
+}
+
+message SetLogLevelRequest {
+  LogLevel level     = 1;  // New log level to set
+  string   component = 2;  // Specific component/logger to update (optional, empty = root logger)
+}
+
+message SetLogLevelResponse {
+  bool      success        = 1;  // Log level was changed successfully
+  string    message        = 2;  // Details about the change
+  LogLevel  previous_level = 3;  // Log level before the change
+  LogLevel  current_level  = 4;  // Current log level
+}
+
+// Health check messages
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_HEALTHY     = 1;
+  HEALTH_STATUS_DEGRADED    = 2;
+  HEALTH_STATUS_UNHEALTHY   = 3;
+}
+
+message HealthCheckRequest {
+  bool include_details = 1;  // Include detailed health info
+}
+
+message HealthCheckResult {
+  HealthStatus status   = 1;  // Status of this specific check
+  string       message  = 2;  // Details about this check
+  int64        duration = 3;  // Duration in milliseconds
+}
+
+message HealthCheckResponse {
+  HealthStatus                  status    = 1;  // Overall health status
+  string                        message   = 2;  // Human-readable health information
+  map<string, HealthCheckResult> checks   = 3;  // Detailed health check results (if requested)
+  google.protobuf.Timestamp     timestamp = 4;  // When the health check was performed
+}
+
+// Status messages
+message StatusRequest {
+  bool include_metrics = 1;  // Include performance metrics
+}
+
+message StatusResponse {
+  string                        process_id         = 1;   // Unique process instance identifier
+  string                        service_name       = 2;   // Name of the service
+  string                        version            = 3;   // Version of the process binary
+  google.protobuf.Timestamp     started_at         = 4;   // When the process started
+  int64                         uptime             = 5;   // Uptime in seconds
+  LogLevel                      current_log_level  = 6;   // Current log level
+  HealthStatus                  health             = 7;   // Health status
+  map<string, string>           metrics            = 8;   // Performance metrics (if requested)
+  map<string, string>           metadata           = 9;   // Process-specific status information
+}
+
+// InvalidateAuthCache messages
+message InvalidateAuthCacheRequest {
+  // Empty - clears entire cache globally
+}
+
+message InvalidateAuthCacheResponse {
+  bool    success         = 1;  // Cache was cleared successfully
+  string  message         = 2;  // Details about the invalidation
+  int64   entries_cleared = 3;  // Number of cache entries cleared
+}
+
+// Ping messages
+message PingRequest {
+  string payload = 1;  // Optional payload to echo back
+}
+
+message PingResponse {
+  string                        payload    = 1;  // Echoed payload
+  google.protobuf.Timestamp     timestamp  = 2;  // Server timestamp when ping was received
+  string                        process_id = 3;  // Process identifier
+}

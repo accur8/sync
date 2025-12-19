@@ -1,0 +1,315 @@
+syntax = "proto3";
+
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+package hermes;
+option java_package = "a8.hermes.proto.process";
+option java_multiple_files = true;
+option go_package = "accur8.io/hermes/hproto";
+
+message MessageFromClient {
+  oneof message {
+    SendMessageRequest    sendMessageRequest   = 1;
+    FirstMessage          firstMessage         = 2;
+    Ping                  ping                 = 3;
+    Pong                  pong                 = 4;
+    Notification          notification         = 5;
+    SubscribeRequest      subscribeRequest     = 6;
+  }
+}
+
+message Notification {
+  string message = 1;
+}
+
+message MessageToClient {
+  oneof message {
+    MessageEnvelope       messageEnvelope      = 1;
+    SendMessageResponse   sendMessageResponse  = 2;
+    Ping                  ping                 = 3;
+    Pong                  pong                 = 4;
+    Notification          notification         = 5;
+    SubscribeResponse     subscribeResponse    = 6;
+  }
+}
+
+message Ping {
+  bytes payload = 1;
+}
+
+message Pong {
+  bytes payload = 1;
+}
+
+message MessageHeader {
+  string               sender          = 1;
+  ContentType          contentType     = 2;
+  RpcHeader            rpcHeader       = 3;
+  int64                senderSequence  = 4;
+  repeated KeyValPair  extraHeaders    = 200;
+}
+
+message SenderEnvelope {
+  int64        created          = 1;
+}
+
+message ServerEnvelope {
+  uint64       sequence         = 1;
+  int64        created          = 2;
+  string       channel          = 3;
+  string       subscriptionId   = 4;
+}
+
+message KeyValPair {
+  string key = 1;
+  string val = 2;
+}
+
+message RpcHeader {
+  // Correlates the end-to-end request.
+  string          correlationId = 2;
+
+  // Logical RPC endpoint name (e.g. "UserService.CreateUser").
+  string          endPoint      = 3;
+
+  // Request / SuccessResponse / ErrorResponse.
+  RpcFrameType    frameType     = 4;
+
+  // Populated when frameType == ErrorResponse.
+  RpcErrorInfo    errorInfo     = 5;
+}
+
+
+enum RpcFrameType {
+  UnspecifiedRFT   = 0;
+  Request          = 1;
+  SuccessResponse  = 2;
+  ErrorResponse    = 3;
+}
+
+// ============================================================================
+// Error model
+// ============================================================================
+
+// Optional source location for debugging.
+message ErrorLocation {
+  string file     = 1;
+  int32  line     = 2;
+  string function = 3;
+}
+
+// One layer's view of an error.
+message ErrorFrame {
+  // High-level error category. Allowed values:
+  // "RPC", "AUTH", "CLIENT", "RESOURCE", "DEPENDENCY", "INTERNAL".
+  string category = 1;
+
+  // Category-local kind identifier. Allowed values per category include:
+  //   RPC:        "BAD_REQUEST", "TIMEOUT", "CANCELLED"
+  //   AUTH:       "UNAUTHENTICATED", "PERMISSION_DENIED"
+  //   CLIENT:     "INVALID_ARGUMENT", "NOT_FOUND", "CONFLICT"
+  //   RESOURCE:   "RATE_LIMITED", "QUOTA_EXCEEDED", "OVERLOADED"
+  //   DEPENDENCY: "DB_UNAVAILABLE", "NATS_UNAVAILABLE", "UPSTREAM_UNAVAILABLE"
+  //   INTERNAL:   "UNEXPECTED", "INVARIANT_VIOLATION"
+  // Additional kinds may be added over time but must preserve semantics.
+  string kind = 2;
+
+  // Human-readable message. Not for parsing.
+  string message = 3;
+
+  // Whether a blind retry is reasonable without changing inputs.
+  bool retryable = 4;
+
+  // Free-form structured details (JSON-like). Use this instead of parsing "message".
+  google.protobuf.Struct details = 5;
+
+  // Logical component name, e.g. "user-service", "batch-worker".
+  string component = 6;
+
+  // Optional source location for debugging.
+  ErrorLocation location = 7;
+
+  // Creation time (UTC).
+  google.protobuf.Timestamp timestamp = 8;
+}
+
+// A node in the error tree. This composes recursively.
+//
+// Semantics:
+// - There is a single top-level ErrorNode for a logical error.
+// - Each ErrorNode has 0 or more "causes", each of which is itself an ErrorNode.
+//   This allows building a chain or tree of causes without special-casing.
+message ErrorNode {
+  ErrorFrame        frame   = 1;
+
+  // Zero or more direct causes of this error. Each cause is a full ErrorNode
+  // and can itself have further causes.
+  repeated ErrorNode causes = 2;
+}
+
+// Error info attached to an RpcHeader when frameType == ErrorResponse.
+//
+// For backward compatibility, the legacy fields (errorCode, message, stackTrace) are preserved.
+// New code SHOULD use error_node instead.
+//
+// - errorCode, message, stackTrace: legacy fields (deprecated but functional)
+// - error_node: new preferred format with rich error tree structure
+message RpcErrorInfo {
+  // Legacy fields (deprecated but maintained for backward compatibility)
+  uint32 errorCode   = 1;
+  string message     = 2;
+  string stackTrace  = 3;
+
+  // New error model (preferred) - single error with optional causes
+  ErrorNode error_node = 4;
+}
+
+enum ContentType {
+  UnspecifiedCT  = 0;
+  Protobuf       = 1;
+  Json           = 2;
+  Binary         = 3;
+  Text           = 4;
+}
+
+message Message {
+  MessageHeader   header          = 1;
+  SenderEnvelope  senderEnvelope  = 2;
+  ServerEnvelope  serverEnvelope  = 3;
+  bytes           data            = 4;
+}
+
+message MessageEnvelope {
+  bytes           messageBytes   = 1;
+  ServerEnvelope  serverEnvelope = 2;
+}
+
+message SendMessageRequest {
+    repeated string     to                    = 1;
+    Message             message               = 2;
+    string              channel               = 3;
+    string              idempotentId          = 4;
+}
+
+message SendMessageResponse {
+    repeated SendMessageError  errors                = 1;
+    repeated string            duplicates            = 2;
+    string                     idempotentId          = 3;
+    string                     correlationId         = 4;
+}
+
+message SendReceipt {
+  SendMessageRequest   request         = 1;  
+  SendMessageResponse  response        = 2;
+  ServerEnvelope       serverEnvelope  = 3;
+}
+
+message SendMessageError {
+  string     message = 1;
+  string     to      = 2;
+}
+
+message FirstMessage {
+  SenderInfo             senderInfo          = 1;
+  uint32                 mailboxTimeoutInMs  = 2;
+  repeated Subscription  subscriptions       = 3;
+  string                 authToken           = 4;
+  google.protobuf.Struct meta                = 5;
+}
+
+message SenderInfo {
+  string   readerKey  = 1;
+  string   address  = 2;
+}
+
+message SubscribeRequest {
+  repeated Subscription  subscriptions  = 1;
+}
+
+message SubscribeResponse {
+  repeated string          succeeded   = 1;
+  repeated SubscribeError  errors      = 2;
+}
+
+message SubscribeError {
+  string  id       = 1;
+  string  state    = 2;
+  string  message  = 3;
+}
+
+message Subscription {
+  oneof oneof {
+    MailboxSubscription            mailbox            = 1;
+    NefarioSubscription            nefario            = 2;
+    ChangeDataCaptureSubscription  changeDataCapture  = 3;
+    Unsubscribe                    unsubscribe        = 4;
+  }
+}
+
+message MailboxSubscription {
+  string     id                   = 1;
+  string     state                = 2;
+  string     readerKey            = 3;
+  string     channel              = 4;
+  string     startSeq             = 5;
+  string     endSeq               = 6;
+}
+
+message ChangeDataCaptureSubscription {
+  string                  id        = 1;
+  string                  state     = 2;
+  repeated RecordMatcher  matchers  = 3;
+  string                  startSeq  = 4;
+  string                  endSeq    = 5;
+}
+
+message RecordMatcher {
+  string                          database     = 1;
+  string                          table        = 2;
+  repeated google.protobuf.Value  primaryKeys  = 3;
+}
+
+message NefarioSubscription {
+  string     id                   = 1;
+  string     state                = 2;
+  string     processUid           = 3;
+  string     channel              = 4;
+  string     startSeq             = 5;
+  string     endSeq               = 6;
+}
+
+message Unsubscribe {
+  string   id    = 1;
+}
+
+message CreateMailboxRequest {
+  repeated string          channels              = 1;
+  google.protobuf.Struct   privateMetadata       = 2;
+  google.protobuf.Struct   publicMetadata        = 3;
+  int64                    purgeTimeoutInMillis  = 4;
+  int64                    closeTimeoutInMillis  = 5;
+  google.protobuf.Struct   extraData             = 6;
+}
+
+message CreateMailboxResponse {
+  string           adminKey   = 1;
+  string           address  = 2;
+  string           readerKey  = 3;
+  repeated string  channels   = 4;
+}
+
+message AddChannelRequest {
+  string           adminKey  = 1;
+  repeated string  channels  = 2;
+}
+
+message AddChannelResponse {
+}
+
+service HermesService {
+  rpc SendReceive(stream MessageFromClient) returns (stream MessageToClient);
+  rpc CreateMailbox(CreateMailboxRequest) returns (CreateMailboxResponse);
+  rpc AddChannel(AddChannelRequest) returns (AddChannelResponse);
+}

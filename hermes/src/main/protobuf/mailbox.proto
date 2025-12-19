@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package mailbox;
+option java_package = "a8.hermes.proto.mailbox";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "accur8.io/godev/pkg/rpc/mailbox";
+
+// BindIdentityRequest binds an auth token to the sender's mailbox
+message BindIdentityRequest {
+  string auth_token = 1;  // Auth token from auth service
+}
+
+// BindIdentityResponse confirms identity binding
+message BindIdentityResponse {
+  bool success = 1;
+  string message = 2;
+  string user_uid = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// GetIdentityRequest queries the identity of a mailbox
+message GetIdentityRequest {
+  string mailbox_address = 1;  // Target mailbox to query
+}
+
+// GetIdentityResponse returns the identity if authorized
+message GetIdentityResponse {
+  bool has_identity = 1;
+  string user_uid = 2;
+  string user_label = 3;
+  string origin = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  string auth_token = 6;  // Auth token (only returned if authorized)
+}
+
+// UnbindIdentityRequest clears identity from sender's mailbox
+message UnbindIdentityRequest {}
+
+// UnbindIdentityResponse confirms identity removal
+message UnbindIdentityResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ListNamedMailboxesRequest queries all named mailboxes
+message ListNamedMailboxesRequest {
+  // Empty - returns all named mailboxes
+}
+
+// NamedMailboxInfo contains info about a named mailbox
+message NamedMailboxInfo {
+  string address = 1;
+  int64 created = 2;
+  int64 last_activity = 3;
+  repeated string channels = 4;
+}
+
+// ListNamedMailboxesResponse returns all named mailboxes
+message ListNamedMailboxesResponse {
+  repeated NamedMailboxInfo mailboxes = 1;
+}

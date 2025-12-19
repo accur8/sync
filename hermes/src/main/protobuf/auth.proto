@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package auth;
+option java_package = "a8.hermes.proto.auth";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "accur8.io/godev/pkg/rpc/auth";
+
+// LoginBeginRequest initiates SSH-based authentication flow
+message LoginBeginRequest {
+  string ssh_public_key = 1;       // OpenSSH format public key
+  string origin = 2;                // user@host from CLI
+  string vpn_ip = 3;                // Optional VPN IP (172.24/172.25)
+  bool extend_existing_auth = 4;    // If true, extend existing token instead of creating new
+}
+
+// LoginBeginResponse contains challenge for SSH signature
+message LoginBeginResponse {
+  string session_id = 1;  // UUID for this login session
+  bytes nonce = 2;        // 32 random bytes to sign
+}
+
+// LoginCompleteRequest submits SSH signature proof
+message LoginCompleteRequest {
+  string session_id = 1;     // Session ID from BeginLogin
+  string ssh_public_key = 2; // Same public key as BeginLogin
+  bytes signature = 3;       // SSH signature over nonce
+}
+
+// LoginCompleteResponse returns auth token on successful verification
+message LoginCompleteResponse {
+  string auth_token = 1;                      // Signed token for subsequent requests
+  google.protobuf.Timestamp expires_at = 2;   // When the token expires
+}
+
+// HasRoleRequest checks if user has one or more roles
+message HasRoleRequest {
+  string mailbox_address = 1;    // Mailbox address of requestor
+  bytes role = 2;                // DEPRECATED - single role as JSON (for v1 compatibility)
+  repeated string roles = 3;     // List of roles to check (endpoint paths or database roles)
+}
+
+// HasRoleResponse indicates whether user has any of the requested roles
+message HasRoleResponse {
+  bool allowed = 1;                  // Whether user has at least one of the roles
+  string reason = 2;                 // Optional explanation
+  repeated string roles_matched = 3; // Which roles the user has (from the requested list)
+}
+
+// GetUserInfoRequest looks up user details by auth token
+message GetUserInfoRequest {
+  string auth_token = 1;  // Auth token from login
+}
+
+// UserGroupInfo contains information about a group membership
+message UserGroupInfo {
+  string uid = 1;           // Group UID
+  string name = 2;          // Group name
+  string description = 3;   // Group description
+}
+
+// GetUserInfoResponse returns user information
+message GetUserInfoResponse {
+  string user_uid = 1;                        // User UID
+  string name = 2;                            // User name
+  string email = 3;                           // User email (may be empty)
+  string description = 4;                     // User description
+  repeated UserGroupInfo groups = 5;          // Direct group memberships
+  string external_maintainer = 6;             // External maintainer (may be empty)
+  bytes extra_config = 7;                     // Extra config as JSON
+  google.protobuf.Timestamp expires_at = 8;   // When the auth token expires
+  string expires_extension = 9;               // Extension duration (e.g., "1 hour")
+}
+
+// GetUserInfoByMailboxRequest looks up user details by mailbox address
+// Requires: mailbox.info role (auto-granted for now)
+message GetUserInfoByMailboxRequest {
+  string mailbox_address = 1;  // Mailbox address to look up
+}
+
+// GetUserInfoByMailboxResponse returns user information
+message GetUserInfoByMailboxResponse {
+  string user_uid = 1;              // User UID
+  string name = 2;                  // User name
+  string email = 3;                 // User email (may be empty)
+  string description = 4;           // User description
+  repeated UserGroupInfo groups = 5; // Direct group memberships
+  string external_maintainer = 6;   // External maintainer (may be empty)
+  bytes extra_config = 7;           // Extra config as JSON
+}
+
+// GetUserInfoForSelfRequest requests authenticated user's own information
+// No parameters needed - uses caller's identity from RpcContext
+message GetUserInfoForSelfRequest {
+  // Empty - identity comes from auth token in RpcContext
+}
+
+// GetUserInfoForSelfResponse returns authenticated user's information
+message GetUserInfoForSelfResponse {
+  string user_uid = 1;              // User UID
+  string name = 2;                  // User name
+  string email = 3;                 // User email (may be empty)
+  string description = 4;           // User description
+  repeated UserGroupInfo groups = 5; // Direct group memberships
+  string external_maintainer = 6;   // External maintainer (may be empty)
+  bytes extra_config = 7;           // Extra config as JSON
+}
+
+// ManageRoleOverrideRequest grants or denies a role for a user
+message ManageRoleOverrideRequest {
+  string user_identifier = 1;  // Email address or user UID
+  string role = 2;              // Role name (e.g., "NefarioUsers")
+  bool granted = 3;             // true = grant, false = deny
+  string reason = 4;            // Reason for override
+  string duration = 5;          // Optional: Go duration string (e.g., "24h", "168h")
+}
+
+// ManageRoleOverrideResponse confirms role override was created/updated
+message ManageRoleOverrideResponse {
+  bool success = 1;            // Whether operation succeeded
+  string message = 2;          // Human-readable message
+  string user_uid = 3;         // UID of the user affected
+  string user_label = 4;       // Display label (email or name)
+  string expires_at = 5;       // ISO 8601 timestamp if duration was set
+}
+
+// RemoveRoleOverrideRequest deletes a role override
+message RemoveRoleOverrideRequest {
+  string user_identifier = 1;  // Email address or user UID
+  string role = 2;              // Role name to remove
+}
+
+// RemoveRoleOverrideResponse confirms removal
+message RemoveRoleOverrideResponse {
+  bool success = 1;     // Whether operation succeeded
+  string message = 2;   // Human-readable message
+  string user_uid = 3;  // UID of the user affected
+}
+
+// ListRoleOverridesRequest lists role overrides
+message ListRoleOverridesRequest {
+  string user_identifier = 1;  // Optional: filter by email/UID (empty = all)
+}
+
+// RoleOverrideInfo describes a single role override
+message RoleOverrideInfo {
+  string user_uid = 1;      // User UID
+  string user_email = 2;    // User email
+  string role = 3;          // Role name
+  bool granted = 4;         // true = grant, false = deny
+  string reason = 5;        // Reason for override
+  string created_at = 6;    // ISO 8601 timestamp
+  string created_by = 7;    // Creator's user UID
+  string expires_at = 8;    // ISO 8601 timestamp (empty if no expiration)
+}
+
+// ListRoleOverridesResponse returns list of overrides
+message ListRoleOverridesResponse {
+  repeated RoleOverrideInfo overrides = 1;
+}
+
+// Auth service provides authentication and authorization
+service Auth {
+  rpc LoginBegin(LoginBeginRequest) returns (LoginBeginResponse);
+  rpc LoginComplete(LoginCompleteRequest) returns (LoginCompleteResponse);
+  rpc HasRole(HasRoleRequest) returns (HasRoleResponse);
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+  rpc GetUserInfoByMailbox(GetUserInfoByMailboxRequest) returns (GetUserInfoByMailboxResponse);
+  rpc GetUserInfoForSelf(GetUserInfoForSelfRequest) returns (GetUserInfoForSelfResponse);
+  rpc ManageRoleOverride(ManageRoleOverrideRequest) returns (ManageRoleOverrideResponse);
+  rpc RemoveRoleOverride(RemoveRoleOverrideRequest) returns (RemoveRoleOverrideResponse);
+  rpc ListRoleOverrides(ListRoleOverridesRequest) returns (ListRoleOverridesResponse);
+}

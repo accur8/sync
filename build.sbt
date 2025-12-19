@@ -176,19 +176,42 @@ lazy val logging_logback_test =
 //      )
 //    )
 
-//lazy val nats =
-//  Common
-//    .jvmProject("a8-nats", file("nats"), "nats")
-//    .dependsOn(api)
-//    .settings(
-////      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
-//      libraryDependencies ++= Seq(
-//        "io.nats" % "jnats" % "2.20.4",
-//        "com.github.luben" % "zstd-jni" % "1.5.6-8",
-//        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-////        zeroWastePlugin,
-//      )
-//    )
+lazy val nats =
+  Common
+    .jvmProject("a8-nats", file("nats"), "nats")
+    .dependsOn(shared)
+    .settings(
+      libraryDependencies ++= Seq(
+        "io.nats" % "jnats" % "2.20.6",
+        "com.github.luben" % "zstd-jni" % "1.5.6-8",
+        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+      )
+    )
+
+lazy val hermes =
+  Common
+    .jvmProject("a8-hermes", file("hermes"), "hermes")
+    .dependsOn(shared, nats)
+    .settings(
+      // Disable strict equality for protobuf generated code
+      scalacOptions := scalacOptions.value.filterNot(_ == "-language:strictEquality"),
+      // Add scala-gen directory to source directories (generated proto code)
+      Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "scala-gen",
+      // Disable automatic proto generation - we use regenerate-proto.sh script instead
+      // Compile / PB.targets := Seq(
+      //   scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb"
+      // ),
+      Compile / PB.protoSources := Seq(
+        baseDirectory.value / "src" / "main" / "protobuf",
+        baseDirectory.value / "target" / "protobuf_external"
+      ),
+      libraryDependencies ++= Seq(
+        "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
+        "org.bouncycastle" % "bcprov-jdk18on" % "1.77",
+        "com.hierynomus" % "sshj" % "0.38.0",
+        "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+      )
+    )
 
 
 lazy val shared =
@@ -268,6 +291,16 @@ lazy val stager =
       )
     )
 
+lazy val hermesTest =
+  Common
+    .jvmProject("hermes-test", file("examples/hermes-test"), "hermesTest")
+    .dependsOn(hermes)
+    .settings(
+      publish := {},
+      libraryDependencies ++= Seq(
+      )
+    )
+
 //lazy val sharedJVM = shared.jvm
 //lazy val sharedJS = shared.js
 
@@ -278,7 +311,8 @@ lazy val root =
     .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )
 //    .aggregate(api)
 //    .aggregate(http)
-//    .aggregate(nats)
+    .aggregate(nats)
+    .aggregate(hermes)
     .aggregate(shared)
     .aggregate(stager)
     .aggregate(loggingJVM)

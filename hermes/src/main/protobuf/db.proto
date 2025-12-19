@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package db;
+option java_package = "a8.hermes.proto.db";
+option java_multiple_files = true;
+option go_package = "accur8.io/godev/pkg/rpc/db";
+
+import "google/protobuf/struct.proto";
+
+// ============================================================================
+// Core CRUD Operations
+// ============================================================================
+
+// QueryRequest executes a SELECT query with parameters
+message QueryRequest {
+  string table_name = 1;                        // Target table (schema.table or just table)
+  repeated string columns = 2;                  // Columns to select (empty = all)
+  string where_clause = 3;                      // WHERE clause string (e.g., "name LIKE 'devops.%' AND enabled = true")
+  repeated string order_by = 4;                 // ORDER BY clauses (e.g., ["name ASC", "created_at DESC"])
+  int32 limit = 5;                              // LIMIT (0 = no limit)
+  int32 offset = 6;                             // OFFSET
+}
+
+message QueryResponse {
+  repeated google.protobuf.Struct rows = 1;    // Result rows as JSON objects
+  int32 row_count = 2;                          // Number of rows returned
+}
+
+// FetchRequest fetches a single row by primary key
+message FetchRequest {
+  string table_name = 1;                        // Target table
+  google.protobuf.Struct key = 2;              // Primary key value(s) as JSON
+  repeated string columns = 3;                  // Columns to fetch (empty = all)
+}
+
+message FetchResponse {
+  google.protobuf.Struct row = 1;              // Row data as JSON (null if not found)
+  bool found = 2;                               // Whether row was found
+}
+
+// InsertRequest inserts a new row
+message InsertRequest {
+  string table_name = 1;                        // Target table
+  google.protobuf.Struct values = 2;           // Column values as JSON
+  bool return_row = 3;                          // Return inserted row with defaults/auto-gen fields
+}
+
+message InsertResponse {
+  bool success = 1;
+  google.protobuf.Struct row = 2;              // Inserted row (if return_row=true)
+  SqlError error = 3;                           // Error details if success=false
+}
+
+// UpdateRequest updates an existing row
+message UpdateRequest {
+  string table_name = 1;                        // Target table
+  google.protobuf.Struct key = 2;              // Primary key to identify row
+  google.protobuf.Struct values = 3;           // Column values to update
+  bool return_row = 4;                          // Return updated row
+}
+
+message UpdateResponse {
+  bool success = 1;
+  google.protobuf.Struct row = 2;              // Updated row (if return_row=true)
+  int32 rows_affected = 3;                      // Number of rows updated
+  SqlError error = 4;                           // Error details if success=false
+}
+
+// DeleteRequest deletes row(s)
+message DeleteRequest {
+  string table_name = 1;                        // Target table
+  google.protobuf.Struct key = 2;              // Primary key to delete (required for safety)
+  bool soft_delete = 3;                         // If true, set deleted_at instead of DELETE
+}
+
+message DeleteResponse {
+  bool success = 1;
+  int32 rows_affected = 2;                      // Number of rows deleted
+  SqlError error = 3;                           // Error details if success=false
+}
+
+// ============================================================================
+// Error Types
+// ============================================================================
+
+// SqlError provides structured SQL error information
+message SqlError {
+  string message = 1;                           // User-friendly error message
+  string pg_error_code = 2;                     // PostgreSQL error code (e.g., "23505")
+  string pg_error_message = 3;                  // Original PostgreSQL error message
+  string constraint_name = 4;                   // Constraint name (for constraint violations)
+}
