@@ -120,15 +120,26 @@ object HermesBootstrap extends Logging {
       dynamicServiceDiscovery <- if (config.enableDynamicDiscovery.getOrElse(false)) {
         logger.info("Starting dynamic service discovery...")
         Resource.acquireRelease {
-          val discovery = new ServiceDiscovery(
-            ServiceDiscovery.Config(
-              mailbox = mailbox,
-              transport = natsTransport,
-              discoverySubject = config.discoverySubject,
-              appName = "scala-client",
+          val discoveryConfig = ServiceDiscovery.defaultConfig(
+            mailbox = mailbox,
+            transport = natsTransport,
+            rpcServer = Some(rpcServer),
+            appName = config.appName.getOrElse("hermes-scala"),
+            serviceName = config.appName.getOrElse("hermes-scala"),
+            staticServiceDiscovery = Some(staticServiceDiscovery),
+          )
+
+          // Add metadata if available
+          val configWithMetadata = discoveryConfig.copy(
+            metadata = Map(
+              "service_name" -> config.appName.getOrElse("hermes-scala"),
             )
           )
+
+          val discovery = new ServiceDiscovery(configWithMetadata)
           discovery.start()(using ctx)
+          discovery.register()(using ctx)  // Auto-register this process
+          logger.info(s"✓ Dynamic service discovery started and registered")
           Some(discovery)
         } { discovery =>
           discovery.foreach(_.stop())

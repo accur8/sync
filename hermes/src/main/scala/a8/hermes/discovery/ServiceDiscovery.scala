@@ -2,63 +2,160 @@ package a8.hermes.discovery
 
 import a8.hermes.core.{Mailbox, MailboxTransport}
 import a8.hermes.core.MailboxTransport.Envelope
-import a8.hermes.rpc.RpcSchema
+import a8.hermes.rpc.{RpcSchema, RpcServer}
+import a8.hermes.bootstrap.StaticServiceDiscovery
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
 import a8.shared.zreplace.Resource
 import a8.shared.json
-import a8.shared.json.ast.{JsObj, JsStr, JsArr, JsVal}
+import a8.shared.json.ast.{JsObj, JsStr, JsArr, JsVal, JsNum, JsBool}
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.{FiniteDuration, *}
+import java.time.Instant
 
 /**
- * Service discovery for Hermes/NATS.
- * Uses pub/sub on nefario.discovery subject.
+ * Service discovery for Hermes/NATS - ALIGNED WITH GODEV PROTOCOL.
+ *
+ * Uses pub/sub on nefario.discovery subject with JSON messages matching
+ * /Users/glen/code/accur8/godev/pkg/discovery/messages.go exactly.
+ *
+ * This enables Go services and Scala services to discover each other.
  */
 object ServiceDiscovery extends Logging {
+
+  // ===== Message Types (matching godev) =====
+
+  /**
+   * DiscoveryRequest - published to nefario.discovery subject
+   */
+  case class DiscoveryRequest(
+    requestId: String,
+    replySuffix: String,
+    timestamp: Instant,
+    query: DiscoveryQuery,
+  )
+
+  /**
+   * DiscoveryResponse - published to nefario.discovery.response.{reply_suffix}
+   */
+  case class DiscoveryResponse(
+    requestId: String,
+    processUid: String,
+    unixPid: Int,
+    appName: String,
+    mailboxAddress: String,
+    serviceName: String,
+    timestamp: Instant,
+    capabilities: ProcessCapabilities,
+    metadata: Map[String, String],
+    extendedMetadata: Option[Map[String, String]],
+    serviceDiscoveryMapping: Map[String, String],
+  )
+
+  /**
+   * DiscoveryQuery - filters for finding services
+   */
+  case class DiscoveryQuery(
+    implementsRpc: Seq[String] = Seq.empty,
+    appName: Option[String] = None,
+    serviceName: Option[String] = None,
+    location: Option[LocationQuery] = None,
+    includeExtendedMetadata: Boolean = false,
+  )
+
+  /**
+   * LocationQuery - filters by deployment location
+   */
+  case class LocationQuery(
+    server: Option[String] = None,
+    user: Option[String] = None,
+    userServer: Option[String] = None,
+  )
+
+  /**
+   * ProcessCapabilities - what a process can do
+   */
+  case class ProcessCapabilities(
+    implementsRpc: Seq[String],
+    rpcSchemas: Map[String, Seq[String]],
+    location: ProcessLocation,
+    engines: Seq[String] = Seq.empty,
+  )
+
+  /**
+   * ProcessLocation - where a process is running
+   */
+  case class ProcessLocation(
+    server: String,
+    user: String,
+    ipAddresses: Seq[String] = Seq.empty,
+  )
+
+  // ===== Configuration =====
 
   case class Config(
     mailbox: Mailbox,
     transport: MailboxTransport,
+    rpcServer: Option[RpcServer] = None,
     discoverySubject: String = "nefario.discovery",
-    appName: String = "scala-client",
-    serviceName: Option[String] = None,
-    location: Option[String] = None,
-  )
-
-  /**
-   * Service information returned from discovery
-   */
-  case class ServiceInfo(
-    processUid: String,
-    mailboxAddress: Mailbox.MailboxAddress,
     appName: String,
-    serviceName: Option[String],
-    location: Option[String],
-    implementedRpcs: Seq[String],
-    capabilities: Map[String, String],
+    serviceName: String,
+    location: ProcessLocation,
+    metadata: Map[String, String] = Map.empty,
+    extendedMetadata: Map[String, String] = Map.empty,
+    staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
   )
 
+  // ===== Utility Methods =====
+
   /**
-   * Query filters for service discovery
+   * Get all non-localhost IPv4 addresses (matching godev's GetNonLocalhostIPs)
    */
-  case class Query(
-    implementsRpc: Option[String] = None,
-    appName: Option[String] = None,
-    serviceName: Option[String] = None,
-    location: Option[String] = None,
-  ) {
-    def toJson: JsObj = {
-      JsObj(
-        List(
-          implementsRpc.map("implementsRpc" -> JsStr(_)),
-          appName.map("appName" -> JsStr(_)),
-          serviceName.map("serviceName" -> JsStr(_)),
-          location.map("location" -> JsStr(_)),
-        ).flatten.toMap
-      )
+  def getNonLocalhostIPs(): Seq[String] = {
+    import java.net.NetworkInterface
+    import scala.jdk.CollectionConverters.*
+
+    try {
+      NetworkInterface.getNetworkInterfaces.asScala
+        .flatMap(_.getInetAddresses.asScala)
+        .filter(addr => addr.getAddress.length == 4) // IPv4 only
+        .filterNot(_.isLoopbackAddress)
+        .map(_.getHostAddress)
+        .toSeq
+    } catch {
+      case e: Exception =>
+        logger.warn(s"Failed to get non-localhost IPs: ${e.getMessage}")
+        Seq.empty
     }
+  }
+
+  /**
+   * Create discovery config with sensible defaults
+   */
+  def defaultConfig(
+    mailbox: Mailbox,
+    transport: MailboxTransport,
+    rpcServer: Option[RpcServer],
+    appName: String,
+    serviceName: String,
+    staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
+  ): Config = {
+    val location = ProcessLocation(
+      server = java.net.InetAddress.getLocalHost.getHostName,
+      user = System.getProperty("user.name"),
+      ipAddresses = getNonLocalhostIPs(),
+    )
+
+    Config(
+      mailbox = mailbox,
+      transport = transport,
+      rpcServer = rpcServer,
+      appName = appName,
+      serviceName = serviceName,
+      location = location,
+      staticServiceDiscovery = staticServiceDiscovery,
+    )
   }
 
   /**
@@ -72,34 +169,31 @@ object ServiceDiscovery extends Logging {
     }
   }
 
+  // ===== Helper Methods =====
+
+  private def generateUid(): String = {
+    // godev uses UID20() - 20-char base32 ULID
+    // For now, use UUID and take first 20 chars
+    java.util.UUID.randomUUID().toString.replace("-", "").take(20)
+  }
+
 }
 
 class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
   import ServiceDiscovery.*
 
-  // Cache of discovered services
-  private val serviceCache = TrieMap.empty[String, ServiceInfo]
-
+  private val processUid = s"process-${generateUid()}"
   @volatile private var running = false
 
   /**
-   * Start service discovery (subscribe to discovery subject)
+   * Start service discovery
    */
   def start()(using ctx: Ctx): Unit = {
     if (running) {
       logger.warn("Service discovery already running")
     } else {
       running = true
-      logger.info(s"Starting service discovery on subject: ${config.discoverySubject}")
-
-      // Subscribe to discovery responses
-      val discoveryResponseSubject = s"${config.discoverySubject}.response.${config.mailbox.address.value}"
-
-      config.transport.subscribe(discoveryResponseSubject)(using ctx).runForeach { envelope =>
-        if (running) {
-          processDiscoveryResponse(envelope)
-        }
-      }
+      logger.info("Service discovery started")
     }
   }
 
@@ -110,194 +204,222 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
    * @param timeout How long to wait for responses
    * @return List of discovered services
    */
-  def query(query: Query, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Seq[ServiceInfo] = {
-    logger.debug(s"Querying for services: $query")
-
-    // Build query message
-    val queryJson = query.toJson
-    val payload = queryJson.toString.getBytes("UTF-8")
-
-    // Send query to discovery subject
-    val headers = Map(
-      "sender-mailbox" -> config.mailbox.address.value,
-      "reply-to" -> s"${config.discoverySubject}.response.${config.mailbox.address.value}",
+  def query(query: DiscoveryQuery, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Seq[DiscoveryResponse] = {
+    val request = DiscoveryRequest(
+      requestId = generateUid(),
+      replySuffix = generateUid(),
+      timestamp = Instant.now(),
+      query = query,
     )
 
+    val replySubject = s"${config.discoverySubject}.response.${request.replySuffix}"
+    logger.debug(s"Discovery query: request_id=${request.requestId} reply_subject=$replySubject")
+
+    // Subscribe to reply subject
+    val responses = TrieMap.empty[String, DiscoveryResponse]
+
+    val subscription = config.transport.subscribe(replySubject)(using ctx).runForeach { envelope =>
+      try {
+        val payload = new String(envelope.payload, "UTF-8")
+        val jsObj = json.parse(payload).toOption.get.asInstanceOf[JsObj]
+        val response = DiscoveryJson.parseResponse(jsObj)
+
+        if (response.requestId == request.requestId) {
+          responses.put(response.processUid, response)
+          logger.debug(s"Received response: process=${response.processUid} service=${response.serviceName}")
+        }
+      } catch {
+        case e: Exception =>
+          logger.error(s"Error parsing discovery response: ${e.getMessage}", e)
+      }
+    }
+
+    // Publish request
+    val requestJson = DiscoveryJson.requestToJson(request).compactJson
     config.transport.publish(
       subject = config.discoverySubject,
-      headers = headers,
-      payload = payload,
+      headers = Map.empty,
+      payload = requestJson.getBytes("UTF-8"),
     )(using ctx)
 
-    // Wait for responses to accumulate
+    // Wait for timeout
     Thread.sleep(timeout.toMillis)
 
-    // Return matching services from cache
-    serviceCache.values
-      .filter(matchesQuery(_, query))
-      .toSeq
+    val results = responses.values.toSeq
+    logger.debug(s"Discovery query complete: found ${results.size} services")
+    results
   }
 
   /**
    * Find first service implementing a specific RPC
    */
-  def findService(rpcEndpoint: String, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Option[ServiceInfo] = {
-    query(Query(implementsRpc = Some(rpcEndpoint)), timeout).headOption
+  def findService(rpcEndpoint: String, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Option[DiscoveryResponse] = {
+    query(DiscoveryQuery(implementsRpc = Seq(rpcEndpoint)), timeout).headOption
   }
 
   /**
    * Find services by app name
    */
-  def findByAppName(appName: String, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Seq[ServiceInfo] = {
-    query(Query(appName = Some(appName)), timeout)
+  def findByAppName(appName: String, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Seq[DiscoveryResponse] = {
+    query(DiscoveryQuery(appName = Some(appName)), timeout)
   }
 
   /**
-   * Register this service for discovery
-   *
-   * @param implementedRpcs List of RPC endpoints this service implements
-   * @param capabilities Additional capabilities map
+   * Register this service to respond to discovery queries
    */
-  def register(implementedRpcs: Seq[String], capabilities: Map[String, String] = Map.empty)(using ctx: Ctx): Unit = {
-    logger.info(s"Registering service: ${config.appName}")
-    logger.info(s"  Implemented RPCs: ${implementedRpcs.size}")
-    logger.info(s"  Capabilities: ${capabilities.size}")
+  def register()(using ctx: Ctx): Unit = {
+    logger.info(s"Registering service for discovery: app=${config.appName} service=${config.serviceName}")
+    logger.info(s"  Subscribing to subject: ${config.discoverySubject}")
+    logger.info(s"  Process UID: $processUid")
+    logger.info(s"  Unix PID: ${getPid()}")
+    logger.info(s"  Location: ${config.location.user}@${config.location.server}")
 
-    // Subscribe to discovery queries and respond
-    config.transport.subscribe(config.discoverySubject)(using ctx).runForeach { envelope =>
-      if (running) {
-        respondToQuery(envelope, implementedRpcs, capabilities)(using ctx)
+    // Run subscription in background thread to avoid blocking
+    val thread = new Thread(() => {
+      try {
+        config.transport.subscribe(config.discoverySubject)(using ctx).runForeach { envelope =>
+          if (running) {
+            try {
+              logger.debug(s"Received discovery request (${envelope.payload.length} bytes)")
+              val payload = new String(envelope.payload, "UTF-8")
+              logger.debug(s"Request payload: $payload")
+
+              val jsObj = json.parse(payload).toOption.get.asInstanceOf[JsObj]
+              val request = DiscoveryJson.parseRequest(jsObj)
+
+              logger.debug(s"Parsed request: request_id=${request.requestId}")
+              logger.debug(s"  Query: implementsRpc=${request.query.implementsRpc}, appName=${request.query.appName}, serviceName=${request.query.serviceName}")
+
+              if (matchesQuery(request.query)) {
+                logger.info(s"Query matched! Sending response for request_id=${request.requestId}")
+                sendResponse(request)(using ctx)
+              } else {
+                logger.debug(s"Query did not match our capabilities")
+              }
+            } catch {
+              case e: Exception =>
+                logger.error(s"Error processing discovery request: ${e.getMessage}", e)
+                e.printStackTrace()
+            }
+          }
+        }
+      } catch {
+        case e: Exception =>
+          logger.error(s"Discovery subscription thread failed: ${e.getMessage}", e)
       }
-    }
+    }, "discovery-listener")
+
+    thread.setDaemon(true)
+    thread.start()
+    logger.info(s"✓ Discovery listener started in background")
   }
 
   /**
    * Auto-register from RPC schemas
    */
   def autoRegister(capabilities: Map[String, String] = Map.empty)(using ctx: Ctx): Unit = {
-    val implementedRpcs = RpcSchema.all.map(_.name.value)
-    register(implementedRpcs, capabilities)(using ctx)
+    register()(using ctx)
   }
 
   /**
-   * Process an incoming discovery response
+   * Send discovery response
    */
-  private def processDiscoveryResponse(envelope: Envelope): Unit = {
-    try {
-      val payload = new String(envelope.payload, "UTF-8")
-      val jsonResult = json.parse(payload)
-      val jsObj = jsonResult.toOption.get.asInstanceOf[JsObj]
+  private def sendResponse(request: DiscoveryRequest)(using ctx: Ctx): Unit = {
+    val capabilities = buildCapabilities()
 
-      val processUid = jsObj.values("processUid").asInstanceOf[JsStr].value
-      val mailboxAddress = Mailbox.MailboxAddress(jsObj.values("mailboxAddress").asInstanceOf[JsStr].value)
-      val appName = jsObj.values("appName").asInstanceOf[JsStr].value
-      val serviceName = jsObj.values.get("serviceName").map(_.asInstanceOf[JsStr].value)
-      val location = jsObj.values.get("location").map(_.asInstanceOf[JsStr].value)
+    val response = DiscoveryResponse(
+      requestId = request.requestId,
+      processUid = processUid,
+      unixPid = getPid(),
+      appName = config.appName,
+      mailboxAddress = config.mailbox.address.value,
+      serviceName = config.serviceName,
+      timestamp = Instant.now(),
+      capabilities = capabilities,
+      metadata = config.metadata,
+      extendedMetadata = if (request.query.includeExtendedMetadata) Some(config.extendedMetadata) else None,
+      serviceDiscoveryMapping = config.staticServiceDiscovery
+        .map(_.getAllMailboxes)
+        .getOrElse(Map.empty),
+    )
 
-      val implementedRpcs = jsObj.values.get("implementedRpcs")
-        .map(_.asInstanceOf[JsArr].values.map(_.asInstanceOf[JsStr].value))
-        .getOrElse(Seq.empty)
+    val replySubject = s"${config.discoverySubject}.response.${request.replySuffix}"
+    val responseJson = DiscoveryJson.responseToJson(response).compactJson
 
-      val capabilities = jsObj.values.get("capabilities")
-        .map(_.asInstanceOf[JsObj].values.map { case (k, v) => k -> v.asInstanceOf[JsStr].value })
-        .getOrElse(Map.empty)
+    logger.info(s"Sending discovery response:")
+    logger.info(s"  Reply subject: $replySubject")
+    logger.info(s"  Process: ${response.appName} / ${response.serviceName}")
+    logger.info(s"  Mailbox: ${response.mailboxAddress}")
+    logger.info(s"  Implemented RPCs: ${capabilities.implementsRpc.mkString(", ")}")
+    logger.debug(s"  Response JSON: $responseJson")
 
-      val serviceInfo = ServiceInfo(
-        processUid = processUid,
-        mailboxAddress = mailboxAddress,
-        appName = appName,
-        serviceName = serviceName,
-        location = location,
-        implementedRpcs = implementedRpcs,
-        capabilities = capabilities,
-      )
+    config.transport.publish(
+      subject = replySubject,
+      headers = Map.empty,
+      payload = responseJson.getBytes("UTF-8"),
+    )(using ctx)
 
-      serviceCache.put(processUid, serviceInfo)
-      logger.debug(s"Discovered service: $appName (${processUid})")
+    logger.info(s"✓ Discovery response sent")
+  }
 
-    } catch {
-      case e: Exception =>
-        logger.error("Error processing discovery response", e)
+  /**
+   * Build capabilities from RPC server
+   */
+  private def buildCapabilities(): ProcessCapabilities = {
+    // Group schemas by name.version to get list of methods
+    // e.g. "ping.v1" -> ["Ping"], "process.v1" -> ["Shutdown", "Status"]
+    val allSchemas = RpcSchema.all
+    logger.debug(s"Building capabilities from ${allSchemas.size} registered schemas:")
+    allSchemas.foreach { schema =>
+      logger.debug(s"  - ${schema.name.value} (requiresAuth=${schema.requiresAuth})")
     }
+
+    val rpcSchemas: Map[String, Seq[String]] = allSchemas
+      .groupBy(schema => s"${schema.name.name}.${schema.name.version}")
+      .view
+      .mapValues(schemas => schemas.map(_.name.method).distinct)
+      .toMap
+
+    // Get list of implemented RPC schemas (name.version)
+    val implementedRpcs = rpcSchemas.keys.toSeq.distinct
+
+    ProcessCapabilities(
+      implementsRpc = implementedRpcs,
+      rpcSchemas = rpcSchemas,
+      location = config.location,
+      engines = Seq.empty, // Can be populated from HermesBootstrap
+    )
   }
 
   /**
-   * Respond to a discovery query
+   * Check if this service matches the query
    */
-  private def respondToQuery(
-    envelope: Envelope,
-    implementedRpcs: Seq[String],
-    capabilities: Map[String, String],
-  )(using ctx: Ctx): Unit = {
-    try {
-      // Parse query
-      val payload = new String(envelope.payload, "UTF-8")
-      val queryJson = if (payload.isEmpty) {
-        JsObj(Map.empty)
-      } else {
-        json.parse(payload).toOption.get.asInstanceOf[JsObj]
-      }
-
-      val query = Query(
-        implementsRpc = queryJson.values.get("implementsRpc").map(_.asInstanceOf[JsStr].value),
-        appName = queryJson.values.get("appName").map(_.asInstanceOf[JsStr].value),
-        serviceName = queryJson.values.get("serviceName").map(_.asInstanceOf[JsStr].value),
-        location = queryJson.values.get("location").map(_.asInstanceOf[JsStr].value),
-      )
-
-      // Check if we match the query
-      val ourInfo = ServiceInfo(
-        processUid = config.mailbox.address.value, // Use mailbox address as process UID
-        mailboxAddress = config.mailbox.address,
-        appName = config.appName,
-        serviceName = config.serviceName,
-        location = config.location,
-        implementedRpcs = implementedRpcs,
-        capabilities = capabilities,
-      )
-
-      if (matchesQuery(ourInfo, query)) {
-        // Send response
-        val responseJson = JsObj(Map(
-          "processUid" -> JsStr(ourInfo.processUid),
-          "mailboxAddress" -> JsStr(ourInfo.mailboxAddress.value),
-          "appName" -> JsStr(ourInfo.appName),
-          "serviceName" -> ourInfo.serviceName.map(JsStr(_)).getOrElse(JsStr("")),
-          "location" -> ourInfo.location.map(JsStr(_)).getOrElse(JsStr("")),
-          "implementedRpcs" -> JsArr(ourInfo.implementedRpcs.map(JsStr(_)).toList),
-          "capabilities" -> JsObj(ourInfo.capabilities.map { case (k, v) => k -> JsStr(v) }),
-        ))
-
-        val responsePayload = responseJson.toString.getBytes("UTF-8")
-        envelope.headers.get("reply-to") match {
-          case Some(replyTo) =>
-            config.transport.publish(
-              subject = replyTo,
-              headers = Map.empty,
-              payload = responsePayload,
-            )(using ctx)
-
-            logger.debug(s"Sent discovery response to $replyTo")
-
-          case None =>
-            logger.warn("Discovery query missing reply-to header")
-        }
-      }
-
-    } catch {
-      case e: Exception =>
-        logger.error("Error responding to discovery query", e)
+  private def matchesQuery(query: DiscoveryQuery): Boolean = {
+    // ALL RPCs in query must be implemented (not just one!)
+    val rpcMatch = query.implementsRpc.isEmpty || {
+      val ourRpcs = RpcSchema.all.map(_.name.value).toSet
+      query.implementsRpc.forall(ourRpcs.contains)
     }
+
+    val appMatch = query.appName.forall(matchesPattern(config.appName, _))
+    val serviceMatch = query.serviceName.forall(matchesPattern(config.serviceName, _))
+
+    val locationMatch = query.location.forall { locQuery =>
+      locQuery.server.forall(_ == config.location.server) &&
+      locQuery.user.forall(_ == config.location.user) &&
+      locQuery.userServer.forall(_ == s"${config.location.user}@${config.location.server}")
+    }
+
+    rpcMatch && appMatch && serviceMatch && locationMatch
   }
 
   /**
-   * Check if a service matches a query
+   * Wildcard pattern matching (supports trailing *)
    */
-  private def matchesQuery(service: ServiceInfo, query: Query): Boolean = {
-    query.implementsRpc.forall(rpc => service.implementedRpcs.exists(_.equalsIgnoreCase(rpc))) &&
-    query.appName.forall(_.equalsIgnoreCase(service.appName)) &&
-    query.serviceName.forall(sn => service.serviceName.exists(_.equalsIgnoreCase(sn))) &&
-    query.location.forall(loc => service.location.exists(_.equalsIgnoreCase(loc)))
+  private def matchesPattern(value: String, pattern: String): Boolean = {
+    if (pattern == "*") true
+    else if (pattern.endsWith("*")) value.startsWith(pattern.dropRight(1))
+    else value == pattern
   }
 
   /**
@@ -307,13 +429,21 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
     if (running) {
       logger.info("Stopping service discovery")
       running = false
-      serviceCache.clear()
     }
   }
 
   /**
-   * Get all cached services
+   * Get all cached services (for compatibility with old API)
    */
-  def cachedServices: Seq[ServiceInfo] = serviceCache.values.toSeq
+  def cachedServices: Seq[DiscoveryResponse] = {
+    logger.warn("cachedServices is deprecated - use query() instead")
+    Seq.empty
+  }
+
+  // ===== Utility Methods =====
+
+  private def getPid(): Int = {
+    ProcessHandle.current().pid().toInt
+  }
 
 }

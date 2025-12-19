@@ -5,6 +5,8 @@ import a8.hermes.rpc.RpcServer
 import a8.shared.app.{BootstrappedIOApp, AppCtx}
 import a8.shared.zreplace.Resource
 
+import scala.concurrent.duration.*
+
 /**
  * PingService - A long-lived service that responds to ping requests.
  *
@@ -62,6 +64,28 @@ object PingService extends BootstrappedIOApp {
     logger.info(s"  Mailbox Address: ${hermes.mailbox.metadata.address.value}")
     logger.info(s"  RPC Endpoint: ping.v1.Ping")
     logger.info("")
+
+    // Test discovery if enabled
+    hermes.dynamicServiceDiscovery.foreach { discovery =>
+      logger.info("✓ Dynamic service discovery enabled")
+      logger.info("  Querying for ping.v1 services...")
+
+      import a8.hermes.discovery.ServiceDiscovery
+      val query = ServiceDiscovery.DiscoveryQuery(
+        implementsRpc = Seq("ping.v1")
+      )
+
+      val services = discovery.query(query, timeout = 2.seconds)(using appCtx)
+      logger.info(s"  Found ${services.size} ping services:")
+
+      services.foreach { service =>
+        logger.info(s"    - ${service.serviceName} @ ${service.mailboxAddress}")
+        logger.info(s"      PID: ${service.unixPid}")
+        logger.info(s"      Location: ${service.capabilities.location.user}@${service.capabilities.location.server}")
+      }
+      logger.info("")
+    }
+
     logger.info("To test this service, send a ping RPC to the mailbox address above")
     logger.info("")
     logger.info("Press Ctrl+C to stop the service")

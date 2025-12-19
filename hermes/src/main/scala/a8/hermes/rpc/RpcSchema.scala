@@ -1,5 +1,6 @@
 package a8.hermes.rpc
 
+import a8.common.logging.Logging
 import scala.collection.concurrent.TrieMap
 
 /**
@@ -9,7 +10,7 @@ import scala.collection.concurrent.TrieMap
  *
  * Case-insensitive for handler lookup to match godev behavior.
  */
-object RpcSchema {
+object RpcSchema extends Logging {
 
   /**
    * Normalized schema name for case-insensitive lookups.
@@ -60,7 +61,9 @@ object RpcSchema {
    * Register a schema
    */
   def register(schema: Schema): Unit = {
+    logger.debug(s"Registering RPC schema: ${schema.name.value} (requiresAuth=${schema.requiresAuth})")
     schemas.put(schema.name, schema)
+    logger.debug(s"  Total schemas registered: ${schemas.size}")
   }
 
   /**
