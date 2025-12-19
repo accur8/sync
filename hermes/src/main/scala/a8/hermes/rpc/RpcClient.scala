@@ -32,7 +32,7 @@ object RpcClient extends Logging {
   sealed trait RpcResult
   object RpcResult {
     case class Success(payload: Array[Byte]) extends RpcResult
-    case class Error(message: String) extends RpcResult
+    case class Error(message: String, errorNode: Option[a8.hermes.proto.process.wsmessages.ErrorNode] = None) extends RpcResult
     case object Timeout extends RpcResult
   }
 
@@ -121,13 +121,18 @@ class RpcClient(config: RpcClient.Config) extends Logging {
                       promise.success(RpcResult.Success(message.data.toByteArray))
 
                     case RpcFrameType.ErrorResponse =>
-                      val errorMsg = rpcHeader.errorInfo.map(_.message).getOrElse("Unknown error")
+                      // Extract error node (new model) or fallback to legacy message
+                      val errorNode = rpcHeader.errorInfo.flatMap(_.errorNode)
+                      val errorMsg = errorNode
+                        .map(RpcError.formatError(_))
+                        .orElse(rpcHeader.errorInfo.map(_.message))
+                        .getOrElse("Unknown error")
                       logger.warn(s"[RPC-RESPONSE] Error response: $errorMsg")
-                      promise.success(RpcResult.Error(errorMsg))
+                      promise.success(RpcResult.Error(errorMsg, errorNode))
 
                     case other =>
                       logger.error(s"[RPC-RESPONSE] Unexpected frame type: $other")
-                      promise.success(RpcResult.Error(s"Unexpected frame type: $other"))
+                      promise.success(RpcResult.Error(s"Unexpected frame type: $other", None))
                   }
 
                 case None =>
@@ -248,7 +253,7 @@ class RpcClient(config: RpcClient.Config) extends Logging {
             None
         }
 
-      case RpcResult.Error(message) =>
+      case RpcResult.Error(message, errorNode) =>
         logger.warn(s"RPC call returned error: $endpoint - $message")
         None
 
