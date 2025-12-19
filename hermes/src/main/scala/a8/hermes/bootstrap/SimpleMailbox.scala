@@ -25,15 +25,15 @@ class SimpleMailbox(
     to: MailboxAddress,
     message: MailboxMessage,
   )(using ctx: Ctx): Unit = {
-    logger.info(s"[SEND] Looking up adminKey for mailbox address: ${to.value}")
+    logger.debug(s"Looking up adminKey for mailbox address: ${to.value}")
 
     // Look up recipient's adminKey from KV store
     val recipientAdminKey = lookupAdminKey(to).getOrElse {
-      logger.error(s"[SEND] Mailbox address not found in KV store: ${to.value}")
+      logger.error(s"Mailbox address not found in KV store: ${to.value}")
       throw new RuntimeException(s"Mailbox address not found: ${to.value}")
     }
 
-    logger.info(s"[SEND] Found adminKey for ${to.value}: ${recipientAdminKey.value}")
+    logger.debug(s"Found adminKey for ${to.value}: ${recipientAdminKey.value}")
 
     // Convert MailboxMessage to transport envelope
     val headers = Map(
@@ -45,7 +45,7 @@ class SimpleMailbox(
 
     // Publish to recipient's RPC inbox using their adminKey
     val targetSubject = s"hermes.${recipientAdminKey.value}.rpc-inbox"
-    logger.info(s"[SEND] Publishing to subject: $targetSubject")
+    logger.debug(s"Publishing to subject: $targetSubject")
 
     transport.publish(
       subject = targetSubject,

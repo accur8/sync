@@ -113,11 +113,11 @@ class RpcClient(config: RpcClient.Config) extends Logging {
               val correlationId = rpcHeader.correlationId
               pendingCalls.remove(correlationId) match {
                 case Some(promise) =>
-                  logger.info(s"[RPC-RESPONSE] Matched correlation ID: $correlationId, frameType: ${rpcHeader.frameType}")
+                  logger.debug(s"Matched correlation ID: $correlationId, frameType: ${rpcHeader.frameType}")
                   rpcHeader.frameType match {
                     case RpcFrameType.SuccessResponse =>
                       // Extract the actual response data from message.data
-                      logger.info(s"[RPC-RESPONSE] Success response with ${message.data.size} bytes of data")
+                      logger.debug(s"Success response with ${message.data.size} bytes of data")
                       promise.success(RpcResult.Success(message.data.toByteArray))
 
                     case RpcFrameType.ErrorResponse =>
@@ -133,8 +133,6 @@ class RpcClient(config: RpcClient.Config) extends Logging {
                 case None =>
                   logger.warn(s"[RPC-RESPONSE] Received response for unknown correlation ID: $correlationId")
               }
-            } else {
-              logger.debug(s"[RPC-CLIENT] Ignoring Request frame (not a response)")
             }
 
           case None =>

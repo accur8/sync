@@ -117,7 +117,7 @@ class RpcServer(config: RpcServer.Config) extends Logging {
             val correlationId = Some(rpcHeader.correlationId)
             val senderMailbox = message.header.map(_.sender).map(Mailbox.MailboxAddress(_))
 
-            logger.info(s"[RPC-SERVER] Received RPC request: $endpoint (correlation: ${correlationId.getOrElse("none")})")
+            logger.debug(s"Received RPC request: $endpoint (correlation: ${correlationId.getOrElse("none")})")
 
             // Create RPC context
             val rpcContext = RpcContext(
@@ -150,8 +150,6 @@ class RpcServer(config: RpcServer.Config) extends Logging {
                 logger.warn(s"No handler found for endpoint: $endpoint")
                 sendError(senderMailbox, s"Handler not found: $endpoint", correlationId)(using ctx)
             }
-          } else {
-            logger.debug(s"[RPC-SERVER] Ignoring non-Request frame: ${rpcHeader.frameType}")
           }
       }
 
