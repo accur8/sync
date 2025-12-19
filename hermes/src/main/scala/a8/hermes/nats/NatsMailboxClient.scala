@@ -1,6 +1,6 @@
 package a8.hermes.nats
 
-import a8.hermes.core.{Mailbox, Uid}
+import a8.hermes.core.{Mailbox, MailboxTransport, Uid}
 import a8.hermes.core.Mailbox._
 import a8.common.logging.Logging
 import io.nats.client.api.{KeyValueConfiguration, StorageType}
@@ -86,7 +86,7 @@ object NatsMailboxClient extends Logging {
   def fetchOrCreateNamedMailbox(
     address: MailboxAddress,
     natsTransport: NatsTransport,
-  ): Try[Mailbox] = {
+  )(using ctx: a8.shared.app.Ctx): Try[Mailbox] = {
     for {
       adminKV <- getOrCreateKV(natsTransport, AdminMailboxesKVBucket)
       rwKV <- getOrCreateKV(natsTransport, RWKeysKVBucket)
@@ -101,7 +101,7 @@ object NatsMailboxClient extends Logging {
         adminKV = adminKV,
         rwKV = rwKV,
         natsTransport = natsTransport,
-      )
+      )(using ctx)
     }
   }
 
@@ -110,7 +110,7 @@ object NatsMailboxClient extends Logging {
    */
   def createNonDurableMailbox(
     natsTransport: NatsTransport,
-  ): Try[Mailbox] = {
+  )(using ctx: a8.shared.app.Ctx): Try[Mailbox] = {
     for {
       adminKV <- getOrCreateKV(natsTransport, AdminMailboxesKVBucket)
       rwKV <- getOrCreateKV(natsTransport, RWKeysKVBucket)
@@ -124,7 +124,7 @@ object NatsMailboxClient extends Logging {
         adminKV = adminKV,
         rwKV = rwKV,
         natsTransport = natsTransport,
-      )
+      )(using ctx)
     }
   }
 
@@ -139,7 +139,7 @@ object NatsMailboxClient extends Logging {
     adminKV: KeyValue,
     rwKV: KeyValue,
     natsTransport: NatsTransport,
-  ): Mailbox = {
+  )(using ctx: a8.shared.app.Ctx): Mailbox = {
     // Generate keys (matching godev)
     val mailboxAddress = address.getOrElse(MailboxAddress(randomKey("a")))
     val readerKey = ReaderKey(randomKey("r"))
@@ -200,6 +200,27 @@ object NatsMailboxClient extends Logging {
     adminKV.put(adminKey.value, json.getBytes("UTF-8"))
 
     logger.info(s"Created mailbox: ${mailboxAddress.value} (named=$isNamed)")
+
+    // Create JetStream streams for mailbox channels (matching godev)
+    val rpcInboxSubject = s"hermes.${adminKey.value}.rpc-inbox"
+    val rpcInboxStream = s"hermes-${adminKey.value}-rpc-inbox"
+    natsTransport.createStream(
+      name = rpcInboxStream,
+      subjects = Seq(rpcInboxSubject),
+      retention = MailboxTransport.StreamRetention.WorkQueue,
+      maxAge = scala.concurrent.duration.FiniteDuration(purgeTimeoutMillis, "milliseconds"),
+    )
+    logger.debug(s"created channel rpc-inbox in ${adminKey.value}")
+
+    val rpcSentSubject = s"hermes.${adminKey.value}.rpc-sent"
+    val rpcSentStream = s"hermes-${adminKey.value}-rpc-sent"
+    natsTransport.createStream(
+      name = rpcSentStream,
+      subjects = Seq(rpcSentSubject),
+      retention = MailboxTransport.StreamRetention.WorkQueue,
+      maxAge = scala.concurrent.duration.FiniteDuration(purgeTimeoutMillis, "milliseconds"),
+    )
+    logger.debug(s"created channel rpc-sent in ${adminKey.value}")
 
     // Create the Mailbox instance
     val lifecycle = if (isNamed) {

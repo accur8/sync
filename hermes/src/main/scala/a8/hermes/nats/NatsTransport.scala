@@ -77,6 +77,7 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
       .data(payload)
       .build()
     connection.publish(msg)
+    connection.flush(java.time.Duration.ofMillis(100))  // Ensure message is sent immediately
   }
 
   override def request(
@@ -110,6 +111,10 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
 
     val messageHandler: io.nats.client.MessageHandler = msg => {
       messageQueue.offer(fromNatsMessage(msg))
+      // Auto-ack JetStream messages to prevent redelivery
+      if (msg.isJetStream) {
+        msg.ack()
+      }
     }
 
     val dispatcher = connection.createDispatcher(messageHandler)

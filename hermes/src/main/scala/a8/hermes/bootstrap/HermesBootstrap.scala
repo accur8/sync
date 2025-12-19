@@ -73,7 +73,7 @@ object HermesBootstrap extends Logging {
       // For direct NATS transport, create a non-durable mailbox
       mailbox <- Resource.acquireRelease {
         logger.info("Creating non-durable mailbox for client...")
-        nats.NatsMailboxClient.createNonDurableMailbox(natsTransport) match {
+        nats.NatsMailboxClient.createNonDurableMailbox(natsTransport)(using ctx) match {
           case scala.util.Success(mbox) =>
             logger.info(s"✓ Created mailbox: ${mbox.address.value}")
             mbox
