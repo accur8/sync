@@ -37,6 +37,7 @@ object SshAuth extends Logging {
    */
   case class AuthResult(
     authToken: String,
+    expiresAt: java.time.Instant,
   )
 
   /**
@@ -99,7 +100,13 @@ object SshAuth extends Logging {
       val authToken = loginCompleteResponse.authToken
       logger.info(s"✓ Authentication successful!")
 
-      AuthResult(authToken)
+      // Step 3: Token expiration
+      // TODO: Extract expiration from GetUserInfoForSelf once proto is fixed
+      // For now, assume 24 hour expiration
+      val expiresAt = java.time.Instant.now().plusSeconds(86400)
+      logger.info(s"✓ Token will be renewed in 12 hours (assuming 24h expiration, expires at: $expiresAt)")
+
+      AuthResult(authToken, expiresAt)
     }
   }
 

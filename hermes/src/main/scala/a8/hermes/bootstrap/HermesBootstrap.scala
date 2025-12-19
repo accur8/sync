@@ -1,7 +1,7 @@
 package a8.hermes.bootstrap
 
 import a8.hermes.core.{Mailbox, MailboxTransport}
-import a8.hermes.{nats}
+import a8.hermes.{nats, auth}
 import a8.hermes.nats.NatsTransport
 import a8.hermes.rpc.{RpcServer, RpcClient}
 import a8.hermes.discovery.ServiceDiscovery
@@ -42,6 +42,7 @@ object HermesBootstrap extends Logging {
     rpcClient: RpcClient,
     staticServiceDiscovery: StaticServiceDiscovery,
     dynamicServiceDiscovery: Option[ServiceDiscovery] = None,
+    authExtension: Option[auth.AuthExtension] = None,
   )
 
   /**
@@ -144,6 +145,7 @@ object HermesBootstrap extends Logging {
       logger.info(s"  RPC Client: Running")
       logger.info(s"  Static Service Discovery: ${config.namedMailboxes.size} named mailboxes")
       logger.info(s"  Dynamic Service Discovery: ${if (dynamicServiceDiscovery.isDefined) "Enabled" else "Disabled"}")
+      // Note: Auth extension not started here - applications should start it after SSH authentication
 
       Components(
         config = config,
@@ -153,6 +155,7 @@ object HermesBootstrap extends Logging {
         rpcClient = rpcClient,
         staticServiceDiscovery = staticServiceDiscovery,
         dynamicServiceDiscovery = dynamicServiceDiscovery,
+        authExtension = None,  // Will be set by application if needed
       )
     }
   }
