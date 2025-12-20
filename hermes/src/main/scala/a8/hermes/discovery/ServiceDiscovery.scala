@@ -41,11 +41,11 @@ object ServiceDiscovery extends Logging {
    */
   case class DiscoveryResponse(
     requestId: String,
-    processUid: String,
+    processUid: Option[String],  // From PROCESS_UID env var
     unixPid: Int,
     appName: String,
     mailboxAddress: String,
-    serviceName: String,
+    serviceName: Option[String],  // From SERVICE_NAME env var
     timestamp: Instant,
     capabilities: ProcessCapabilities,
     metadata: Map[String, String],
@@ -100,7 +100,7 @@ object ServiceDiscovery extends Logging {
     rpcServer: Option[RpcServer] = None,
     discoverySubject: String = "nefario.discovery",
     appName: String,
-    serviceName: String,
+    serviceName: Option[String] = None,
     location: ProcessLocation,
     metadata: Map[String, String] = Map.empty,
     extendedMetadata: Map[String, String] = Map.empty,
@@ -138,7 +138,7 @@ object ServiceDiscovery extends Logging {
     transport: MailboxTransport,
     rpcServer: Option[RpcServer],
     appName: String,
-    serviceName: String,
+    serviceName: Option[String],
     staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
   ): Config = {
     val location = ProcessLocation(
@@ -182,7 +182,12 @@ object ServiceDiscovery extends Logging {
 class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
   import ServiceDiscovery.*
 
-  private val processUid = s"process-${generateUid()}"
+  // Read from PROCESS_UID env var, omit if not present
+  private val processUid: Option[String] = sys.env.get("PROCESS_UID")
+
+  // Read from SERVICE_NAME env var, omit if not present
+  private val serviceName: Option[String] = sys.env.get("SERVICE_NAME")
+
   @volatile private var running = false
 
   /**
@@ -225,8 +230,8 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
         val response = DiscoveryJson.parseResponse(jsObj)
 
         if (response.requestId == request.requestId) {
-          responses.put(response.processUid, response)
-          logger.debug(s"Received response: process=${response.processUid} service=${response.serviceName}")
+          responses.put(response.mailboxAddress, response)
+          logger.debug(s"Received response: process=${response.processUid.getOrElse("<none>")} service=${response.serviceName.getOrElse("<none>")} mailbox=${response.mailboxAddress}")
         }
       } catch {
         case e: Exception =>
@@ -268,9 +273,9 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
    * Register this service to respond to discovery queries
    */
   def register()(using ctx: Ctx): Unit = {
-    logger.info(s"Registering service for discovery: app=${config.appName} service=${config.serviceName}")
+    logger.info(s"Registering service for discovery: app=${config.appName} service=${serviceName.getOrElse("<none>")}")
     logger.info(s"  Subscribing to subject: ${config.discoverySubject}")
-    logger.info(s"  Process UID: $processUid")
+    logger.info(s"  Process UID: ${processUid.getOrElse("<none>")}")
     logger.info(s"  Unix PID: ${getPid()}")
     logger.info(s"  Location: ${config.location.user}@${config.location.server}")
 
@@ -333,7 +338,7 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
       unixPid = getPid(),
       appName = config.appName,
       mailboxAddress = config.mailbox.address.value,
-      serviceName = config.serviceName,
+      serviceName = serviceName,
       timestamp = Instant.now(),
       capabilities = capabilities,
       metadata = config.metadata,
@@ -348,7 +353,7 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
 
     logger.info(s"Sending discovery response:")
     logger.info(s"  Reply subject: $replySubject")
-    logger.info(s"  Process: ${response.appName} / ${response.serviceName}")
+    logger.info(s"  Process: ${response.appName} / ${response.serviceName.getOrElse("<none>")}")
     logger.info(s"  Mailbox: ${response.mailboxAddress}")
     logger.info(s"  Implemented RPCs: ${capabilities.implementsRpc.mkString(", ")}")
     logger.debug(s"  Response JSON: $responseJson")
@@ -405,7 +410,13 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
     }
 
     val appMatch = query.appName.forall(matchesPattern(config.appName, _))
-    val serviceMatch = query.serviceName.forall(matchesPattern(config.serviceName, _))
+    val serviceMatch =
+      config
+        .serviceName
+        .map { sn =>
+          query.serviceName.forall(matchesPattern(sn, _))
+        }
+        .getOrElse(query.serviceName.isEmpty)
 
     val locationMatch = query.location.forall { locQuery =>
       locQuery.server.forall(_ == config.location.server) &&

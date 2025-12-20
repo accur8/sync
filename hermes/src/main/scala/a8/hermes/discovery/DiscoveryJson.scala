@@ -48,18 +48,20 @@ object DiscoveryJson {
   // ===== Response Serialization =====
 
   def responseToJson(resp: DiscoveryResponse): JsObj = {
-    val fields = Map(
+    val baseFields = Map(
       "request_id" -> JsStr(resp.requestId),
-      "processUid" -> JsStr(resp.processUid),
       "unixPid" -> JsNum(resp.unixPid),
       "app_name" -> JsStr(resp.appName),
       "mailbox_address" -> JsStr(resp.mailboxAddress),
-      "service_name" -> JsStr(resp.serviceName),
       "timestamp" -> JsStr(resp.timestamp.toString),
       "capabilities" -> capabilitiesToJson(resp.capabilities),
       "metadata" -> mapToJson(resp.metadata),
       "service_discovery_mapping" -> mapToJson(resp.serviceDiscoveryMapping),
     )
+
+    val fields = baseFields ++
+      resp.processUid.map("processUid" -> JsStr(_)) ++
+      resp.serviceName.map("service_name" -> JsStr(_))
 
     val withExtended = resp.extendedMetadata match {
       case Some(ext) => fields + ("extended_metadata" -> mapToJson(ext))
@@ -132,11 +134,11 @@ object DiscoveryJson {
   def parseResponse(jsObj: JsObj): DiscoveryResponse = {
     DiscoveryResponse(
       requestId = jsObj.values("request_id").asInstanceOf[JsStr].value,
-      processUid = jsObj.values("processUid").asInstanceOf[JsStr].value,
+      processUid = jsObj.values.get("processUid").map(_.asInstanceOf[JsStr].value),
       unixPid = jsObj.values("unixPid").asInstanceOf[JsNum].value.toInt,
       appName = jsObj.values("app_name").asInstanceOf[JsStr].value,
       mailboxAddress = jsObj.values("mailbox_address").asInstanceOf[JsStr].value,
-      serviceName = jsObj.values("service_name").asInstanceOf[JsStr].value,
+      serviceName = jsObj.values.get("service_name").map(_.asInstanceOf[JsStr].value),
       timestamp = Instant.parse(jsObj.values("timestamp").asInstanceOf[JsStr].value),
       capabilities = parseCapabilities(jsObj.values("capabilities").asInstanceOf[JsObj]),
       metadata = parseMap(jsObj.values("metadata").asInstanceOf[JsObj]),
