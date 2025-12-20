@@ -20,9 +20,6 @@ import scala.concurrent.duration.*
  */
 object PingService extends BootstrappedIOApp {
 
-  case class PingRequest(message: String = "")
-  case class PingResponse(echo: String, mailbox: String)
-
   override def run()(using appCtx: AppCtx): Unit = {
     Thread.currentThread().setName("ping-service-main")
     logger.info("Starting Ping Service...")
@@ -34,54 +31,54 @@ object PingService extends BootstrappedIOApp {
     logger.info(s"  Mailbox: ${hermes.mailbox.metadata.address.value}")
     logger.info(s"  NATS server: ${hermes.config.natsUrl}")
 
-    // Register ping handler
+    // Register process.v1.Ping handler (godev standard)
     val pingCount = new java.util.concurrent.atomic.AtomicInteger(0)
 
-    val pingHandler = a8.hermes.rpc.RpcHandler(
-      name = "ping",
+    val processPingHandler = a8.hermes.rpc.RpcHandler(
+      name = "process",
       version = "v1",
       method = "Ping",
-      description = Some("Simple ping service for testing service discovery"),
-      requiresAuth = false,  // No auth required for testing
+      description = Some("Process ping endpoint - echoes payload with timestamp"),
+      requiresAuth = false,
     ) { (requestBytes, ctx) =>
       val count = pingCount.incrementAndGet()
-      val echo = if (requestBytes.isEmpty) "pong" else new String(requestBytes, "UTF-8")
-      val response = PingResponse(
-        echo = s"$echo (request #$count)",
-        mailbox = hermes.mailbox.metadata.address.value
-      )
+      val payload = if (requestBytes.isEmpty) "pong" else new String(requestBytes, "UTF-8")
       val sender = ctx.senderMailbox.map(_.value).getOrElse("unknown")
-      logger.info(s"Ping received from $sender -> responding: ${response.echo}")
-      response.toString.getBytes("UTF-8")
+      logger.info(s"process.v1.Ping #$count from $sender -> payload: $payload")
+
+      // Simple response: payload + timestamp + process info
+      val response = s"""{"payload":"$payload","timestamp":"${java.time.Instant.now()}","processId":"${hermes.mailbox.metadata.address.value}"}"""
+      response.getBytes("UTF-8")
     }
 
-    hermes.rpcServer.register(pingHandler)
+    hermes.rpcServer.register(processPingHandler)
 
     logger.info("")
     logger.info("✓ Ping service is ready!")
     logger.info("")
     logger.info("Service Details:")
     logger.info(s"  Mailbox Address: ${hermes.mailbox.metadata.address.value}")
-    logger.info(s"  RPC Endpoint: ping.v1.Ping")
+    logger.info(s"  RPC Endpoint: process.v1.Ping")
     logger.info("")
 
     // Test discovery if enabled
     hermes.dynamicServiceDiscovery.foreach { discovery =>
       logger.info("✓ Dynamic service discovery enabled")
-      logger.info("  Querying for ping.v1 services...")
+      logger.info("  Querying for process.v1 services...")
 
       import a8.hermes.discovery.ServiceDiscovery
       val query = ServiceDiscovery.DiscoveryQuery(
-        implementsRpc = Seq("ping.v1")
+        implementsRpc = Seq("process.v1")
       )
 
       val services = discovery.query(query, timeout = 2.seconds)(using appCtx)
-      logger.info(s"  Found ${services.size} ping services:")
+      logger.info(s"  Found ${services.size} services with process.v1:")
 
       services.foreach { service =>
         logger.info(s"    - ${service.serviceName} @ ${service.mailboxAddress}")
         logger.info(s"      PID: ${service.unixPid}")
         logger.info(s"      Location: ${service.capabilities.location.user}@${service.capabilities.location.server}")
+        logger.info(s"      RPCs: ${service.capabilities.implementsRpc.mkString(", ")}")
       }
       logger.info("")
     }

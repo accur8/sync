@@ -35,15 +35,15 @@ object DiscoveryTest extends BootstrappedIOApp {
         logger.info("✓ Dynamic service discovery enabled")
         logger.info("")
 
-        // Test 1: Find all ping services
-        logger.info("=== Test 1: Query for ping.v1 services ===")
-        val pingServices = discovery.query(
-          ServiceDiscovery.DiscoveryQuery(implementsRpc = Seq("ping.v1")),
+        // Test 1: Find all process.v1 services
+        logger.info("=== Test 1: Query for process.v1 services ===")
+        val processServices = discovery.query(
+          ServiceDiscovery.DiscoveryQuery(implementsRpc = Seq("process.v1")),
           timeout = 3.seconds
         )(using appCtx)
 
-        logger.info(s"Found ${pingServices.size} ping services:")
-        pingServices.foreach(printService)
+        logger.info(s"Found ${processServices.size} services with process.v1:")
+        processServices.foreach(printService)
 
         logger.info("")
 
