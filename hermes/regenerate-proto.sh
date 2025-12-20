@@ -6,8 +6,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GODEV_DIR="/Users/glen/code/accur8/godev"
-PROTO_DIR="$SCRIPT_DIR/src/main/protobuf"
-SCALA_GEN_DIR="$SCRIPT_DIR/src/main/scala-gen"
+PROTO_DIR="$SCRIPT_DIR/../hermes-proto/src/main/protobuf"
+SCALA_GEN_DIR="$SCRIPT_DIR/../hermes-proto/src/main/scala-gen"
 
 echo "=== Copying proto files from godev ==="
 
@@ -79,7 +79,7 @@ sed -i '' 's|// ),|),|' "$BUILD_SBT"
 
 # Run sbt to generate code
 cd "$SCRIPT_DIR/.."
-sbt "hermes/compile"
+sbt "hermesProto/compile"
 
 # Restore build.sbt to original state
 echo "Restoring build.sbt..."
@@ -89,7 +89,7 @@ sed -i '' 's|^        scalapb.gen|      //   scalapb.gen|' "$BUILD_SBT"
 sed -i '' 's|^      ),|      // ),|' "$BUILD_SBT"
 
 # Move generated code from target to src
-GENERATED_DIR="$SCRIPT_DIR/target/scala-3.7.3/src_managed/main/scalapb"
+GENERATED_DIR="$SCRIPT_DIR/../hermes-proto/target/scala-3.7.3/src_managed/main/scalapb"
 if [ -d "$GENERATED_DIR" ]; then
   cp -r "$GENERATED_DIR"/* "$SCALA_GEN_DIR/"
   echo "✓ Moved generated code to src/main/scala-gen/"
@@ -104,4 +104,4 @@ echo "Proto files: $PROTO_DIR"
 echo "Generated Scala: $SCALA_GEN_DIR"
 echo ""
 echo "Generated files are now in git-tracked directories."
-echo "Run 'git add hermes/src/main/scala-gen' to commit them."
+echo "Run 'git add hermes-proto/src/main/scala-gen' to commit them."

@@ -192,13 +192,12 @@ lazy val nats =
       )
     )
 
-lazy val hermes =
+lazy val hermesProto =
   Common
-    .jvmProject("a8-hermes", file("hermes"), "hermes")
-    .dependsOn(shared, nats)
+    .jvmProject("a8-hermes-proto", file("hermes-proto"), "hermesProto")
     .settings(
-      // Disable strict equality for protobuf generated code
-      scalacOptions := scalacOptions.value.filterNot(_ == "-language:strictEquality"),
+      // Disable strict equality and all warnings for generated protobuf code
+      scalacOptions := scalacOptions.value.filterNot(_ == "-language:strictEquality") :+ "-Wconf:any:silent",
       // Add scala-gen directory to source directories (generated proto code)
       // Proto generation is done externally via regenerate-proto.sh script
       Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "scala-gen",
@@ -208,6 +207,17 @@ lazy val hermes =
       // ),
       libraryDependencies ++= Seq(
         "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.15",
+      )
+    )
+
+lazy val hermes =
+  Common
+    .jvmProject("a8-hermes", file("hermes"), "hermes")
+    .dependsOn(shared, nats, hermesProto)
+    .settings(
+      // Disable strict equality for protobuf generated code and enum types
+      scalacOptions := scalacOptions.value.filterNot(_ == "-language:strictEquality"),
+      libraryDependencies ++= Seq(
         "org.bouncycastle" % "bcprov-jdk18on" % "1.77",
         "com.hierynomus" % "sshj" % "0.38.0",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
@@ -313,6 +323,7 @@ lazy val root =
 //    .aggregate(api)
 //    .aggregate(http)
     .aggregate(nats)
+    .aggregate(hermesProto)
     .aggregate(hermes)
     .aggregate(shared)
     .aggregate(stager)
