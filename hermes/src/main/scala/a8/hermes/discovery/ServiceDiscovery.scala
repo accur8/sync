@@ -397,7 +397,10 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
   private def matchesQuery(query: DiscoveryQuery): Boolean = {
     // ALL RPCs in query must be implemented (not just one!)
     val rpcMatch = query.implementsRpc.isEmpty || {
-      val ourRpcs = RpcSchema.all.map(_.name.value).toSet
+      // Extract name.version (e.g. "process.v1") from schemas, matching buildCapabilities logic
+      val ourRpcs = RpcSchema.all
+        .map(schema => s"${schema.name.name}.${schema.name.version}")
+        .toSet
       query.implementsRpc.forall(ourRpcs.contains)
     }
 
