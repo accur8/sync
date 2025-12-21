@@ -16,6 +16,36 @@ import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.{FiniteDuration, *}
 import java.time.Instant
 
+// ===== Serialization Format =====
+
+/**
+ * SerializationFormat defines how RPC messages are encoded
+ */
+enum SerializationFormat(val value: Int) {
+  case UNSPECIFIED extends SerializationFormat(0)
+  case JSON extends SerializationFormat(1)
+  case PROTOBUF extends SerializationFormat(2)
+}
+
+object SerializationFormat {
+  // JSON codec - serializes as lowercase strings ("json", "protobuf")
+  implicit lazy val jsonCodec: json.JsonTypedCodec[SerializationFormat, json.ast.JsStr] = {
+    json.JsonCodec.string.dimap[SerializationFormat](
+      s => s.toLowerCase match {
+        case "unspecified" => UNSPECIFIED
+        case "json" => JSON
+        case "protobuf" => PROTOBUF
+        case _ => UNSPECIFIED
+      },
+      format => format match {
+        case UNSPECIFIED => "unspecified"
+        case JSON => "json"
+        case PROTOBUF => "protobuf"
+      }
+    )
+  }
+}
+
 // ===== Message Types (matching godev) =====
 
 /**
@@ -33,15 +63,17 @@ object DiscoveryRequest extends MxServiceDiscovery.MxDiscoveryRequest
 
 /**
  * DiscoveryResponse - published to nefario.discovery.response.{reply_suffix}
+ * NOTE: processUid and unixPid use camelCase to match godev's JSON tags
  */
 @CompanionGen(jsonCodec = true)
 case class DiscoveryResponse(
   request_id: String,
-  processUid: Option[String],  // From PROCESS_UID env var
-  unixPid: Int,
+  processUid: String = "",  // From PROCESS_UID env var (camelCase to match godev JSON!)
+  unixPid: Int,              // camelCase to match godev JSON!
   app_name: String,
   mailbox_address: String,
-  service_name: Option[String],  // From SERVICE_NAME env var
+  service_name: String = "",  // From SERVICE_NAME env var (empty if not set)
+  codebase_name: String = "sync-scala",
   timestamp: Instant,
   capabilities: ProcessCapabilities,
   metadata: Map[String, String],
@@ -61,6 +93,7 @@ case class DiscoveryQuery(
   service_name: Option[String] = None,
   location: Option[LocationQuery] = None,
   include_extended_metadata: Boolean = false,
+  include_schema_details: Boolean = false,
 )
 
 object DiscoveryQuery extends MxServiceDiscovery.MxDiscoveryQuery
@@ -78,12 +111,41 @@ case class LocationQuery(
 object LocationQuery extends MxServiceDiscovery.MxLocationQuery
 
 /**
+ * RpcMethod represents a single method within an RPC schema
+ */
+@CompanionGen(jsonCodec = true)
+case class RpcMethod(
+  name: String,
+  formats: Iterable[SerializationFormat] = Iterable.empty,
+  request_type: String = "",
+  response_type: String = "",
+  description: String = "",
+)
+
+object RpcMethod extends MxServiceDiscovery.MxRpcMethod
+
+/**
+ * RpcSchemaInfo represents a versioned collection of RPC methods
+ */
+@CompanionGen(jsonCodec = true)
+case class RpcSchemaInfo(
+  name: String,
+  methods: Iterable[RpcMethod] = Iterable.empty,
+  default_formats: Iterable[SerializationFormat] = Iterable.empty,
+  schema_version: Int = 0,
+  description: String = "",
+)
+
+object RpcSchemaInfo extends MxServiceDiscovery.MxRpcSchemaInfo
+
+/**
  * ProcessCapabilities - what a process can do
  */
 @CompanionGen(jsonCodec = true)
 case class ProcessCapabilities(
   implements_rpc: Iterable[String],
   rpc_schemas: Map[String, Iterable[String]],
+  rpc_schema_details: Iterable[RpcSchemaInfo] = Iterable.empty,  // Detailed schema info (only when requested)
   location: ProcessLocation,
   engines: Iterable[String] = Iterable.empty,
 )
@@ -215,11 +277,11 @@ object ServiceDiscovery extends Logging {
 class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   import ServiceDiscovery.*
 
-  // Read from A8_PROCESS_UID env var, omit if not present
-  private val processUid: Option[String] = sys.env.get("A8_PROCESS_UID")
+  // Read from A8_PROCESS_UID env var, empty string if not present
+  private val processUid: String = sys.env.getOrElse("A8_PROCESS_UID", "")
 
-  // Read from A8_SERVICE_NAME env var, omit if not present
-  private val serviceName: Option[String] = sys.env.get("A8_SERVICE_NAME")
+  // Read from A8_SERVICE_NAME env var, empty string if not present
+  private val serviceName: String = sys.env.getOrElse("A8_SERVICE_NAME", "")
 
   @volatile private var running = false
 
@@ -264,7 +326,9 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
 
         if (response.request_id == request.request_id) {
           responses.put(response.mailbox_address, response)
-          logger.debug(s"Received response: process=${response.processUid.getOrElse("<none>")} service=${response.service_name.getOrElse("<none>")} mailbox=${response.mailbox_address}")
+          val processUidStr = if (response.processUid.isEmpty) "<none>" else response.processUid
+          val serviceNameStr = if (response.service_name.isEmpty) "<none>" else response.service_name
+          logger.debug(s"Received response: process=$processUidStr service=$serviceNameStr mailbox=${response.mailbox_address}")
         }
       } catch {
         case e: Exception =>
@@ -306,9 +370,11 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
    * Register this service to respond to discovery queries
    */
   def register()(using ctx: Ctx): Unit = {
-    logger.info(s"Registering service for discovery: app=${config.appName} service=${serviceName.getOrElse("<none>")}")
+    val serviceNameStr = if (serviceName.isEmpty) "<none>" else serviceName
+    val processUidStr = if (processUid.isEmpty) "<none>" else processUid
+    logger.info(s"Registering service for discovery: app=${config.appName} service=$serviceNameStr")
     logger.info(s"  Subscribing to subject: ${config.discoverySubject}")
-    logger.info(s"  Process UID (A8_PROCESS_UID): ${processUid.getOrElse("<none>")}")
+    logger.info(s"  Process UID (A8_PROCESS_UID): $processUidStr")
     logger.info(s"  Unix PID: ${getPid()}")
     logger.info(s"  Location: ${config.location.user}@${config.location.server}")
     if (config.metadata.nonEmpty) {
@@ -366,7 +432,9 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
    * Send discovery response
    */
   private def sendResponse(request: DiscoveryRequest)(using ctx: Ctx): Unit = {
-    val capabilities = buildCapabilities()
+    val capabilities = buildCapabilities(
+      includeSchemaDetails = request.query.include_schema_details
+    )
 
     val response = DiscoveryResponse(
       request_id = request.request_id,
@@ -375,6 +443,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
       app_name = config.appName,
       mailbox_address = config.mailbox.address.value,
       service_name = serviceName,
+      codebase_name = "sync-scala",
       timestamp = Instant.now(),
       capabilities = capabilities,
       metadata = config.metadata,
@@ -387,12 +456,19 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
     val replySubject = s"${config.discoverySubject}.response.${request.reply_suffix}"
     val responseJson = response.compactJson
 
+    val serviceNameStr = if (response.service_name.isEmpty) "<none>" else response.service_name
     logger.info(s"Sending discovery response:")
     logger.info(s"  Reply subject: $replySubject")
-    logger.info(s"  Process: ${response.app_name} / ${response.service_name.getOrElse("<none>")}")
+    logger.info(s"  Process: ${response.app_name} / $serviceNameStr")
+    logger.info(s"  Codebase: ${response.codebase_name}")
     logger.info(s"  Mailbox: ${response.mailbox_address}")
+    logger.info(s"  Unix PID: ${response.unixPid}")
     logger.info(s"  Implemented RPCs: ${capabilities.implements_rpc.mkString(", ")}")
-    logger.debug(s"  Response JSON: $responseJson")
+    logger.info(s"  RPC Schemas: ${capabilities.rpc_schemas.size} schemas")
+    capabilities.rpc_schemas.foreach { case (name, methods) =>
+      logger.info(s"    - $name: ${methods.mkString(", ")}")
+    }
+    logger.info(s"  Response JSON: $responseJson")
 
     config.transport.publish(
       subject = replySubject,
@@ -406,7 +482,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   /**
    * Build capabilities from RPC server
    */
-  private def buildCapabilities(): ProcessCapabilities = {
+  private def buildCapabilities(includeSchemaDetails: Boolean = false): ProcessCapabilities = {
     // Group schemas by name.version to get list of methods
     // e.g. "ping.v1" -> ["Ping"], "process.v1" -> ["Shutdown", "Status"]
     val allSchemas = RpcSchema.all
@@ -415,18 +491,52 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
       logger.debug(s"  - ${schema.name.value} (requiresAuth=${schema.requiresAuth})")
     }
 
-    val rpcSchemas: Map[String, Iterable[String]] = allSchemas
+    // Group by schema name (e.g., "process.v1")
+    val schemasByName: Map[String, Seq[RpcSchema.Schema]] = allSchemas
       .groupBy(schema => s"${schema.name.name}.${schema.name.version}")
+      .view
+      .mapValues(_.toSeq)
+      .toMap
+
+    // Extract implemented RPC schema names
+    val implementedRpcs: Iterable[String] = schemasByName.keys
+
+    // Build legacy rpc_schemas map (always included)
+    val rpcSchemas: Map[String, Iterable[String]] = schemasByName
       .view
       .mapValues(schemas => schemas.map(_.name.method).distinct)
       .toMap
 
-    // Get list of implemented RPC schemas (name.version)
-    val implementedRpcs: Iterable[String] = rpcSchemas.keys
+    // Build rich schema details (only when requested)
+    val rpcSchemaDetails: Iterable[RpcSchemaInfo] =
+      if (includeSchemaDetails) {
+        schemasByName.map { case (schemaName, schemas) =>
+          val methods = schemas.map { schema =>
+            RpcMethod(
+              name = schema.name.method,
+              formats = Iterable(SerializationFormat.JSON),
+              request_type = "",
+              response_type = "",
+              description = schema.description.getOrElse(""),
+            )
+          }
+
+          RpcSchemaInfo(
+            name = schemaName,
+            methods = methods,
+            default_formats = Iterable(SerializationFormat.JSON),
+            schema_version = 1,
+            description = schemas.headOption.flatMap(_.description).getOrElse(""),
+          )
+        }.toSeq
+      } else {
+        Iterable.empty
+      }
 
     ProcessCapabilities(
       implements_rpc = implementedRpcs,
       rpc_schemas = rpcSchemas,
+      rpc_schema_details = rpcSchemaDetails,
       location = config.location,
       engines = Iterable.empty, // Can be populated from HermesBootstrap
     )

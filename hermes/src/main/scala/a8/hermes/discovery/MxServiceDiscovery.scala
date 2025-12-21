@@ -98,6 +98,7 @@ object MxServiceDiscovery {
           .addField(_.app_name)
           .addField(_.mailbox_address)
           .addField(_.service_name)
+          .addField(_.codebase_name)
           .addField(_.timestamp)
           .addField(_.capabilities)
           .addField(_.metadata)
@@ -112,22 +113,23 @@ object MxServiceDiscovery {
     
     
     lazy val generator: Generator[DiscoveryResponse,parameters.type] =  {
-      val constructors = Constructors[DiscoveryResponse](11, unsafe.iterRawConstruct)
+      val constructors = Constructors[DiscoveryResponse](12, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
       lazy val request_id: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("request_id", _.request_id, (d,v) => d.copy(request_id = v), None, 0)
-      lazy val processUid: CaseClassParm[DiscoveryResponse,Option[String]] = CaseClassParm[DiscoveryResponse,Option[String]]("processUid", _.processUid, (d,v) => d.copy(processUid = v), None, 1)
+      lazy val processUid: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("processUid", _.processUid, (d,v) => d.copy(processUid = v), Some(()=> ""), 1)
       lazy val unixPid: CaseClassParm[DiscoveryResponse,Int] = CaseClassParm[DiscoveryResponse,Int]("unixPid", _.unixPid, (d,v) => d.copy(unixPid = v), None, 2)
       lazy val app_name: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("app_name", _.app_name, (d,v) => d.copy(app_name = v), None, 3)
       lazy val mailbox_address: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("mailbox_address", _.mailbox_address, (d,v) => d.copy(mailbox_address = v), None, 4)
-      lazy val service_name: CaseClassParm[DiscoveryResponse,Option[String]] = CaseClassParm[DiscoveryResponse,Option[String]]("service_name", _.service_name, (d,v) => d.copy(service_name = v), None, 5)
-      lazy val timestamp: CaseClassParm[DiscoveryResponse,Instant] = CaseClassParm[DiscoveryResponse,Instant]("timestamp", _.timestamp, (d,v) => d.copy(timestamp = v), None, 6)
-      lazy val capabilities: CaseClassParm[DiscoveryResponse,ProcessCapabilities] = CaseClassParm[DiscoveryResponse,ProcessCapabilities]("capabilities", _.capabilities, (d,v) => d.copy(capabilities = v), None, 7)
-      lazy val metadata: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("metadata", _.metadata, (d,v) => d.copy(metadata = v), None, 8)
-      lazy val extended_metadata: CaseClassParm[DiscoveryResponse,Option[Map[String,String]]] = CaseClassParm[DiscoveryResponse,Option[Map[String,String]]]("extended_metadata", _.extended_metadata, (d,v) => d.copy(extended_metadata = v), None, 9)
-      lazy val service_discovery_mapping: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("service_discovery_mapping", _.service_discovery_mapping, (d,v) => d.copy(service_discovery_mapping = v), None, 10)
+      lazy val service_name: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("service_name", _.service_name, (d,v) => d.copy(service_name = v), Some(()=> ""), 5)
+      lazy val codebase_name: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("codebase_name", _.codebase_name, (d,v) => d.copy(codebase_name = v), Some(()=> "sync-scala"), 6)
+      lazy val timestamp: CaseClassParm[DiscoveryResponse,Instant] = CaseClassParm[DiscoveryResponse,Instant]("timestamp", _.timestamp, (d,v) => d.copy(timestamp = v), None, 7)
+      lazy val capabilities: CaseClassParm[DiscoveryResponse,ProcessCapabilities] = CaseClassParm[DiscoveryResponse,ProcessCapabilities]("capabilities", _.capabilities, (d,v) => d.copy(capabilities = v), None, 8)
+      lazy val metadata: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("metadata", _.metadata, (d,v) => d.copy(metadata = v), None, 9)
+      lazy val extended_metadata: CaseClassParm[DiscoveryResponse,Option[Map[String,String]]] = CaseClassParm[DiscoveryResponse,Option[Map[String,String]]]("extended_metadata", _.extended_metadata, (d,v) => d.copy(extended_metadata = v), None, 10)
+      lazy val service_discovery_mapping: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("service_discovery_mapping", _.service_discovery_mapping, (d,v) => d.copy(service_discovery_mapping = v), None, 11)
     }
     
     
@@ -136,27 +138,29 @@ object MxServiceDiscovery {
       def rawConstruct(values: IndexedSeq[Any]): DiscoveryResponse = {
         DiscoveryResponse(
           request_id = values(0).asInstanceOf[String],
-          processUid = values(1).asInstanceOf[Option[String]],
+          processUid = values(1).asInstanceOf[String],
           unixPid = values(2).asInstanceOf[Int],
           app_name = values(3).asInstanceOf[String],
           mailbox_address = values(4).asInstanceOf[String],
-          service_name = values(5).asInstanceOf[Option[String]],
-          timestamp = values(6).asInstanceOf[Instant],
-          capabilities = values(7).asInstanceOf[ProcessCapabilities],
-          metadata = values(8).asInstanceOf[Map[String,String]],
-          extended_metadata = values(9).asInstanceOf[Option[Map[String,String]]],
-          service_discovery_mapping = values(10).asInstanceOf[Map[String,String]],
+          service_name = values(5).asInstanceOf[String],
+          codebase_name = values(6).asInstanceOf[String],
+          timestamp = values(7).asInstanceOf[Instant],
+          capabilities = values(8).asInstanceOf[ProcessCapabilities],
+          metadata = values(9).asInstanceOf[Map[String,String]],
+          extended_metadata = values(10).asInstanceOf[Option[Map[String,String]]],
+          service_discovery_mapping = values(11).asInstanceOf[Map[String,String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): DiscoveryResponse = {
         val value =
           DiscoveryResponse(
             request_id = values.next().asInstanceOf[String],
-            processUid = values.next().asInstanceOf[Option[String]],
+            processUid = values.next().asInstanceOf[String],
             unixPid = values.next().asInstanceOf[Int],
             app_name = values.next().asInstanceOf[String],
             mailbox_address = values.next().asInstanceOf[String],
-            service_name = values.next().asInstanceOf[Option[String]],
+            service_name = values.next().asInstanceOf[String],
+            codebase_name = values.next().asInstanceOf[String],
             timestamp = values.next().asInstanceOf[Instant],
             capabilities = values.next().asInstanceOf[ProcessCapabilities],
             metadata = values.next().asInstanceOf[Map[String,String]],
@@ -167,8 +171,8 @@ object MxServiceDiscovery {
            sys.error("")
         value
       }
-      def typedConstruct(request_id: String, processUid: Option[String], unixPid: Int, app_name: String, mailbox_address: String, service_name: Option[String], timestamp: Instant, capabilities: ProcessCapabilities, metadata: Map[String,String], extended_metadata: Option[Map[String,String]], service_discovery_mapping: Map[String,String]): DiscoveryResponse =
-        DiscoveryResponse(request_id, processUid, unixPid, app_name, mailbox_address, service_name, timestamp, capabilities, metadata, extended_metadata, service_discovery_mapping)
+      def typedConstruct(request_id: String, processUid: String, unixPid: Int, app_name: String, mailbox_address: String, service_name: String, codebase_name: String, timestamp: Instant, capabilities: ProcessCapabilities, metadata: Map[String,String], extended_metadata: Option[Map[String,String]], service_discovery_mapping: Map[String,String]): DiscoveryResponse =
+        DiscoveryResponse(request_id, processUid, unixPid, app_name, mailbox_address, service_name, codebase_name, timestamp, capabilities, metadata, extended_metadata, service_discovery_mapping)
     
     }
     
@@ -192,6 +196,7 @@ object MxServiceDiscovery {
           .addField(_.service_name)
           .addField(_.location)
           .addField(_.include_extended_metadata)
+          .addField(_.include_schema_details)
       )
       .build
     
@@ -201,7 +206,7 @@ object MxServiceDiscovery {
     
     
     lazy val generator: Generator[DiscoveryQuery,parameters.type] =  {
-      val constructors = Constructors[DiscoveryQuery](5, unsafe.iterRawConstruct)
+      val constructors = Constructors[DiscoveryQuery](6, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -211,6 +216,7 @@ object MxServiceDiscovery {
       lazy val service_name: CaseClassParm[DiscoveryQuery,Option[String]] = CaseClassParm[DiscoveryQuery,Option[String]]("service_name", _.service_name, (d,v) => d.copy(service_name = v), Some(()=> None), 2)
       lazy val location: CaseClassParm[DiscoveryQuery,Option[LocationQuery]] = CaseClassParm[DiscoveryQuery,Option[LocationQuery]]("location", _.location, (d,v) => d.copy(location = v), Some(()=> None), 3)
       lazy val include_extended_metadata: CaseClassParm[DiscoveryQuery,Boolean] = CaseClassParm[DiscoveryQuery,Boolean]("include_extended_metadata", _.include_extended_metadata, (d,v) => d.copy(include_extended_metadata = v), Some(()=> false), 4)
+      lazy val include_schema_details: CaseClassParm[DiscoveryQuery,Boolean] = CaseClassParm[DiscoveryQuery,Boolean]("include_schema_details", _.include_schema_details, (d,v) => d.copy(include_schema_details = v), Some(()=> false), 5)
     }
     
     
@@ -223,6 +229,7 @@ object MxServiceDiscovery {
           service_name = values(2).asInstanceOf[Option[String]],
           location = values(3).asInstanceOf[Option[LocationQuery]],
           include_extended_metadata = values(4).asInstanceOf[Boolean],
+          include_schema_details = values(5).asInstanceOf[Boolean],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): DiscoveryQuery = {
@@ -233,13 +240,14 @@ object MxServiceDiscovery {
             service_name = values.next().asInstanceOf[Option[String]],
             location = values.next().asInstanceOf[Option[LocationQuery]],
             include_extended_metadata = values.next().asInstanceOf[Boolean],
+            include_schema_details = values.next().asInstanceOf[Boolean],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(implements_rpc: Iterable[String], app_name: Option[String], service_name: Option[String], location: Option[LocationQuery], include_extended_metadata: Boolean): DiscoveryQuery =
-        DiscoveryQuery(implements_rpc, app_name, service_name, location, include_extended_metadata)
+      def typedConstruct(implements_rpc: Iterable[String], app_name: Option[String], service_name: Option[String], location: Option[LocationQuery], include_extended_metadata: Boolean, include_schema_details: Boolean): DiscoveryQuery =
+        DiscoveryQuery(implements_rpc, app_name, service_name, location, include_extended_metadata, include_schema_details)
     
     }
     
@@ -314,6 +322,148 @@ object MxServiceDiscovery {
   
   
   
+  trait MxRpcMethod { self: RpcMethod.type =>
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RpcMethod,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RpcMethod,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[RpcMethod,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.name)
+          .addField(_.formats)
+          .addField(_.request_type)
+          .addField(_.response_type)
+          .addField(_.description)
+      )
+      .build
+    
+    
+    given scala.CanEqual[RpcMethod, RpcMethod] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[RpcMethod,parameters.type] =  {
+      val constructors = Constructors[RpcMethod](5, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val name: CaseClassParm[RpcMethod,String] = CaseClassParm[RpcMethod,String]("name", _.name, (d,v) => d.copy(name = v), None, 0)
+      lazy val formats: CaseClassParm[RpcMethod,Iterable[SerializationFormat]] = CaseClassParm[RpcMethod,Iterable[SerializationFormat]]("formats", _.formats, (d,v) => d.copy(formats = v), Some(()=> Iterable.empty), 1)
+      lazy val request_type: CaseClassParm[RpcMethod,String] = CaseClassParm[RpcMethod,String]("request_type", _.request_type, (d,v) => d.copy(request_type = v), Some(()=> ""), 2)
+      lazy val response_type: CaseClassParm[RpcMethod,String] = CaseClassParm[RpcMethod,String]("response_type", _.response_type, (d,v) => d.copy(response_type = v), Some(()=> ""), 3)
+      lazy val description: CaseClassParm[RpcMethod,String] = CaseClassParm[RpcMethod,String]("description", _.description, (d,v) => d.copy(description = v), Some(()=> ""), 4)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): RpcMethod = {
+        RpcMethod(
+          name = values(0).asInstanceOf[String],
+          formats = values(1).asInstanceOf[Iterable[SerializationFormat]],
+          request_type = values(2).asInstanceOf[String],
+          response_type = values(3).asInstanceOf[String],
+          description = values(4).asInstanceOf[String],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): RpcMethod = {
+        val value =
+          RpcMethod(
+            name = values.next().asInstanceOf[String],
+            formats = values.next().asInstanceOf[Iterable[SerializationFormat]],
+            request_type = values.next().asInstanceOf[String],
+            response_type = values.next().asInstanceOf[String],
+            description = values.next().asInstanceOf[String],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(name: String, formats: Iterable[SerializationFormat], request_type: String, response_type: String, description: String): RpcMethod =
+        RpcMethod(name, formats, request_type, response_type, description)
+    
+    }
+    
+    
+    lazy val typeName = "RpcMethod"
+  
+  }
+  
+  
+  
+  
+  trait MxRpcSchemaInfo { self: RpcSchemaInfo.type =>
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RpcSchemaInfo,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RpcSchemaInfo,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[RpcSchemaInfo,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.name)
+          .addField(_.methods)
+          .addField(_.default_formats)
+          .addField(_.schema_version)
+          .addField(_.description)
+      )
+      .build
+    
+    
+    given scala.CanEqual[RpcSchemaInfo, RpcSchemaInfo] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[RpcSchemaInfo,parameters.type] =  {
+      val constructors = Constructors[RpcSchemaInfo](5, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val name: CaseClassParm[RpcSchemaInfo,String] = CaseClassParm[RpcSchemaInfo,String]("name", _.name, (d,v) => d.copy(name = v), None, 0)
+      lazy val methods: CaseClassParm[RpcSchemaInfo,Iterable[RpcMethod]] = CaseClassParm[RpcSchemaInfo,Iterable[RpcMethod]]("methods", _.methods, (d,v) => d.copy(methods = v), Some(()=> Iterable.empty), 1)
+      lazy val default_formats: CaseClassParm[RpcSchemaInfo,Iterable[SerializationFormat]] = CaseClassParm[RpcSchemaInfo,Iterable[SerializationFormat]]("default_formats", _.default_formats, (d,v) => d.copy(default_formats = v), Some(()=> Iterable.empty), 2)
+      lazy val schema_version: CaseClassParm[RpcSchemaInfo,Int] = CaseClassParm[RpcSchemaInfo,Int]("schema_version", _.schema_version, (d,v) => d.copy(schema_version = v), Some(()=> 0), 3)
+      lazy val description: CaseClassParm[RpcSchemaInfo,String] = CaseClassParm[RpcSchemaInfo,String]("description", _.description, (d,v) => d.copy(description = v), Some(()=> ""), 4)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): RpcSchemaInfo = {
+        RpcSchemaInfo(
+          name = values(0).asInstanceOf[String],
+          methods = values(1).asInstanceOf[Iterable[RpcMethod]],
+          default_formats = values(2).asInstanceOf[Iterable[SerializationFormat]],
+          schema_version = values(3).asInstanceOf[Int],
+          description = values(4).asInstanceOf[String],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): RpcSchemaInfo = {
+        val value =
+          RpcSchemaInfo(
+            name = values.next().asInstanceOf[String],
+            methods = values.next().asInstanceOf[Iterable[RpcMethod]],
+            default_formats = values.next().asInstanceOf[Iterable[SerializationFormat]],
+            schema_version = values.next().asInstanceOf[Int],
+            description = values.next().asInstanceOf[String],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(name: String, methods: Iterable[RpcMethod], default_formats: Iterable[SerializationFormat], schema_version: Int, description: String): RpcSchemaInfo =
+        RpcSchemaInfo(name, methods, default_formats, schema_version, description)
+    
+    }
+    
+    
+    lazy val typeName = "RpcSchemaInfo"
+  
+  }
+  
+  
+  
+  
   trait MxProcessCapabilities { self: ProcessCapabilities.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ProcessCapabilities,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ProcessCapabilities,parameters.type] = builder
@@ -323,6 +473,7 @@ object MxServiceDiscovery {
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.implements_rpc)
           .addField(_.rpc_schemas)
+          .addField(_.rpc_schema_details)
           .addField(_.location)
           .addField(_.engines)
       )
@@ -334,15 +485,16 @@ object MxServiceDiscovery {
     
     
     lazy val generator: Generator[ProcessCapabilities,parameters.type] =  {
-      val constructors = Constructors[ProcessCapabilities](4, unsafe.iterRawConstruct)
+      val constructors = Constructors[ProcessCapabilities](5, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
       lazy val implements_rpc: CaseClassParm[ProcessCapabilities,Iterable[String]] = CaseClassParm[ProcessCapabilities,Iterable[String]]("implements_rpc", _.implements_rpc, (d,v) => d.copy(implements_rpc = v), None, 0)
       lazy val rpc_schemas: CaseClassParm[ProcessCapabilities,Map[String,Iterable[String]]] = CaseClassParm[ProcessCapabilities,Map[String,Iterable[String]]]("rpc_schemas", _.rpc_schemas, (d,v) => d.copy(rpc_schemas = v), None, 1)
-      lazy val location: CaseClassParm[ProcessCapabilities,ProcessLocation] = CaseClassParm[ProcessCapabilities,ProcessLocation]("location", _.location, (d,v) => d.copy(location = v), None, 2)
-      lazy val engines: CaseClassParm[ProcessCapabilities,Iterable[String]] = CaseClassParm[ProcessCapabilities,Iterable[String]]("engines", _.engines, (d,v) => d.copy(engines = v), Some(()=> Iterable.empty), 3)
+      lazy val rpc_schema_details: CaseClassParm[ProcessCapabilities,Iterable[RpcSchemaInfo]] = CaseClassParm[ProcessCapabilities,Iterable[RpcSchemaInfo]]("rpc_schema_details", _.rpc_schema_details, (d,v) => d.copy(rpc_schema_details = v), Some(()=> Iterable.empty), 2)
+      lazy val location: CaseClassParm[ProcessCapabilities,ProcessLocation] = CaseClassParm[ProcessCapabilities,ProcessLocation]("location", _.location, (d,v) => d.copy(location = v), None, 3)
+      lazy val engines: CaseClassParm[ProcessCapabilities,Iterable[String]] = CaseClassParm[ProcessCapabilities,Iterable[String]]("engines", _.engines, (d,v) => d.copy(engines = v), Some(()=> Iterable.empty), 4)
     }
     
     
@@ -352,8 +504,9 @@ object MxServiceDiscovery {
         ProcessCapabilities(
           implements_rpc = values(0).asInstanceOf[Iterable[String]],
           rpc_schemas = values(1).asInstanceOf[Map[String,Iterable[String]]],
-          location = values(2).asInstanceOf[ProcessLocation],
-          engines = values(3).asInstanceOf[Iterable[String]],
+          rpc_schema_details = values(2).asInstanceOf[Iterable[RpcSchemaInfo]],
+          location = values(3).asInstanceOf[ProcessLocation],
+          engines = values(4).asInstanceOf[Iterable[String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ProcessCapabilities = {
@@ -361,6 +514,7 @@ object MxServiceDiscovery {
           ProcessCapabilities(
             implements_rpc = values.next().asInstanceOf[Iterable[String]],
             rpc_schemas = values.next().asInstanceOf[Map[String,Iterable[String]]],
+            rpc_schema_details = values.next().asInstanceOf[Iterable[RpcSchemaInfo]],
             location = values.next().asInstanceOf[ProcessLocation],
             engines = values.next().asInstanceOf[Iterable[String]],
           )
@@ -368,8 +522,8 @@ object MxServiceDiscovery {
            sys.error("")
         value
       }
-      def typedConstruct(implements_rpc: Iterable[String], rpc_schemas: Map[String,Iterable[String]], location: ProcessLocation, engines: Iterable[String]): ProcessCapabilities =
-        ProcessCapabilities(implements_rpc, rpc_schemas, location, engines)
+      def typedConstruct(implements_rpc: Iterable[String], rpc_schemas: Map[String,Iterable[String]], rpc_schema_details: Iterable[RpcSchemaInfo], location: ProcessLocation, engines: Iterable[String]): ProcessCapabilities =
+        ProcessCapabilities(implements_rpc, rpc_schemas, rpc_schema_details, location, engines)
     
     }
     

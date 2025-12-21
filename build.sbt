@@ -24,8 +24,8 @@ val logbackVersion = "1.4.14"
 //val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
 ThisBuild / javacOptions ++= Seq(
-  "-source", "23",
-  "-target", "23"
+//  "-source", "23",
+//  "-target", "23"
 )
 
 Global / resolvers += {
@@ -198,13 +198,8 @@ lazy val hermesProto =
     .settings(
       // Disable strict equality and all warnings for generated protobuf code
       scalacOptions := scalacOptions.value.filterNot(_ == "-language:strictEquality") :+ "-Wconf:any:silent",
-      // Add scala-gen directory to source directories (generated proto code)
-      // Proto generation is done externally via regenerate-proto.sh script
-      Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "scala-gen",
-      // Disable automatic proto generation - we use regenerate-proto.sh script instead
-      // Compile / PB.targets := Seq(
-      //   scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
-      // ),
+      // ScalaPB runtime dependency for generated code
+      // Proto generation is done externally via regenerate-proto.sh using scalapbc CLI
       libraryDependencies ++= Seq(
         "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.15",
       )

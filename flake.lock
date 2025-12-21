@@ -27,11 +27,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1766259444,
-        "narHash": "sha256-iI6Bg5m/0cH8n9BI4wnEtqTP2fb/QDsbkFf3KTChx28=",
+        "lastModified": 1766278537,
+        "narHash": "sha256-mCexJ5dr5mL7kphXj9jP8h0C4+J1NyIG94ev7ZX3VKw=",
         "ref": "refs/heads/master",
-        "rev": "008eb8253ee24b0f40a2da9b82e01f17ca102ee7",
-        "revCount": 69,
+        "rev": "89b5600998cd877deb938326af6f3fd0f3fb042c",
+        "revCount": 72,
         "type": "git",
         "url": "ssh://git@git.accur8.net/a8/nix-pins"
       },

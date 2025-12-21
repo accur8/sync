@@ -61,27 +61,27 @@ object PingService extends BootstrappedIOApp {
     logger.info(s"  RPC Endpoint: process.v1.Ping")
     logger.info("")
 
-    // Test discovery if enabled
-    hermes.dynamicServiceDiscovery.foreach { discovery =>
-      logger.info("✓ Dynamic service discovery enabled")
-      logger.info("  Querying for process.v1 services...")
+    // Test discovery (always enabled)
+    val discovery = hermes.dynamicServiceDiscovery
+    logger.info("✓ Dynamic service discovery enabled")
+    logger.info("  Querying for process.v1 services...")
 
-      import a8.hermes.discovery.ServiceDiscovery
-      val query = ServiceDiscovery.DiscoveryQuery(
-        implementsRpc = Seq("process.v1")
-      )
+    import a8.hermes.discovery.{DiscoveryQuery}
+    val query = DiscoveryQuery(
+      implements_rpc = Seq("process.v1")
+    )
 
-      val services = discovery.query(query, timeout = 2.seconds)(using appCtx)
-      logger.info(s"  Found ${services.size} services with process.v1:")
+    val services = discovery.query(query, timeout = 2.seconds)(using appCtx)
+    logger.info(s"  Found ${services.size} services with process.v1:")
 
-      services.foreach { service =>
-        logger.info(s"    - ${service.serviceName} @ ${service.mailboxAddress}")
-        logger.info(s"      PID: ${service.unixPid}")
-        logger.info(s"      Location: ${service.capabilities.location.user}@${service.capabilities.location.server}")
-        logger.info(s"      RPCs: ${service.capabilities.implementsRpc.mkString(", ")}")
-      }
-      logger.info("")
+    services.foreach { service =>
+      val serviceNameStr = if (service.service_name.isEmpty) "<none>" else service.service_name
+      logger.info(s"    - $serviceNameStr @ ${service.mailbox_address}")
+      logger.info(s"      PID: ${service.unixPid}")
+      logger.info(s"      Location: ${service.capabilities.location.user}@${service.capabilities.location.server}")
+      logger.info(s"      RPCs: ${service.capabilities.implements_rpc.mkString(", ")}")
     }
+    logger.info("")
 
     logger.info("To test this service, send a ping RPC to the mailbox address above")
     logger.info("")

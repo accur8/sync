@@ -21,6 +21,10 @@ package a8.hermes.proto.auth.auth
   *   External maintainer (may be empty)
   * @param extraConfig
   *   Extra config as JSON
+  * @param expiresAt
+  *   When the auth token expires
+  * @param expiresExtension
+  *   Extension duration (e.g., "1 hour")
   */
 @SerialVersionUID(0L)
 final case class GetUserInfoForSelfResponse(
@@ -31,6 +35,8 @@ final case class GetUserInfoForSelfResponse(
     groups: _root_.scala.Seq[a8.hermes.proto.auth.auth.UserGroupInfo] = _root_.scala.Seq.empty,
     externalMaintainer: _root_.scala.Predef.String = "",
     extraConfig: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY,
+    expiresAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
+    expiresExtension: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[GetUserInfoForSelfResponse] {
     @transient
@@ -81,6 +87,17 @@ final case class GetUserInfoForSelfResponse(
         val __value = extraConfig
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeBytesSize(7, __value)
+        }
+      };
+      if (expiresAt.isDefined) {
+        val __value = expiresAt.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      
+      {
+        val __value = expiresExtension
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(9, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -138,6 +155,18 @@ final case class GetUserInfoForSelfResponse(
           _output__.writeBytes(7, __v)
         }
       };
+      expiresAt.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(8, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
+      {
+        val __v = expiresExtension
+        if (!__v.isEmpty) {
+          _output__.writeString(9, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withUserUid(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(userUid = __v)
@@ -150,6 +179,10 @@ final case class GetUserInfoForSelfResponse(
     def withGroups(__v: _root_.scala.Seq[a8.hermes.proto.auth.auth.UserGroupInfo]): GetUserInfoForSelfResponse = copy(groups = __v)
     def withExternalMaintainer(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(externalMaintainer = __v)
     def withExtraConfig(__v: _root_.com.google.protobuf.ByteString): GetUserInfoForSelfResponse = copy(extraConfig = __v)
+    def getExpiresAt: com.google.protobuf.timestamp.Timestamp = expiresAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
+    def clearExpiresAt: GetUserInfoForSelfResponse = copy(expiresAt = _root_.scala.None)
+    def withExpiresAt(__v: com.google.protobuf.timestamp.Timestamp): GetUserInfoForSelfResponse = copy(expiresAt = Option(__v))
+    def withExpiresExtension(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(expiresExtension = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -179,6 +212,11 @@ final case class GetUserInfoForSelfResponse(
           val __t = extraConfig
           if (__t != _root_.com.google.protobuf.ByteString.EMPTY) __t else null
         }
+        case 8 => expiresAt.orNull
+        case 9 => {
+          val __t = expiresExtension
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -191,6 +229,8 @@ final case class GetUserInfoForSelfResponse(
         case 5 => _root_.scalapb.descriptors.PRepeated(groups.iterator.map(_.toPMessage).toVector)
         case 6 => _root_.scalapb.descriptors.PString(externalMaintainer)
         case 7 => _root_.scalapb.descriptors.PByteString(extraConfig)
+        case 8 => expiresAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 9 => _root_.scalapb.descriptors.PString(expiresExtension)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -208,6 +248,8 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     val __groups: _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.auth.auth.UserGroupInfo] = new _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.auth.auth.UserGroupInfo]
     var __externalMaintainer: _root_.scala.Predef.String = ""
     var __extraConfig: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY
+    var __expiresAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
+    var __expiresExtension: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -228,6 +270,10 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
           __externalMaintainer = _input__.readStringRequireUtf8()
         case 58 =>
           __extraConfig = _input__.readBytes()
+        case 66 =>
+          __expiresAt = _root_.scala.Option(__expiresAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 74 =>
+          __expiresExtension = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -243,6 +289,8 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
         groups = __groups.result(),
         externalMaintainer = __externalMaintainer,
         extraConfig = __extraConfig,
+        expiresAt = __expiresAt,
+        expiresExtension = __expiresExtension,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -256,7 +304,9 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
         description = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         groups = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.auth.auth.UserGroupInfo]]).getOrElse(_root_.scala.Seq.empty),
         externalMaintainer = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        extraConfig = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY)
+        extraConfig = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY),
+        expiresAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
+        expiresExtension = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -266,6 +316,7 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
       case 5 => __out = a8.hermes.proto.auth.auth.UserGroupInfo
+      case 8 => __out = com.google.protobuf.timestamp.Timestamp
     }
     __out
   }
@@ -278,7 +329,9 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     description = "",
     groups = _root_.scala.Seq.empty,
     externalMaintainer = "",
-    extraConfig = _root_.com.google.protobuf.ByteString.EMPTY
+    extraConfig = _root_.com.google.protobuf.ByteString.EMPTY,
+    expiresAt = _root_.scala.None,
+    expiresExtension = ""
   )
   implicit class GetUserInfoForSelfResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse](_l) {
     def userUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.userUid)((c_, f_) => c_.copy(userUid = f_))
@@ -288,6 +341,9 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     def groups: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[a8.hermes.proto.auth.auth.UserGroupInfo]] = field(_.groups)((c_, f_) => c_.copy(groups = f_))
     def externalMaintainer: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.externalMaintainer)((c_, f_) => c_.copy(externalMaintainer = f_))
     def extraConfig: _root_.scalapb.lenses.Lens[UpperPB, _root_.com.google.protobuf.ByteString] = field(_.extraConfig)((c_, f_) => c_.copy(extraConfig = f_))
+    def expiresAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getExpiresAt)((c_, f_) => c_.copy(expiresAt = _root_.scala.Option(f_)))
+    def optionalExpiresAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.expiresAt)((c_, f_) => c_.copy(expiresAt = f_))
+    def expiresExtension: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.expiresExtension)((c_, f_) => c_.copy(expiresExtension = f_))
   }
   final val USER_UID_FIELD_NUMBER = 1
   final val NAME_FIELD_NUMBER = 2
@@ -296,6 +352,8 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
   final val GROUPS_FIELD_NUMBER = 5
   final val EXTERNAL_MAINTAINER_FIELD_NUMBER = 6
   final val EXTRA_CONFIG_FIELD_NUMBER = 7
+  final val EXPIRES_AT_FIELD_NUMBER = 8
+  final val EXPIRES_EXTENSION_FIELD_NUMBER = 9
   def of(
     userUid: _root_.scala.Predef.String,
     name: _root_.scala.Predef.String,
@@ -303,7 +361,9 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     description: _root_.scala.Predef.String,
     groups: _root_.scala.Seq[a8.hermes.proto.auth.auth.UserGroupInfo],
     externalMaintainer: _root_.scala.Predef.String,
-    extraConfig: _root_.com.google.protobuf.ByteString
+    extraConfig: _root_.com.google.protobuf.ByteString,
+    expiresAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
+    expiresExtension: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse = _root_.a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse(
     userUid,
     name,
@@ -311,7 +371,9 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     description,
     groups,
     externalMaintainer,
-    extraConfig
+    extraConfig,
+    expiresAt,
+    expiresExtension
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.GetUserInfoForSelfResponse])
 }

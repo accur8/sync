@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Script to copy proto files from godev and regenerate ScalaPB code
-# Generated Scala files are kept in git for transparency
+# Script to regenerate ScalaPB code from proto files using scalapbc CLI
+# Generated Scala files are committed to git in src/main/scala/
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GODEV_DIR="/Users/glen/code/accur8/godev"
 PROTO_DIR="$SCRIPT_DIR/../hermes-proto/src/main/protobuf"
-SCALA_GEN_DIR="$SCRIPT_DIR/../hermes-proto/src/main/scala-gen"
+SCALA_OUT_DIR="$SCRIPT_DIR/../hermes-proto/src/main/scala"
 
 echo "=== Copying proto files from godev ==="
 
 # Create proto directory if it doesn't exist
 mkdir -p "$PROTO_DIR"
 
-# Copy proto files we need
+# Copy proto files we need from godev
 cp "$GODEV_DIR/nefario/rpc/nefario_rpc.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/auth/auth.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/mailbox/mailbox.proto" "$PROTO_DIR/"
@@ -33,7 +33,6 @@ for proto in "$PROTO_DIR"/*.proto; do
 
   # Add Scala-specific options if not present
   if ! grep -q "option java_package" "$proto"; then
-    # Determine the appropriate java_package based on filename
     case "$filename" in
       nefario_rpc.proto)
         package_line='option java_package = "a8.hermes.proto.nefario";'
@@ -62,46 +61,47 @@ done
 
 echo "✓ Fixed package declarations"
 
+# Generate Scala code with scalapbc
 echo ""
-echo "=== Generating Scala code with ScalaPB ==="
+echo "=== Generating Scala code with scalapbc ==="
 
-# Remove old generated code
-rm -rf "$SCALA_GEN_DIR"
-mkdir -p "$SCALA_GEN_DIR"
-
-# Temporarily enable PB.targets in build.sbt
-BUILD_SBT="$SCRIPT_DIR/../build.sbt"
-echo "Temporarily enabling PB.targets in build.sbt..."
-sed -i '' 's|// Disable automatic proto generation - we use regenerate-proto.sh script instead|// PB.targets temporarily enabled by regenerate-proto.sh|' "$BUILD_SBT"
-sed -i '' 's|// Compile / PB.targets|Compile / PB.targets|' "$BUILD_SBT"
-sed -i '' 's|//   scalapb.gen|  scalapb.gen|' "$BUILD_SBT"
-sed -i '' 's|// ),|),|' "$BUILD_SBT"
-
-# Run sbt to generate code
-cd "$SCRIPT_DIR/.."
-sbt "hermesProto/compile"
-
-# Restore build.sbt to original state
-echo "Restoring build.sbt..."
-sed -i '' 's|// PB.targets temporarily enabled by regenerate-proto.sh|// Disable automatic proto generation - we use regenerate-proto.sh script instead|' "$BUILD_SBT"
-sed -i '' 's|^      Compile / PB.targets|      // Compile / PB.targets|' "$BUILD_SBT"
-sed -i '' 's|^        scalapb.gen|      //   scalapb.gen|' "$BUILD_SBT"
-sed -i '' 's|^      ),|      // ),|' "$BUILD_SBT"
-
-# Move generated code from target to src
-GENERATED_DIR="$SCRIPT_DIR/../hermes-proto/target/scala-3.7.3/src_managed/main/scalapb"
-if [ -d "$GENERATED_DIR" ]; then
-  cp -r "$GENERATED_DIR"/* "$SCALA_GEN_DIR/"
-  echo "✓ Moved generated code to src/main/scala-gen/"
-else
-  echo "ERROR: Generated code not found at $GENERATED_DIR"
+# Check if scalapbc is available
+if ! command -v scalapbc &> /dev/null; then
+  echo "ERROR: scalapbc not found in PATH"
+  echo "Make sure you've run 'direnv allow' after adding protobuf fragment to flake.nix"
   exit 1
 fi
 
+echo "Using scalapbc: $(which scalapbc)"
+echo "ScalaPB version: $(scalapbc --version)"
+
+# Remove old generated code
+echo "Removing old generated Scala files..."
+rm -rf "$SCALA_OUT_DIR/a8/hermes/proto"
+rm -rf "$SCALA_OUT_DIR/com/google/protobuf"
+
+# Generate new code
+# scalapbc options:
+#   --scala_out=<dir>  - Output directory for generated Scala files
+#   --proto_path=<dir> - Where to find proto files
+#   --grpc=false       - Don't generate gRPC code (we use NATS)
+echo "Generating Scala code..."
+
+scalapbc \
+  --scala_out="$SCALA_OUT_DIR" \
+  --proto_path="$PROTO_DIR" \
+  --grpc=false \
+  "$PROTO_DIR"/*.proto
+
+echo "✓ Generated Scala code"
+
+# Count generated files
+GENERATED_COUNT=$(find "$SCALA_OUT_DIR/a8/hermes/proto" -name "*.scala" 2>/dev/null | wc -l)
 echo ""
 echo "=== Summary ==="
 echo "Proto files: $PROTO_DIR"
-echo "Generated Scala: $SCALA_GEN_DIR"
+echo "Generated Scala: $SCALA_OUT_DIR"
+echo "Generated files: $GENERATED_COUNT Scala files"
 echo ""
-echo "Generated files are now in git-tracked directories."
-echo "Run 'git add hermes-proto/src/main/scala-gen' to commit them."
+echo "Generated files are in standard src/main/scala/ directory."
+echo "Run 'git add hermes-proto/src/main/scala' to commit them."

@@ -24,11 +24,6 @@ addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0")
 //addSbtPlugin("io.get-coursier" % "sbt-coursier" % "2.0.0-RC6")
 //addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.0")
 
-// Protobuf code generation is done externally via regenerate-proto.sh
-// Generated Scala files are committed to src/main/scala-gen/
-addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.6")
-
-libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.11.15"
 
 
 

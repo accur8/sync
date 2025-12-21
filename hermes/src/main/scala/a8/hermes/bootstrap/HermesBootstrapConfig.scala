@@ -58,10 +58,6 @@ object HermesBootstrapConfig {
       envConfig.getString("discoverySubject")
     } else "nefario.discovery"
 
-    val enableDynamicDiscovery = if (envConfig.hasPath("enableDynamicDiscovery")) {
-      Some(envConfig.getBoolean("enableDynamicDiscovery"))
-    } else None
-
     val appName = if (envConfig.hasPath("appName")) {
       Some(envConfig.getString("appName"))
     } else None
@@ -72,7 +68,6 @@ object HermesBootstrapConfig {
       authServiceMailbox = authServiceMailbox,
       namedMailboxes = namedMailboxes,
       discoverySubject = discoverySubject,
-      enableDynamicDiscovery = enableDynamicDiscovery,
       appName = appName,
     )
   }
@@ -94,7 +89,6 @@ case class HermesBootstrapConfig(
   authServiceMailbox: Option[String] = None,
   namedMailboxes: Map[String, String] = Map.empty,
   discoverySubject: String = "nefario.discovery",
-  enableDynamicDiscovery: Option[Boolean] = None,
   appName: Option[String] = None,
   autoRenewAuth: Boolean = true,
 )

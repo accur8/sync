@@ -41,7 +41,7 @@ object HermesBootstrap extends Logging {
     rpcServer: RpcServer,
     rpcClient: RpcClient,
     staticServiceDiscovery: StaticServiceDiscovery,
-    dynamicServiceDiscovery: Option[ServiceDiscovery] = None,
+    dynamicServiceDiscovery: ServiceDiscovery,
     authExtension: Option[auth.AuthExtension] = None,
   )
 
@@ -116,8 +116,8 @@ object HermesBootstrap extends Logging {
         )
       )(using ctx)
 
-      // Step 6: Optionally start dynamic service discovery
-      dynamicServiceDiscovery <- if (config.enableDynamicDiscovery.getOrElse(false)) {
+      // Step 6: Start dynamic service discovery (always enabled)
+      dynamicServiceDiscovery <- {
         logger.info("Starting dynamic service discovery...")
         Resource.acquireRelease {
           val discoveryConfig = ServiceDiscovery.defaultConfig(
@@ -144,12 +144,10 @@ object HermesBootstrap extends Logging {
           if (a8Metadata.nonEmpty) {
             logger.info(s"  Metadata: ${a8Metadata.keys.mkString(", ")}")
           }
-          Some(discovery)
+          discovery
         } { discovery =>
-          discovery.foreach(_.stop())
+          discovery.stop()
         }
-      } else {
-        Resource.acquireRelease(None: Option[ServiceDiscovery])(_ => ())
       }
 
     } yield {
@@ -159,7 +157,7 @@ object HermesBootstrap extends Logging {
       logger.info(s"  RPC Server: Running")
       logger.info(s"  RPC Client: Running")
       logger.info(s"  Static Service Discovery: ${config.namedMailboxes.size} named mailboxes")
-      logger.info(s"  Dynamic Service Discovery: ${if (dynamicServiceDiscovery.isDefined) "Enabled" else "Disabled"}")
+      logger.info(s"  Dynamic Service Discovery: Enabled (always)")
       // Note: Auth extension not started here - applications should start it after SSH authentication
 
       Components(

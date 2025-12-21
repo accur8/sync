@@ -12,6 +12,7 @@
           { pkgs, frags, ... }:
           [
             (frags.scala_3 { })
+            (frags.protobuf { })
             (frags.aiCodingAssistants { })
           ];
       };
