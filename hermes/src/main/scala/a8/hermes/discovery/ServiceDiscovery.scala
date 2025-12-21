@@ -9,10 +9,113 @@ import a8.common.logging.Logging
 import a8.shared.zreplace.Resource
 import a8.shared.json
 import a8.shared.json.ast.{JsObj, JsStr, JsArr, JsVal, JsNum, JsBool}
+import a8.shared.CompanionGen
+import a8.shared.SharedImports.jsonCodecOps
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.{FiniteDuration, *}
 import java.time.Instant
+
+// ===== Message Types (matching godev) =====
+
+/**
+ * DiscoveryRequest - published to nefario.discovery subject
+ */
+@CompanionGen(jsonCodec = true)
+case class DiscoveryRequest(
+  request_id: String,
+  reply_suffix: String,
+  timestamp: Instant,
+  query: DiscoveryQuery,
+)
+
+object DiscoveryRequest extends MxServiceDiscovery.MxDiscoveryRequest
+
+/**
+ * DiscoveryResponse - published to nefario.discovery.response.{reply_suffix}
+ */
+@CompanionGen(jsonCodec = true)
+case class DiscoveryResponse(
+  request_id: String,
+  processUid: Option[String],  // From PROCESS_UID env var
+  unixPid: Int,
+  app_name: String,
+  mailbox_address: String,
+  service_name: Option[String],  // From SERVICE_NAME env var
+  timestamp: Instant,
+  capabilities: ProcessCapabilities,
+  metadata: Map[String, String],
+  extended_metadata: Option[Map[String, String]],
+  service_discovery_mapping: Map[String, String],
+)
+
+object DiscoveryResponse extends MxServiceDiscovery.MxDiscoveryResponse
+
+/**
+ * DiscoveryQuery - filters for finding services
+ */
+@CompanionGen(jsonCodec = true)
+case class DiscoveryQuery(
+  implements_rpc: Iterable[String] = Iterable.empty,
+  app_name: Option[String] = None,
+  service_name: Option[String] = None,
+  location: Option[LocationQuery] = None,
+  include_extended_metadata: Boolean = false,
+)
+
+object DiscoveryQuery extends MxServiceDiscovery.MxDiscoveryQuery
+
+/**
+ * LocationQuery - filters by deployment location
+ */
+@CompanionGen(jsonCodec = true)
+case class LocationQuery(
+  server: Option[String] = None,
+  user: Option[String] = None,
+  user_server: Option[String] = None,
+)
+
+object LocationQuery extends MxServiceDiscovery.MxLocationQuery
+
+/**
+ * ProcessCapabilities - what a process can do
+ */
+@CompanionGen(jsonCodec = true)
+case class ProcessCapabilities(
+  implements_rpc: Iterable[String],
+  rpc_schemas: Map[String, Iterable[String]],
+  location: ProcessLocation,
+  engines: Iterable[String] = Iterable.empty,
+)
+
+object ProcessCapabilities extends MxServiceDiscovery.MxProcessCapabilities
+
+/**
+ * ProcessLocation - where a process is running
+ */
+@CompanionGen(jsonCodec = true)
+case class ProcessLocation(
+  server: String,
+  user: String,
+  ip_addresses: Iterable[String] = Iterable.empty,
+)
+
+object ProcessLocation extends MxServiceDiscovery.MxProcessLocation
+
+// ===== Service Discovery Configuration =====
+
+case class ServiceDiscoveryConfig(
+  mailbox: Mailbox,
+  transport: MailboxTransport,
+  rpcServer: Option[RpcServer] = None,
+  discoverySubject: String = "nefario.discovery",
+  appName: String,
+  serviceName: Option[String] = None,
+  location: ProcessLocation,
+  metadata: Map[String, String] = Map.empty,
+  extendedMetadata: Map[String, String] = Map.empty,
+  staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
+)
 
 /**
  * Service discovery for Hermes/NATS - ALIGNED WITH GODEV PROTOCOL.
@@ -24,95 +127,15 @@ import java.time.Instant
  */
 object ServiceDiscovery extends Logging {
 
-  // ===== Message Types (matching godev) =====
-
-  /**
-   * DiscoveryRequest - published to nefario.discovery subject
-   */
-  case class DiscoveryRequest(
-    requestId: String,
-    replySuffix: String,
-    timestamp: Instant,
-    query: DiscoveryQuery,
-  )
-
-  /**
-   * DiscoveryResponse - published to nefario.discovery.response.{reply_suffix}
-   */
-  case class DiscoveryResponse(
-    requestId: String,
-    processUid: Option[String],  // From PROCESS_UID env var
-    unixPid: Int,
-    appName: String,
-    mailboxAddress: String,
-    serviceName: Option[String],  // From SERVICE_NAME env var
-    timestamp: Instant,
-    capabilities: ProcessCapabilities,
-    metadata: Map[String, String],
-    extendedMetadata: Option[Map[String, String]],
-    serviceDiscoveryMapping: Map[String, String],
-  )
-
-  /**
-   * DiscoveryQuery - filters for finding services
-   */
-  case class DiscoveryQuery(
-    implementsRpc: Seq[String] = Seq.empty,
-    appName: Option[String] = None,
-    serviceName: Option[String] = None,
-    location: Option[LocationQuery] = None,
-    includeExtendedMetadata: Boolean = false,
-  )
-
-  /**
-   * LocationQuery - filters by deployment location
-   */
-  case class LocationQuery(
-    server: Option[String] = None,
-    user: Option[String] = None,
-    userServer: Option[String] = None,
-  )
-
-  /**
-   * ProcessCapabilities - what a process can do
-   */
-  case class ProcessCapabilities(
-    implementsRpc: Seq[String],
-    rpcSchemas: Map[String, Seq[String]],
-    location: ProcessLocation,
-    engines: Seq[String] = Seq.empty,
-  )
-
-  /**
-   * ProcessLocation - where a process is running
-   */
-  case class ProcessLocation(
-    server: String,
-    user: String,
-    ipAddresses: Seq[String] = Seq.empty,
-  )
-
-  // ===== Configuration =====
-
-  case class Config(
-    mailbox: Mailbox,
-    transport: MailboxTransport,
-    rpcServer: Option[RpcServer] = None,
-    discoverySubject: String = "nefario.discovery",
-    appName: String,
-    serviceName: Option[String] = None,
-    location: ProcessLocation,
-    metadata: Map[String, String] = Map.empty,
-    extendedMetadata: Map[String, String] = Map.empty,
-    staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
-  )
+  // Type alias for convenience
+  type Config = ServiceDiscoveryConfig
 
   // ===== Utility Methods =====
 
   /**
    * Get all non-localhost IPv4 addresses (matching godev's GetNonLocalhostIPs)
    */
-  def getNonLocalhostIPs(): Seq[String] = {
+  def getNonLocalhostIPs(): Iterable[String] = {
     import java.net.NetworkInterface
     import scala.jdk.CollectionConverters.*
 
@@ -122,12 +145,22 @@ object ServiceDiscovery extends Logging {
         .filter(addr => addr.getAddress.length == 4) // IPv4 only
         .filterNot(_.isLoopbackAddress)
         .map(_.getHostAddress)
-        .toSeq
+        .to(Iterable)
     } catch {
       case e: Exception =>
         logger.warn(s"Failed to get non-localhost IPs: ${e.getMessage}")
-        Seq.empty
+        Iterable.empty
     }
+  }
+
+  /**
+   * Read all A8_* prefixed environment variables and return as metadata map.
+   * Automatically discovers all env vars starting with A8_ prefix.
+   */
+  def readA8EnvironmentMetadata(): Map[String, String] = {
+    sys.env
+      .filter(_._1.startsWith("A8_"))
+      .toMap
   }
 
   /**
@@ -140,14 +173,14 @@ object ServiceDiscovery extends Logging {
     appName: String,
     serviceName: Option[String],
     staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
-  ): Config = {
+  ): ServiceDiscoveryConfig = {
     val location = ProcessLocation(
       server = java.net.InetAddress.getLocalHost.getHostName,
       user = System.getProperty("user.name"),
-      ipAddresses = getNonLocalhostIPs(),
+      ip_addresses = getNonLocalhostIPs(),
     )
 
-    Config(
+    ServiceDiscoveryConfig(
       mailbox = mailbox,
       transport = transport,
       rpcServer = rpcServer,
@@ -161,7 +194,7 @@ object ServiceDiscovery extends Logging {
   /**
    * Create a service discovery resource
    */
-  def resource(config: Config): Resource[ServiceDiscovery] = {
+  def resource(config: ServiceDiscoveryConfig): Resource[ServiceDiscovery] = {
     Resource.acquireRelease {
       new ServiceDiscovery(config)
     } { discovery =>
@@ -171,7 +204,7 @@ object ServiceDiscovery extends Logging {
 
   // ===== Helper Methods =====
 
-  private def generateUid(): String = {
+  private[discovery] def generateUid(): String = {
     // godev uses UID20() - 20-char base32 ULID
     // For now, use UUID and take first 20 chars
     java.util.UUID.randomUUID().toString.replace("-", "").take(20)
@@ -179,14 +212,14 @@ object ServiceDiscovery extends Logging {
 
 }
 
-class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
+class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   import ServiceDiscovery.*
 
-  // Read from PROCESS_UID env var, omit if not present
-  private val processUid: Option[String] = sys.env.get("PROCESS_UID")
+  // Read from A8_PROCESS_UID env var, omit if not present
+  private val processUid: Option[String] = sys.env.get("A8_PROCESS_UID")
 
-  // Read from SERVICE_NAME env var, omit if not present
-  private val serviceName: Option[String] = sys.env.get("SERVICE_NAME")
+  // Read from A8_SERVICE_NAME env var, omit if not present
+  private val serviceName: Option[String] = sys.env.get("A8_SERVICE_NAME")
 
   @volatile private var running = false
 
@@ -211,14 +244,14 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
    */
   def query(query: DiscoveryQuery, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Seq[DiscoveryResponse] = {
     val request = DiscoveryRequest(
-      requestId = generateUid(),
-      replySuffix = generateUid(),
+      request_id = generateUid(),
+      reply_suffix = generateUid(),
       timestamp = Instant.now(),
       query = query,
     )
 
-    val replySubject = s"${config.discoverySubject}.response.${request.replySuffix}"
-    logger.debug(s"Discovery query: request_id=${request.requestId} reply_subject=$replySubject")
+    val replySubject = s"${config.discoverySubject}.response.${request.reply_suffix}"
+    logger.debug(s"Discovery query: request_id=${request.request_id} reply_subject=$replySubject")
 
     // Subscribe to reply subject
     val responses = TrieMap.empty[String, DiscoveryResponse]
@@ -227,11 +260,11 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
       try {
         val payload = new String(envelope.payload, "UTF-8")
         val jsObj = json.parse(payload).toOption.get.asInstanceOf[JsObj]
-        val response = DiscoveryJson.parseResponse(jsObj)
+        val response = jsObj.unsafeAs[DiscoveryResponse]
 
-        if (response.requestId == request.requestId) {
-          responses.put(response.mailboxAddress, response)
-          logger.debug(s"Received response: process=${response.processUid.getOrElse("<none>")} service=${response.serviceName.getOrElse("<none>")} mailbox=${response.mailboxAddress}")
+        if (response.request_id == request.request_id) {
+          responses.put(response.mailbox_address, response)
+          logger.debug(s"Received response: process=${response.processUid.getOrElse("<none>")} service=${response.service_name.getOrElse("<none>")} mailbox=${response.mailbox_address}")
         }
       } catch {
         case e: Exception =>
@@ -240,7 +273,7 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
     }
 
     // Publish request
-    val requestJson = DiscoveryJson.requestToJson(request).compactJson
+    val requestJson = request.compactJson
     config.transport.publish(
       subject = config.discoverySubject,
       headers = Map.empty,
@@ -259,14 +292,14 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
    * Find first service implementing a specific RPC
    */
   def findService(rpcEndpoint: String, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Option[DiscoveryResponse] = {
-    query(DiscoveryQuery(implementsRpc = Seq(rpcEndpoint)), timeout).headOption
+    query(DiscoveryQuery(implements_rpc = Seq(rpcEndpoint)), timeout).headOption
   }
 
   /**
    * Find services by app name
    */
   def findByAppName(appName: String, timeout: FiniteDuration = 5.seconds)(using ctx: Ctx): Seq[DiscoveryResponse] = {
-    query(DiscoveryQuery(appName = Some(appName)), timeout)
+    query(DiscoveryQuery(app_name = Some(appName)), timeout)
   }
 
   /**
@@ -275,9 +308,12 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
   def register()(using ctx: Ctx): Unit = {
     logger.info(s"Registering service for discovery: app=${config.appName} service=${serviceName.getOrElse("<none>")}")
     logger.info(s"  Subscribing to subject: ${config.discoverySubject}")
-    logger.info(s"  Process UID: ${processUid.getOrElse("<none>")}")
+    logger.info(s"  Process UID (A8_PROCESS_UID): ${processUid.getOrElse("<none>")}")
     logger.info(s"  Unix PID: ${getPid()}")
     logger.info(s"  Location: ${config.location.user}@${config.location.server}")
+    if (config.metadata.nonEmpty) {
+      logger.info(s"  Metadata keys: ${config.metadata.keys.mkString(", ")}")
+    }
 
     // Run subscription in background thread to avoid blocking
     val thread = new Thread(() => {
@@ -290,13 +326,13 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
               logger.debug(s"Request payload: $payload")
 
               val jsObj = json.parse(payload).toOption.get.asInstanceOf[JsObj]
-              val request = DiscoveryJson.parseRequest(jsObj)
+              val request = jsObj.unsafeAs[DiscoveryRequest]
 
-              logger.debug(s"Parsed request: request_id=${request.requestId}")
-              logger.debug(s"  Query: implementsRpc=${request.query.implementsRpc}, appName=${request.query.appName}, serviceName=${request.query.serviceName}")
+              logger.debug(s"Parsed request: request_id=${request.request_id}")
+              logger.debug(s"  Query: implements_rpc=${request.query.implements_rpc}, app_name=${request.query.app_name}, service_name=${request.query.service_name}")
 
               if (matchesQuery(request.query)) {
-                logger.info(s"Query matched! Sending response for request_id=${request.requestId}")
+                logger.info(s"Query matched! Sending response for request_id=${request.request_id}")
                 sendResponse(request)(using ctx)
               } else {
                 logger.debug(s"Query did not match our capabilities")
@@ -333,29 +369,29 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
     val capabilities = buildCapabilities()
 
     val response = DiscoveryResponse(
-      requestId = request.requestId,
+      request_id = request.request_id,
       processUid = processUid,
       unixPid = getPid(),
-      appName = config.appName,
-      mailboxAddress = config.mailbox.address.value,
-      serviceName = serviceName,
+      app_name = config.appName,
+      mailbox_address = config.mailbox.address.value,
+      service_name = serviceName,
       timestamp = Instant.now(),
       capabilities = capabilities,
       metadata = config.metadata,
-      extendedMetadata = if (request.query.includeExtendedMetadata) Some(config.extendedMetadata) else None,
-      serviceDiscoveryMapping = config.staticServiceDiscovery
+      extended_metadata = if (request.query.include_extended_metadata) Some(config.extendedMetadata) else None,
+      service_discovery_mapping = config.staticServiceDiscovery
         .map(_.getAllMailboxes)
         .getOrElse(Map.empty),
     )
 
-    val replySubject = s"${config.discoverySubject}.response.${request.replySuffix}"
-    val responseJson = DiscoveryJson.responseToJson(response).compactJson
+    val replySubject = s"${config.discoverySubject}.response.${request.reply_suffix}"
+    val responseJson = response.compactJson
 
     logger.info(s"Sending discovery response:")
     logger.info(s"  Reply subject: $replySubject")
-    logger.info(s"  Process: ${response.appName} / ${response.serviceName.getOrElse("<none>")}")
-    logger.info(s"  Mailbox: ${response.mailboxAddress}")
-    logger.info(s"  Implemented RPCs: ${capabilities.implementsRpc.mkString(", ")}")
+    logger.info(s"  Process: ${response.app_name} / ${response.service_name.getOrElse("<none>")}")
+    logger.info(s"  Mailbox: ${response.mailbox_address}")
+    logger.info(s"  Implemented RPCs: ${capabilities.implements_rpc.mkString(", ")}")
     logger.debug(s"  Response JSON: $responseJson")
 
     config.transport.publish(
@@ -379,20 +415,20 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
       logger.debug(s"  - ${schema.name.value} (requiresAuth=${schema.requiresAuth})")
     }
 
-    val rpcSchemas: Map[String, Seq[String]] = allSchemas
+    val rpcSchemas: Map[String, Iterable[String]] = allSchemas
       .groupBy(schema => s"${schema.name.name}.${schema.name.version}")
       .view
       .mapValues(schemas => schemas.map(_.name.method).distinct)
       .toMap
 
     // Get list of implemented RPC schemas (name.version)
-    val implementedRpcs = rpcSchemas.keys.toSeq.distinct
+    val implementedRpcs: Iterable[String] = rpcSchemas.keys
 
     ProcessCapabilities(
-      implementsRpc = implementedRpcs,
-      rpcSchemas = rpcSchemas,
+      implements_rpc = implementedRpcs,
+      rpc_schemas = rpcSchemas,
       location = config.location,
-      engines = Seq.empty, // Can be populated from HermesBootstrap
+      engines = Iterable.empty, // Can be populated from HermesBootstrap
     )
   }
 
@@ -401,27 +437,27 @@ class ServiceDiscovery(config: ServiceDiscovery.Config) extends Logging {
    */
   private def matchesQuery(query: DiscoveryQuery): Boolean = {
     // ALL RPCs in query must be implemented (not just one!)
-    val rpcMatch = query.implementsRpc.isEmpty || {
+    val rpcMatch = query.implements_rpc.isEmpty || {
       // Extract name.version (e.g. "process.v1") from schemas, matching buildCapabilities logic
       val ourRpcs = RpcSchema.all
         .map(schema => s"${schema.name.name}.${schema.name.version}")
         .toSet
-      query.implementsRpc.forall(ourRpcs.contains)
+      query.implements_rpc.forall(ourRpcs.contains)
     }
 
-    val appMatch = query.appName.forall(matchesPattern(config.appName, _))
+    val appMatch = query.app_name.forall(matchesPattern(config.appName, _))
     val serviceMatch =
       config
         .serviceName
         .map { sn =>
-          query.serviceName.forall(matchesPattern(sn, _))
+          query.service_name.forall(matchesPattern(sn, _))
         }
-        .getOrElse(query.serviceName.isEmpty)
+        .getOrElse(query.service_name.isEmpty)
 
     val locationMatch = query.location.forall { locQuery =>
       locQuery.server.forall(_ == config.location.server) &&
       locQuery.user.forall(_ == config.location.user) &&
-      locQuery.userServer.forall(_ == s"${config.location.user}@${config.location.server}")
+      locQuery.user_server.forall(_ == s"${config.location.user}@${config.location.server}")
     }
 
     rpcMatch && appMatch && serviceMatch && locationMatch

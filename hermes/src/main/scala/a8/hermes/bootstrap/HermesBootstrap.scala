@@ -125,21 +125,25 @@ object HermesBootstrap extends Logging {
             transport = natsTransport,
             rpcServer = Some(rpcServer),
             appName = config.appName.getOrElse("hermes-scala"),
-            serviceName = config.appName.getOrElse("hermes-scala"),
+            serviceName = config.appName,
             staticServiceDiscovery = Some(staticServiceDiscovery),
           )
 
-          // Add metadata if available
+          // Collect A8_* environment variables for metadata
+          val a8Metadata = ServiceDiscovery.readA8EnvironmentMetadata()
+
+          // Merge with any existing metadata
           val configWithMetadata = discoveryConfig.copy(
-            metadata = Map(
-              "service_name" -> config.appName.getOrElse("hermes-scala"),
-            )
+            metadata = discoveryConfig.metadata ++ a8Metadata
           )
 
           val discovery = new ServiceDiscovery(configWithMetadata)
           discovery.start()(using ctx)
           discovery.register()(using ctx)  // Auto-register this process
           logger.info(s"✓ Dynamic service discovery started and registered")
+          if (a8Metadata.nonEmpty) {
+            logger.info(s"  Metadata: ${a8Metadata.keys.mkString(", ")}")
+          }
           Some(discovery)
         } { discovery =>
           discovery.foreach(_.stop())
