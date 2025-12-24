@@ -134,6 +134,24 @@ trait MailboxTransport {
   )(using Ctx): XStream[Envelope]
 
   /**
+   * Create a realtime consumer that blocks indefinitely waiting for messages.
+   *
+   * Unlike createConsumer which uses short timeouts and throws NoSuchElementException,
+   * this method blocks for extended periods waiting for new messages, making it
+   * suitable for true realtime streaming scenarios.
+   *
+   * The consumer will:
+   * - Block up to 30 seconds waiting for each message
+   * - Automatically retry on timeout (never throws NoSuchElementException from timeout)
+   * - Keep the stream alive continuously
+   * - Only terminate when the subscription becomes inactive
+   */
+  def createRealtimeConsumer(
+    streamName: String,
+    config: ConsumerConfig,
+  )(using Ctx): XStream[Envelope]
+
+  /**
    * Create a NATS JetStream stream
    */
   def createStream(

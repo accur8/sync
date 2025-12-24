@@ -183,6 +183,49 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
     }
   }
 
+  override def createRealtimeConsumer(
+    streamName: String,
+    config: ConsumerConfig,
+  )(using Ctx): XStream[Envelope] = {
+    val consumerConfig = toNatsConsumerConfig(config)
+    val subscription = jetStream.subscribe(
+      streamName,
+      config match {
+        case ConsumerConfig.Durable(name, _, _) =>
+          io.nats.client.PushSubscribeOptions.builder()
+            .stream(streamName)
+            .durable(name)
+            .configuration(consumerConfig)
+            .build()
+        case ConsumerConfig.Ephemeral(_, _) =>
+          io.nats.client.PushSubscribeOptions.builder()
+            .stream(streamName)
+            .configuration(consumerConfig)
+            .build()
+      }
+    )
+
+    XStream.acquireRelease {
+      (subscription, new Iterator[Envelope] {
+        override def hasNext: Boolean = subscription.isActive
+
+        override def next(): Envelope = {
+          // Block for up to 30 seconds waiting for a message
+          val msg = subscription.nextMessage(java.time.Duration.ofSeconds(30))
+          if (msg != null) {
+            msg.ack()  // Acknowledge message
+            fromNatsMessage(msg)
+          } else {
+            // Timeout - no message in 30 seconds, retry
+            next()  // Recursive call to wait again
+          }
+        }
+      })
+    } { sub =>
+      sub.unsubscribe()
+    }
+  }
+
   override def createStream(
     name: String,
     subjects: Seq[String],
@@ -267,17 +310,23 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
       case ConsumerConfig.Ephemeral(dp, ap) => (dp, ap)
     }
 
-    builder
-      .deliverPolicy(toNatsDeliverPolicy(deliverPolicy))
-      .ackPolicy(toNatsAckPolicy(ackPolicy))
-      .build()
+    builder.deliverPolicy(toNatsDeliverPolicy(deliverPolicy))
+    builder.ackPolicy(toNatsAckPolicy(ackPolicy))
+
+    // Set start sequence if using ByStartSequence policy
+    deliverPolicy match {
+      case DeliverPolicy.ByStartSequence(seq) => builder.startSequence(seq)
+      case _ => ()
+    }
+
+    builder.build()
   }
 
   private def toNatsDeliverPolicy(policy: DeliverPolicy): NatsDeliverPolicy = policy match {
     case DeliverPolicy.All => NatsDeliverPolicy.All
     case DeliverPolicy.New => NatsDeliverPolicy.New
     case DeliverPolicy.Last => NatsDeliverPolicy.Last
-    case DeliverPolicy.ByStartSequence(seq) => NatsDeliverPolicy.ByStartSequence
+    case DeliverPolicy.ByStartSequence(_) => NatsDeliverPolicy.ByStartSequence
   }
 
   private def toNatsAckPolicy(policy: AckPolicy): NatsAckPolicy = policy match {
