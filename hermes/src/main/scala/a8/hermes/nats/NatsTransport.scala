@@ -80,6 +80,20 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
     connection.flush(java.time.Duration.ofMillis(100))  // Ensure message is sent immediately
   }
 
+  /**
+   * Publish to JetStream with headers
+   * Returns the PublishAck for sequence tracking
+   */
+  def publishToJetStream(
+    subject: String,
+    headers: Map[String, String],
+    payload: Array[Byte],
+  )(using Ctx): io.nats.client.api.PublishAck = {
+    val natsHeaders = toNatsHeaders(headers)
+    val msg = io.nats.client.impl.NatsMessage(subject, null, natsHeaders, payload)
+    jetStream.publish(msg)
+  }
+
   override def request(
     subject: String,
     headers: Map[String, String],
@@ -207,21 +221,29 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
 
     XStream.acquireRelease {
       (subscription, new Iterator[Envelope] {
-        override def hasNext: Boolean = subscription.isActive
+        override def hasNext: Boolean = {
+          val active = subscription.isActive
+          println(s"DEBUG: hasNext called, subscription.isActive = $active")
+          active
+        }
 
         override def next(): Envelope = {
+          println("DEBUG: next() called, calling subscription.nextMessage(30s)")
           // Block for up to 30 seconds waiting for a message
           val msg = subscription.nextMessage(java.time.Duration.ofSeconds(30))
           if (msg != null) {
+            println(s"DEBUG: Got message, subject=${msg.getSubject()}, seq=${msg.metaData().streamSequence()}")
             msg.ack()  // Acknowledge message
             fromNatsMessage(msg)
           } else {
+            println("DEBUG: nextMessage returned null (timeout), retrying...")
             // Timeout - no message in 30 seconds, retry
             next()  // Recursive call to wait again
           }
         }
       })
     } { sub =>
+      println("DEBUG: Unsubscribing from stream")
       sub.unsubscribe()
     }
   }
