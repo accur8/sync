@@ -49,7 +49,7 @@ object NatsTransport {
       builder.userInfo(u, p)
     }
 
-    config.token.foreach(builder.token)
+    config.token.foreach(t => builder.token(t.toCharArray))
     config.connectionName.foreach(builder.connectionName)
 
     builder.build()

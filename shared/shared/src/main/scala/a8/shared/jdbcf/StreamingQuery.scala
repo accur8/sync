@@ -18,14 +18,18 @@ object StreamingQuery {
     override val reader: RowReader[A] = implicitly[RowReader[A]]
 
     override def stream: zreplace.XStream[A] = {
-      def run = {
+//      def run = {
+//        val st = conn.unsafeStatement()
+//        st.getConnection.setAutoCommit(false)
+//        st.setFetchSize(batchSize)
+//        st.executeQuery(sql.value)
+//      }
+      withSqlCtx(conn.databaseId, sql) {
         val st = conn.unsafeStatement()
         st.getConnection.setAutoCommit(false)
         st.setFetchSize(batchSize)
-        st.executeQuery(sql.value)
-      }
-      withSqlCtx(conn.databaseId, sql) {
-        resultSetToStream(run, batchSize)
+        val rs = st.executeQuery(sql.value)
+        resultSetToStream(rs, ()=>st.close(), batchSize)
           .map(reader.read)
       }
     }

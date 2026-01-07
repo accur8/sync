@@ -14,15 +14,19 @@ package object jdbcf extends Logging {
     resultSet.runAsIterator(_.toVector)
   }
 
-  def resultSetToStream(resultSet: =>ResultSet, chunkSize: Int = 1000): zio.XStream[Row] = {
+  def resultSetToStream(resultSet: =>ResultSet, releaseListener: ()=>Unit, chunkSize: Int = 1000): zio.XStream[Row] = {
 
     def acquire = (resultSet, unsafe.resultSetToIterator(resultSet))
 
-    def release(rs: ResultSet): Unit =
+    def release(rs: ResultSet): Unit = {
       tryLogDebug("") {
         if ( !resultSet.isClosed )
           resultSet.close()
       }
+      tryLogDebug("") {
+        releaseListener()
+      }
+    }
 
     XStream.acquireRelease(acquire)(release)
 

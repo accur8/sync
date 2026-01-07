@@ -23,7 +23,7 @@ object Query {
             // no cleanup since the result set will break out of the scope of this function
             val st = jdbcConn.createStatement()
             val rs = st.executeQuery(sql.value)
-            resultSetToStream(rs)
+            resultSetToStream(rs, ()=>st.close())
               .map(reader.read)
           }
         }
