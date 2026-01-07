@@ -43,7 +43,7 @@ object NatsMailboxClient extends Logging {
     closeTimeoutInMillis: Long,
     publicMetadata: String = "{}",
     privateMetadata: String = "{}",
-    channels: Seq[String] = Seq("rpc-inbox", "rpc-sent"),
+    channels: Seq[String] = Seq("rpc-inbox"),
     isNamed: Boolean = false,
   )
 
@@ -211,16 +211,6 @@ object NatsMailboxClient extends Logging {
       maxAge = scala.concurrent.duration.FiniteDuration(purgeTimeoutMillis, "milliseconds"),
     )
     logger.debug(s"created channel rpc-inbox in ${adminKey.value}")
-
-    val rpcSentSubject = s"hermes.${adminKey.value}.rpc-sent"
-    val rpcSentStream = s"hermes-${adminKey.value}-rpc-sent"
-    natsTransport.createStream(
-      name = rpcSentStream,
-      subjects = Seq(rpcSentSubject),
-      retention = MailboxTransport.StreamRetention.WorkQueue,
-      maxAge = scala.concurrent.duration.FiniteDuration(purgeTimeoutMillis, "milliseconds"),
-    )
-    logger.debug(s"created channel rpc-sent in ${adminKey.value}")
 
     // Create the Mailbox instance
     val lifecycle = if (isNamed) {
