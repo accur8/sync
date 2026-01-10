@@ -33,21 +33,6 @@ object Ctx:
         case CompletionResult.Error(th) =>
           onError(ctx, th)
 
-  @deprecated("Use State instead", "2026-01-09")
-  object Completion:
-    case class Success() extends Completion:
-      override def isSuccess: Boolean = true
-    case class Cancelled() extends Completion:
-      override def isCancelled: Boolean = true
-    case class Thrown(th: Throwable) extends Completion:
-      override def isThrown: Boolean = true
-
-  @deprecated("Use State instead", "2026-01-09")
-  sealed trait Completion:
-    def isCancelled: Boolean = false
-    def isSuccess: Boolean = false
-    def isThrown: Boolean = false
-
   case class ChildCtx(
     parent: Ctx,
     ox0: ox.Ox,
