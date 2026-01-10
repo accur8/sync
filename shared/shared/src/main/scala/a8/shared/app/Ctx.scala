@@ -7,46 +7,51 @@ import ox.Ox
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 
-object Ctx {
+object Ctx:
 
-  trait Listener {
+  enum State derives CanEqual:
+    case NotStarted
+    case Running
+    case Cancelled
+    case Completed(result: CompletionResult)
+
+  enum CompletionResult derives CanEqual:
+    case Success
+    case Error(th: Throwable)
+    case Cancellation
+
+  trait Listener:
     def onCancel(ctx: Ctx): Unit = ()
     def onSuccess(ctx: Ctx): Unit = ()
     def onError(ctx: Ctx, error: Throwable): Unit = ()
-    def onCompletion(ctx: Ctx, completion: Completion): Unit = {
-      completion match {
-        case Completion.Success() =>
+    def onCompletion(ctx: Ctx, result: CompletionResult): Unit =
+      result match
+        case CompletionResult.Success =>
           onSuccess(ctx)
-        case Completion.Cancelled() =>
+        case CompletionResult.Cancellation =>
           onCancel(ctx)
-        case Completion.Thrown(th) =>
+        case CompletionResult.Error(th) =>
           onError(ctx, th)
-      }
-    }
-  }
 
-  object Completion {
-    case class Success() extends Completion {
+  @deprecated("Use State instead", "2026-01-09")
+  object Completion:
+    case class Success() extends Completion:
       override def isSuccess: Boolean = true
-    }
-    case class Cancelled() extends Completion {
+    case class Cancelled() extends Completion:
       override def isCancelled: Boolean = true
-    }
-    case class Thrown(th: Throwable) extends Completion {
+    case class Thrown(th: Throwable) extends Completion:
       override def isThrown: Boolean = true
-    }
-  }
 
-  sealed trait Completion {
+  @deprecated("Use State instead", "2026-01-09")
+  sealed trait Completion:
     def isCancelled: Boolean = false
     def isSuccess: Boolean = false
     def isThrown: Boolean = false
-  }
 
   case class ChildCtx(
     parent: Ctx,
     ox0: ox.Ox,
-  ) extends Ctx with InternalCtx {
+  ) extends Ctx with InternalCtx:
 
     override def parentOpt: Option[Ctx] =
       Some(parent)
@@ -58,31 +63,49 @@ object Ctx {
 
     override def ancestry: Iterator[Ctx] =
       Iterator(this) ++ parent.ancestry
-  }
 
-  trait InternalCtx { self: Ctx =>
+  trait InternalCtx:
+    self: Ctx =>
 
-    protected var cancelled = false
-    protected var running = false
+    protected var state: Ctx.State = Ctx.State.NotStarted
     protected val listeners: mutable.Buffer[Listener] = mutable.Buffer.empty[Ctx.Listener]
 
-    override def withSubCtx[A](fn: Ctx ?=> A): A = {
-      ox.supervised {
+    def unsafeRun[A](fn: ()=>A): A =
+      state match
+        case Ctx.State.NotStarted =>
+          state = Ctx.State.Running
+          try
+            val a = fn()
+            // Check if cancelled during execution
+            state match
+              case Ctx.State.Cancelled =>
+                state = Ctx.State.Completed(Ctx.CompletionResult.Cancellation)
+                listeners.foreach(_.onCompletion(this, Ctx.CompletionResult.Cancellation))
+              case Ctx.State.Running =>
+                state = Ctx.State.Completed(Ctx.CompletionResult.Success)
+                listeners.foreach(_.onCompletion(this, Ctx.CompletionResult.Success))
+              case _ =>
+                // Should not happen, but handle gracefully
+                ()
+            a
+          catch
+            case th: Throwable =>
+              state = Ctx.State.Completed(Ctx.CompletionResult.Error(th))
+              listeners.foreach(_.onCompletion(this, Ctx.CompletionResult.Error(th)))
+              throw th
+        case _ =>
+          sys.error(s"invalid state transition - cannot run from state $state")
+
+    override def withSubCtx[A](fn: Ctx ?=> A): A =
+      ox.supervised:
         val childCtx = ChildCtx(this, ox0 = summon[ox.Ox])
-        try {
-          fn(using childCtx)
-        } finally {
-          childCtx.running = false
-          childCtx.listeners.foreach(_.onCompletion(childCtx, Completion.Success()))
-        }
-      }
-    }
+        def impl() = fn(using childCtx)
+        childCtx.unsafeRun(() => impl())
 
-  }
 
-}
 
-trait Ctx { self: InternalCtx =>
+trait Ctx:
+  self: InternalCtx =>
 
   def label: Option[String] = None
 
@@ -98,18 +121,25 @@ trait Ctx { self: InternalCtx =>
   def appCtx: AppCtx
   def parentOpt: Option[Ctx]
 
-  def cancel(): Unit = {
-    if (!cancelled) {
-      cancelled = true
-      listeners.foreach(_.onCancel(this))
-    }
-  }
+  def cancel(): Unit =
+    state match
+      case Ctx.State.NotStarted | Ctx.State.Running =>
+        state = Ctx.State.Cancelled
+        listeners.foreach(_.onCancel(this))
+      case _ =>
+        // Already cancelled or completed, do nothing
 
   def isCancelled(): Boolean =
-    cancelled
+    state == Ctx.State.Cancelled || (state match {
+      case Ctx.State.Completed(Ctx.CompletionResult.Cancellation) => true
+      case _ => false
+    })
 
   def isRunning(): Boolean =
-    running
+    state == Ctx.State.Running
+
+  def currentState: Ctx.State =
+    state
 
   def register(listener: Ctx.Listener): Unit =
     listeners += listener
@@ -118,16 +148,12 @@ trait Ctx { self: InternalCtx =>
 
 
   private lazy val attributes = TrieMap.empty[AttributeKey,Any]
-  def get[A](key: AttributeKey): Option[A] = {
+  def get[A](key: AttributeKey): Option[A] =
     parentOpt
       .flatMap(_.get[A](key))
       .orElse(
         attributes.get(key).asInstanceOf[Option[A]]
       )
-  }
 
-  def put[A](key: AttributeKey, value: A): Unit = {
+  def put[A](key: AttributeKey, value: A): Unit =
     attributes.put(key, value)
-  }
-
-}

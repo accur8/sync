@@ -41,7 +41,7 @@ case class ConnInternalImpl(
         st.close()
     }
     ctx.register(new Ctx.Listener {
-      override def onCompletion(ctx: Ctx, completion: Ctx.Completion): Unit =
+      override def onCompletion(ctx: Ctx, result: Ctx.CompletionResult): Unit =
         release
     })
     st

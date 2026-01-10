@@ -77,7 +77,7 @@ object zreplace {
                   .foreach(ctx.put(_, a))
                 ctx.register(
                   new Ctx.Listener {
-                    override def onCompletion(ctx: Ctx, completion: Ctx.Completion): Unit =
+                    override def onCompletion(ctx: Ctx, result: Ctx.CompletionResult): Unit =
                       release(a)
                   }
                 )
@@ -141,7 +141,7 @@ object zreplace {
 
             summon[Ctx].register(
               new Ctx.Listener {
-                override def onCompletion(ctx: Ctx, completion: Ctx.Completion): Unit =
+                override def onCompletion(ctx: Ctx, result: Ctx.CompletionResult): Unit =
                   doRelease
               }
             )

@@ -33,7 +33,8 @@ package object jdbcf extends Logging {
   }
 
   def withSqlCtx[A](databaseId: DatabaseId, sql: CompiledSql)(fn: =>A): A = {
-    logger.debug(s"running ${databaseId.value} sql -- ${sql.value}")
+    if logger.isTraceEnabled then
+      logger.trace(s"running ${databaseId.value} sql -- ${sql.value}")
     try {
       val a = fn
       a

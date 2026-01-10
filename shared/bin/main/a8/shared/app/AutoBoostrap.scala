@@ -44,12 +44,13 @@ case class AutoBoostrap(
     app.appInit
 
     supervised {
-      given AppCtx =
+      val appCtx =
         AppCtx(
           bootstrapper = bootstrapper,
           ox0 = summon[ox.Ox],
         )
-      app.run()
+      given AppCtx = appCtx
+      appCtx.unsafeRun(() => app.run())
     }
 
   }
