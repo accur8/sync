@@ -277,11 +277,11 @@ object ServiceDiscovery extends Logging {
 class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   import ServiceDiscovery.*
 
-  // Read from A8_PROCESS_UID env var, empty string if not present
-  private val processUid: String = sys.env.getOrElse("A8_PROCESS_UID", "")
+  // Read from A8_PROCESS_UID or PROCESS_UID env var, empty string if not present
+  private val processUid: String = sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
 
-  // Read from A8_SERVICE_NAME env var, empty string if not present
-  private val serviceName: String = sys.env.getOrElse("A8_SERVICE_NAME", "")
+  // Read from A8_SERVICE_NAME or SERVICE_NAME env var, empty string if not present
+  private val serviceName: String = sys.env.getOrElse("A8_SERVICE_NAME", sys.env.getOrElse("SERVICE_NAME", ""))
 
   @volatile private var running = false
 
@@ -374,7 +374,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
     val processUidStr = if (processUid.isEmpty) "<none>" else processUid
     logger.info(s"Registering service for discovery: app=${config.appName} service=$serviceNameStr")
     logger.info(s"  Subscribing to subject: ${config.discoverySubject}")
-    logger.info(s"  Process UID (A8_PROCESS_UID): $processUidStr")
+    logger.info(s"  Process UID (A8_PROCESS_UID or PROCESS_UID): $processUidStr")
     logger.info(s"  Unix PID: ${getPid()}")
     logger.info(s"  Location: ${config.location.user}@${config.location.server}")
     if (config.metadata.nonEmpty) {
