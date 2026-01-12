@@ -24,7 +24,54 @@ object NatsTransport {
     connectionName: Option[String] = None,
     maxReconnects: Int = 60,
     reconnectWait: FiniteDuration = scala.concurrent.duration.FiniteDuration(2, "seconds"),
-  )
+    connectionTimeout: FiniteDuration = scala.concurrent.duration.FiniteDuration(5, "seconds"),
+    appName: Option[String] = None, // For auto-generating connection names
+  ) {
+    /**
+     * Generate connection name in format: user@hostname:appname
+     * Used when connectionName is None but appName is provided
+     */
+    def effectiveConnectionName: Option[String] =
+      connectionName.orElse(appName.map { app =>
+        val username = System.getProperty("user.name", "unknown")
+        val hostname = try {
+          java.net.InetAddress.getLocalHost.getHostName
+        } catch {
+          case _: Exception => "unknown"
+        }
+        s"$username@$hostname:$app"
+      })
+  }
+
+  /**
+   * Load configuration from environment variables or system properties
+   */
+  def fromEnv(appName: String): Config = {
+    val url = sys.env.getOrElse("NATS_URL",
+      sys.props.getOrElse("nats.url", "nats://localhost:4222"))
+    val username = sys.env.get("NATS_USER")
+      .orElse(sys.props.get("nats.user"))
+      .filter(_.nonEmpty)
+    val password = sys.env.get("NATS_PASSWORD")
+      .orElse(sys.props.get("nats.password"))
+      .filter(_.nonEmpty)
+
+    Config(
+      natsUrl = url,
+      username = username,
+      password = password,
+      appName = Some(appName)
+    )
+  }
+
+  /**
+   * Configuration for glen-starbak.accur8.net
+   */
+  def starbak(appName: String): Config =
+    Config(
+      natsUrl = "nats://glen-starbak.accur8.net:4222",
+      appName = Some(appName)
+    )
 
   /**
    * Create a NatsTransport resource from config
@@ -44,13 +91,14 @@ object NatsTransport {
       .server(config.natsUrl)
       .maxReconnects(config.maxReconnects)
       .reconnectWait(config.reconnectWait.toJava)
+      .connectionTimeout(config.connectionTimeout.toJava)
 
     config.username.zip(config.password).foreach { case (u, p) =>
       builder.userInfo(u, p)
     }
 
     config.token.foreach(t => builder.token(t.toCharArray))
-    config.connectionName.foreach(builder.connectionName)
+    config.effectiveConnectionName.foreach(builder.connectionName)
 
     builder.build()
   }
@@ -291,6 +339,18 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
       ))
     } catch {
       case _: io.nats.client.JetStreamApiException => None
+    }
+  }
+
+  /**
+   * Delete a stream
+   */
+  def deleteStream(name: String)(using Ctx): Boolean = {
+    try {
+      jetStreamManagement.deleteStream(name)
+      true
+    } catch {
+      case _: io.nats.client.JetStreamApiException => false
     }
   }
 
