@@ -3,7 +3,7 @@ package a8.hermes.bootstrap
 import a8.hermes.core.{Mailbox, MailboxTransport}
 import a8.hermes.{nats, auth}
 import a8.hermes.nats.NatsTransport
-import a8.hermes.rpc.{RpcServer, RpcClient}
+import a8.hermes.rpc.{RpcServer, RpcClient, StandardHandlers}
 import a8.hermes.discovery.ServiceDiscovery
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
@@ -99,6 +99,11 @@ object HermesBootstrap extends Logging {
             parallelism = 10,
           )
         )
+
+        // Register standard handlers (process.v1.Ping, discovery.v1.*)
+        StandardHandlers.registerAll(server, mailbox.address.value)
+        logger.info("✓ Standard RPC handlers registered (process.v1, discovery.v1)")
+
         server.start()(using ctx)
         logger.info(s"✓ RPC server started on mailbox: ${mailbox.address.value}")
         server
