@@ -69,15 +69,24 @@ class AuthExtension(
     }
 
     // Fork the extension loop to run in background
-    ox.fork {
+    // Use forkUser so that failures in this fork will propagate and stop the app
+    ox.forkUser {
       val threadName = s"auth-extension-${mailbox.address.value.take(8)}"
       Thread.currentThread().setName(threadName)
-      logger.debug(s"Auth extension thread name: $threadName")
+      logger.info(s"Auth extension thread started: $threadName")
 
-      // Wait initial delay before starting loop
-      Thread.sleep(config.initialDelay.toMillis)
+      try {
+        // Wait initial delay before starting loop
+        Thread.sleep(config.initialDelay.toMillis)
 
-      runExtensionLoop(initialExpiration)(using ctx)
+        runExtensionLoop(initialExpiration)(using ctx)
+      } catch {
+        case th: Throwable =>
+          logger.error(s"Auth extension failed - this will stop the application", th)
+          throw th
+      } finally {
+        logger.info(s"Auth extension stopped")
+      }
     }(using ox0)
 
     logger.info("✓ Auth token extension started in background")

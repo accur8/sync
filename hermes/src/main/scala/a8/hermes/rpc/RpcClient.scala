@@ -83,14 +83,23 @@ class RpcClient(config: RpcClient.Config) extends Logging {
     }
 
     // Fork the response reader to run in background
-    ox.fork {
+    // Use forkUser so that failures in this fork will propagate and stop the app
+    ox.forkUser {
       val threadName = s"rpc-client-response-${config.mailbox.address.value.take(8)}"
       Thread.currentThread().setName(threadName)
-      logger.debug(s"RPC Client response reader thread name: $threadName")
-      config.transport.subscribe(rpcInboxSubject)(using ctx).runForeach { envelope =>
-        if (running) {
-          processResponse(envelope)
+      logger.info(s"RPC Client response reader thread started: $threadName")
+      try {
+        config.transport.subscribe(rpcInboxSubject)(using ctx).runForeach { envelope =>
+          if (running) {
+            processResponse(envelope)
+          }
         }
+      } catch {
+        case th: Throwable =>
+          logger.error(s"RPC response reader failed - this will stop the application", th)
+          throw th
+      } finally {
+        logger.info(s"RPC response reader stopped")
       }
     }(using ox0)
 
