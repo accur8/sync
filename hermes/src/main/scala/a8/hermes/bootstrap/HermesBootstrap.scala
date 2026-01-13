@@ -62,7 +62,7 @@ object HermesBootstrap extends Logging {
       natsTransport <- NatsTransport.resource(
         NatsTransport.Config(
           natsUrl = config.natsUrl,
-          connectionName = Some("hermes-scala-client"),
+          appName = config.appName,
         )
       )
 
