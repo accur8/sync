@@ -1,0 +1,905 @@
+
+Discovered Processes:
+====================
+Found 36 process(es)
+
+[1] syncro-prod
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3814694
+    Mailbox:        aaXWKcWuhRy22e100TlPcAQ5HIBUVBaSta
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      process.v1: [Ping]
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+    Metadata:
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: syncro-prod
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[2] loom-beta
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3804939
+    Mailbox:        aa65SPXxV1Tyae7KiZqJspywzKFy45tLRp
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      service_name: loom-beta
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[3] qubes-dev
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa4283f0d7ab844873a6251f4e45376563
+    User:           dev
+    Hostname:       robert-test
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      minion_label: dev@robert-test
+      minion_uid: CEtYVwN1C15Qtbp3gIGgZttiVHo8FYoQ
+      service_name: qubes-dev
+      version: HEAD
+
+[4] qubes-prod-new
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3811875
+    Mailbox:        aaTat3uauSFCDs4eRJ6v1UgYr9CiSczSqi
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: qubes-prod-new
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[5] qubes-prod
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa6bd62b52d880478fa81f0f3122022ebf
+    User:           dev
+    Hostname:       ducati-diavel
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      minion_uid: IopkVtTpQPLVfwdEvjXxHVv9E0KasOUa
+      service_name: qubes-prod
+      version: HEAD
+      minion_label: dev@ducati-diavel
+
+[6] deployedge-beta
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3802605
+    Mailbox:        aamDPuk7RSqUOKF4yfqyxAIc7kfhVRCiQf
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: deployedge-beta
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+      auth: nefario-prod
+
+[7] syncro-realtime
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       1470307
+    Mailbox:        aamrRLioKJQsmxeQ4H6Y8rdwC6UTtq51Q0
+    User:           root
+    Hostname:       ducati-panigale
+    IP Addresses:
+      - 10.101.0.83
+      - 172.28.90.83
+      - 172.25.90.83
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      version: 1.1.0-20251228_1330_master
+      git_commit: 3df40a005038c09607409e83e35a6f4105a03cd4
+      minion_label: dev@ducati-panigale
+      minion_uid: Br2NFOzQlrsXOBTv0zERPqx8O4RrxGcs
+      service_name: syncro-realtime
+    Service Discovery Mapping:
+      scheduler: nefario-prod
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+
+[8] deployedge-prod
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3802588
+    Mailbox:        aaznMsVk2R8OkGw5r6vR1gAI2ikiz7JQP2
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: deployedge-prod
+    Service Discovery Mapping:
+      scheduler: nefario-prod
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+
+[9] trino-dev
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa2202464f289546d2b5b937954de49687
+    User:           dev
+    Hostname:       robert-test
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      minion_label: dev@robert-test
+      minion_uid: CEtYVwN1C15Qtbp3gIGgZttiVHo8FYoQ
+      service_name: trino-dev
+      version: HEAD
+
+[10] runner-prod
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3813899
+    Mailbox:        aa7ASG0fiTUGTi47CcKLhA92onErkQAG6Y
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: runner-prod
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[11] loom-prod
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3786801
+    Mailbox:        aazD0liy5S021Xqo8RUKWGA4SDuW2TRmtp
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: loom-prod
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[12] qubes-api
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3806493
+    Mailbox:        aawrP3ddRXTpCF1BuWPbwA7XwHIk2USn6Z
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      process.v1: [Ping]
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+    Metadata:
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: qubes-api
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[13] qubes-beta
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3808568
+    Mailbox:        aappEhfD2ARmeYmIc6PqQWdQakuMffSqQZ
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      process.v1: [Ping]
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+    Metadata:
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: qubes-beta
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+    Service Discovery Mapping:
+      scheduler: nefario-prod
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+
+[14] qubes-prod
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa1b599c40513746fb8fc89f177661e5a5
+    User:           dev
+    Hostname:       ducati-panigale
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      service_name: qubes-prod
+      version: HEAD
+      minion_label: dev@ducati-panigale
+      minion_uid: Br2NFOzQlrsXOBTv0zERPqx8O4RrxGcs
+
+[15] pdf-converter
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       368269
+    Mailbox:        aaFz6v2HPESqOCTFShfm2nQay72do7TQay
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: pdf-converter
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[16] esb
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3803980
+    Mailbox:        aaKD8cb6PlQmK93lGxuU7Lg36GjYSWCSGc
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: esb
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+    Service Discovery Mapping:
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+      auth: nefario-prod
+
+[17] deployedge-beta
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa56f2dcae174f4bf6a6b14e8f8ab974a0
+    User:           dev
+    Hostname:       ducati-apps
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      version: HEAD
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: deployedge-beta
+
+[18] job-runner
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    job-runner-a9786b3cb4bc47de9814f9484942aa34
+    Unix PID:       3550497
+    Mailbox:        aa4nFpyDC3RzOWdYkq4YjoCgPVinMgpeRA
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      process.v1: [Ping]
+      discovery.v1: [ListSchemas GetSchema]
+    Metadata:
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      scheduler: nefario-prod
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+
+[19] qubes-prod
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3810875
+    Mailbox:        aaOBJoVmuQjOJHrIK3LUr3ws5G7HgofR7C
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: qubes-prod
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[20] qubes-dev
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3810223
+    Mailbox:        aaI9vq4l43TXWzOIaBvCkUHQgcaa6hMWTy
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      service_name: qubes-dev
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[21] loom-prod
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa517a89eeea6a4a479a9c7a7f4313502a
+    User:           dev
+    Hostname:       ducati-panigale
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      version: HEAD
+      minion_label: dev@ducati-panigale
+      minion_uid: Br2NFOzQlrsXOBTv0zERPqx8O4RrxGcs
+      service_name: loom-prod
+
+[22] hermes
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3804404
+    Mailbox:        aa0Gp9j940RFqgzsX378e8HgeGmH0VkQnW
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: hermes
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[23] ocr-prod
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3806739
+    Mailbox:        aaSVzjHDyWTeCTk6d7E0nPrAewXcS1MeTX
+    User:           root
+    Hostname:       ducati-apps
+    IP Addresses:
+      - 10.101.0.137
+      - 172.28.90.100
+      - 172.25.218.181
+    RPC Schemas:
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+      discovery.v1: [ListSchemas GetSchema]
+    Metadata:
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: ocr-prod
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[24] deployedge-direct-prod
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa4e869a734df142b4b402fe5a4adf5380
+    User:           dev
+    Hostname:       ducati-apps
+    RPC Schemas:
+      mailbox.v1: [ping]
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+    Metadata:
+      minion_label: dev@ducati-apps
+      minion_uid: a9786b3cb4bc47de9814f9484942aa34
+      service_name: deployedge-direct-prod
+      version: HEAD
+
+[25] qubes-deveron
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aab819677593bf4cd9b98981e5fa6734a5
+    User:           dev
+    Hostname:       robert-test
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      minion_uid: CEtYVwN1C15Qtbp3gIGgZttiVHo8FYoQ
+      service_name: qubes-deveron
+      version: HEAD
+      minion_label: dev@robert-test
+
+[26] trino-dev
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa70f236a263154d6cb6f5127200738e87
+    User:           dev
+    Hostname:       robert-test
+    RPC Schemas:
+      mailbox.v1: [ping]
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+    Metadata:
+      minion_label: dev@robert-test
+      minion_uid: CEtYVwN1C15Qtbp3gIGgZttiVHo8FYoQ
+      service_name: trino-dev
+      version: HEAD
+
+[27] qubes-proviniti
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa5d4fa3b83a2646ee9ea675b4270f7d88
+    User:           dev
+    Hostname:       robert-test
+    RPC Schemas:
+      mailbox.v1: [ping]
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+    Metadata:
+      service_name: qubes-proviniti
+      version: HEAD
+      minion_label: dev@robert-test
+      minion_uid: CEtYVwN1C15Qtbp3gIGgZttiVHo8FYoQ
+
+[28] wal-listener
+    App Name:       a8
+    Codebase:       
+    Process Uid:    
+    Unix PID:       588571
+    Mailbox:        aaiXJ3UTmWRP2MgUHvLfM9A9gw7saYBQT6
+    User:           glen
+    Hostname:       ducati-panigale
+    IP Addresses:
+      - 10.101.0.83
+      - 172.28.90.83
+      - 172.25.90.83
+    RPC Schemas:
+      process.v1: []
+      discovery.v1: []
+      mailbox.v1: [ping]
+    Metadata:
+      version: 0.1
+      db_host: ducati-db.intra
+      db_name: nefario
+      git_commit: 8bad824be0b91499b035c4ad9bd4232e3a9b2d59
+      slot_name: nefario
+    Service Discovery Mapping:
+      auth: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[29] auto-importer
+    App Name:       minion
+    Codebase:       
+    Process Uid:    
+    Unix PID:       0
+    Mailbox:        aa53e89ebf6af040859e5f2bebef1a0c0b
+    User:           procman
+    Hostname:       ducati-sftp
+    RPC Schemas:
+      discovery.v1: []
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      mailbox.v1: [ping]
+    Metadata:
+      minion_label: procman@ducati-sftp
+      minion_uid: UvjrjgHo0z8l715zsHt8olHEuWyBN0h4
+      service_name: auto-importer
+      version: HEAD
+
+[30] hermes
+    App Name:       hermes
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3269992
+    Mailbox:        nefario-prod
+    User:           root
+    Hostname:       ducati-panigale
+    IP Addresses:
+      - 10.101.0.83
+      - 172.28.90.83
+      - 172.25.90.83
+    RPC Schemas:
+      nefario.v1: [ResolveServiceUid InitMinion]
+      nefario.v2: [ResolveServiceUid InitMinion GetHealthchecksConfig GetNixFlake ListNixFlakes CreateNixFlake UpdateNixFlake PushMetrics]
+      scheduler.v1: [ReloadSchedules GetStatus]
+      auth.v1: [LoginBegin LoginComplete GetUserInfo GetUserInfoByMailbox HasRole]
+      dbaccess.v1: [Query Fetch Insert Update Delete]
+      discovery.v1: [ListSchemas GetSchema]
+      mailbox.v1: [BindIdentity GetIdentity UnbindIdentity ListNamedMailboxes]
+      process.v1: [Ping]
+      auth.v2: [LoginBegin LoginComplete GetUserInfoForSelf GetUserInfoByMailbox HasRole ManageRoleOverride RemoveRoleOverride ListRoleOverrides]
+    Engines:        [scheduler nefario-lifecycle nefario-rpc auth purge db]
+    Metadata:
+      engines: auth,db,nefario-lifecycle,nefario-rpc,purge,scheduler,wal-listener
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      nefario: nefario-prod
+      scheduler: nefario-prod
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+
+[31] job-runner
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    job-runner-Br2NFOzQlrsXOBTv0zERPqx8O4RrxGcs
+    Unix PID:       1820800
+    Mailbox:        aatcczM1gqTIBIOEUZLQt3PrGo5MSbKiBq
+    User:           root
+    Hostname:       ducati-panigale
+    IP Addresses:
+      - 10.101.0.83
+      - 172.28.90.83
+      - 172.25.90.83
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      process.v1: [Ping]
+    Metadata:
+      minion_uid: Br2NFOzQlrsXOBTv0zERPqx8O4RrxGcs
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@ducati-panigale
+    Service Discovery Mapping:
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[32] nefario-sql
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       1681840
+    Mailbox:        aa4OgbORymQ5yuQDy0XmGlnQ1boot8rfTq
+    User:           root
+    Hostname:       a8-apps
+    IP Addresses:
+      - 10.101.1.62
+      - 172.17.0.1
+      - 172.25.90.62
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      minion_uid: 9383094454514e76b4586a648c8c5901
+      service_name: nefario-sql
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      minion_label: dev@a8-apps
+    Service Discovery Mapping:
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[33] qubes-nefario
+    App Name:       minion
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       1645734
+    Mailbox:        aaF4DtVFRm22tlcZoE1qQ14RuRDjWQhmVo
+    User:           root
+    Hostname:       a8-apps
+    IP Addresses:
+      - 10.101.1.62
+      - 172.17.0.1
+      - 172.25.90.62
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      launchy.v1: [StartProcess StopProcess ProcessStatus StopLaunchy SetLogCaptureRate]
+      process.v1: [Ping]
+    Metadata:
+      minion_label: dev@a8-apps
+      minion_uid: 9383094454514e76b4586a648c8c5901
+      service_name: qubes-nefario
+      version: 1.1.0-20260106_0057_master
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+    Service Discovery Mapping:
+      scheduler: nefario-prod
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+
+[34] hermes
+    App Name:       hermes
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       3267111
+    Mailbox:        aaAy0Ggaz6QQ6fdAgg3rw5jAWhVdbXdPRF
+    User:           root
+    Hostname:       ducati-panigale
+    IP Addresses:
+      - 10.101.0.83
+      - 172.28.90.83
+      - 172.25.90.83
+    RPC Schemas:
+      discovery.v1: [ListSchemas GetSchema]
+      process.v1: [Ping]
+    Engines:        [http]
+    Metadata:
+      engines: http
+      git_commit: 2f7d5880c5db755a808d4fc0fdf192b7c544b750
+      version: 1.1.0-20260106_0057_master
+    Service Discovery Mapping:
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
+[35] syncro-realtime
+    App Name:       hermes-scala
+    Codebase:       sync-scala
+    Process Uid:    dNTX04uhSli5gwUl5Z66cwUs0w6FNjS7
+    Unix PID:       1470323
+    Mailbox:        aaoLZ436kTzeyqLn0bOJnEwKLdLZylTsSp
+    User:           dev
+    Hostname:       ducati-panigale
+    IP Addresses:
+      - 172.25.90.83
+      - 172.28.90.83
+      - 10.101.0.83
+    RPC Schemas:
+      pipeline-stats.v1: [GetReport]
+    Metadata:
+      A8_SERVER_LABEL: ducati-panigale
+      A8_SERVICE_NAME: syncro-realtime
+      A8_MINION_UID: Br2NFOzQlrsXOBTv0zERPqx8O4RrxGcs
+      A8_MINION_LABEL: dev@ducati-panigale
+      A8_SERVER_UID: IwQoBWmwG5M8WKr8D9BJmjGo3Fj5wDm2
+      A8_PROCESS_UID: dNTX04uhSli5gwUl5Z66cwUs0w6FNjS7
+    Service Discovery Mapping:
+      auth: nefario-prod
+      nefario: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      scheduler: nefario-prod
+
+[36] discovery
+    App Name:       a8-cli
+    Codebase:       godev
+    Process Uid:    
+    Unix PID:       23329
+    Mailbox:        aaIE0YrfRvQRymxNjGzBaiywsnyUgD4OSG
+    User:           glen
+    Hostname:       starbak
+    IP Addresses:
+      - 192.168.1.53
+      - 172.25.218.218
+      - 172.24.218.218
+    RPC Schemas:
+      process.v1: [Ping]
+      discovery.v1: [ListSchemas GetSchema]
+    Metadata:
+      git_commit: d35a50ce3d6e483717a82615620828faa7d49e1e
+      version: 1.1.0-20251230_1852_master
+    Service Discovery Mapping:
+      auth: nefario-prod
+      db: nefario-prod
+      mailbox: nefario-prod
+      nefario: nefario-prod
+      scheduler: nefario-prod
+
