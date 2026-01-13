@@ -7,6 +7,8 @@ import a8.shared.SharedImports._
 
 object PostgresDialect extends Dialect {
 
+  def name = "postgres"
+
   implicit def self: Dialect = this
 
   /**

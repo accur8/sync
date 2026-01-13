@@ -35,7 +35,11 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
       temp.setMaxLifetime(maxLifeTimeInSeconds.inMillis)
       temp.setIdleTimeout(idleTimeoutInSeconds.inMillis)
       temp.setConnectionTimeout(connectionTimeoutInSeconds.inMillis)
-      dialect.validationQuery.foreach(q => temp.setConnectionTestQuery(q.toString))
+
+      // Connection validation (prefer config validation query over dialect default)
+      databaseConfig.validationQuery.orElse(dialect.validationQuery.map(_.toString))
+        .foreach(q => temp.setConnectionTestQuery(q))
+
       temp.setAutoCommit(autoCommit)
       temp
     }

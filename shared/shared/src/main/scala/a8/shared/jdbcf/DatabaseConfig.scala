@@ -72,4 +72,10 @@ case class DatabaseConfig(
   autoCommit: Boolean = true,
   driverClassName: Option[String] = None,
 
+  // Connection validation and retry settings for transient errors
+  validationQuery: Option[String] = None,
+  maxRetryAttempts: Int = 3,
+  retryInitialDelayMillis: Int = 100,
+  retryMaxDelayMillis: Int = 5000,
+  retryBackoffMultiplier: Double = 2.0,
 )

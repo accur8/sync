@@ -17,6 +17,8 @@ object Dialect {
 
   case object Default extends Dialect {
 
+    val name = "Default"
+
     override def isPostgres: Boolean = false
 
     /**
@@ -47,6 +49,8 @@ object Dialect {
 }
 
 trait Dialect {
+
+  def name: String
 
   val validationQuery: Option[SqlString] = None
 

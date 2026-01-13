@@ -8,6 +8,7 @@ import java.sql.Connection
 
 object MySqlDialect extends Dialect {
 
+  def name = "mysql"
 
   override def buildEscaper(conn: Connection): Escaper = {
     val keywordSet = KeywordSet.fromMetadata(conn.getMetaData)

@@ -11,6 +11,8 @@ import a8.common.logging.Logger
 
 object ISeriesDialect extends Dialect {
 
+  def name = "iseries"
+
   override val validationQuery: Option[SqlString] =
     Some(sql"select 1 from sysibm.sysdummy1")
 
