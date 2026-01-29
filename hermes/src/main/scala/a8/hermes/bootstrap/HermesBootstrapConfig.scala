@@ -1,5 +1,6 @@
 package a8.hermes.bootstrap
 
+import a8.hermes.bootstrap.MxHermesBootstrapConfig.MxHermesAppConfig
 import a8.shared.{CompanionGen, FileSystem}
 import a8.shared.json.ast
 import com.typesafe.config.{Config, ConfigFactory}
@@ -7,6 +8,18 @@ import com.typesafe.config.{Config, ConfigFactory}
 import java.nio.file.{Path, Paths}
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.*
+
+/**
+ * Application-specific Hermes configuration
+ * This is passed by the application and contains app-specific settings
+ */
+@CompanionGen
+case class HermesAppConfig(
+  namedMailbox: Option[String] = None,
+  appName: Option[String] = None,
+)
+
+object HermesAppConfig extends MxHermesAppConfig
 
 object HermesBootstrapConfig {
 
@@ -47,10 +60,6 @@ object HermesBootstrapConfig {
       Some(envConfig.getString("authServiceMailbox"))
     } else None
 
-    val namedMailbox = if (envConfig.hasPath("namedMailbox")) {
-      Some(envConfig.getString("namedMailbox"))
-    } else None
-
     val namedMailboxes = if (envConfig.hasPath("namedMailboxes")) {
       val mailboxConfig = envConfig.getConfig("namedMailboxes")
       mailboxConfig.entrySet().asScala.map { entry =>
@@ -62,18 +71,12 @@ object HermesBootstrapConfig {
       envConfig.getString("discoverySubject")
     } else "nefario.discovery"
 
-    val appName = if (envConfig.hasPath("appName")) {
-      Some(envConfig.getString("appName"))
-    } else None
-
     HermesBootstrapConfig(
       natsUrl = natsUrl,
       sshKeyPath = sshKeyPath,
       authServiceMailbox = authServiceMailbox,
-      namedMailbox = namedMailbox,
       namedMailboxes = namedMailboxes,
       discoverySubject = discoverySubject,
-      appName = appName,
     )
   }
 
@@ -92,9 +95,7 @@ case class HermesBootstrapConfig(
   natsUrl: String,
   sshKeyPath: Option[String] = None,
   authServiceMailbox: Option[String] = None,
-  namedMailbox: Option[String] = None,
   namedMailboxes: Map[String, String] = Map.empty,
   discoverySubject: String = "nefario.discovery",
-  appName: Option[String] = None,
   autoRenewAuth: Boolean = true,
 )

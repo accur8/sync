@@ -29,7 +29,7 @@ object PingService extends BootstrappedIOApp {
 
     logger.info(s"✓ Hermes initialized")
     logger.info(s"  Mailbox: ${hermes.mailbox.metadata.address.value}")
-    logger.info(s"  NATS server: ${hermes.config.natsUrl}")
+    logger.info(s"  NATS server: ${hermes.bootstrapConfig.natsUrl}")
 
     // Register process.v1.Ping handler (godev standard)
     val pingCount = new java.util.concurrent.atomic.AtomicInteger(0)

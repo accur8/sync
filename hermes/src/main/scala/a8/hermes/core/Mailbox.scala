@@ -10,10 +10,13 @@ object Mailbox {
 
   // Triple-key system for mailbox access control
 
+  object AdminKey extends StringValue.Companion[AdminKey]
   case class AdminKey(value: String) extends StringValue
 
+  object ReaderKey extends StringValue.Companion[ReaderKey]
   case class ReaderKey(value: String) extends StringValue
 
+  object MailboxAddress extends StringValue.Companion[MailboxAddress]
   case class MailboxAddress(value: String) extends StringValue
 
   // Mailbox lifecycle types
@@ -22,6 +25,9 @@ object Mailbox {
   }
 
   object LifecycleType {
+
+    implicit lazy val jsonCodec: JsonCodec[LifecycleType] = ???
+
     case object Ephemeral extends LifecycleType {
       override def ttl: FiniteDuration = 24.hours
     }
@@ -63,7 +69,7 @@ object Mailbox {
   )
 
   // Message envelope for RPC communication
-  @CompanionGen
+//  @CompanionGen
   case class MailboxMessage(
     correlationId: String,
     fromMailbox: MailboxAddress,

@@ -1,7 +1,7 @@
 package a8.examples.hermes
 
-import a8.hermes.bootstrap.{HermesBootstrap, HermesBootstrapConfig}
-import a8.shared.app.{BootstrappedIOApp, Bootstrapper, AppCtx}
+import a8.hermes.bootstrap.{HermesAppConfig, HermesBootstrap, HermesBootstrapConfig}
+import a8.shared.app.{AppCtx, BootstrappedIOApp, Bootstrapper}
 import a8.shared.zreplace.Resource
 
 /**
@@ -26,7 +26,7 @@ object HermesTestApp extends BootstrappedIOApp {
 
     // Bootstrap Hermes
     logger.info("Bootstrapping Hermes...")
-    val hermes = Resource.free.run(HermesBootstrap.resource(config))(using appCtx)
+    val hermes = Resource.free.run(HermesBootstrap.resource(config, HermesAppConfig()))(using appCtx)
 
     logger.info("✓ Connected to NATS successfully!")
     logger.info(s"✓ NATS connection status: ${hermes.natsTransport.connection.getStatus}")

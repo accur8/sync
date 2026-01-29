@@ -37,6 +37,11 @@ object MxDatabaseConfig {
           .addField(_.idleTimeoutInSeconds)
           .addField(_.autoCommit)
           .addField(_.driverClassName)
+          .addField(_.validationQuery)
+          .addField(_.maxRetryAttempts)
+          .addField(_.retryInitialDelayMillis)
+          .addField(_.retryMaxDelayMillis)
+          .addField(_.retryBackoffMultiplier)
       )
       .build
     
@@ -46,7 +51,7 @@ object MxDatabaseConfig {
     
     
     lazy val generator: Generator[DatabaseConfig,parameters.type] =  {
-      val constructors = Constructors[DatabaseConfig](11, unsafe.iterRawConstruct)
+      val constructors = Constructors[DatabaseConfig](16, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -62,6 +67,11 @@ object MxDatabaseConfig {
       lazy val idleTimeoutInSeconds: CaseClassParm[DatabaseConfig,Seconds] = CaseClassParm[DatabaseConfig,Seconds]("idleTimeoutInSeconds", _.idleTimeoutInSeconds, (d,v) => d.copy(idleTimeoutInSeconds = v), Some(()=> twentyFourHoursInSeconds), 8)
       lazy val autoCommit: CaseClassParm[DatabaseConfig,Boolean] = CaseClassParm[DatabaseConfig,Boolean]("autoCommit", _.autoCommit, (d,v) => d.copy(autoCommit = v), Some(()=> true), 9)
       lazy val driverClassName: CaseClassParm[DatabaseConfig,Option[String]] = CaseClassParm[DatabaseConfig,Option[String]]("driverClassName", _.driverClassName, (d,v) => d.copy(driverClassName = v), Some(()=> None), 10)
+      lazy val validationQuery: CaseClassParm[DatabaseConfig,Option[String]] = CaseClassParm[DatabaseConfig,Option[String]]("validationQuery", _.validationQuery, (d,v) => d.copy(validationQuery = v), Some(()=> None), 11)
+      lazy val maxRetryAttempts: CaseClassParm[DatabaseConfig,Int] = CaseClassParm[DatabaseConfig,Int]("maxRetryAttempts", _.maxRetryAttempts, (d,v) => d.copy(maxRetryAttempts = v), Some(()=> 3), 12)
+      lazy val retryInitialDelayMillis: CaseClassParm[DatabaseConfig,Int] = CaseClassParm[DatabaseConfig,Int]("retryInitialDelayMillis", _.retryInitialDelayMillis, (d,v) => d.copy(retryInitialDelayMillis = v), Some(()=> 100), 13)
+      lazy val retryMaxDelayMillis: CaseClassParm[DatabaseConfig,Int] = CaseClassParm[DatabaseConfig,Int]("retryMaxDelayMillis", _.retryMaxDelayMillis, (d,v) => d.copy(retryMaxDelayMillis = v), Some(()=> 5000), 14)
+      lazy val retryBackoffMultiplier: CaseClassParm[DatabaseConfig,Double] = CaseClassParm[DatabaseConfig,Double]("retryBackoffMultiplier", _.retryBackoffMultiplier, (d,v) => d.copy(retryBackoffMultiplier = v), Some(()=> 2.0d), 15)
     }
     
     
@@ -80,6 +90,11 @@ object MxDatabaseConfig {
           idleTimeoutInSeconds = values(8).asInstanceOf[Seconds],
           autoCommit = values(9).asInstanceOf[Boolean],
           driverClassName = values(10).asInstanceOf[Option[String]],
+          validationQuery = values(11).asInstanceOf[Option[String]],
+          maxRetryAttempts = values(12).asInstanceOf[Int],
+          retryInitialDelayMillis = values(13).asInstanceOf[Int],
+          retryMaxDelayMillis = values(14).asInstanceOf[Int],
+          retryBackoffMultiplier = values(15).asInstanceOf[Double],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): DatabaseConfig = {
@@ -96,13 +111,18 @@ object MxDatabaseConfig {
             idleTimeoutInSeconds = values.next().asInstanceOf[Seconds],
             autoCommit = values.next().asInstanceOf[Boolean],
             driverClassName = values.next().asInstanceOf[Option[String]],
+            validationQuery = values.next().asInstanceOf[Option[String]],
+            maxRetryAttempts = values.next().asInstanceOf[Int],
+            retryInitialDelayMillis = values.next().asInstanceOf[Int],
+            retryMaxDelayMillis = values.next().asInstanceOf[Int],
+            retryBackoffMultiplier = values.next().asInstanceOf[Double],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(id: DatabaseId, url: Uri, user: String, password: Password, minIdle: Int, maxPoolSize: Int, maxLifeTimeInSeconds: Seconds, connectionTimeoutInSeconds: Seconds, idleTimeoutInSeconds: Seconds, autoCommit: Boolean, driverClassName: Option[String]): DatabaseConfig =
-        DatabaseConfig(id, url, user, password, minIdle, maxPoolSize, maxLifeTimeInSeconds, connectionTimeoutInSeconds, idleTimeoutInSeconds, autoCommit, driverClassName)
+      def typedConstruct(id: DatabaseId, url: Uri, user: String, password: Password, minIdle: Int, maxPoolSize: Int, maxLifeTimeInSeconds: Seconds, connectionTimeoutInSeconds: Seconds, idleTimeoutInSeconds: Seconds, autoCommit: Boolean, driverClassName: Option[String], validationQuery: Option[String], maxRetryAttempts: Int, retryInitialDelayMillis: Int, retryMaxDelayMillis: Int, retryBackoffMultiplier: Double): DatabaseConfig =
+        DatabaseConfig(id, url, user, password, minIdle, maxPoolSize, maxLifeTimeInSeconds, connectionTimeoutInSeconds, idleTimeoutInSeconds, autoCommit, driverClassName, validationQuery, maxRetryAttempts, retryInitialDelayMillis, retryMaxDelayMillis, retryBackoffMultiplier)
     
     }
     

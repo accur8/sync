@@ -35,7 +35,8 @@ object HermesBootstrap extends Logging {
    * Components created during bootstrap
    */
   case class Components(
-    config: HermesBootstrapConfig,
+    bootstrapConfig: HermesBootstrapConfig,
+    appConfig: HermesAppConfig,
     natsTransport: NatsTransport,
     mailbox: Mailbox,
     rpcServer: RpcServer,
@@ -46,36 +47,36 @@ object HermesBootstrap extends Logging {
   )
 
   /**
-   * Create a HermesBootstrap resource using default config location
+   * Create a HermesBootstrap resource using default bootstrap config and no app config
    */
   def resource()(using ctx: Ctx): Resource[Components] = {
-    val config = HermesBootstrapConfig.load()
-    resource(config)(using ctx)
+    val bootstrapConfig = HermesBootstrapConfig.load()
+    resource(bootstrapConfig, HermesAppConfig())(using ctx)
   }
 
   /**
-   * Create a HermesBootstrap resource with explicit config
+   * Create a HermesBootstrap resource with explicit bootstrap config and app config
    */
-  def resource(config: HermesBootstrapConfig)(using ctx: Ctx): Resource[Components] = {
+  def resource(bootstrapConfig: HermesBootstrapConfig, appConfig: HermesAppConfig)(using ctx: Ctx): Resource[Components] = {
     for {
       // Step 1: Connect to NATS
       natsTransport <- NatsTransport.resource(
         NatsTransport.Config(
-          natsUrl = config.natsUrl,
-          appName = config.appName,
+          natsUrl = bootstrapConfig.natsUrl,
+          appName = appConfig.appName,
         )
       )
 
       // Step 2: Service Discovery (static resolution using namedMailboxes)
       // Simple map lookup: serviceName → mailbox address
-      // Example: config.namedMailboxes = {"nefario": "nefario-rpc"}
-      staticServiceDiscovery = new StaticServiceDiscovery(config.namedMailboxes)
-      _ = logger.info(s"Static service discovery initialized with ${config.namedMailboxes.size} named mailboxes")
+      // Example: bootstrapConfig.namedMailboxes = {"nefario": "nefario-rpc"}
+      staticServiceDiscovery = new StaticServiceDiscovery(bootstrapConfig.namedMailboxes)
+      _ = logger.info(s"Static service discovery initialized with ${bootstrapConfig.namedMailboxes.size} named mailboxes")
 
       // Step 3: Create/Acquire Mailbox
       // Use named mailbox if configured, otherwise create ephemeral
       mailbox <- Resource.acquireRelease {
-        config.namedMailbox match {
+        appConfig.namedMailbox match {
           case Some(name) =>
             logger.info(s"Creating named mailbox: $name")
             nats.NatsMailboxClient.fetchOrCreateNamedMailbox(
@@ -145,8 +146,8 @@ object HermesBootstrap extends Logging {
             mailbox = mailbox,
             transport = natsTransport,
             rpcServer = Some(rpcServer),
-            appName = config.appName.getOrElse("hermes-scala"),
-            serviceName = config.appName,
+            appName = appConfig.appName.getOrElse("hermes-scala"),
+            serviceName = appConfig.appName,
             staticServiceDiscovery = Some(staticServiceDiscovery),
           )
 
@@ -177,12 +178,13 @@ object HermesBootstrap extends Logging {
       logger.info(s"  Mailbox: ${mailbox.address.value}")
       logger.info(s"  RPC Server: Running")
       logger.info(s"  RPC Client: Running")
-      logger.info(s"  Static Service Discovery: ${config.namedMailboxes.size} named mailboxes")
+      logger.info(s"  Static Service Discovery: ${bootstrapConfig.namedMailboxes.size} named mailboxes")
       logger.info(s"  Dynamic Service Discovery: Enabled (always)")
       // Note: Auth extension not started here - applications should start it after SSH authentication
 
       Components(
-        config = config,
+        bootstrapConfig = bootstrapConfig,
+        appConfig = appConfig,
         natsTransport = natsTransport,
         mailbox = mailbox,
         rpcServer = rpcServer,
