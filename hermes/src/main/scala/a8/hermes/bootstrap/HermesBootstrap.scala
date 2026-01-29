@@ -73,16 +73,32 @@ object HermesBootstrap extends Logging {
       _ = logger.info(s"Static service discovery initialized with ${config.namedMailboxes.size} named mailboxes")
 
       // Step 3: Create/Acquire Mailbox
-      // For direct NATS transport, create a non-durable mailbox
+      // Use named mailbox if configured, otherwise create ephemeral
       mailbox <- Resource.acquireRelease {
-        logger.info("Creating non-durable mailbox for client...")
-        nats.NatsMailboxClient.createNonDurableMailbox(natsTransport)(using ctx) match {
-          case scala.util.Success(mbox) =>
-            logger.info(s"✓ Created mailbox: ${mbox.address.value}")
-            mbox
-          case scala.util.Failure(e) =>
-            logger.error(s"Failed to create mailbox: ${e.getMessage}", e)
-            throw new RuntimeException(s"Failed to create mailbox: ${e.getMessage}", e)
+        config.namedMailbox match {
+          case Some(name) =>
+            logger.info(s"Creating named mailbox: $name")
+            nats.NatsMailboxClient.fetchOrCreateNamedMailbox(
+              address = Mailbox.MailboxAddress(name),
+              natsTransport = natsTransport
+            )(using ctx) match {
+              case scala.util.Success(mbox) =>
+                logger.info(s"✓ Created named mailbox: ${mbox.address.value}")
+                mbox
+              case scala.util.Failure(e) =>
+                logger.error(s"Failed to create named mailbox: ${e.getMessage}", e)
+                throw new RuntimeException(s"Failed to create named mailbox: ${e.getMessage}", e)
+            }
+          case None =>
+            logger.info("Creating non-durable mailbox for client...")
+            nats.NatsMailboxClient.createNonDurableMailbox(natsTransport)(using ctx) match {
+              case scala.util.Success(mbox) =>
+                logger.info(s"✓ Created mailbox: ${mbox.address.value}")
+                mbox
+              case scala.util.Failure(e) =>
+                logger.error(s"Failed to create mailbox: ${e.getMessage}", e)
+                throw new RuntimeException(s"Failed to create mailbox: ${e.getMessage}", e)
+            }
         }
       } { mbox =>
         logger.debug(s"Releasing mailbox: ${mbox.address.value}")

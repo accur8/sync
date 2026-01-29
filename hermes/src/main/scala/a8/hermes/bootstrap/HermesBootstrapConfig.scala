@@ -47,6 +47,10 @@ object HermesBootstrapConfig {
       Some(envConfig.getString("authServiceMailbox"))
     } else None
 
+    val namedMailbox = if (envConfig.hasPath("namedMailbox")) {
+      Some(envConfig.getString("namedMailbox"))
+    } else None
+
     val namedMailboxes = if (envConfig.hasPath("namedMailboxes")) {
       val mailboxConfig = envConfig.getConfig("namedMailboxes")
       mailboxConfig.entrySet().asScala.map { entry =>
@@ -66,6 +70,7 @@ object HermesBootstrapConfig {
       natsUrl = natsUrl,
       sshKeyPath = sshKeyPath,
       authServiceMailbox = authServiceMailbox,
+      namedMailbox = namedMailbox,
       namedMailboxes = namedMailboxes,
       discoverySubject = discoverySubject,
       appName = appName,
@@ -87,6 +92,7 @@ case class HermesBootstrapConfig(
   natsUrl: String,
   sshKeyPath: Option[String] = None,
   authServiceMailbox: Option[String] = None,
+  namedMailbox: Option[String] = None,
   namedMailboxes: Map[String, String] = Map.empty,
   discoverySubject: String = "nefario.discovery",
   appName: Option[String] = None,
