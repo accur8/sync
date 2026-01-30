@@ -86,12 +86,37 @@ object NatsTransport {
     }
   }
 
+  /**
+   * Create a daemon thread factory for NATS executor.
+   *
+   * By default, NATS Java client creates non-daemon threads which prevent
+   * JVM shutdown. We configure a custom executor that creates daemon threads
+   * so the app can shut down cleanly even if NATS connections aren't explicitly closed.
+   */
+  private def createDaemonThreadFactory(): java.util.concurrent.ThreadFactory = {
+    new java.util.concurrent.ThreadFactory {
+      private val counter = new java.util.concurrent.atomic.AtomicInteger(0)
+      private val defaultFactory = java.util.concurrent.Executors.defaultThreadFactory()
+
+      override def newThread(r: Runnable): Thread = {
+        val thread = defaultFactory.newThread(r)
+        thread.setDaemon(true)  // Make all NATS threads daemon threads
+        thread.setName(s"nats-daemon-${counter.incrementAndGet()}")
+        thread
+      }
+    }
+  }
+
   private def buildNatsOptions(config: Config): io.nats.client.Options = {
+    // Create executor with daemon threads
+    val daemonExecutor = java.util.concurrent.Executors.newCachedThreadPool(createDaemonThreadFactory())
+
     val builder = new io.nats.client.Options.Builder()
       .server(config.natsUrl)
       .maxReconnects(config.maxReconnects)
       .reconnectWait(config.reconnectWait.toJava)
       .connectionTimeout(config.connectionTimeout.toJava)
+      .executor(daemonExecutor)  // Use daemon thread executor
 
     config.username.zip(config.password).foreach { case (u, p) =>
       builder.userInfo(u, p)
