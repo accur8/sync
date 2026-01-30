@@ -12,7 +12,6 @@ package a8.hermes.nats
 // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 import _root_.scala
 import a8.hermes.nats.NatsTransport.Config
-
 import _root_.scala.concurrent.duration.FiniteDuration
 //====
 

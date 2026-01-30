@@ -201,7 +201,7 @@ lazy val hermesProto =
       // ScalaPB runtime dependency for generated code
       // Proto generation is done externally via regenerate-proto.sh using scalapbc CLI
       libraryDependencies ++= Seq(
-        "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.15",
+        "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.20",
       )
     )
 

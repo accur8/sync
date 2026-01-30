@@ -12,7 +12,6 @@ package a8.hermes.core
 // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 import _root_.scala
 import a8.hermes.core.Mailbox.{AdminKey, LifecycleType, MailboxAddress, MailboxMessage, MailboxMetadata, ReaderKey}
-
 import java.time.Instant
 //====
 
@@ -97,79 +96,4 @@ object MxMailbox {
     lazy val typeName = "MailboxMetadata"
   
   }
-  
-  
-  
-//
-//  trait MxMailboxMessage { self: MailboxMessage.type =>
-//
-//    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[MailboxMessage,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[MailboxMessage,parameters.type] = builder
-//
-//    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[MailboxMessage,a8.shared.json.ast.JsObj] =
-//      jsonCodecBuilder(
-//        a8.shared.json.JsonObjectCodecBuilder(generator)
-//          .addField(_.correlationId)
-//          .addField(_.fromMailbox)
-//          .addField(_.endpoint)
-//          .addField(_.contentType)
-//          .addField(_.payload)
-//          .addField(_.metadata)
-//      )
-//      .build
-//
-//
-//    given scala.CanEqual[MailboxMessage, MailboxMessage] = scala.CanEqual.derived
-//
-//
-//
-//    lazy val generator: Generator[MailboxMessage,parameters.type] =  {
-//      val constructors = Constructors[MailboxMessage](6, unsafe.iterRawConstruct)
-//      Generator(constructors, parameters)
-//    }
-//
-//    object parameters {
-//      lazy val correlationId: CaseClassParm[MailboxMessage,String] = CaseClassParm[MailboxMessage,String]("correlationId", _.correlationId, (d,v) => d.copy(correlationId = v), None, 0)
-//      lazy val fromMailbox: CaseClassParm[MailboxMessage,MailboxAddress] = CaseClassParm[MailboxMessage,MailboxAddress]("fromMailbox", _.fromMailbox, (d,v) => d.copy(fromMailbox = v), None, 1)
-//      lazy val endpoint: CaseClassParm[MailboxMessage,String] = CaseClassParm[MailboxMessage,String]("endpoint", _.endpoint, (d,v) => d.copy(endpoint = v), None, 2)
-//      lazy val contentType: CaseClassParm[MailboxMessage,String] = CaseClassParm[MailboxMessage,String]("contentType", _.contentType, (d,v) => d.copy(contentType = v), None, 3)
-//      lazy val payload: CaseClassParm[MailboxMessage,Array[Byte]] = CaseClassParm[MailboxMessage,Array[Byte]]("payload", _.payload, (d,v) => d.copy(payload = v), None, 4)
-//      lazy val metadata: CaseClassParm[MailboxMessage,Map[String,String]] = CaseClassParm[MailboxMessage,Map[String,String]]("metadata", _.metadata, (d,v) => d.copy(metadata = v), Some(()=> Map.empty), 5)
-//    }
-//
-//
-//    object unsafe {
-//
-//      def rawConstruct(values: IndexedSeq[Any]): MailboxMessage = {
-//        MailboxMessage(
-//          correlationId = values(0).asInstanceOf[String],
-//          fromMailbox = values(1).asInstanceOf[MailboxAddress],
-//          endpoint = values(2).asInstanceOf[String],
-//          contentType = values(3).asInstanceOf[String],
-//          payload = values(4).asInstanceOf[Array[Byte]],
-//          metadata = values(5).asInstanceOf[Map[String,String]],
-//        )
-//      }
-//      def iterRawConstruct(values: Iterator[Any]): MailboxMessage = {
-//        val value =
-//          MailboxMessage(
-//            correlationId = values.next().asInstanceOf[String],
-//            fromMailbox = values.next().asInstanceOf[MailboxAddress],
-//            endpoint = values.next().asInstanceOf[String],
-//            contentType = values.next().asInstanceOf[String],
-//            payload = values.next().asInstanceOf[Array[Byte]],
-//            metadata = values.next().asInstanceOf[Map[String,String]],
-//          )
-//        if ( values.hasNext )
-//           sys.error("")
-//        value
-//      }
-//      def typedConstruct(correlationId: String, fromMailbox: MailboxAddress, endpoint: String, contentType: String, payload: Array[Byte], metadata: Map[String,String]): MailboxMessage =
-//        MailboxMessage(correlationId, fromMailbox, endpoint, contentType, payload, metadata)
-//
-//    }
-//
-//
-//    lazy val typeName = "MailboxMessage"
-//
-//  }
 }

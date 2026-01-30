@@ -17,7 +17,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 
 
-object MxHermesBootstrapConfig { self =>
+object MxHermesBootstrapConfig {
   
   trait MxHermesAppConfig { self: HermesAppConfig.type =>
   
