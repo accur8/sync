@@ -287,15 +287,6 @@ lazy val shared =
 //lazy val sharedJVM = shared.jvm
 //lazy val sharedJS = shared.js
 
-lazy val stager =
-  Common
-    .jvmProject("ahs-stager", file("stager"), "stager")
-    .dependsOn(shared)
-    .settings(
-      libraryDependencies ++= Seq(
-        //        zeroWastePlugin,
-      )
-    )
 
 lazy val hermesTest =
   Common
@@ -321,7 +312,6 @@ lazy val root =
     .aggregate(hermesProto)
     .aggregate(hermes)
     .aggregate(shared)
-    .aggregate(stager)
     .aggregate(loggingJVM)
 //    .aggregate(loggingJS)
     .aggregate(logging_logback)

@@ -26,7 +26,7 @@ sbt "project shared" doc
 sbt "project loggingJVM" doc
 
 # For all modules
-sbt ";project shared;doc;project loggingJVM;doc;project logging_logback;doc;project stager;doc"
+sbt ";project shared;doc;project loggingJVM;doc;project logging_logback;doc"
 ```
 
 Documentation will be in each module's `target/scala-3.7.1/api/` directory.
@@ -88,8 +88,7 @@ target/api-docs/
 ├── index.html           # Main documentation index
 ├── shared/              # a8-sync-shared API docs
 ├── loggingJVM/          # a8-logging API docs
-├── logging_logback/     # a8-logging-logback API docs
-└── stager/              # ahs-stager API docs
+└── logging_logback/     # a8-logging-logback API docs
 ```
 
 ## Writing Good ScalaDoc

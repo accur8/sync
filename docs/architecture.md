@@ -218,9 +218,8 @@ trait ValidationRule[T] {
 ## Module Structure
 
 - **`logging`**: Cross-platform logging abstraction
-- **`shared`**: Core utilities, JDBCF, JSON processing  
+- **`shared`**: Core utilities, JDBCF, JSON processing
 - **`api`**: High-level sync operations
-- **`stager`**: Business-specific staging operations
 - **`examples`**: Sample implementations
 
 ## Threading Model

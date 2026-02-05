@@ -34,7 +34,7 @@ echo
 echo -e "${YELLOW}Step 2: Generating ScalaDoc...${NC}"
 
 # Generate docs for each module
-MODULES=("shared" "loggingJVM" "logging_logback" "stager")
+MODULES=("shared" "loggingJVM" "logging_logback")
 
 for module in "${MODULES[@]}"; do
     echo -e "  Generating docs for ${module}..."
@@ -161,11 +161,6 @@ cat > "$DOCS_DIR/index.html" << 'EOF'
         <div class="module">
             <a href="logging_logback/index.html">a8-logging-logback</a>
             <div class="description">Logback implementation for logging</div>
-        </div>
-        
-        <div class="module">
-            <a href="stager/index.html">ahs-stager</a>
-            <div class="description">Business-specific data staging application</div>
         </div>
     </div>
     
