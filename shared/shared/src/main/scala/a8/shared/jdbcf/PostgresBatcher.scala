@@ -119,8 +119,7 @@ object PostgresBatcher {
       q + name + q
     }
     def createTableDdl: String = {
-      val q = '"'.toString
-      s"${q}${quotedName}${q} ${dataType}${if (primaryKey) " PRIMARY KEY" else ""}"
+      s"${quotedName} ${dataType}${if (primaryKey) " PRIMARY KEY" else ""}"
     }
   }
 
@@ -185,13 +184,13 @@ case class PostgresBatcher[A,PK](
 {
 
   def insert(records: Iterable[A])(implicit conn: java.sql.Connection): Unit = {
-    logger.debug(s"batch insert on ${recordBatcher.tableName} of ${records.size} records")
+    if (logger.isTraceEnabled) logger.trace(s"batch insert on ${recordBatcher.tableName} of ${records.size} records")
     rawCopy(records, recordBatcher.tableName)
-    logger.debug(s"batch insert complete")
+    if (logger.isTraceEnabled) logger.trace(s"batch insert complete")
   }
 
   def update(records: Iterable[A])(implicit conn: java.sql.Connection): Unit = {
-    logger.debug(s"batch update on ${recordBatcher.tableName} of ${records.size} records")
+    if (logger.isTraceEnabled) logger.trace(s"batch update on ${recordBatcher.tableName} of ${records.size} records")
     val tempTableName = recordBatcher.tempTableName
     val createTempTableSql = recordBatcher.createTempTableSql(tempTableName)
 
@@ -211,11 +210,43 @@ case class PostgresBatcher[A,PK](
 
   }
 
+  def upsert(records: Iterable[A])(implicit conn: java.sql.Connection): Unit = {
+    if (logger.isTraceEnabled) logger.trace(s"batch upsert on ${recordBatcher.tableName} of ${records.size} records")
+
+    // Use TEMP table (auto-cleanup, no catalog pollution)
+    // For optimal performance across many batches, could create once and TRUNCATE
+    val tempTableName = recordBatcher.tempTableName
+    val createTempTableSql = recordBatcher.createTempTableSql(tempTableName)
+
+    executeUpdate(createTempTableSql)
+
+    // Fast bulk load via COPY (minimizes network round trips)
+    rawCopy(records, tempTableName)
+
+    val pkQuoted = recordBatcher.fields.find(_.primaryKey).get.quotedName
+
+    // Single atomic INSERT ... ON CONFLICT DO UPDATE (set-based, one scan)
+    // No casting needed - temp table has same types as target table
+    val upsertSql =
+      s"""
+         |INSERT INTO ${recordBatcher.tableName} (${recordBatcher.fields.map(_.quotedName).mkString(",")})
+         |SELECT ${recordBatcher.fields.map(_.quotedName).mkString(",")}
+         |FROM ${tempTableName} tmp
+         |ON CONFLICT (${pkQuoted})
+         |DO UPDATE SET ${recordBatcher.nonKeyFields.map(f => s"${f.quotedName} = EXCLUDED.${f.quotedName}").mkString(",")}
+         |""".stripMargin
+
+    if (logger.isTraceEnabled) logger.trace(s"upsert SQL: $upsertSql")
+    executeUpdate(upsertSql)
+
+    if (logger.isTraceEnabled) logger.trace(s"batch upsert complete")
+  }
+
 
   private def rawCopy(records: Iterable[A], tableName: String)(implicit conn: java.sql.Connection): Unit = {
 
     if (records.isEmpty) {
-      logger.debug("No records to copy, skipping.")
+      if (logger.isTraceEnabled) logger.trace("No records to copy, skipping.")
       return
     }
 
@@ -229,7 +260,7 @@ case class PostgresBatcher[A,PK](
 
     val pgConn = conn.unwrap(classOf[org.postgresql.PGConnection])
     val copyInSql = s"COPY ${tableName} (${recordBatcher.fields.map(_.quotedName).mkString(",")}) FROM STDIN WITH (FORMAT csv, ESCAPE '\\')"
-    logger.debug("rawCopy sql: " + copyInSql)
+    if (logger.isTraceEnabled) logger.trace("rawCopy sql: " + copyInSql)
     val reader = new StringReader(copyContent)
     try {
       pgConn.getCopyAPI.copyIn(copyInSql, reader)
@@ -240,14 +271,14 @@ case class PostgresBatcher[A,PK](
   }
 
   private def executeUpdate(updateSql: String)(implicit conn: java.sql.Connection): Unit = {
-    logger.debug(s"running update sql -- \n${updateSql}")
+    if (logger.isTraceEnabled) logger.trace(s"running update sql -- \n${updateSql}")
     val st = conn.createStatement()
     try {
       st.executeUpdate(updateSql)
     } finally {
       st.close()
     }
-    logger.debug("update sql complete")
+    if (logger.isTraceEnabled) logger.trace("update sql complete")
   }
 
 }
