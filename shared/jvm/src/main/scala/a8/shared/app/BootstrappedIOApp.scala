@@ -114,9 +114,11 @@ abstract class BootstrappedIOApp
     }
   }
 
+  def bootstrapDefaults: BootstrapConfigDto = BootstrapConfigDto.empty
+
   lazy val bootstrapper: Bootstrapper =
     BootstrapperCompanionPlatform
-      .constructBootstrapper(resolvedAppName, CommandLineArgs(args))
+      .constructBootstrapper(resolvedAppName, CommandLineArgs(args), bootstrapDefaults)
 
   def main(args: Array[String]): Unit = {
 

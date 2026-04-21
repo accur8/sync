@@ -18,7 +18,7 @@ import a8.shared.zreplace.CommandLineArgs
 @scala.annotation.nowarn
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
-  def constructBootstrapper(appName: AppName, args: CommandLineArgs): Bootstrapper = {
+  def constructBootstrapper(appName: AppName, args: CommandLineArgs, appDefaults: BootstrapConfigDto = BootstrapConfigDto.empty): Bootstrapper = {
 
     val configMojoRoot = a8.shared.ConfigMojo.root.mojoRoot
     val configMojo = configMojoRoot(appName.value)
@@ -52,7 +52,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
         lazy val resolveAppName: AppName = resolvedDto.appName.getOrElse(appName)
 
-        lazy val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, bootstrapDto)
+        lazy val dtoChain = List(BootstrapConfigDto.default, appDefaults, globalBootstrapDto, bootstrapDto)
 
         lazy val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
 
