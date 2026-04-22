@@ -75,6 +75,7 @@ case class DiscoveryResponse(
   service_name: String = "",  // From SERVICE_NAME env var (empty if not set)
   codebase_name: String = "sync-scala",
   timestamp: Instant,
+  start_time: Instant,
   capabilities: ProcessCapabilities,
   metadata: Map[String, String],
   extended_metadata: Option[Map[String, String]],
@@ -177,6 +178,7 @@ case class ServiceDiscoveryConfig(
   metadata: Map[String, String] = Map.empty,
   extendedMetadata: Map[String, String] = Map.empty,
   staticServiceDiscovery: Option[StaticServiceDiscovery] = None,
+  processUid: String = "",
 )
 
 /**
@@ -277,8 +279,13 @@ object ServiceDiscovery extends Logging {
 class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   import ServiceDiscovery.*
 
-  // Read from A8_PROCESS_UID or PROCESS_UID env var, empty string if not present
-  private val processUid: String = sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
+  // Use processUid from config (resolved at bootstrap time), or fall back to env var
+  private val processUid: String =
+    if (config.processUid.nonEmpty) config.processUid
+    else sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
+
+  // Track process start time for inclusion in discovery responses
+  private val startTime: Instant = Instant.now()
 
   // Read from A8_SERVICE_NAME or SERVICE_NAME env var, empty string if not present
   private val serviceName: String = sys.env.getOrElse("A8_SERVICE_NAME", sys.env.getOrElse("SERVICE_NAME", ""))
@@ -445,6 +452,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
       service_name = serviceName,
       codebase_name = "sync-scala",
       timestamp = Instant.now(),
+      start_time = startTime,
       capabilities = capabilities,
       metadata = config.metadata,
       extended_metadata = if (request.query.include_extended_metadata) Some(config.extendedMetadata) else None,

@@ -43,6 +43,7 @@ object HermesBootstrap extends Logging {
     rpcClient: RpcClient,
     staticServiceDiscovery: StaticServiceDiscovery,
     dynamicServiceDiscovery: ServiceDiscovery,
+    processUid: String = "",
     authExtension: Option[auth.AuthExtension] = None,
   )
 
@@ -138,6 +139,10 @@ object HermesBootstrap extends Logging {
         )
       )(using ctx)
 
+      // Resolve stable processUid once at bootstrap time (before service discovery)
+      processUid = sys.env.getOrElse("A8_PROCESS_UID",
+        sys.env.getOrElse("PROCESS_UID", java.util.UUID.randomUUID().toString.replace("-", "").take(20)))
+
       // Step 6: Start dynamic service discovery (always enabled)
       dynamicServiceDiscovery <- {
         logger.info("Starting dynamic service discovery...")
@@ -154,15 +159,25 @@ object HermesBootstrap extends Logging {
           // Collect A8_* environment variables for metadata
           val a8Metadata = ServiceDiscovery.readA8EnvironmentMetadata()
 
-          // Merge with any existing metadata
+          // Build extended metadata with process info
+          val extendedMetadata = Map(
+            "programming_language" -> "scala",
+            "cwd"                  -> sys.props.getOrElse("user.dir", ""),
+            "cli"                  -> (java.lang.ProcessHandle.current().info().command().orElse("") +
+                                       " " + sys.props.getOrElse("sun.java.command", "")).trim,
+          ) ++ a8Metadata
+
           val configWithMetadata = discoveryConfig.copy(
-            metadata = discoveryConfig.metadata ++ a8Metadata
+            metadata = discoveryConfig.metadata ++ a8Metadata,
+            extendedMetadata = extendedMetadata,
+            processUid = processUid,
           )
 
           val discovery = new ServiceDiscovery(configWithMetadata)
           discovery.start()(using ctx)
           discovery.register()(using ctx)  // Auto-register this process
           logger.info(s"✓ Dynamic service discovery started and registered")
+          logger.info(s"  Process UID: $processUid")
           if (a8Metadata.nonEmpty) {
             logger.info(s"  Metadata: ${a8Metadata.keys.mkString(", ")}")
           }
@@ -191,6 +206,7 @@ object HermesBootstrap extends Logging {
         rpcClient = rpcClient,
         staticServiceDiscovery = staticServiceDiscovery,
         dynamicServiceDiscovery = dynamicServiceDiscovery,
+        processUid = processUid,
         authExtension = None,  // Will be set by application if needed
       )
     }
