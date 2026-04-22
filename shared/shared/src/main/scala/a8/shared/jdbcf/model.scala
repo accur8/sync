@@ -42,6 +42,7 @@ case class TableLocator(catalogName: Option[CatalogName] = None, schemaName: Opt
 
 trait SqlIdentifierValue extends CIStringValue with HasSqlString {
   override val asSqlFragment: SqlString = SqlString.identifier(asString)
+  override def toString: String = asString
 }
 
 object TableName extends CIStringValueCompanion[TableName]
