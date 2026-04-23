@@ -100,6 +100,7 @@ object MxServiceDiscovery {
           .addField(_.service_name)
           .addField(_.codebase_name)
           .addField(_.timestamp)
+          .addField(_.start_time)
           .addField(_.capabilities)
           .addField(_.metadata)
           .addField(_.extended_metadata)
@@ -113,7 +114,7 @@ object MxServiceDiscovery {
     
     
     lazy val generator: Generator[DiscoveryResponse,parameters.type] =  {
-      val constructors = Constructors[DiscoveryResponse](12, unsafe.iterRawConstruct)
+      val constructors = Constructors[DiscoveryResponse](13, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -126,10 +127,11 @@ object MxServiceDiscovery {
       lazy val service_name: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("service_name", _.service_name, (d,v) => d.copy(service_name = v), Some(()=> ""), 5)
       lazy val codebase_name: CaseClassParm[DiscoveryResponse,String] = CaseClassParm[DiscoveryResponse,String]("codebase_name", _.codebase_name, (d,v) => d.copy(codebase_name = v), Some(()=> "sync-scala"), 6)
       lazy val timestamp: CaseClassParm[DiscoveryResponse,Instant] = CaseClassParm[DiscoveryResponse,Instant]("timestamp", _.timestamp, (d,v) => d.copy(timestamp = v), None, 7)
-      lazy val capabilities: CaseClassParm[DiscoveryResponse,ProcessCapabilities] = CaseClassParm[DiscoveryResponse,ProcessCapabilities]("capabilities", _.capabilities, (d,v) => d.copy(capabilities = v), None, 8)
-      lazy val metadata: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("metadata", _.metadata, (d,v) => d.copy(metadata = v), None, 9)
-      lazy val extended_metadata: CaseClassParm[DiscoveryResponse,Option[Map[String,String]]] = CaseClassParm[DiscoveryResponse,Option[Map[String,String]]]("extended_metadata", _.extended_metadata, (d,v) => d.copy(extended_metadata = v), None, 10)
-      lazy val service_discovery_mapping: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("service_discovery_mapping", _.service_discovery_mapping, (d,v) => d.copy(service_discovery_mapping = v), None, 11)
+      lazy val start_time: CaseClassParm[DiscoveryResponse,Instant] = CaseClassParm[DiscoveryResponse,Instant]("start_time", _.start_time, (d,v) => d.copy(start_time = v), None, 8)
+      lazy val capabilities: CaseClassParm[DiscoveryResponse,ProcessCapabilities] = CaseClassParm[DiscoveryResponse,ProcessCapabilities]("capabilities", _.capabilities, (d,v) => d.copy(capabilities = v), None, 9)
+      lazy val metadata: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("metadata", _.metadata, (d,v) => d.copy(metadata = v), None, 10)
+      lazy val extended_metadata: CaseClassParm[DiscoveryResponse,Option[Map[String,String]]] = CaseClassParm[DiscoveryResponse,Option[Map[String,String]]]("extended_metadata", _.extended_metadata, (d,v) => d.copy(extended_metadata = v), None, 11)
+      lazy val service_discovery_mapping: CaseClassParm[DiscoveryResponse,Map[String,String]] = CaseClassParm[DiscoveryResponse,Map[String,String]]("service_discovery_mapping", _.service_discovery_mapping, (d,v) => d.copy(service_discovery_mapping = v), None, 12)
     }
     
     
@@ -145,10 +147,11 @@ object MxServiceDiscovery {
           service_name = values(5).asInstanceOf[String],
           codebase_name = values(6).asInstanceOf[String],
           timestamp = values(7).asInstanceOf[Instant],
-          capabilities = values(8).asInstanceOf[ProcessCapabilities],
-          metadata = values(9).asInstanceOf[Map[String,String]],
-          extended_metadata = values(10).asInstanceOf[Option[Map[String,String]]],
-          service_discovery_mapping = values(11).asInstanceOf[Map[String,String]],
+          start_time = values(8).asInstanceOf[Instant],
+          capabilities = values(9).asInstanceOf[ProcessCapabilities],
+          metadata = values(10).asInstanceOf[Map[String,String]],
+          extended_metadata = values(11).asInstanceOf[Option[Map[String,String]]],
+          service_discovery_mapping = values(12).asInstanceOf[Map[String,String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): DiscoveryResponse = {
@@ -162,6 +165,7 @@ object MxServiceDiscovery {
             service_name = values.next().asInstanceOf[String],
             codebase_name = values.next().asInstanceOf[String],
             timestamp = values.next().asInstanceOf[Instant],
+            start_time = values.next().asInstanceOf[Instant],
             capabilities = values.next().asInstanceOf[ProcessCapabilities],
             metadata = values.next().asInstanceOf[Map[String,String]],
             extended_metadata = values.next().asInstanceOf[Option[Map[String,String]]],
@@ -171,8 +175,8 @@ object MxServiceDiscovery {
            sys.error("")
         value
       }
-      def typedConstruct(request_id: String, processUid: String, unixPid: Int, app_name: String, mailbox_address: String, service_name: String, codebase_name: String, timestamp: Instant, capabilities: ProcessCapabilities, metadata: Map[String,String], extended_metadata: Option[Map[String,String]], service_discovery_mapping: Map[String,String]): DiscoveryResponse =
-        DiscoveryResponse(request_id, processUid, unixPid, app_name, mailbox_address, service_name, codebase_name, timestamp, capabilities, metadata, extended_metadata, service_discovery_mapping)
+      def typedConstruct(request_id: String, processUid: String, unixPid: Int, app_name: String, mailbox_address: String, service_name: String, codebase_name: String, timestamp: Instant, start_time: Instant, capabilities: ProcessCapabilities, metadata: Map[String,String], extended_metadata: Option[Map[String,String]], service_discovery_mapping: Map[String,String]): DiscoveryResponse =
+        DiscoveryResponse(request_id, processUid, unixPid, app_name, mailbox_address, service_name, codebase_name, timestamp, start_time, capabilities, metadata, extended_metadata, service_discovery_mapping)
     
     }
     
