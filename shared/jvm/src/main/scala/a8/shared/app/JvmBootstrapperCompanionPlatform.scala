@@ -52,7 +52,7 @@ trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
         lazy val resolveAppName: AppName = resolvedDto.appName.getOrElse(appName)
 
-        lazy val dtoChain = List(BootstrapConfigDto.default, appDefaults, globalBootstrapDto, bootstrapDto)
+        lazy val dtoChain = List(BootstrapConfigDto.default, globalBootstrapDto, appDefaults, bootstrapDto)
 
         lazy val resolvedDto = dtoChain.reduce(_ + _).copy(source = Some("resolved"))
 
