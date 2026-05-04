@@ -26,6 +26,7 @@ object LogbackConfigurator {
     val configurator = new LogbackConfigurator
     configurator.setContext(context)
     configurator.configure(context, config)
+    configurator.postConfig(context)
   }
 
   def statusMessages(): (a8.common.logging.Level,String) = {
