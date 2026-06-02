@@ -24,58 +24,88 @@ object HermesAppConfig extends MxHermesAppConfig
 object HermesBootstrapConfig {
 
   /**
-   * Load bootstrap config from ~/.config/hermes/bootstrap.conf
-   * This follows the same pattern as godev's bootstrap.go
+   * Load bootstrap config, matching godev's canonical loader (a8-mod/bootstrap.go +
+   * ConfigSearchPaths). Source of truth is `~/.config/a8/bootstrap.conf`.
+   *
+   * Search order (first existing wins): $BOOTSTRAP_CONFIG_FILE, ~/.config/a8/bootstrap.conf,
+   * /config/a8/bootstrap.conf. Environment selection: $BOOTSTRAP_ENV overrides the file's `env`.
+   * Service mappings come from the env block's `nameMappings` (legacy `namedMailboxes` accepted);
+   * if the block sets `namingEnvironment`, mappings are resolved dynamically at bootstrap time by
+   * querying the naming service over NATS (see HermesBootstrap), with `nameMappings` as fallback.
    */
   def load(): HermesBootstrapConfig = {
-    val configPath = sys.env.get("BOOTSTRAP_CONFIG_FILE")
-      .map(Paths.get(_))
-      .getOrElse {
-        val home = Paths.get(System.getProperty("user.home"))
-        home.resolve(".config/hermes/bootstrap.conf")
-      }
-
-    if (!configPath.toFile.exists()) {
-      throw new RuntimeException(s"Bootstrap config file not found: $configPath")
-    }
+    val configPath =
+      searchPaths
+        .find(_.toFile.exists())
+        .getOrElse(throw new RuntimeException(s"Bootstrap config file not found in any of: ${searchPaths.mkString(", ")}"))
 
     val config = ConfigFactory.parseFile(configPath.toFile).resolve()
     fromConfig(config)
   }
 
-  private def fromConfig(config: Config): HermesBootstrapConfig = {
-    // Read the environment selector (dev, prod, etc.)
-    val env = config.getString("env")
+  private def searchPaths: Seq[Path] = {
+    val home = Paths.get(System.getProperty("user.home"))
+    val envOverride = sys.env.get("BOOTSTRAP_CONFIG_FILE").map(Paths.get(_))
+    envOverride.toSeq ++ Seq(
+      home.resolve(".config/a8/bootstrap.conf"),
+      Paths.get("/config/a8/bootstrap.conf"),
+    )
+  }
 
-    // Navigate to the environment-specific config
-    val envConfig = config.getConfig(s"environments.$env")
+  private def fromConfig(config: Config): HermesBootstrapConfig = {
+    // Environment selection: $BOOTSTRAP_ENV overrides the file's `env` field. Supports both a
+    // multi-env file (env + environments{}) and a single-env file (fields at the root).
+    val hasEnvironments = config.hasPath("environments")
+    val hasEnv = config.hasPath("env")
+
+    val envConfig: Config =
+      if (hasEnvironments || hasEnv) {
+        val envName =
+          sys.env.getOrElse("BOOTSTRAP_ENV", if (hasEnv) config.getString("env") else "")
+        if (envName.isEmpty)
+          throw new RuntimeException("no bootstrap environment selected (env field empty and $BOOTSTRAP_ENV unset)")
+        if (!config.hasPath(s"environments.$envName"))
+          throw new RuntimeException(s"bootstrap environment '$envName' not found in config")
+        config.getConfig(s"environments.$envName")
+      } else {
+        config // single-env file: fields at the root
+      }
 
     val natsUrl = envConfig.getString("natsUrl")
 
-    val sshKeyPath = if (envConfig.hasPath("sshKeyPath")) {
-      Some(expandHome(envConfig.getString("sshKeyPath")))
-    } else None
+    // godev key is `sshPrivateKeyPath`; accept legacy `sshKeyPath` too
+    val sshKeyPath =
+      if (envConfig.hasPath("sshPrivateKeyPath")) Some(expandHome(envConfig.getString("sshPrivateKeyPath")))
+      else if (envConfig.hasPath("sshKeyPath")) Some(expandHome(envConfig.getString("sshKeyPath")))
+      else None
 
-    val authServiceMailbox = if (envConfig.hasPath("authServiceMailbox")) {
-      Some(envConfig.getString("authServiceMailbox"))
-    } else None
+    val authServiceMailbox =
+      if (envConfig.hasPath("authServiceMailbox")) Some(envConfig.getString("authServiceMailbox")) else None
 
-    val namedMailboxes = if (envConfig.hasPath("namedMailboxes")) {
-      val mailboxConfig = envConfig.getConfig("namedMailboxes")
-      mailboxConfig.entrySet().asScala.map { entry =>
-        entry.getKey -> mailboxConfig.getString(entry.getKey)
-      }.toMap
-    } else Map.empty[String, String]
+    // canonical key is `nameMappings`; accept legacy `namedMailboxes`
+    def readMap(key: String): Map[String, String] =
+      if (envConfig.hasPath(key)) {
+        val c = envConfig.getConfig(key)
+        c.entrySet().asScala.map(e => e.getKey -> c.getString(e.getKey)).toMap
+      } else Map.empty[String, String]
 
-    val discoverySubject = if (envConfig.hasPath("discoverySubject")) {
-      envConfig.getString("discoverySubject")
-    } else "nefario.discovery"
+    val nameMappings = {
+      val primary = readMap("nameMappings")
+      if (primary.nonEmpty) primary else readMap("namedMailboxes")
+    }
+
+    val namingEnvironment =
+      if (envConfig.hasPath("namingEnvironment")) Some(envConfig.getString("namingEnvironment")) else None
+
+    val discoverySubject =
+      if (envConfig.hasPath("discoverySubject")) envConfig.getString("discoverySubject") else "continuum.discovery"
 
     HermesBootstrapConfig(
       natsUrl = natsUrl,
       sshKeyPath = sshKeyPath,
       authServiceMailbox = authServiceMailbox,
-      namedMailboxes = namedMailboxes,
+      namedMailboxes = nameMappings,
+      namingEnvironment = namingEnvironment,
       discoverySubject = discoverySubject,
     )
   }
@@ -96,6 +126,9 @@ case class HermesBootstrapConfig(
   sshKeyPath: Option[String] = None,
   authServiceMailbox: Option[String] = None,
   namedMailboxes: Map[String, String] = Map.empty,
-  discoverySubject: String = "nefario.discovery",
+  // when set, service->mailbox mappings are resolved dynamically via the naming service over NATS
+  // (naming.v1.GetEnvironment), falling back to the static `namedMailboxes` above
+  namingEnvironment: Option[String] = None,
+  discoverySubject: String = "continuum.discovery",
   autoRenewAuth: Boolean = true,
 )

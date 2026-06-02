@@ -10,7 +10,7 @@ package a8.hermes.proto.auth.auth
   * @param userIdentifier
   *   Email address or user UID
   * @param role
-  *   Role name (e.g., "NefarioUsers")
+  *   Role name (e.g., "ContinuumUser")
   * @param granted
   *   true = grant, false = deny
   * @param reason

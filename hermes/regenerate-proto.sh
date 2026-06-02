@@ -15,27 +15,34 @@ echo "=== Copying proto files from godev ==="
 mkdir -p "$PROTO_DIR"
 
 # Copy proto files we need from godev
-cp "$GODEV_DIR/nefario/rpc/nefario_rpc.proto" "$PROTO_DIR/"
+cp "$GODEV_DIR/continuum/rpc/continuum_rpc.proto" "$PROTO_DIR/continuum_rpc.proto"
+cp "$GODEV_DIR/hermes/hproto/wsmessages.proto" "$PROTO_DIR/wsmessages.proto"
 cp "$GODEV_DIR/pkg/rpc/auth/auth.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/mailbox/mailbox.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/process/process_rpc.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/db/db.proto" "$PROTO_DIR/"
+# continuum_rpc.proto imports pkg/discovery/discovery.proto; keep a local copy for compilation
+mkdir -p "$PROTO_DIR/pkg/discovery"
+cp "$GODEV_DIR/pkg/discovery/discovery.proto" "$PROTO_DIR/pkg/discovery/discovery.proto"
 
-echo "✓ Copied 5 proto files"
+echo "✓ Copied 6 proto files (+ discovery dependency)"
 
 # Fix package declarations for Scala
 echo ""
 echo "=== Fixing proto package declarations ==="
 
-for proto in "$PROTO_DIR"/*.proto; do
+for proto in "$PROTO_DIR"/*.proto "$PROTO_DIR/pkg/discovery"/*.proto; do
   filename=$(basename "$proto")
   echo "Processing $filename..."
 
   # Add Scala-specific options if not present
   if ! grep -q "option java_package" "$proto"; then
     case "$filename" in
-      nefario_rpc.proto)
-        package_line='option java_package = "a8.hermes.proto.nefario";'
+      continuum_rpc.proto)
+        package_line='option java_package = "a8.hermes.proto.continuum";'
+        ;;
+      wsmessages.proto)
+        package_line='option java_package = "a8.hermes.proto.process";'
         ;;
       auth.proto)
         package_line='option java_package = "a8.hermes.proto.auth";'
@@ -48,6 +55,9 @@ for proto in "$PROTO_DIR"/*.proto; do
         ;;
       db.proto)
         package_line='option java_package = "a8.hermes.proto.db";'
+        ;;
+      discovery.proto)
+        package_line='option java_package = "a8.hermes.proto.discovery";'
         ;;
     esac
 
@@ -82,16 +92,14 @@ rm -rf "$SCALA_OUT_DIR/com/google/protobuf"
 
 # Generate new code
 # scalapbc options:
-#   --scala_out=<dir>  - Output directory for generated Scala files
-#   --proto_path=<dir> - Where to find proto files
-#   --grpc=false       - Don't generate gRPC code (we use NATS)
+#   --scala_out=grpc=false:<dir>  - Output directory; grpc=false disables gRPC stub generation
+#   --proto_path=<dir>            - Where to find proto files (can be repeated)
 echo "Generating Scala code..."
 
 scalapbc \
-  --scala_out="$SCALA_OUT_DIR" \
-  --proto_path="$PROTO_DIR" \
-  --grpc=false \
-  "$PROTO_DIR"/*.proto
+  "--scala_out=$SCALA_OUT_DIR" \
+  "--proto_path=$PROTO_DIR" \
+  "$PROTO_DIR"/*.proto "$PROTO_DIR/pkg/discovery"/*.proto
 
 echo "✓ Generated Scala code"
 

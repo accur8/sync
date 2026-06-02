@@ -179,6 +179,7 @@ message Message {
   SenderEnvelope  senderEnvelope  = 2;
   ServerEnvelope  serverEnvelope  = 3;
   bytes           data            = 4;
+  string          dataRef         = 5;
 }
 
 message MessageEnvelope {
@@ -242,7 +243,7 @@ message SubscribeError {
 message Subscription {
   oneof oneof {
     MailboxSubscription            mailbox            = 1;
-    NefarioSubscription            nefario            = 2;
+    ContinuumSubscription          continuum          = 2;
     ChangeDataCaptureSubscription  changeDataCapture  = 3;
     Unsubscribe                    unsubscribe        = 4;
   }
@@ -271,7 +272,7 @@ message RecordMatcher {
   repeated google.protobuf.Value  primaryKeys  = 3;
 }
 
-message NefarioSubscription {
+message ContinuumSubscription {
   string     id                   = 1;
   string     state                = 2;
   string     processUid           = 3;

@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "pkg/discovery/discovery.proto";
+
+package continuum_rpc;
+option java_package = "a8.hermes.proto.continuum";
+option java_multiple_files = true;
+option go_package = "accur8.io/godev/continuum/rpc";
+
+message ProcessStartedRequest {
+  string                        processUid          = 1;
+  string                        parentProcessRunUid = 2;
+	int32                         processPid          = 3;
+  string                        workerUid           = 4;
+  string                        serviceUid          = 5;
+  google.protobuf.Timestamp     startedAt           = 6;  // UTC timestamp
+	repeated string               command             = 7;
+	string                        cwd                 = 8;
+	repeated string               env                 = 9;
+	string                        category            = 10;
+  repeated string               channels            = 11;
+  bool                          controllable        = 12;
+  string                        launchError         = 13;
+  string                        kind                = 14;
+  string                        extraDataJsonStr    = 15;
+  string                        serviceName         = 16;
+  string                        ephemeralName       = 17;
+  string                        eventUid            = 18;  // Scheduler event UID for correlation
+
+  // Embedded discovery information (eliminates need for separate RPC query)
+  discovery.DiscoveryResponse   discovery           = 19;
+
+  // is_update marks this message as a refresh of an already-known process
+  // rather than a first arrival. The consumer overwrites the mutable
+  // snapshot fields (rpc schema list, mailbox address, location, engines,
+  // metadata) but leaves immutable identity fields (started_at, command,
+  // cwd, kind, …) on the existing processrun row untouched. If no
+  // existing row is found the consumer falls through to first-arrival
+  // behavior so the message is self-healing.
+  bool                          isUpdate            = 20;
+}
+
+message UpdateMailboxRequest {
+  string        processUid     = 1;
+  string        mailbox        = 2;
+}
+
+message ProcessPingRequest {
+  repeated ProcessPing          pings      = 1;
+  google.protobuf.Timestamp     timestamp  = 2;  // UTC timestamp
+}
+
+message ProcessPing {
+  string               processUid    = 1;
+  map<string, uint64>  channelSizes  = 2;
+}
+
+message ProcessCompletedRequest {
+  string                        processUid     = 1;
+  int32                         exitCode       = 2;
+  string                        exitMessage    = 3;
+  google.protobuf.Timestamp     completedAt    = 4;  // UTC timestamp
+}
+
+message Ack {
+}
+
+message MessageFromRunner {
+  oneof message {
+    ProcessStartedRequest     processStartedRequest      = 1;
+    ProcessPingRequest        processPingRequest         = 2;
+    ProcessCompletedRequest   processCompletedRequest    = 3;
+    StreamWrite               streamWrite                = 4;
+    UpdateMailboxRequest      updateMailboxRequest       = 5;
+    PingRequest               pingRequest                = 6;
+  }
+}
+
+message StreamWrite {
+  string           processUid   = 1;
+  string           channelName  = 2;
+  StreamRecord     record       = 3;
+}
+
+message StreamRecord {
+  google.protobuf.Timestamp     timestamp    = 2;  // UTC timestamp
+  uint64                        sequence     = 3;
+  repeated Buffer               buffers      = 4;
+}
+
+message Buffer {
+  google.protobuf.Timestamp     timestamp  = 1;  // UTC timestamp
+  bytes                         data       = 2;
+  BufferSource                  source     = 3;
+}
+
+enum BufferSource {
+  unspecified         = 0;
+  stderr              = 1;
+  stdout              = 2;
+  journalctl          = 3;
+  windows_event_log   = 4;
+}
+
+
+message ListServicesRequest {
+  string     workerUid  = 1;
+}
+
+message ListServicesResponse {
+  repeated ServiceRecord  records = 1;
+}
+
+message ServiceRecord {
+  string                uid              = 1;
+  string                name             = 2;
+  string                workerUid        = 3;
+  bool                  workerEnabled   = 4;
+  ServiceUnitJson       unitJson         = 5;
+}
+
+message PingRequest {
+  string                uid              = 1;
+  string                payload          = 2;
+}
+
+message ServiceUnitJson {
+  SystemdServiceStatus  status           = 1;
+  string                statusSource     = 2;
+  bool                  unitExists       = 3;
+  string                unitDescription  = 4;
+  string                unitName         = 5;
+}
+
+enum SystemdServiceStatus {
+  SystemdServiceStatus_Unspecified  = 0;
+  SystemdServiceStatus_Stopped      = 1;
+  SystemdServiceStatus_Running      = 2;
+  SystemdServiceStatus_Failed       = 3;
+  SystemdServiceStatus_Unknown      = 4;
+}
+
+message ResolveServiceUidRequest {
+  string     serviceName  = 1;
+  string     workerUid    = 2;
+}
+
+message ResolveServiceUidResponse {
+  string     serviceUid   = 1;
+}
+
+message GetHealthchecksConfigRequest {
+  // Empty for now, may add filtering in future
+}
+
+message GetHealthchecksConfigResponse {
+  string     apiKey     = 1;
+  string     baseUrl    = 2;  // e.g., "https://hc-ping.com"
+  string     hermesUrl  = 3;  // e.g., "https://hermes.accur8.net"
+}
+
+message ArchivedNatsMessage {
+  uint64                    sequence  = 1;  // stream sequence number
+  google.protobuf.Timestamp timestamp = 2;  // message timestamp from NATS
+  string                    subject   = 3;  // NATS subject
+  bytes                     data      = 4;  // raw message payload
+  map<string, string>       headers   = 5;  // NATS headers
+}
+

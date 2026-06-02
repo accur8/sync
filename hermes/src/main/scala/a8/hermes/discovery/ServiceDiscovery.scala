@@ -49,7 +49,7 @@ object SerializationFormat {
 // ===== Message Types (matching godev) =====
 
 /**
- * DiscoveryRequest - published to nefario.discovery subject
+ * DiscoveryRequest - published to continuum.discovery subject
  */
 @CompanionGen(jsonCodec = true)
 case class DiscoveryRequest(
@@ -62,7 +62,7 @@ case class DiscoveryRequest(
 object DiscoveryRequest extends MxServiceDiscovery.MxDiscoveryRequest
 
 /**
- * DiscoveryResponse - published to nefario.discovery.response.{reply_suffix}
+ * DiscoveryResponse - published to continuum.discovery.response.{reply_suffix}
  * NOTE: processUid and unixPid use camelCase to match godev's JSON tags
  */
 @CompanionGen(jsonCodec = true)
@@ -171,7 +171,7 @@ case class ServiceDiscoveryConfig(
   mailbox: Mailbox,
   transport: MailboxTransport,
   rpcServer: Option[RpcServer] = None,
-  discoverySubject: String = "nefario.discovery",
+  discoverySubject: String = "continuum.discovery",
   appName: String,
   serviceName: Option[String] = None,
   location: ProcessLocation,
@@ -184,7 +184,7 @@ case class ServiceDiscoveryConfig(
 /**
  * Service discovery for Hermes/NATS - ALIGNED WITH GODEV PROTOCOL.
  *
- * Uses pub/sub on nefario.discovery subject with JSON messages matching
+ * Uses pub/sub on continuum.discovery subject with JSON messages matching
  * /Users/glen/code/accur8/godev/pkg/discovery/messages.go exactly.
  *
  * This enables Go services and Scala services to discover each other.

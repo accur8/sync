@@ -18,8 +18,8 @@ final case class Subscription(
         val __value = oneof.mailbox.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
-      if (oneof.nefario.isDefined) {
-        val __value = oneof.nefario.get
+      if (oneof.continuum.isDefined) {
+        val __value = oneof.continuum.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
       if (oneof.changeDataCapture.isDefined) {
@@ -49,7 +49,7 @@ final case class Subscription(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
-      oneof.nefario.foreach { __v =>
+      oneof.continuum.foreach { __v =>
         val __m = __v
         _output__.writeTag(2, 2)
         _output__.writeUInt32NoTag(__m.serializedSize)
@@ -71,8 +71,8 @@ final case class Subscription(
     }
     def getMailbox: a8.hermes.proto.process.wsmessages.MailboxSubscription = oneof.mailbox.getOrElse(a8.hermes.proto.process.wsmessages.MailboxSubscription.defaultInstance)
     def withMailbox(__v: a8.hermes.proto.process.wsmessages.MailboxSubscription): Subscription = copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Mailbox(__v))
-    def getNefario: a8.hermes.proto.process.wsmessages.NefarioSubscription = oneof.nefario.getOrElse(a8.hermes.proto.process.wsmessages.NefarioSubscription.defaultInstance)
-    def withNefario(__v: a8.hermes.proto.process.wsmessages.NefarioSubscription): Subscription = copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Nefario(__v))
+    def getContinuum: a8.hermes.proto.process.wsmessages.ContinuumSubscription = oneof.continuum.getOrElse(a8.hermes.proto.process.wsmessages.ContinuumSubscription.defaultInstance)
+    def withContinuum(__v: a8.hermes.proto.process.wsmessages.ContinuumSubscription): Subscription = copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Continuum(__v))
     def getChangeDataCapture: a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription = oneof.changeDataCapture.getOrElse(a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription.defaultInstance)
     def withChangeDataCapture(__v: a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription): Subscription = copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.ChangeDataCapture(__v))
     def getUnsubscribe: a8.hermes.proto.process.wsmessages.Unsubscribe = oneof.unsubscribe.getOrElse(a8.hermes.proto.process.wsmessages.Unsubscribe.defaultInstance)
@@ -84,7 +84,7 @@ final case class Subscription(
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => oneof.mailbox.orNull
-        case 2 => oneof.nefario.orNull
+        case 2 => oneof.continuum.orNull
         case 3 => oneof.changeDataCapture.orNull
         case 4 => oneof.unsubscribe.orNull
       }
@@ -93,7 +93,7 @@ final case class Subscription(
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => oneof.mailbox.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-        case 2 => oneof.nefario.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 2 => oneof.continuum.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 3 => oneof.changeDataCapture.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 4 => oneof.unsubscribe.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
@@ -116,7 +116,7 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
         case 10 =>
           __oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Mailbox(__oneof.mailbox.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.MailboxSubscription](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 18 =>
-          __oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Nefario(__oneof.nefario.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.NefarioSubscription](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          __oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Continuum(__oneof.continuum.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.ContinuumSubscription](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 26 =>
           __oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.ChangeDataCapture(__oneof.changeDataCapture.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 34 =>
@@ -138,7 +138,7 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.process.wsmessages.Subscription(
         oneof = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.MailboxSubscription]]).map(a8.hermes.proto.process.wsmessages.Subscription.Oneof.Mailbox(_))
-            .orElse[a8.hermes.proto.process.wsmessages.Subscription.Oneof](__fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.NefarioSubscription]]).map(a8.hermes.proto.process.wsmessages.Subscription.Oneof.Nefario(_)))
+            .orElse[a8.hermes.proto.process.wsmessages.Subscription.Oneof](__fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.ContinuumSubscription]]).map(a8.hermes.proto.process.wsmessages.Subscription.Oneof.Continuum(_)))
             .orElse[a8.hermes.proto.process.wsmessages.Subscription.Oneof](__fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription]]).map(a8.hermes.proto.process.wsmessages.Subscription.Oneof.ChangeDataCapture(_)))
             .orElse[a8.hermes.proto.process.wsmessages.Subscription.Oneof](__fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.Unsubscribe]]).map(a8.hermes.proto.process.wsmessages.Subscription.Oneof.Unsubscribe(_)))
             .getOrElse(a8.hermes.proto.process.wsmessages.Subscription.Oneof.Empty)
@@ -151,7 +151,7 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
       case 1 => __out = a8.hermes.proto.process.wsmessages.MailboxSubscription
-      case 2 => __out = a8.hermes.proto.process.wsmessages.NefarioSubscription
+      case 2 => __out = a8.hermes.proto.process.wsmessages.ContinuumSubscription
       case 3 => __out = a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription
       case 4 => __out = a8.hermes.proto.process.wsmessages.Unsubscribe
     }
@@ -166,11 +166,11 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
     def isEmpty: _root_.scala.Boolean = false
     def isDefined: _root_.scala.Boolean = true
     def isMailbox: _root_.scala.Boolean = false
-    def isNefario: _root_.scala.Boolean = false
+    def isContinuum: _root_.scala.Boolean = false
     def isChangeDataCapture: _root_.scala.Boolean = false
     def isUnsubscribe: _root_.scala.Boolean = false
     def mailbox: _root_.scala.Option[a8.hermes.proto.process.wsmessages.MailboxSubscription] = _root_.scala.None
-    def nefario: _root_.scala.Option[a8.hermes.proto.process.wsmessages.NefarioSubscription] = _root_.scala.None
+    def continuum: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ContinuumSubscription] = _root_.scala.None
     def changeDataCapture: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription] = _root_.scala.None
     def unsubscribe: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Unsubscribe] = _root_.scala.None
   }
@@ -192,10 +192,10 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
       override def number: _root_.scala.Int = 1
     }
     @SerialVersionUID(0L)
-    final case class Nefario(value: a8.hermes.proto.process.wsmessages.NefarioSubscription) extends a8.hermes.proto.process.wsmessages.Subscription.Oneof {
-      type ValueType = a8.hermes.proto.process.wsmessages.NefarioSubscription
-      override def isNefario: _root_.scala.Boolean = true
-      override def nefario: _root_.scala.Option[a8.hermes.proto.process.wsmessages.NefarioSubscription] = Some(value)
+    final case class Continuum(value: a8.hermes.proto.process.wsmessages.ContinuumSubscription) extends a8.hermes.proto.process.wsmessages.Subscription.Oneof {
+      type ValueType = a8.hermes.proto.process.wsmessages.ContinuumSubscription
+      override def isContinuum: _root_.scala.Boolean = true
+      override def continuum: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ContinuumSubscription] = Some(value)
       override def number: _root_.scala.Int = 2
     }
     @SerialVersionUID(0L)
@@ -215,13 +215,13 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
   }
   implicit class SubscriptionLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Subscription]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.Subscription](_l) {
     def mailbox: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MailboxSubscription] = field(_.getMailbox)((c_, f_) => c_.copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Mailbox(f_)))
-    def nefario: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.NefarioSubscription] = field(_.getNefario)((c_, f_) => c_.copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Nefario(f_)))
+    def continuum: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ContinuumSubscription] = field(_.getContinuum)((c_, f_) => c_.copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Continuum(f_)))
     def changeDataCapture: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription] = field(_.getChangeDataCapture)((c_, f_) => c_.copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.ChangeDataCapture(f_)))
     def unsubscribe: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Unsubscribe] = field(_.getUnsubscribe)((c_, f_) => c_.copy(oneof = a8.hermes.proto.process.wsmessages.Subscription.Oneof.Unsubscribe(f_)))
     def oneof: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Subscription.Oneof] = field(_.oneof)((c_, f_) => c_.copy(oneof = f_))
   }
   final val MAILBOX_FIELD_NUMBER = 1
-  final val NEFARIO_FIELD_NUMBER = 2
+  final val CONTINUUM_FIELD_NUMBER = 2
   final val CHANGEDATACAPTURE_FIELD_NUMBER = 3
   final val UNSUBSCRIBE_FIELD_NUMBER = 4
   def of(

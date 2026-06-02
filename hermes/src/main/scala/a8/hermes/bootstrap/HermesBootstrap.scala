@@ -68,11 +68,13 @@ object HermesBootstrap extends Logging {
         )
       )
 
-      // Step 2: Service Discovery (static resolution using namedMailboxes)
-      // Simple map lookup: serviceName → mailbox address
-      // Example: bootstrapConfig.namedMailboxes = {"nefario": "nefario-rpc"}
-      staticServiceDiscovery = new StaticServiceDiscovery(bootstrapConfig.namedMailboxes)
-      _ = logger.info(s"Static service discovery initialized with ${bootstrapConfig.namedMailboxes.size} named mailboxes")
+      // Step 2: Service Discovery (serviceName → mailbox address).
+      // When the config sets `namingEnvironment`, resolve mappings dynamically via the naming
+      // service over NATS (naming.v1.GetEnvironment), matching godev's bootstrap. Static
+      // `namedMailboxes` from the config are the fallback / overrides.
+      resolvedMappings = resolveNameMappings(bootstrapConfig, natsTransport)
+      staticServiceDiscovery = new StaticServiceDiscovery(resolvedMappings)
+      _ = logger.info(s"Service discovery initialized with ${resolvedMappings.size} mappings: ${resolvedMappings.keys.mkString(", ")}")
 
       // Step 3: Create/Acquire Mailbox
       // Use named mailbox if configured, otherwise create ephemeral
@@ -211,5 +213,73 @@ object HermesBootstrap extends Logging {
       )
     }
   }
+
+  /**
+   * Resolve service->mailbox name mappings. If the config sets `namingEnvironment`, query the naming
+   * service (naming.v1.GetEnvironment) over the already-connected NATS for the live mappings, matching
+   * godev's `QueryNamingService`; static `namedMailboxes` from the config are merged as fallback/overrides.
+   * Any query failure falls back to the static mappings so bootstrap still works offline.
+   */
+  private def resolveNameMappings(config: HermesBootstrapConfig, natsTransport: NatsTransport): Map[String, String] = {
+    config.namingEnvironment match {
+      case None =>
+        config.namedMailboxes
+      case Some(env) =>
+        val dynamic =
+          try queryNamingService(natsTransport, env)
+          catch {
+            case e: Throwable =>
+              logger.warn(s"naming service query failed for env '$env'; falling back to static nameMappings", e)
+              Map.empty[String, String]
+          }
+        // static config entries win as explicit overrides
+        dynamic ++ config.namedMailboxes
+    }
+  }
+
+  /** Raw naming.v1.GetEnvironment request over NATS, returning service->mailbox mappings. */
+  private def queryNamingService(natsTransport: NatsTransport, environment: String): Map[String, String] = {
+    val reqJson = s"""{"environment_name":${quoteJson(environment)}}"""
+    val replyOpt =
+      Option(
+        natsTransport.connection.request(
+          "naming.v1.GetEnvironment",
+          reqJson.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+          java.time.Duration.ofSeconds(5),
+        )
+      )
+    import a8.shared.SharedImports.json
+    import a8.shared.json.ast.{JsObj, JsStr, JsBool}
+    replyOpt match {
+      case None =>
+        logger.warn(s"naming service: no response for env '$environment'")
+        Map.empty
+      case Some(msg) =>
+        val body = new String(msg.getData, java.nio.charset.StandardCharsets.UTF_8)
+        json.unsafeParse(body) match {
+          case obj: JsObj =>
+            val found = obj.values.get("found").collect { case JsBool(b) => b }.getOrElse(false)
+            if (!found) {
+              val errMsg =
+                obj.values.get("error_message").collect { case JsStr(s) => s }.getOrElse(s"environment '$environment' not found")
+              logger.warn(s"naming service: $errMsg")
+              Map.empty
+            } else {
+              obj.values.get("name_mappings") match {
+                case Some(JsObj(mappings)) =>
+                  mappings.collect { case (k, JsStr(v)) => k -> v }.toMap
+                case _ =>
+                  Map.empty
+              }
+            }
+          case _ =>
+            logger.warn(s"naming service: unexpected response shape: $body")
+            Map.empty
+        }
+    }
+  }
+
+  private def quoteJson(s: String): String =
+    "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 }

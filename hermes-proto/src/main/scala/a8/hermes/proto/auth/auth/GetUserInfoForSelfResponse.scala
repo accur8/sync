@@ -5,7 +5,10 @@
 
 package a8.hermes.proto.auth.auth
 
-/** GetUserInfoForSelfResponse returns authenticated user's information
+/** GetUserInfoForSelfResponse returns authenticated user's information.
+  * The worker_* and server_* fields are populated only when the caller's
+  * usergroup is bound to a worker row (worker rows); they
+  * are empty for plain user logins.
   *
   * @param userUid
   *   User UID
@@ -25,6 +28,14 @@ package a8.hermes.proto.auth.auth
   *   When the auth token expires
   * @param expiresExtension
   *   Extension duration (e.g., "1 hour")
+  * @param workerUid
+  *   worker.uid (empty for plain user logins)
+  * @param workerLabel
+  *   "&lt;login&gt;&#64;&lt;server.name&gt;" (empty for plain user logins)
+  * @param serverUid
+  *   server.uid bound to the worker (empty for plain user logins)
+  * @param serverLabel
+  *   server.name (empty for plain user logins)
   */
 @SerialVersionUID(0L)
 final case class GetUserInfoForSelfResponse(
@@ -37,6 +48,10 @@ final case class GetUserInfoForSelfResponse(
     extraConfig: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY,
     expiresAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
     expiresExtension: _root_.scala.Predef.String = "",
+    workerUid: _root_.scala.Predef.String = "",
+    workerLabel: _root_.scala.Predef.String = "",
+    serverUid: _root_.scala.Predef.String = "",
+    serverLabel: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[GetUserInfoForSelfResponse] {
     @transient
@@ -98,6 +113,34 @@ final case class GetUserInfoForSelfResponse(
         val __value = expiresExtension
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(9, __value)
+        }
+      };
+      
+      {
+        val __value = workerUid
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(10, __value)
+        }
+      };
+      
+      {
+        val __value = workerLabel
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(11, __value)
+        }
+      };
+      
+      {
+        val __value = serverUid
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(12, __value)
+        }
+      };
+      
+      {
+        val __value = serverLabel
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(13, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -167,6 +210,30 @@ final case class GetUserInfoForSelfResponse(
           _output__.writeString(9, __v)
         }
       };
+      {
+        val __v = workerUid
+        if (!__v.isEmpty) {
+          _output__.writeString(10, __v)
+        }
+      };
+      {
+        val __v = workerLabel
+        if (!__v.isEmpty) {
+          _output__.writeString(11, __v)
+        }
+      };
+      {
+        val __v = serverUid
+        if (!__v.isEmpty) {
+          _output__.writeString(12, __v)
+        }
+      };
+      {
+        val __v = serverLabel
+        if (!__v.isEmpty) {
+          _output__.writeString(13, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withUserUid(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(userUid = __v)
@@ -183,6 +250,10 @@ final case class GetUserInfoForSelfResponse(
     def clearExpiresAt: GetUserInfoForSelfResponse = copy(expiresAt = _root_.scala.None)
     def withExpiresAt(__v: com.google.protobuf.timestamp.Timestamp): GetUserInfoForSelfResponse = copy(expiresAt = Option(__v))
     def withExpiresExtension(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(expiresExtension = __v)
+    def withWorkerUid(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(workerUid = __v)
+    def withWorkerLabel(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(workerLabel = __v)
+    def withServerUid(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(serverUid = __v)
+    def withServerLabel(__v: _root_.scala.Predef.String): GetUserInfoForSelfResponse = copy(serverLabel = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -217,6 +288,22 @@ final case class GetUserInfoForSelfResponse(
           val __t = expiresExtension
           if (__t != "") __t else null
         }
+        case 10 => {
+          val __t = workerUid
+          if (__t != "") __t else null
+        }
+        case 11 => {
+          val __t = workerLabel
+          if (__t != "") __t else null
+        }
+        case 12 => {
+          val __t = serverUid
+          if (__t != "") __t else null
+        }
+        case 13 => {
+          val __t = serverLabel
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -231,6 +318,10 @@ final case class GetUserInfoForSelfResponse(
         case 7 => _root_.scalapb.descriptors.PByteString(extraConfig)
         case 8 => expiresAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 9 => _root_.scalapb.descriptors.PString(expiresExtension)
+        case 10 => _root_.scalapb.descriptors.PString(workerUid)
+        case 11 => _root_.scalapb.descriptors.PString(workerLabel)
+        case 12 => _root_.scalapb.descriptors.PString(serverUid)
+        case 13 => _root_.scalapb.descriptors.PString(serverLabel)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -250,6 +341,10 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     var __extraConfig: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY
     var __expiresAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
     var __expiresExtension: _root_.scala.Predef.String = ""
+    var __workerUid: _root_.scala.Predef.String = ""
+    var __workerLabel: _root_.scala.Predef.String = ""
+    var __serverUid: _root_.scala.Predef.String = ""
+    var __serverLabel: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -274,6 +369,14 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
           __expiresAt = _root_.scala.Option(__expiresAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 74 =>
           __expiresExtension = _input__.readStringRequireUtf8()
+        case 82 =>
+          __workerUid = _input__.readStringRequireUtf8()
+        case 90 =>
+          __workerLabel = _input__.readStringRequireUtf8()
+        case 98 =>
+          __serverUid = _input__.readStringRequireUtf8()
+        case 106 =>
+          __serverLabel = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -291,6 +394,10 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
         extraConfig = __extraConfig,
         expiresAt = __expiresAt,
         expiresExtension = __expiresExtension,
+        workerUid = __workerUid,
+        workerLabel = __workerLabel,
+        serverUid = __serverUid,
+        serverLabel = __serverLabel,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -306,7 +413,11 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
         externalMaintainer = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         extraConfig = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY),
         expiresAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
-        expiresExtension = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        expiresExtension = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        workerLabel = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        serverUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        serverLabel = __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -331,7 +442,11 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     externalMaintainer = "",
     extraConfig = _root_.com.google.protobuf.ByteString.EMPTY,
     expiresAt = _root_.scala.None,
-    expiresExtension = ""
+    expiresExtension = "",
+    workerUid = "",
+    workerLabel = "",
+    serverUid = "",
+    serverLabel = ""
   )
   implicit class GetUserInfoForSelfResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse](_l) {
     def userUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.userUid)((c_, f_) => c_.copy(userUid = f_))
@@ -344,6 +459,10 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     def expiresAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getExpiresAt)((c_, f_) => c_.copy(expiresAt = _root_.scala.Option(f_)))
     def optionalExpiresAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.expiresAt)((c_, f_) => c_.copy(expiresAt = f_))
     def expiresExtension: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.expiresExtension)((c_, f_) => c_.copy(expiresExtension = f_))
+    def workerUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerUid)((c_, f_) => c_.copy(workerUid = f_))
+    def workerLabel: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerLabel)((c_, f_) => c_.copy(workerLabel = f_))
+    def serverUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.serverUid)((c_, f_) => c_.copy(serverUid = f_))
+    def serverLabel: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.serverLabel)((c_, f_) => c_.copy(serverLabel = f_))
   }
   final val USER_UID_FIELD_NUMBER = 1
   final val NAME_FIELD_NUMBER = 2
@@ -354,6 +473,10 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
   final val EXTRA_CONFIG_FIELD_NUMBER = 7
   final val EXPIRES_AT_FIELD_NUMBER = 8
   final val EXPIRES_EXTENSION_FIELD_NUMBER = 9
+  final val WORKER_UID_FIELD_NUMBER = 10
+  final val WORKER_LABEL_FIELD_NUMBER = 11
+  final val SERVER_UID_FIELD_NUMBER = 12
+  final val SERVER_LABEL_FIELD_NUMBER = 13
   def of(
     userUid: _root_.scala.Predef.String,
     name: _root_.scala.Predef.String,
@@ -363,7 +486,11 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     externalMaintainer: _root_.scala.Predef.String,
     extraConfig: _root_.com.google.protobuf.ByteString,
     expiresAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
-    expiresExtension: _root_.scala.Predef.String
+    expiresExtension: _root_.scala.Predef.String,
+    workerUid: _root_.scala.Predef.String,
+    workerLabel: _root_.scala.Predef.String,
+    serverUid: _root_.scala.Predef.String,
+    serverLabel: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse = _root_.a8.hermes.proto.auth.auth.GetUserInfoForSelfResponse(
     userUid,
     name,
@@ -373,7 +500,11 @@ object GetUserInfoForSelfResponse extends scalapb.GeneratedMessageCompanion[a8.h
     externalMaintainer,
     extraConfig,
     expiresAt,
-    expiresExtension
+    expiresExtension,
+    workerUid,
+    workerLabel,
+    serverUid,
+    serverLabel
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.GetUserInfoForSelfResponse])
 }

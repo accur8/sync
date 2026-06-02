@@ -13,8 +13,8 @@ package a8.hermes.proto.process.process_rpc
   *   Version of the process binary
   * @param startedAt
   *   When the process started
-  * @param uptime
-  *   Uptime in seconds
+  * @param uptimeDeprecated
+  *   DEPRECATED: Use start_time from metadata instead
   * @param currentLogLevel
   *   Current log level
   * @param health
@@ -30,7 +30,7 @@ final case class StatusResponse(
     serviceName: _root_.scala.Predef.String = "",
     version: _root_.scala.Predef.String = "",
     startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
-    uptime: _root_.scala.Long = 0L,
+    @scala.deprecated(message="Marked as deprecated in proto file", "") uptimeDeprecated: _root_.scala.Long = 0L,
     currentLogLevel: a8.hermes.proto.process.process_rpc.LogLevel = a8.hermes.proto.process.process_rpc.LogLevel.LOG_LEVEL_UNSPECIFIED,
     health: a8.hermes.proto.process.process_rpc.HealthStatus = a8.hermes.proto.process.process_rpc.HealthStatus.HEALTH_STATUS_UNSPECIFIED,
     metrics: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String] = _root_.scala.collection.immutable.Map.empty,
@@ -68,7 +68,7 @@ final case class StatusResponse(
       };
       
       {
-        val __value = uptime
+        val __value = uptimeDeprecated
         if (__value != 0L) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(5, __value)
         }
@@ -133,7 +133,7 @@ final case class StatusResponse(
         __m.writeTo(_output__)
       };
       {
-        val __v = uptime
+        val __v = uptimeDeprecated
         if (__v != 0L) {
           _output__.writeInt64(5, __v)
         }
@@ -170,7 +170,7 @@ final case class StatusResponse(
     def getStartedAt: com.google.protobuf.timestamp.Timestamp = startedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def clearStartedAt: StatusResponse = copy(startedAt = _root_.scala.None)
     def withStartedAt(__v: com.google.protobuf.timestamp.Timestamp): StatusResponse = copy(startedAt = Option(__v))
-    def withUptime(__v: _root_.scala.Long): StatusResponse = copy(uptime = __v)
+    def withUptimeDeprecated(__v: _root_.scala.Long): StatusResponse = copy(uptimeDeprecated = __v)
     def withCurrentLogLevel(__v: a8.hermes.proto.process.process_rpc.LogLevel): StatusResponse = copy(currentLogLevel = __v)
     def withHealth(__v: a8.hermes.proto.process.process_rpc.HealthStatus): StatusResponse = copy(health = __v)
     def clearMetrics = copy(metrics = _root_.scala.collection.immutable.Map.empty)
@@ -199,7 +199,7 @@ final case class StatusResponse(
         }
         case 4 => startedAt.orNull
         case 5 => {
-          val __t = uptime
+          val __t = uptimeDeprecated
           if (__t != 0L) __t else null
         }
         case 6 => {
@@ -221,7 +221,7 @@ final case class StatusResponse(
         case 2 => _root_.scalapb.descriptors.PString(serviceName)
         case 3 => _root_.scalapb.descriptors.PString(version)
         case 4 => startedAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-        case 5 => _root_.scalapb.descriptors.PLong(uptime)
+        case 5 => _root_.scalapb.descriptors.PLong(uptimeDeprecated)
         case 6 => _root_.scalapb.descriptors.PEnum(currentLogLevel.scalaValueDescriptor)
         case 7 => _root_.scalapb.descriptors.PEnum(health.scalaValueDescriptor)
         case 8 => _root_.scalapb.descriptors.PRepeated(metrics.iterator.map(a8.hermes.proto.process.process_rpc.StatusResponse._typemapper_metrics.toBase(_).toPMessage).toVector)
@@ -240,7 +240,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
     var __serviceName: _root_.scala.Predef.String = ""
     var __version: _root_.scala.Predef.String = ""
     var __startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
-    var __uptime: _root_.scala.Long = 0L
+    var __uptimeDeprecated: _root_.scala.Long = 0L
     var __currentLogLevel: a8.hermes.proto.process.process_rpc.LogLevel = a8.hermes.proto.process.process_rpc.LogLevel.LOG_LEVEL_UNSPECIFIED
     var __health: a8.hermes.proto.process.process_rpc.HealthStatus = a8.hermes.proto.process.process_rpc.HealthStatus.HEALTH_STATUS_UNSPECIFIED
     val __metrics: _root_.scala.collection.mutable.Builder[(_root_.scala.Predef.String, _root_.scala.Predef.String), _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = _root_.scala.collection.immutable.Map.newBuilder[_root_.scala.Predef.String, _root_.scala.Predef.String]
@@ -260,7 +260,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
         case 34 =>
           __startedAt = _root_.scala.Option(__startedAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 40 =>
-          __uptime = _input__.readInt64()
+          __uptimeDeprecated = _input__.readInt64()
         case 48 =>
           __currentLogLevel = a8.hermes.proto.process.process_rpc.LogLevel.fromValue(_input__.readEnum())
         case 56 =>
@@ -281,7 +281,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
         serviceName = __serviceName,
         version = __version,
         startedAt = __startedAt,
-        uptime = __uptime,
+        uptimeDeprecated = __uptimeDeprecated,
         currentLogLevel = __currentLogLevel,
         health = __health,
         metrics = __metrics.result(),
@@ -297,7 +297,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
         serviceName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         version = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         startedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
-        uptime = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
+        uptimeDeprecated = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
         currentLogLevel = a8.hermes.proto.process.process_rpc.LogLevel.fromValue(__fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scalapb.descriptors.EnumValueDescriptor]).getOrElse(a8.hermes.proto.process.process_rpc.LogLevel.LOG_LEVEL_UNSPECIFIED.scalaValueDescriptor).number),
         health = a8.hermes.proto.process.process_rpc.HealthStatus.fromValue(__fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scalapb.descriptors.EnumValueDescriptor]).getOrElse(a8.hermes.proto.process.process_rpc.HealthStatus.HEALTH_STATUS_UNSPECIFIED.scalaValueDescriptor).number),
         metrics = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.process.process_rpc.StatusResponse.MetricsEntry]]).getOrElse(_root_.scala.Seq.empty).iterator.map(a8.hermes.proto.process.process_rpc.StatusResponse._typemapper_metrics.toCustom(_)).toMap,
@@ -332,7 +332,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
     serviceName = "",
     version = "",
     startedAt = _root_.scala.None,
-    uptime = 0L,
+    uptimeDeprecated = 0L,
     currentLogLevel = a8.hermes.proto.process.process_rpc.LogLevel.LOG_LEVEL_UNSPECIFIED,
     health = a8.hermes.proto.process.process_rpc.HealthStatus.HEALTH_STATUS_UNSPECIFIED,
     metrics = _root_.scala.collection.immutable.Map.empty,
@@ -632,7 +632,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
     def version: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.version)((c_, f_) => c_.copy(version = f_))
     def startedAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getStartedAt)((c_, f_) => c_.copy(startedAt = _root_.scala.Option(f_)))
     def optionalStartedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.startedAt)((c_, f_) => c_.copy(startedAt = f_))
-    def uptime: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.uptime)((c_, f_) => c_.copy(uptime = f_))
+    def uptimeDeprecated: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.uptimeDeprecated)((c_, f_) => c_.copy(uptimeDeprecated = f_))
     def currentLogLevel: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.process_rpc.LogLevel] = field(_.currentLogLevel)((c_, f_) => c_.copy(currentLogLevel = f_))
     def health: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.process_rpc.HealthStatus] = field(_.health)((c_, f_) => c_.copy(health = f_))
     def metrics: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = field(_.metrics)((c_, f_) => c_.copy(metrics = f_))
@@ -642,7 +642,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
   final val SERVICE_NAME_FIELD_NUMBER = 2
   final val VERSION_FIELD_NUMBER = 3
   final val STARTED_AT_FIELD_NUMBER = 4
-  final val UPTIME_FIELD_NUMBER = 5
+  final val UPTIME_DEPRECATED_FIELD_NUMBER = 5
   final val CURRENT_LOG_LEVEL_FIELD_NUMBER = 6
   final val HEALTH_FIELD_NUMBER = 7
   final val METRICS_FIELD_NUMBER = 8
@@ -656,7 +656,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
     serviceName: _root_.scala.Predef.String,
     version: _root_.scala.Predef.String,
     startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
-    uptime: _root_.scala.Long,
+    uptimeDeprecated: _root_.scala.Long,
     currentLogLevel: a8.hermes.proto.process.process_rpc.LogLevel,
     health: a8.hermes.proto.process.process_rpc.HealthStatus,
     metrics: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String],
@@ -666,7 +666,7 @@ object StatusResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
     serviceName,
     version,
     startedAt,
-    uptime,
+    uptimeDeprecated,
     currentLogLevel,
     health,
     metrics,

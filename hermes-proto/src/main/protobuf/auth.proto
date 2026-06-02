@@ -10,16 +10,19 @@ option go_package = "accur8.io/godev/pkg/rpc/auth";
 
 // LoginBeginRequest initiates SSH-based authentication flow
 message LoginBeginRequest {
-  string ssh_public_key = 1;       // OpenSSH format public key
-  string origin = 2;                // user@host from CLI
-  string vpn_ip = 3;                // Optional VPN IP (172.24/172.25)
-  bool extend_existing_auth = 4;    // If true, extend existing token instead of creating new
+  string ssh_public_key = 1;            // OpenSSH format public key
+  string origin = 2;                     // user@host from CLI
+  string vpn_ip = 3;                     // Optional VPN IP (172.24/172.25)
+  bool extend_existing_auth = 4;         // If true, extend existing token instead of creating new
+  string requested_token_duration = 5;   // Optional: requested token duration (e.g., "2m", "15m", "1h")
 }
 
 // LoginBeginResponse contains challenge for SSH signature
 message LoginBeginResponse {
   string session_id = 1;  // UUID for this login session
   bytes nonce = 2;        // 32 random bytes to sign
+  bool no_token_to_extend = 3;  // True if extend_existing_auth was requested but token was cleared/missing
+  string no_token_reason = 4;   // Human-readable reason why token cannot be extended (e.g., "token was cleared", "never authenticated")
 }
 
 // LoginCompleteRequest submits SSH signature proof
@@ -97,7 +100,10 @@ message GetUserInfoForSelfRequest {
   // Empty - identity comes from auth token in RpcContext
 }
 
-// GetUserInfoForSelfResponse returns authenticated user's information
+// GetUserInfoForSelfResponse returns authenticated user's information.
+// The worker_* and server_* fields are populated only when the caller's
+// usergroup is bound to a worker row (worker rows); they
+// are empty for plain user logins.
 message GetUserInfoForSelfResponse {
   string user_uid = 1;                        // User UID
   string name = 2;                            // User name
@@ -108,12 +114,16 @@ message GetUserInfoForSelfResponse {
   bytes extra_config = 7;                     // Extra config as JSON
   google.protobuf.Timestamp expires_at = 8;   // When the auth token expires
   string expires_extension = 9;               // Extension duration (e.g., "1 hour")
+  string worker_uid = 10;                    // worker.uid (empty for plain user logins)
+  string worker_label = 11;                  // "<login>@<server.name>" (empty for plain user logins)
+  string server_uid = 12;                     // server.uid bound to the worker (empty for plain user logins)
+  string server_label = 13;                   // server.name (empty for plain user logins)
 }
 
 // ManageRoleOverrideRequest grants or denies a role for a user
 message ManageRoleOverrideRequest {
   string user_identifier = 1;  // Email address or user UID
-  string role = 2;              // Role name (e.g., "NefarioUsers")
+  string role = 2;              // Role name (e.g., "ContinuumUser")
   bool granted = 3;             // true = grant, false = deny
   string reason = 4;            // Reason for override
   string duration = 5;          // Optional: Go duration string (e.g., "24h", "168h")
@@ -141,26 +151,54 @@ message RemoveRoleOverrideResponse {
   string user_uid = 3;  // UID of the user affected
 }
 
-// ListRoleOverridesRequest lists role overrides
-message ListRoleOverridesRequest {
-  string user_identifier = 1;  // Optional: filter by email/UID (empty = all)
+// EndpointAuthInfo contains information about a single endpoint_auth record
+message EndpointAuthInfo {
+  string uid = 1;
+  string usergroup_uid = 2;      // Group UID (null for defaults)
+  string usergroup_name = 3;     // Group name
+  string usergroup_email = 4;    // Group email
+  string endpoint_pattern = 5;
+  bool granted = 6;
+  int32 priority = 7;
+  string reason = 8;
+  string created_at = 9;
+  string created_by = 10;
+  string expires_at = 11;
+  string updated_at = 12;        // Last update timestamp
+  string updated_by = 13;        // Who last updated this grant
+  string external_maintainer = 14; // Policy name (if managed by a policy)
+  string policy_uid = 15;        // Policy UID (if managed by a policy)
+  bytes extradata = 16;          // Additional metadata as JSON
 }
 
-// RoleOverrideInfo describes a single role override
-message RoleOverrideInfo {
-  string user_uid = 1;      // User UID
-  string user_email = 2;    // User email
-  string role = 3;          // Role name
-  bool granted = 4;         // true = grant, false = deny
-  string reason = 5;        // Reason for override
-  string created_at = 6;    // ISO 8601 timestamp
-  string created_by = 7;    // Creator's user UID
-  string expires_at = 8;    // ISO 8601 timestamp (empty if no expiration)
+// TestEndpointAccessRequest tests authorization for a user+endpoint
+message TestEndpointAccessRequest {
+  string user_identifier = 1;      // Email address or user UID
+  string endpoint_pattern = 2;     // Endpoint pattern to test (e.g., "auth.v2.GetUserInfo")
+  bool include_all_policies = 3;   // Include all evaluated policies (not just matched ones)
 }
 
-// ListRoleOverridesResponse returns list of overrides
-message ListRoleOverridesResponse {
-  repeated RoleOverrideInfo overrides = 1;
+// PolicyMatchInfo contains details about a policy evaluation
+message PolicyMatchInfo {
+  EndpointAuthInfo policy = 1;     // The policy record
+  bool matched = 2;                // Whether this policy matched the endpoint
+  int32 specificity = 3;           // Pattern match specificity score
+  bool selected = 4;               // Whether this was the winning policy
+}
+
+// TestEndpointAccessResponse returns authorization test results
+message TestEndpointAccessResponse {
+  bool allowed = 1;                         // Whether access is allowed
+  string reason = 2;                        // Explanation of the decision
+  string user_uid = 3;                      // Resolved user UID
+  string user_email = 4;                    // User email
+  string user_name = 5;                     // User display name
+  repeated string user_group_names = 6;     // User's group names (for display)
+  repeated string user_group_uids = 7;      // User's group UIDs (for filtering)
+  PolicyMatchInfo winning_policy = 8;       // The policy that made the final decision
+  repeated PolicyMatchInfo matched_policies = 9;   // All policies that matched
+  repeated PolicyMatchInfo evaluated_policies = 10; // All evaluated policies (if requested)
+  bool no_policy_matched = 11;              // True if no policy matched (fallback to deny)
 }
 
 // Auth service provides authentication and authorization
@@ -173,5 +211,124 @@ service Auth {
   rpc GetUserInfoForSelf(GetUserInfoForSelfRequest) returns (GetUserInfoForSelfResponse);
   rpc ManageRoleOverride(ManageRoleOverrideRequest) returns (ManageRoleOverrideResponse);
   rpc RemoveRoleOverride(RemoveRoleOverrideRequest) returns (RemoveRoleOverrideResponse);
-  rpc ListRoleOverrides(ListRoleOverridesRequest) returns (ListRoleOverridesResponse);
+  // ListRoleOverrides and ListAllEndpointAuth: types exist in auth.pb.go
+  // but were never written into this .proto. Drift to clean up separately;
+  // commenting out here lets the rest of the file regenerate.
+  // rpc ListRoleOverrides(ListRoleOverridesRequest) returns (ListRoleOverridesResponse);
+  // rpc ListAllEndpointAuth(ListAllEndpointAuthRequest) returns (ListAllEndpointAuthResponse);
+  rpc TestEndpointAccess(TestEndpointAccessRequest) returns (TestEndpointAccessResponse);
+  rpc UpsertPolicy(UpsertPolicyRequest) returns (UpsertPolicyResponse);
+  rpc ListPolicies(ListPoliciesRequest) returns (ListPoliciesResponse);
+  rpc ApplyPolicy(ApplyPolicyRequest) returns (ApplyPolicyResponse);
+}
+
+// SyncPoliciesRequest contains policy and group definitions to sync
+message SyncPoliciesRequest {
+  bool dry_run = 1;          // Preview changes without applying
+  bool verify_only = 2;      // Check for drift only
+  string policies_json = 3;  // JSON-serialized policy definitions
+  string groups_json = 4;    // JSON-serialized group definitions
+}
+
+// SyncPoliciesResponse returns results of policy sync operation
+message SyncPoliciesResponse {
+  bool success = 1;
+  string message = 2;
+  int32 groups_added = 3;
+  int32 groups_updated = 4;
+  int32 policies_added = 5;
+  int32 policies_updated = 6;
+  int32 policies_deleted = 7;
+  repeated string errors = 8;  // Error messages if any
+}
+
+// PolicyDefinition represents a single authorization policy
+message PolicyDefinition {
+  string usergroup_name = 1;     // Empty for default policies, else group name (natural key - resolved to UID at sync time)
+  string endpoint_pattern = 2;   // RPC endpoint pattern (e.g., "auth.v2.LoginBegin", "runner.v2.*")
+  bool granted = 3;              // true = allow, false = deny
+  int32 priority = 4;            // Higher priority wins conflicts
+  string reason = 5;             // Human-readable explanation
+  map<string, string> extra_data = 6;  // Optional metadata (use string values for JSON compatibility)
+}
+
+// GroupDefinition represents a user group
+message GroupDefinition {
+  string name = 1;         // Human-readable name (e.g., "ContinuumUser") - natural key, UID resolved at sync time
+  string description = 2;  // Group purpose/description
+}
+
+// TableAccessRule represents a table-level access control rule
+message TableAccessRule {
+  string usergroup_name = 1;           // Group name (resolved to UID at sync time), empty = default
+  string table_name = 2;              // Virtual table name from table_metadata
+  repeated string access_modes = 3;   // e.g., ["select-sql","fetch-data","insert-data"]
+  bool granted = 4;                   // true = allow, false = deny
+  int32 priority = 5;                 // Higher priority wins conflicts
+  string reason = 6;                  // Human-readable explanation
+  string row_filter = 7;              // Optional SQL expr AND'd into SELECT/UPDATE; supports queryvar.useruid placeholder
+}
+
+// Policy represents a complete policy with groups and grants
+message Policy {
+  string name = 1;                         // Policy name (e.g., "godev", "acme-corp")
+  string version = 2;                      // Semantic version or generation ID
+  string description = 3;                  // Policy description
+  repeated GroupDefinition groups = 4;     // Groups to create/update
+  repeated PolicyDefinition policies = 5;  // Policies to sync
+  map<string, string> metadata = 6;        // Additional metadata
+  repeated TableAccessRule table_access = 7; // Table-level access rules to sync
+}
+
+// PolicyInfo is the database-stored representation
+message PolicyInfo {
+  string uid = 1;              // Primary key
+  string name = 2;             // Policy name (used as external_maintainer)
+  Policy policy = 3;           // The actual policy
+  string created_at = 4;       // ISO-8601 timestamp
+  string created_by = 5;       // Creator identifier
+  string updated_at = 6;       // ISO-8601 timestamp
+  string updated_by = 7;       // Updater identifier
+  bool active = 8;             // Whether this policy is active
+}
+
+// UpsertPolicyRequest stores a policy definition
+message UpsertPolicyRequest {
+  Policy policy = 1;           // The policy to store
+  string created_by = 2;       // Who is creating/updating this
+}
+
+// UpsertPolicyResponse confirms storage
+message UpsertPolicyResponse {
+  bool success = 1;
+  string message = 2;
+  string policy_uid = 3;       // UID of stored policy
+}
+
+// ListPoliciesRequest lists stored policies
+message ListPoliciesRequest {
+  bool active_only = 1;        // Filter to only active policies
+}
+
+// ListPoliciesResponse returns stored policies
+message ListPoliciesResponse {
+  repeated PolicyInfo policies = 1;
+}
+
+// ApplyPolicyRequest applies a stored policy
+message ApplyPolicyRequest {
+  string policy_name = 1;      // Name of policy to apply
+  bool dry_run = 2;            // Preview without applying
+}
+
+// ApplyPolicyResponse returns results of applying a policy
+message ApplyPolicyResponse {
+  bool success = 1;
+  string message = 2;
+  int32 groups_added = 3;
+  int32 groups_updated = 4;
+  int32 policies_added = 5;
+  int32 policies_updated = 6;
+  int32 policies_deleted = 7;
+  repeated string errors = 8;
 }

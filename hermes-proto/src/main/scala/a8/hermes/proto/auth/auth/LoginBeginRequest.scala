@@ -15,6 +15,8 @@ package a8.hermes.proto.auth.auth
   *   Optional VPN IP (172.24/172.25)
   * @param extendExistingAuth
   *   If true, extend existing token instead of creating new
+  * @param requestedTokenDuration
+  *   Optional: requested token duration (e.g., "2m", "15m", "1h")
   */
 @SerialVersionUID(0L)
 final case class LoginBeginRequest(
@@ -22,6 +24,7 @@ final case class LoginBeginRequest(
     origin: _root_.scala.Predef.String = "",
     vpnIp: _root_.scala.Predef.String = "",
     extendExistingAuth: _root_.scala.Boolean = false,
+    requestedTokenDuration: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[LoginBeginRequest] {
     @transient
@@ -54,6 +57,13 @@ final case class LoginBeginRequest(
         val __value = extendExistingAuth
         if (__value != false) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(4, __value)
+        }
+      };
+      
+      {
+        val __value = requestedTokenDuration
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -93,12 +103,19 @@ final case class LoginBeginRequest(
           _output__.writeBool(4, __v)
         }
       };
+      {
+        val __v = requestedTokenDuration
+        if (!__v.isEmpty) {
+          _output__.writeString(5, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withSshPublicKey(__v: _root_.scala.Predef.String): LoginBeginRequest = copy(sshPublicKey = __v)
     def withOrigin(__v: _root_.scala.Predef.String): LoginBeginRequest = copy(origin = __v)
     def withVpnIp(__v: _root_.scala.Predef.String): LoginBeginRequest = copy(vpnIp = __v)
     def withExtendExistingAuth(__v: _root_.scala.Boolean): LoginBeginRequest = copy(extendExistingAuth = __v)
+    def withRequestedTokenDuration(__v: _root_.scala.Predef.String): LoginBeginRequest = copy(requestedTokenDuration = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -119,6 +136,10 @@ final case class LoginBeginRequest(
           val __t = extendExistingAuth
           if (__t != false) __t else null
         }
+        case 5 => {
+          val __t = requestedTokenDuration
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -128,6 +149,7 @@ final case class LoginBeginRequest(
         case 2 => _root_.scalapb.descriptors.PString(origin)
         case 3 => _root_.scalapb.descriptors.PString(vpnIp)
         case 4 => _root_.scalapb.descriptors.PBoolean(extendExistingAuth)
+        case 5 => _root_.scalapb.descriptors.PString(requestedTokenDuration)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -142,6 +164,7 @@ object LoginBeginRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     var __origin: _root_.scala.Predef.String = ""
     var __vpnIp: _root_.scala.Predef.String = ""
     var __extendExistingAuth: _root_.scala.Boolean = false
+    var __requestedTokenDuration: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -156,6 +179,8 @@ object LoginBeginRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
           __vpnIp = _input__.readStringRequireUtf8()
         case 32 =>
           __extendExistingAuth = _input__.readBool()
+        case 42 =>
+          __requestedTokenDuration = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -168,6 +193,7 @@ object LoginBeginRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
         origin = __origin,
         vpnIp = __vpnIp,
         extendExistingAuth = __extendExistingAuth,
+        requestedTokenDuration = __requestedTokenDuration,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -178,7 +204,8 @@ object LoginBeginRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
         sshPublicKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         origin = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         vpnIp = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        extendExistingAuth = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+        extendExistingAuth = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        requestedTokenDuration = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -191,28 +218,33 @@ object LoginBeginRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     sshPublicKey = "",
     origin = "",
     vpnIp = "",
-    extendExistingAuth = false
+    extendExistingAuth = false,
+    requestedTokenDuration = ""
   )
   implicit class LoginBeginRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.LoginBeginRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.LoginBeginRequest](_l) {
     def sshPublicKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.sshPublicKey)((c_, f_) => c_.copy(sshPublicKey = f_))
     def origin: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.origin)((c_, f_) => c_.copy(origin = f_))
     def vpnIp: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.vpnIp)((c_, f_) => c_.copy(vpnIp = f_))
     def extendExistingAuth: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.extendExistingAuth)((c_, f_) => c_.copy(extendExistingAuth = f_))
+    def requestedTokenDuration: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.requestedTokenDuration)((c_, f_) => c_.copy(requestedTokenDuration = f_))
   }
   final val SSH_PUBLIC_KEY_FIELD_NUMBER = 1
   final val ORIGIN_FIELD_NUMBER = 2
   final val VPN_IP_FIELD_NUMBER = 3
   final val EXTEND_EXISTING_AUTH_FIELD_NUMBER = 4
+  final val REQUESTED_TOKEN_DURATION_FIELD_NUMBER = 5
   def of(
     sshPublicKey: _root_.scala.Predef.String,
     origin: _root_.scala.Predef.String,
     vpnIp: _root_.scala.Predef.String,
-    extendExistingAuth: _root_.scala.Boolean
+    extendExistingAuth: _root_.scala.Boolean,
+    requestedTokenDuration: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.auth.auth.LoginBeginRequest = _root_.a8.hermes.proto.auth.auth.LoginBeginRequest(
     sshPublicKey,
     origin,
     vpnIp,
-    extendExistingAuth
+    extendExistingAuth,
+    requestedTokenDuration
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.LoginBeginRequest])
 }

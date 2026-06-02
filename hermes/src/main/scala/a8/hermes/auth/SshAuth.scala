@@ -64,7 +64,7 @@ object SshAuth extends Logging {
 
       val loginBeginResponse = rpcClient.callTyped[LoginBeginRequest, LoginBeginResponse](
         targetMailbox = config.authServiceMailbox,
-        endpoint = "auth.v2.LoginBegin",
+        endpoint = "auth.LoginBegin",
         request = loginBeginRequest,
         timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
       )(using ctx, summon).getOrElse {
@@ -90,7 +90,7 @@ object SshAuth extends Logging {
 
       val loginCompleteResponse = rpcClient.callTyped[LoginCompleteRequest, LoginCompleteResponse](
         targetMailbox = config.authServiceMailbox,
-        endpoint = "auth.v2.LoginComplete",
+        endpoint = "auth.LoginComplete",
         request = loginCompleteRequest,
         timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
       )(using ctx, summon).getOrElse {
@@ -134,7 +134,7 @@ object SshAuth extends Logging {
   /**
    * Sign nonce using ssh-keygen subprocess
    *
-   * Command: echo -n <nonce_base64> | ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n nefario
+   * Command: echo -n <nonce_base64> | ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n continuum
    */
   private def signNonce(nonce: Array[Byte], privateKeyPath: String): Array[Byte] = {
     val expanded = expandHome(privateKeyPath)

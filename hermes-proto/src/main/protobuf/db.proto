@@ -11,19 +11,29 @@ import "google/protobuf/struct.proto";
 // Core CRUD Operations
 // ============================================================================
 
-// QueryRequest executes a SELECT query with parameters
+// QueryRequest executes a SQL SELECT query through the ACL firewall.
+// The SQL is parsed, access-checked per table, has row-level filters injected,
+// and function calls validated before execution.
 message QueryRequest {
-  string table_name = 1;                        // Target table (schema.table or just table)
-  repeated string columns = 2;                  // Columns to select (empty = all)
-  string where_clause = 3;                      // WHERE clause string (e.g., "name LIKE 'devops.%' AND enabled = true")
-  repeated string order_by = 4;                 // ORDER BY clauses (e.g., ["name ASC", "created_at DESC"])
-  int32 limit = 5;                              // LIMIT (0 = no limit)
-  int32 offset = 6;                             // OFFSET
+  string sql = 1;                                 // Full SELECT statement
+  string run_as_user = 2;                         // Run as this user (name, email, or UID). Requires ContinuumAdmin.
+  bool no_transform = 3;                          // Skip ACL transforms, execute SQL directly. Requires ContinuumAdmin.
 }
 
 message QueryResponse {
   repeated google.protobuf.Struct rows = 1;    // Result rows as JSON objects
   int32 row_count = 2;                          // Number of rows returned
+  string transformed_sql = 3;                   // SQL after firewall transformation
+  repeated QueryColumnMetadata columns = 4;    // Column metadata from result set
+}
+
+message QueryColumnMetadata {
+  string name = 1;           // Lowercased column name for lookups
+  string label = 6;          // Original-case column name for display
+  string sql_type = 2;
+  bool nullable = 3;
+  int32 data_type_size = 4;
+  int32 type_modifier = 5;
 }
 
 // FetchRequest fetches a single row by primary key
@@ -77,6 +87,167 @@ message DeleteResponse {
   bool success = 1;
   int32 rows_affected = 2;                      // Number of rows deleted
   SqlError error = 3;                           // Error details if success=false
+}
+
+// UpsertRequest performs a lookup-then-insert-or-update
+message UpsertRequest {
+  string table_name = 1;                        // Target table
+  repeated string key_columns = 2;              // Columns forming the lookup key
+  google.protobuf.Struct values = 3;           // All column values (keys + data)
+  bool return_row = 4;                          // Return resulting row
+}
+
+message UpsertResponse {
+  bool success = 1;
+  bool inserted = 2;                            // true = inserted, false = updated
+  google.protobuf.Struct row = 3;              // Resulting row (if return_row=true)
+  SqlError error = 4;                           // Error details if success=false
+}
+
+// ============================================================================
+// Explain / Debug
+// ============================================================================
+
+// ExplainRequest analyzes how a query would be transformed by the ACL without executing it.
+message ExplainRequest {
+  string sql = 1;          // The SQL to analyze
+  string user_uid = 2;     // Simulate as this user UID (empty = use caller's identity)
+  string user_name = 3;    // Or resolve by name/email (takes precedence over user_uid if both set)
+}
+
+message ExplainResponse {
+  string original_sql = 1;
+  string transformed_sql = 2;
+  string error = 3;                           // If transformation failed
+  repeated ExplainTable tables = 4;           // Per-table breakdown
+  string resolved_user_uid = 5;               // The resolved user UID used for ACL evaluation
+  string resolved_user_name = 6;              // The resolved user's display name
+  repeated ExplainUserGroup user_groups = 7;  // Groups the resolved user belongs to
+}
+
+message ExplainUserGroup {
+  string uid = 1;
+  string name = 2;
+}
+
+message ExplainTable {
+  string input_name = 1;                      // What the user wrote (e.g., "schedule")
+  string resolved_schema = 2;                 // Physical schema (e.g., "continuum")
+  string resolved_table = 3;                  // Physical table name
+  bool access_granted = 4;
+  string where_filter = 5;                    // Composed WHERE filter SQL
+  repeated ExplainAccessRule all_rules = 6;   // All candidate rules
+  repeated ExplainAccessRule matched_rules = 7; // Rules that matched this user
+  repeated string generated_fields = 8;       // Fields that would be auto-set
+  repeated string calculated_fields = 9;      // Fields injected into SELECT *
+  ExplainTableMetadata table_metadata = 10;   // Full table_metadata row details
+  repeated ExplainAutoJoin available_joins = 11; // All auto-joins defined for this table
+  repeated string triggered_join_names = 12;  // Joins actually injected by the transform
+  repeated ExplainFieldRule field_rules = 13; // Full field rule details
+}
+
+message ExplainTableMetadata {
+  string uid = 1;
+  string table_name = 2;
+  string actual_table_name = 3;               // Empty if same as table_name
+  string schema_name = 4;
+  string description = 5;
+  reserved 6, 7, 8;
+  repeated string primary_keys = 9;
+}
+
+message ExplainAutoJoin {
+  string join_name = 1;
+  string to_table = 2;
+  string join_expression = 3;
+  string join_type = 4;                       // "INNER", "LEFT", etc.
+  bool triggered = 5;                         // Whether this join was injected by the transform
+  string from_table = 6;                      // Table this join originates from
+}
+
+message ExplainFieldRule {
+  string uid = 1;
+  string column_name = 2;
+  string field_kind = 3;                      // "generated" or "calculated"
+  repeated string access_modes = 4;
+  string generate_mode = 5;                   // "always" or "if-not-provided"
+  string expression = 6;                      // Raw generate expression
+  string select_expression = 7;              // Raw SELECT expression (for calculated)
+  bool include_in_star = 8;
+  int32 priority = 9;
+}
+
+message ExplainAccessRule {
+  string uid = 1;
+  string usergroup_uid = 2;
+  repeated string access_modes = 3;
+  bool granted = 4;
+  int32 priority = 5;
+  string row_filter = 6;
+  string reason = 7;
+  string usergroup_name = 8;                  // Resolved group name
+  string policy_uid = 9;                      // Policy that created this rule
+  bool filter_only = 10;                      // Rule only injects row filter, does not grant table access
+}
+
+// ============================================================================
+// Pretty Print
+// ============================================================================
+
+// PrettyPrintRequest formats a SQL statement via pg_format (pgformatter).
+// Pure formatting; no ACL, no execution. All formatting fields are optional —
+// unset/zero means "use pg_format defaults".
+message PrettyPrintRequest {
+  string sql = 1;
+
+  // Indentation
+  optional int32 spaces = 2;             // -s; pg_format default: 4
+  bool tabs = 3;                         // -T; use tabs instead of spaces
+
+  // Wrapping
+  optional int32 wrap_limit = 4;         // -w; wrap queries at this column
+  optional int32 wrap_after = 5;         // -W; wrap list items after N columns (default: one per line)
+  bool wrap_comment = 6;                 // -C; reformat comments under wrap_limit
+
+  // Comma placement
+  CommaPlacement comma_placement = 7;    // -b / -e
+  bool comma_break = 8;                  // -B; newline after each comma in INSERT
+
+  // Casing (default 0 = use pg_format default)
+  CaseFolding keyword_case = 9;          // -u; pg_format default: uppercase
+  CaseFolding function_case = 10;        // -f; pg_format default: unchanged
+  CaseFolding type_case = 11;            // -U; pg_format default: lowercase
+
+  // Misc
+  bool no_comment = 12;                  // -n; strip all comments
+  bool no_grouping = 13;                 // -g; newline between transaction-grouped statements
+  bool no_extra_line = 14;               // -L; suppress trailing empty line
+  bool keep_newline = 15;                // -k; preserve empty lines in plpgsql
+  bool anonymize = 16;                   // -a; obscure literals
+  bool redundant_parenthesis = 17;       // --redundant-parenthesis
+  bool no_space_function = 18;           // --no-space-function
+  bool format_type = 19;                 // -t; alternative formatting for some statements
+}
+
+// CaseFolding controls how identifiers are cased. 0 means "leave to pg_format default".
+enum CaseFolding {
+  CASE_FOLDING_DEFAULT = 0;
+  CASE_FOLDING_UNCHANGED = 1;
+  CASE_FOLDING_LOWERCASE = 2;
+  CASE_FOLDING_UPPERCASE = 3;
+  CASE_FOLDING_CAPITALIZE = 4;
+}
+
+// CommaPlacement controls comma placement in parameter lists.
+enum CommaPlacement {
+  COMMA_PLACEMENT_DEFAULT = 0;   // pg_format default (end)
+  COMMA_PLACEMENT_END = 1;       // -e
+  COMMA_PLACEMENT_START = 2;     // -b
+}
+
+message PrettyPrintResponse {
+  string formatted_sql = 1;
+  string error = 2;        // Set on failure; formatted_sql empty
 }
 
 // ============================================================================

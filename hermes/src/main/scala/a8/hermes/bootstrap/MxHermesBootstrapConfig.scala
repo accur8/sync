@@ -89,6 +89,7 @@ object MxHermesBootstrapConfig {
           .addField(_.sshKeyPath)
           .addField(_.authServiceMailbox)
           .addField(_.namedMailboxes)
+          .addField(_.namingEnvironment)
           .addField(_.discoverySubject)
           .addField(_.autoRenewAuth)
       )
@@ -100,7 +101,7 @@ object MxHermesBootstrapConfig {
     
     
     lazy val generator: Generator[HermesBootstrapConfig,parameters.type] =  {
-      val constructors = Constructors[HermesBootstrapConfig](6, unsafe.iterRawConstruct)
+      val constructors = Constructors[HermesBootstrapConfig](7, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -109,8 +110,9 @@ object MxHermesBootstrapConfig {
       lazy val sshKeyPath: CaseClassParm[HermesBootstrapConfig,Option[String]] = CaseClassParm[HermesBootstrapConfig,Option[String]]("sshKeyPath", _.sshKeyPath, (d,v) => d.copy(sshKeyPath = v), Some(()=> None), 1)
       lazy val authServiceMailbox: CaseClassParm[HermesBootstrapConfig,Option[String]] = CaseClassParm[HermesBootstrapConfig,Option[String]]("authServiceMailbox", _.authServiceMailbox, (d,v) => d.copy(authServiceMailbox = v), Some(()=> None), 2)
       lazy val namedMailboxes: CaseClassParm[HermesBootstrapConfig,Map[String,String]] = CaseClassParm[HermesBootstrapConfig,Map[String,String]]("namedMailboxes", _.namedMailboxes, (d,v) => d.copy(namedMailboxes = v), Some(()=> Map.empty), 3)
-      lazy val discoverySubject: CaseClassParm[HermesBootstrapConfig,String] = CaseClassParm[HermesBootstrapConfig,String]("discoverySubject", _.discoverySubject, (d,v) => d.copy(discoverySubject = v), Some(()=> "nefario.discovery"), 4)
-      lazy val autoRenewAuth: CaseClassParm[HermesBootstrapConfig,Boolean] = CaseClassParm[HermesBootstrapConfig,Boolean]("autoRenewAuth", _.autoRenewAuth, (d,v) => d.copy(autoRenewAuth = v), Some(()=> true), 5)
+      lazy val namingEnvironment: CaseClassParm[HermesBootstrapConfig,Option[String]] = CaseClassParm[HermesBootstrapConfig,Option[String]]("namingEnvironment", _.namingEnvironment, (d,v) => d.copy(namingEnvironment = v), Some(()=> None), 4)
+      lazy val discoverySubject: CaseClassParm[HermesBootstrapConfig,String] = CaseClassParm[HermesBootstrapConfig,String]("discoverySubject", _.discoverySubject, (d,v) => d.copy(discoverySubject = v), Some(()=> "continuum.discovery"), 5)
+      lazy val autoRenewAuth: CaseClassParm[HermesBootstrapConfig,Boolean] = CaseClassParm[HermesBootstrapConfig,Boolean]("autoRenewAuth", _.autoRenewAuth, (d,v) => d.copy(autoRenewAuth = v), Some(()=> true), 6)
     }
     
     
@@ -122,8 +124,9 @@ object MxHermesBootstrapConfig {
           sshKeyPath = values(1).asInstanceOf[Option[String]],
           authServiceMailbox = values(2).asInstanceOf[Option[String]],
           namedMailboxes = values(3).asInstanceOf[Map[String,String]],
-          discoverySubject = values(4).asInstanceOf[String],
-          autoRenewAuth = values(5).asInstanceOf[Boolean],
+          namingEnvironment = values(4).asInstanceOf[Option[String]],
+          discoverySubject = values(5).asInstanceOf[String],
+          autoRenewAuth = values(6).asInstanceOf[Boolean],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): HermesBootstrapConfig = {
@@ -133,6 +136,7 @@ object MxHermesBootstrapConfig {
             sshKeyPath = values.next().asInstanceOf[Option[String]],
             authServiceMailbox = values.next().asInstanceOf[Option[String]],
             namedMailboxes = values.next().asInstanceOf[Map[String,String]],
+            namingEnvironment = values.next().asInstanceOf[Option[String]],
             discoverySubject = values.next().asInstanceOf[String],
             autoRenewAuth = values.next().asInstanceOf[Boolean],
           )
@@ -140,8 +144,8 @@ object MxHermesBootstrapConfig {
            sys.error("")
         value
       }
-      def typedConstruct(natsUrl: String, sshKeyPath: Option[String], authServiceMailbox: Option[String], namedMailboxes: Map[String,String], discoverySubject: String, autoRenewAuth: Boolean): HermesBootstrapConfig =
-        HermesBootstrapConfig(natsUrl, sshKeyPath, authServiceMailbox, namedMailboxes, discoverySubject, autoRenewAuth)
+      def typedConstruct(natsUrl: String, sshKeyPath: Option[String], authServiceMailbox: Option[String], namedMailboxes: Map[String,String], namingEnvironment: Option[String], discoverySubject: String, autoRenewAuth: Boolean): HermesBootstrapConfig =
+        HermesBootstrapConfig(natsUrl, sshKeyPath, authServiceMailbox, namedMailboxes, namingEnvironment, discoverySubject, autoRenewAuth)
     
     }
     

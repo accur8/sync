@@ -11,11 +11,17 @@ package a8.hermes.proto.auth.auth
   *   UUID for this login session
   * @param nonce
   *   32 random bytes to sign
+  * @param noTokenToExtend
+  *   True if extend_existing_auth was requested but token was cleared/missing
+  * @param noTokenReason
+  *   Human-readable reason why token cannot be extended (e.g., "token was cleared", "never authenticated")
   */
 @SerialVersionUID(0L)
 final case class LoginBeginResponse(
     sessionId: _root_.scala.Predef.String = "",
     nonce: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY,
+    noTokenToExtend: _root_.scala.Boolean = false,
+    noTokenReason: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[LoginBeginResponse] {
     @transient
@@ -34,6 +40,20 @@ final case class LoginBeginResponse(
         val __value = nonce
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeBytesSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = noTokenToExtend
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(3, __value)
+        }
+      };
+      
+      {
+        val __value = noTokenReason
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -61,10 +81,24 @@ final case class LoginBeginResponse(
           _output__.writeBytes(2, __v)
         }
       };
+      {
+        val __v = noTokenToExtend
+        if (__v != false) {
+          _output__.writeBool(3, __v)
+        }
+      };
+      {
+        val __v = noTokenReason
+        if (!__v.isEmpty) {
+          _output__.writeString(4, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withSessionId(__v: _root_.scala.Predef.String): LoginBeginResponse = copy(sessionId = __v)
     def withNonce(__v: _root_.com.google.protobuf.ByteString): LoginBeginResponse = copy(nonce = __v)
+    def withNoTokenToExtend(__v: _root_.scala.Boolean): LoginBeginResponse = copy(noTokenToExtend = __v)
+    def withNoTokenReason(__v: _root_.scala.Predef.String): LoginBeginResponse = copy(noTokenReason = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -77,6 +111,14 @@ final case class LoginBeginResponse(
           val __t = nonce
           if (__t != _root_.com.google.protobuf.ByteString.EMPTY) __t else null
         }
+        case 3 => {
+          val __t = noTokenToExtend
+          if (__t != false) __t else null
+        }
+        case 4 => {
+          val __t = noTokenReason
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -84,6 +126,8 @@ final case class LoginBeginResponse(
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(sessionId)
         case 2 => _root_.scalapb.descriptors.PByteString(nonce)
+        case 3 => _root_.scalapb.descriptors.PBoolean(noTokenToExtend)
+        case 4 => _root_.scalapb.descriptors.PString(noTokenReason)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -96,6 +140,8 @@ object LoginBeginResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
   def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.auth.auth.LoginBeginResponse = {
     var __sessionId: _root_.scala.Predef.String = ""
     var __nonce: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY
+    var __noTokenToExtend: _root_.scala.Boolean = false
+    var __noTokenReason: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -106,6 +152,10 @@ object LoginBeginResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
           __sessionId = _input__.readStringRequireUtf8()
         case 18 =>
           __nonce = _input__.readBytes()
+        case 24 =>
+          __noTokenToExtend = _input__.readBool()
+        case 34 =>
+          __noTokenReason = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -116,6 +166,8 @@ object LoginBeginResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
     a8.hermes.proto.auth.auth.LoginBeginResponse(
         sessionId = __sessionId,
         nonce = __nonce,
+        noTokenToExtend = __noTokenToExtend,
+        noTokenReason = __noTokenReason,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -124,7 +176,9 @@ object LoginBeginResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.auth.auth.LoginBeginResponse(
         sessionId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        nonce = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY)
+        nonce = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY),
+        noTokenToExtend = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        noTokenReason = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -135,20 +189,30 @@ object LoginBeginResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = a8.hermes.proto.auth.auth.LoginBeginResponse(
     sessionId = "",
-    nonce = _root_.com.google.protobuf.ByteString.EMPTY
+    nonce = _root_.com.google.protobuf.ByteString.EMPTY,
+    noTokenToExtend = false,
+    noTokenReason = ""
   )
   implicit class LoginBeginResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.LoginBeginResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.LoginBeginResponse](_l) {
     def sessionId: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.sessionId)((c_, f_) => c_.copy(sessionId = f_))
     def nonce: _root_.scalapb.lenses.Lens[UpperPB, _root_.com.google.protobuf.ByteString] = field(_.nonce)((c_, f_) => c_.copy(nonce = f_))
+    def noTokenToExtend: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.noTokenToExtend)((c_, f_) => c_.copy(noTokenToExtend = f_))
+    def noTokenReason: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.noTokenReason)((c_, f_) => c_.copy(noTokenReason = f_))
   }
   final val SESSION_ID_FIELD_NUMBER = 1
   final val NONCE_FIELD_NUMBER = 2
+  final val NO_TOKEN_TO_EXTEND_FIELD_NUMBER = 3
+  final val NO_TOKEN_REASON_FIELD_NUMBER = 4
   def of(
     sessionId: _root_.scala.Predef.String,
-    nonce: _root_.com.google.protobuf.ByteString
+    nonce: _root_.com.google.protobuf.ByteString,
+    noTokenToExtend: _root_.scala.Boolean,
+    noTokenReason: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.auth.auth.LoginBeginResponse = _root_.a8.hermes.proto.auth.auth.LoginBeginResponse(
     sessionId,
-    nonce
+    nonce,
+    noTokenToExtend,
+    noTokenReason
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.LoginBeginResponse])
 }

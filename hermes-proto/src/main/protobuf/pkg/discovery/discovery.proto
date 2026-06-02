@@ -1,0 +1,208 @@
+syntax = "proto3";
+
+package discovery;
+option java_package = "a8.hermes.proto.discovery";
+option java_multiple_files = true;
+
+option go_package = "accur8.io/godev/pkg/discovery/proto";
+
+// SerializationFormat defines how RPC messages are encoded
+enum SerializationFormat {
+  SERIALIZATION_FORMAT_UNSPECIFIED = 0;
+  SERIALIZATION_FORMAT_JSON = 1;
+  SERIALIZATION_FORMAT_PROTOBUF = 2;
+}
+
+// RpcMethod represents a single method within an RPC schema
+message RpcMethod {
+  // Method name (e.g., "Ping", "Shutdown", "GetStatus")
+  string name = 1;
+
+  // Supported serialization formats for this method
+  // If empty, inherits from schema-level formats
+  repeated SerializationFormat formats = 2;
+
+  // Optional: fully qualified request message type (e.g., "process.v1.ShutdownRequest")
+  string request_type = 3;
+
+  // Optional: fully qualified response message type (e.g., "process.v1.ShutdownResponse")
+  string response_type = 4;
+
+  // Optional: method documentation or description
+  string description = 5;
+}
+
+// RpcSchema represents a versioned collection of RPC methods
+message RpcSchema {
+  // Schema name (e.g., "process.v1", "scheduler.v1")
+  string name = 1;
+
+  // Methods available in this schema
+  repeated RpcMethod methods = 2;
+
+  // Default serialization formats supported by all methods in this schema
+  // Individual methods can override this with their own formats list
+  repeated SerializationFormat default_formats = 3;
+
+  // Optional: schema version for future evolution
+  int32 schema_version = 4;
+
+  // Optional: schema documentation
+  string description = 5;
+}
+
+// ProcessCapabilities describes what a process can do
+// This is the protobuf representation of the capabilities
+message ProcessCapabilities {
+  // RPC schemas implemented by this process
+  repeated RpcSchema schemas = 1;
+
+  // Location where this process is running
+  ProcessLocation location = 2;
+
+  // Enabled engines/components (for services like Hermes)
+  repeated string engines = 3;
+}
+
+// ProcessLocation describes where a process is running
+message ProcessLocation {
+  // Server hostname
+  string server = 1;
+
+  // User the process runs as
+  string user = 2;
+
+  // Non-localhost IPv4 addresses
+  repeated string ip_addresses = 3;
+}
+
+// DiscoveryResponse contains complete process discovery information.
+// This message is embedded in continuum_rpc.ProcessStartedRequest (field 19)
+// for single-path process registration with the registry.
+// It's also used by process.v1.Describe RPC for ad-hoc queries.
+message DiscoveryResponse {
+  // RequestID from the DiscoveryRequest that triggered this response
+  string request_id = 1;
+
+  // ProcessUid uniquely identifies this process instance (ULID/UUID)
+  string process_uid = 2;
+
+  // Unix process ID
+  int32 unix_pid = 3;
+
+  // AppName is the application name (e.g., "worker", "hermes")
+  string app_name = 4;
+
+  // MailboxAddress for sending messages to this process
+  string mailbox_address = 5;
+
+  // ServiceName identifies the type of service
+  string service_name = 6;
+
+  // CodebaseName identifies which codebase/repository this process was built from
+  // MANDATORY field (e.g., "godev", "continuum")
+  string codebase_name = 7;
+
+  // Timestamp when the response was created (Unix epoch milliseconds)
+  int64 timestamp = 8;
+
+  // Capabilities with rich schema information
+  ProcessCapabilities capabilities = 9;
+
+  // Essential process metadata
+  map<string, string> metadata = 10;
+
+  // Extended build metadata (when requested)
+  // Always includes "programming_language" key (e.g., "go", "scala")
+  // Also includes: build_timestamp, build_machine, build_user, etc.
+  map<string, string> extended_metadata = 11;
+
+  // Service discovery mapping
+  map<string, string> service_discovery_mapping = 12;
+}
+
+// DiscoveryQuery contains filters for finding processes
+message DiscoveryQuery {
+  // Filter by RPC schema names
+  repeated string implements_rpc = 1;
+
+  // Filter by app name (supports wildcards)
+  string app_name = 2;
+
+  // Filter by service name (supports wildcards)
+  string service_name = 3;
+
+  // Filter by location
+  LocationQuery location = 4;
+
+  // Request extended metadata in responses
+  bool include_extended_metadata = 5;
+
+  // Request detailed schema information (methods, formats)
+  // When false, only schema names are returned for efficiency
+  bool include_schema_details = 6;
+}
+
+// LocationQuery filters by deployment location
+message LocationQuery {
+  string server = 1;
+  string user = 2;
+  string user_server = 3;
+}
+
+// DiscoveryRequest for finding processes via NATS broadcast.
+// Used only by process.v1.Describe RPC for ad-hoc queries, not for registry startup.
+// Registry recovery now uses database query instead of discovery broadcast.
+message DiscoveryRequest {
+  string request_id = 1;
+  string reply_suffix = 2;
+  int64 timestamp = 3;
+  DiscoveryQuery query = 4;
+}
+
+// ========== Reflection Messages (reflection.v1) ==========
+
+// RpcFormat defines the format for RPC schema responses
+enum RpcFormat {
+  RPC_FORMAT_UNSPECIFIED = 0;
+  RPC_FORMAT_PROTO_DESCRIPTOR_SET = 1;  // Binary FileDescriptorSet
+  RPC_FORMAT_JSON_SCHEMA = 2;           // JSON Schema representation
+}
+
+// RpcListRequest requests all available RPC interfaces
+message RpcListRequest {
+  // Empty - returns all registered RPC interfaces
+}
+
+// RpcInfo describes a registered RPC interface
+message RpcInfo {
+  string name = 1;                          // e.g., "process.v1"
+  repeated string methods = 2;              // Method names
+  repeated SerializationFormat formats = 3; // Supported serialization formats
+  string description = 4;                   // RPC interface documentation
+}
+
+// RpcListResponse returns all registered RPC interfaces
+message RpcListResponse {
+  repeated RpcInfo rpcs = 1;
+}
+
+// RpcGetRequest requests a specific RPC interface definition
+message RpcGetRequest {
+  string name = 1;       // e.g., "process.v1", "auth.v2"
+  RpcFormat format = 2;  // Desired output format
+}
+
+// RpcGetResponse returns RPC interface definition in requested format
+message RpcGetResponse {
+  string name = 1;                     // RPC name from request
+  RpcFormat format = 2;                // Format of the response
+  bytes data = 3;                      // Binary proto descriptor or JSON bytes
+  string error_message = 4;            // Error if RPC not found or format unavailable
+
+  // Metadata about the RPC interface
+  int32 message_count = 5;             // Number of messages
+  int32 enum_count = 6;                // Number of enums
+  repeated string dependencies = 7;    // Proto file dependencies
+}
+

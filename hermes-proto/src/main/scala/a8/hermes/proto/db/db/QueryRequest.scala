@@ -5,29 +5,22 @@
 
 package a8.hermes.proto.db.db
 
-/** QueryRequest executes a SELECT query with parameters
+/** QueryRequest executes a SQL SELECT query through the ACL firewall.
+  * The SQL is parsed, access-checked per table, has row-level filters injected,
+  * and function calls validated before execution.
   *
-  * @param tableName
-  *   Target table (schema.table or just table)
-  * @param columns
-  *   Columns to select (empty = all)
-  * @param whereClause
-  *   WHERE clause string (e.g., "name LIKE 'devops.%' AND enabled = true")
-  * @param orderBy
-  *   ORDER BY clauses (e.g., ["name ASC", "created_at DESC"])
-  * @param limit
-  *   LIMIT (0 = no limit)
-  * @param offset
-  *   OFFSET
+  * @param sql
+  *   Full SELECT statement
+  * @param runAsUser
+  *   Run as this user (name, email, or UID). Requires ContinuumAdmin.
+  * @param noTransform
+  *   Skip ACL transforms, execute SQL directly. Requires ContinuumAdmin.
   */
 @SerialVersionUID(0L)
 final case class QueryRequest(
-    tableName: _root_.scala.Predef.String = "",
-    columns: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
-    whereClause: _root_.scala.Predef.String = "",
-    orderBy: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
-    limit: _root_.scala.Int = 0,
-    offset: _root_.scala.Int = 0,
+    sql: _root_.scala.Predef.String = "",
+    runAsUser: _root_.scala.Predef.String = "",
+    noTransform: _root_.scala.Boolean = false,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[QueryRequest] {
     @transient
@@ -36,38 +29,23 @@ final case class QueryRequest(
       var __size = 0
       
       {
-        val __value = tableName
+        val __value = sql
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
         }
       };
-      columns.foreach { __item =>
-        val __value = __item
-        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
-      }
       
       {
-        val __value = whereClause
+        val __value = runAsUser
         if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
-        }
-      };
-      orderBy.foreach { __item =>
-        val __value = __item
-        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
-      }
-      
-      {
-        val __value = limit
-        if (__value != 0) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(5, __value)
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
         }
       };
       
       {
-        val __value = offset
-        if (__value != 0) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(6, __value)
+        val __value = noTransform
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(3, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -84,84 +62,52 @@ final case class QueryRequest(
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
-        val __v = tableName
+        val __v = sql
         if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
-      columns.foreach { __v =>
-        val __m = __v
-        _output__.writeString(2, __m)
-      };
       {
-        val __v = whereClause
+        val __v = runAsUser
         if (!__v.isEmpty) {
-          _output__.writeString(3, __v)
-        }
-      };
-      orderBy.foreach { __v =>
-        val __m = __v
-        _output__.writeString(4, __m)
-      };
-      {
-        val __v = limit
-        if (__v != 0) {
-          _output__.writeInt32(5, __v)
+          _output__.writeString(2, __v)
         }
       };
       {
-        val __v = offset
-        if (__v != 0) {
-          _output__.writeInt32(6, __v)
+        val __v = noTransform
+        if (__v != false) {
+          _output__.writeBool(3, __v)
         }
       };
       unknownFields.writeTo(_output__)
     }
-    def withTableName(__v: _root_.scala.Predef.String): QueryRequest = copy(tableName = __v)
-    def clearColumns = copy(columns = _root_.scala.Seq.empty)
-    def addColumns(__vs: _root_.scala.Predef.String *): QueryRequest = addAllColumns(__vs)
-    def addAllColumns(__vs: Iterable[_root_.scala.Predef.String]): QueryRequest = copy(columns = columns ++ __vs)
-    def withColumns(__v: _root_.scala.Seq[_root_.scala.Predef.String]): QueryRequest = copy(columns = __v)
-    def withWhereClause(__v: _root_.scala.Predef.String): QueryRequest = copy(whereClause = __v)
-    def clearOrderBy = copy(orderBy = _root_.scala.Seq.empty)
-    def addOrderBy(__vs: _root_.scala.Predef.String *): QueryRequest = addAllOrderBy(__vs)
-    def addAllOrderBy(__vs: Iterable[_root_.scala.Predef.String]): QueryRequest = copy(orderBy = orderBy ++ __vs)
-    def withOrderBy(__v: _root_.scala.Seq[_root_.scala.Predef.String]): QueryRequest = copy(orderBy = __v)
-    def withLimit(__v: _root_.scala.Int): QueryRequest = copy(limit = __v)
-    def withOffset(__v: _root_.scala.Int): QueryRequest = copy(offset = __v)
+    def withSql(__v: _root_.scala.Predef.String): QueryRequest = copy(sql = __v)
+    def withRunAsUser(__v: _root_.scala.Predef.String): QueryRequest = copy(runAsUser = __v)
+    def withNoTransform(__v: _root_.scala.Boolean): QueryRequest = copy(noTransform = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
-          val __t = tableName
+          val __t = sql
           if (__t != "") __t else null
         }
-        case 2 => columns
+        case 2 => {
+          val __t = runAsUser
+          if (__t != "") __t else null
+        }
         case 3 => {
-          val __t = whereClause
-          if (__t != "") __t else null
-        }
-        case 4 => orderBy
-        case 5 => {
-          val __t = limit
-          if (__t != 0) __t else null
-        }
-        case 6 => {
-          val __t = offset
-          if (__t != 0) __t else null
+          val __t = noTransform
+          if (__t != false) __t else null
         }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PString(tableName)
-        case 2 => _root_.scalapb.descriptors.PRepeated(columns.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
-        case 3 => _root_.scalapb.descriptors.PString(whereClause)
-        case 4 => _root_.scalapb.descriptors.PRepeated(orderBy.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
-        case 5 => _root_.scalapb.descriptors.PInt(limit)
-        case 6 => _root_.scalapb.descriptors.PInt(offset)
+        case 1 => _root_.scalapb.descriptors.PString(sql)
+        case 2 => _root_.scalapb.descriptors.PString(runAsUser)
+        case 3 => _root_.scalapb.descriptors.PBoolean(noTransform)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -172,12 +118,9 @@ final case class QueryRequest(
 object QueryRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.db.db.QueryRequest] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.db.db.QueryRequest] = this
   def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.db.db.QueryRequest = {
-    var __tableName: _root_.scala.Predef.String = ""
-    val __columns: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
-    var __whereClause: _root_.scala.Predef.String = ""
-    val __orderBy: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
-    var __limit: _root_.scala.Int = 0
-    var __offset: _root_.scala.Int = 0
+    var __sql: _root_.scala.Predef.String = ""
+    var __runAsUser: _root_.scala.Predef.String = ""
+    var __noTransform: _root_.scala.Boolean = false
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -185,17 +128,11 @@ object QueryRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.db
       _tag__ match {
         case 0 => _done__ = true
         case 10 =>
-          __tableName = _input__.readStringRequireUtf8()
+          __sql = _input__.readStringRequireUtf8()
         case 18 =>
-          __columns += _input__.readStringRequireUtf8()
-        case 26 =>
-          __whereClause = _input__.readStringRequireUtf8()
-        case 34 =>
-          __orderBy += _input__.readStringRequireUtf8()
-        case 40 =>
-          __limit = _input__.readInt32()
-        case 48 =>
-          __offset = _input__.readInt32()
+          __runAsUser = _input__.readStringRequireUtf8()
+        case 24 =>
+          __noTransform = _input__.readBool()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -204,12 +141,9 @@ object QueryRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.db
       }
     }
     a8.hermes.proto.db.db.QueryRequest(
-        tableName = __tableName,
-        columns = __columns.result(),
-        whereClause = __whereClause,
-        orderBy = __orderBy.result(),
-        limit = __limit,
-        offset = __offset,
+        sql = __sql,
+        runAsUser = __runAsUser,
+        noTransform = __noTransform,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -217,12 +151,9 @@ object QueryRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.db
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.db.db.QueryRequest(
-        tableName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        columns = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
-        whereClause = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        orderBy = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
-        limit = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Int]).getOrElse(0),
-        offset = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Int]).getOrElse(0)
+        sql = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        runAsUser = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        noTransform = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -232,41 +163,26 @@ object QueryRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.db
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = a8.hermes.proto.db.db.QueryRequest(
-    tableName = "",
-    columns = _root_.scala.Seq.empty,
-    whereClause = "",
-    orderBy = _root_.scala.Seq.empty,
-    limit = 0,
-    offset = 0
+    sql = "",
+    runAsUser = "",
+    noTransform = false
   )
   implicit class QueryRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.db.db.QueryRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.db.db.QueryRequest](_l) {
-    def tableName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.tableName)((c_, f_) => c_.copy(tableName = f_))
-    def columns: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.columns)((c_, f_) => c_.copy(columns = f_))
-    def whereClause: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.whereClause)((c_, f_) => c_.copy(whereClause = f_))
-    def orderBy: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.orderBy)((c_, f_) => c_.copy(orderBy = f_))
-    def limit: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.limit)((c_, f_) => c_.copy(limit = f_))
-    def offset: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.offset)((c_, f_) => c_.copy(offset = f_))
+    def sql: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.sql)((c_, f_) => c_.copy(sql = f_))
+    def runAsUser: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.runAsUser)((c_, f_) => c_.copy(runAsUser = f_))
+    def noTransform: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.noTransform)((c_, f_) => c_.copy(noTransform = f_))
   }
-  final val TABLE_NAME_FIELD_NUMBER = 1
-  final val COLUMNS_FIELD_NUMBER = 2
-  final val WHERE_CLAUSE_FIELD_NUMBER = 3
-  final val ORDER_BY_FIELD_NUMBER = 4
-  final val LIMIT_FIELD_NUMBER = 5
-  final val OFFSET_FIELD_NUMBER = 6
+  final val SQL_FIELD_NUMBER = 1
+  final val RUN_AS_USER_FIELD_NUMBER = 2
+  final val NO_TRANSFORM_FIELD_NUMBER = 3
   def of(
-    tableName: _root_.scala.Predef.String,
-    columns: _root_.scala.Seq[_root_.scala.Predef.String],
-    whereClause: _root_.scala.Predef.String,
-    orderBy: _root_.scala.Seq[_root_.scala.Predef.String],
-    limit: _root_.scala.Int,
-    offset: _root_.scala.Int
+    sql: _root_.scala.Predef.String,
+    runAsUser: _root_.scala.Predef.String,
+    noTransform: _root_.scala.Boolean
   ): _root_.a8.hermes.proto.db.db.QueryRequest = _root_.a8.hermes.proto.db.db.QueryRequest(
-    tableName,
-    columns,
-    whereClause,
-    orderBy,
-    limit,
-    offset
+    sql,
+    runAsUser,
+    noTransform
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[db.QueryRequest])
 }

@@ -11,6 +11,7 @@ final case class Message(
     senderEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SenderEnvelope] = _root_.scala.None,
     serverEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ServerEnvelope] = _root_.scala.None,
     data: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY,
+    dataRef: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[Message] {
     @transient
@@ -34,6 +35,13 @@ final case class Message(
         val __value = data
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeBytesSize(4, __value)
+        }
+      };
+      
+      {
+        val __value = dataRef
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -73,6 +81,12 @@ final case class Message(
           _output__.writeBytes(4, __v)
         }
       };
+      {
+        val __v = dataRef
+        if (!__v.isEmpty) {
+          _output__.writeString(5, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def getHeader: a8.hermes.proto.process.wsmessages.MessageHeader = header.getOrElse(a8.hermes.proto.process.wsmessages.MessageHeader.defaultInstance)
@@ -85,6 +99,7 @@ final case class Message(
     def clearServerEnvelope: Message = copy(serverEnvelope = _root_.scala.None)
     def withServerEnvelope(__v: a8.hermes.proto.process.wsmessages.ServerEnvelope): Message = copy(serverEnvelope = Option(__v))
     def withData(__v: _root_.com.google.protobuf.ByteString): Message = copy(data = __v)
+    def withDataRef(__v: _root_.scala.Predef.String): Message = copy(dataRef = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -96,6 +111,10 @@ final case class Message(
           val __t = data
           if (__t != _root_.com.google.protobuf.ByteString.EMPTY) __t else null
         }
+        case 5 => {
+          val __t = dataRef
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -105,6 +124,7 @@ final case class Message(
         case 2 => senderEnvelope.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 3 => serverEnvelope.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 4 => _root_.scalapb.descriptors.PByteString(data)
+        case 5 => _root_.scalapb.descriptors.PString(dataRef)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -119,6 +139,7 @@ object Message extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process
     var __senderEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SenderEnvelope] = _root_.scala.None
     var __serverEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ServerEnvelope] = _root_.scala.None
     var __data: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY
+    var __dataRef: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -133,6 +154,8 @@ object Message extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process
           __serverEnvelope = _root_.scala.Option(__serverEnvelope.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.ServerEnvelope](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 34 =>
           __data = _input__.readBytes()
+        case 42 =>
+          __dataRef = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -145,6 +168,7 @@ object Message extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process
         senderEnvelope = __senderEnvelope,
         serverEnvelope = __serverEnvelope,
         data = __data,
+        dataRef = __dataRef,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -155,7 +179,8 @@ object Message extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process
         header = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.MessageHeader]]),
         senderEnvelope = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.SenderEnvelope]]),
         serverEnvelope = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.ServerEnvelope]]),
-        data = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY)
+        data = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY),
+        dataRef = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -176,7 +201,8 @@ object Message extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process
     header = _root_.scala.None,
     senderEnvelope = _root_.scala.None,
     serverEnvelope = _root_.scala.None,
-    data = _root_.com.google.protobuf.ByteString.EMPTY
+    data = _root_.com.google.protobuf.ByteString.EMPTY,
+    dataRef = ""
   )
   implicit class MessageLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Message]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.Message](_l) {
     def header: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageHeader] = field(_.getHeader)((c_, f_) => c_.copy(header = _root_.scala.Option(f_)))
@@ -186,21 +212,25 @@ object Message extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process
     def serverEnvelope: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ServerEnvelope] = field(_.getServerEnvelope)((c_, f_) => c_.copy(serverEnvelope = _root_.scala.Option(f_)))
     def optionalServerEnvelope: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[a8.hermes.proto.process.wsmessages.ServerEnvelope]] = field(_.serverEnvelope)((c_, f_) => c_.copy(serverEnvelope = f_))
     def data: _root_.scalapb.lenses.Lens[UpperPB, _root_.com.google.protobuf.ByteString] = field(_.data)((c_, f_) => c_.copy(data = f_))
+    def dataRef: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.dataRef)((c_, f_) => c_.copy(dataRef = f_))
   }
   final val HEADER_FIELD_NUMBER = 1
   final val SENDERENVELOPE_FIELD_NUMBER = 2
   final val SERVERENVELOPE_FIELD_NUMBER = 3
   final val DATA_FIELD_NUMBER = 4
+  final val DATAREF_FIELD_NUMBER = 5
   def of(
     header: _root_.scala.Option[a8.hermes.proto.process.wsmessages.MessageHeader],
     senderEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SenderEnvelope],
     serverEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ServerEnvelope],
-    data: _root_.com.google.protobuf.ByteString
+    data: _root_.com.google.protobuf.ByteString,
+    dataRef: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.process.wsmessages.Message = _root_.a8.hermes.proto.process.wsmessages.Message(
     header,
     senderEnvelope,
     serverEnvelope,
-    data
+    data,
+    dataRef
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.Message])
 }

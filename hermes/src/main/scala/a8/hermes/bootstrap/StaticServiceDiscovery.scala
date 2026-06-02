@@ -11,7 +11,7 @@ class StaticServiceDiscovery(namedMailboxes: Map[String, String]) {
   /**
    * Get mailbox address for a named service.
    *
-   * @param serviceName Service name (e.g., "auth", "nefario", "mailbox")
+   * @param serviceName Service name (e.g., "auth", "continuum", "mailbox")
    * @throws RuntimeException if service name not found in config
    * @return Mailbox address for the service
    */

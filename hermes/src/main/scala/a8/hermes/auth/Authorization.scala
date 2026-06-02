@@ -57,7 +57,7 @@ object Authorization extends Logging {
 
     rpcClient.callTyped[HasRoleRequest, HasRoleResponse](
       targetMailbox = config.authServiceMailbox,
-      endpoint = "auth.v2.HasRole",
+      endpoint = "auth.HasRole",
       request = request,
       timeout = timeout.orElse(Some(config.defaultTimeout)),
     )(using ctx, summon) match {

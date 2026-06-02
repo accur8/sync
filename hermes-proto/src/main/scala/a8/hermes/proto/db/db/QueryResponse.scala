@@ -9,11 +9,17 @@ package a8.hermes.proto.db.db
   *   Result rows as JSON objects
   * @param rowCount
   *   Number of rows returned
+  * @param transformedSql
+  *   SQL after firewall transformation
+  * @param columns
+  *   Column metadata from result set
   */
 @SerialVersionUID(0L)
 final case class QueryResponse(
     rows: _root_.scala.Seq[com.google.protobuf.struct.Struct] = _root_.scala.Seq.empty,
     rowCount: _root_.scala.Int = 0,
+    transformedSql: _root_.scala.Predef.String = "",
+    columns: _root_.scala.Seq[a8.hermes.proto.db.db.QueryColumnMetadata] = _root_.scala.Seq.empty,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[QueryResponse] {
     @transient
@@ -31,6 +37,17 @@ final case class QueryResponse(
           __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(2, __value)
         }
       };
+      
+      {
+        val __value = transformedSql
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
+        }
+      };
+      columns.foreach { __item =>
+        val __value = __item
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      }
       __size += unknownFields.serializedSize
       __size
     }
@@ -56,6 +73,18 @@ final case class QueryResponse(
           _output__.writeInt32(2, __v)
         }
       };
+      {
+        val __v = transformedSql
+        if (!__v.isEmpty) {
+          _output__.writeString(3, __v)
+        }
+      };
+      columns.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(4, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def clearRows = copy(rows = _root_.scala.Seq.empty)
@@ -63,6 +92,11 @@ final case class QueryResponse(
     def addAllRows(__vs: Iterable[com.google.protobuf.struct.Struct]): QueryResponse = copy(rows = rows ++ __vs)
     def withRows(__v: _root_.scala.Seq[com.google.protobuf.struct.Struct]): QueryResponse = copy(rows = __v)
     def withRowCount(__v: _root_.scala.Int): QueryResponse = copy(rowCount = __v)
+    def withTransformedSql(__v: _root_.scala.Predef.String): QueryResponse = copy(transformedSql = __v)
+    def clearColumns = copy(columns = _root_.scala.Seq.empty)
+    def addColumns(__vs: a8.hermes.proto.db.db.QueryColumnMetadata *): QueryResponse = addAllColumns(__vs)
+    def addAllColumns(__vs: Iterable[a8.hermes.proto.db.db.QueryColumnMetadata]): QueryResponse = copy(columns = columns ++ __vs)
+    def withColumns(__v: _root_.scala.Seq[a8.hermes.proto.db.db.QueryColumnMetadata]): QueryResponse = copy(columns = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -72,6 +106,11 @@ final case class QueryResponse(
           val __t = rowCount
           if (__t != 0) __t else null
         }
+        case 3 => {
+          val __t = transformedSql
+          if (__t != "") __t else null
+        }
+        case 4 => columns
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -79,6 +118,8 @@ final case class QueryResponse(
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PRepeated(rows.iterator.map(_.toPMessage).toVector)
         case 2 => _root_.scalapb.descriptors.PInt(rowCount)
+        case 3 => _root_.scalapb.descriptors.PString(transformedSql)
+        case 4 => _root_.scalapb.descriptors.PRepeated(columns.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -91,6 +132,8 @@ object QueryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.d
   def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.db.db.QueryResponse = {
     val __rows: _root_.scala.collection.immutable.VectorBuilder[com.google.protobuf.struct.Struct] = new _root_.scala.collection.immutable.VectorBuilder[com.google.protobuf.struct.Struct]
     var __rowCount: _root_.scala.Int = 0
+    var __transformedSql: _root_.scala.Predef.String = ""
+    val __columns: _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.db.db.QueryColumnMetadata] = new _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.db.db.QueryColumnMetadata]
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -101,6 +144,10 @@ object QueryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.d
           __rows += _root_.scalapb.LiteParser.readMessage[com.google.protobuf.struct.Struct](_input__)
         case 16 =>
           __rowCount = _input__.readInt32()
+        case 26 =>
+          __transformedSql = _input__.readStringRequireUtf8()
+        case 34 =>
+          __columns += _root_.scalapb.LiteParser.readMessage[a8.hermes.proto.db.db.QueryColumnMetadata](_input__)
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -111,6 +158,8 @@ object QueryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.d
     a8.hermes.proto.db.db.QueryResponse(
         rows = __rows.result(),
         rowCount = __rowCount,
+        transformedSql = __transformedSql,
+        columns = __columns.result(),
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -119,7 +168,9 @@ object QueryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.d
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.db.db.QueryResponse(
         rows = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Seq[com.google.protobuf.struct.Struct]]).getOrElse(_root_.scala.Seq.empty),
-        rowCount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Int]).getOrElse(0)
+        rowCount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Int]).getOrElse(0),
+        transformedSql = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        columns = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.db.db.QueryColumnMetadata]]).getOrElse(_root_.scala.Seq.empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -129,6 +180,7 @@ object QueryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.d
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
       case 1 => __out = com.google.protobuf.struct.Struct
+      case 4 => __out = a8.hermes.proto.db.db.QueryColumnMetadata
     }
     __out
   }
@@ -136,20 +188,30 @@ object QueryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.d
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = a8.hermes.proto.db.db.QueryResponse(
     rows = _root_.scala.Seq.empty,
-    rowCount = 0
+    rowCount = 0,
+    transformedSql = "",
+    columns = _root_.scala.Seq.empty
   )
   implicit class QueryResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.db.db.QueryResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.db.db.QueryResponse](_l) {
     def rows: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[com.google.protobuf.struct.Struct]] = field(_.rows)((c_, f_) => c_.copy(rows = f_))
     def rowCount: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.rowCount)((c_, f_) => c_.copy(rowCount = f_))
+    def transformedSql: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.transformedSql)((c_, f_) => c_.copy(transformedSql = f_))
+    def columns: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[a8.hermes.proto.db.db.QueryColumnMetadata]] = field(_.columns)((c_, f_) => c_.copy(columns = f_))
   }
   final val ROWS_FIELD_NUMBER = 1
   final val ROW_COUNT_FIELD_NUMBER = 2
+  final val TRANSFORMED_SQL_FIELD_NUMBER = 3
+  final val COLUMNS_FIELD_NUMBER = 4
   def of(
     rows: _root_.scala.Seq[com.google.protobuf.struct.Struct],
-    rowCount: _root_.scala.Int
+    rowCount: _root_.scala.Int,
+    transformedSql: _root_.scala.Predef.String,
+    columns: _root_.scala.Seq[a8.hermes.proto.db.db.QueryColumnMetadata]
   ): _root_.a8.hermes.proto.db.db.QueryResponse = _root_.a8.hermes.proto.db.db.QueryResponse(
     rows,
-    rowCount
+    rowCount,
+    transformedSql,
+    columns
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[db.QueryResponse])
 }

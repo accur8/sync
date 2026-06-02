@@ -6,7 +6,7 @@ import scala.collection.concurrent.TrieMap
 /**
  * RPC schema registry for organizing endpoints.
  * Schemas follow the pattern: {name}.{version}.{method}
- * Example: "process.v1.Shutdown", "nefario.v1.InitMinion"
+ * Example: "process.v1.Shutdown", "continuum.ResolveServiceUid"
  *
  * Case-insensitive for handler lookup to match godev behavior.
  */

@@ -100,7 +100,7 @@ message StatusResponse {
   string                        service_name       = 2;   // Name of the service
   string                        version            = 3;   // Version of the process binary
   google.protobuf.Timestamp     started_at         = 4;   // When the process started
-  int64                         uptime             = 5;   // Uptime in seconds
+  int64                         uptime_deprecated  = 5 [deprecated = true];   // DEPRECATED: Use start_time from metadata instead
   LogLevel                      current_log_level  = 6;   // Current log level
   HealthStatus                  health             = 7;   // Health status
   map<string, string>           metrics            = 8;   // Performance metrics (if requested)
@@ -127,4 +127,24 @@ message PingResponse {
   string                        payload    = 1;  // Echoed payload
   google.protobuf.Timestamp     timestamp  = 2;  // Server timestamp when ping was received
   string                        process_id = 3;  // Process identifier
+}
+
+// Describe messages — returns this process's full ProcessInfo + Capabilities
+message DescribeRequest {
+  bool include_extended_metadata = 1;  // Include extended metadata in response
+  bool include_schema_details    = 2;  // Include detailed RPC schema info
+}
+
+message DescribeResponse {
+  string process_uid     = 1;
+  int32  unix_pid        = 2;
+  string app_name        = 3;
+  string mailbox_address = 4;
+  string service_name    = 5;
+  string codebase_name   = 6;
+  map<string, string> metadata          = 7;
+  map<string, string> extended_metadata = 8;  // Only populated if include_extended_metadata=true
+  repeated string implements_rpc        = 9;
+  string server          = 10;
+  string user            = 11;
 }
