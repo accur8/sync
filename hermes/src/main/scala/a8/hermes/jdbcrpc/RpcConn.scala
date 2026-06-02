@@ -45,7 +45,13 @@ case class RpcConn(
 
   override def ctx: Ctx = ctx0
   override def dialect: Dialect = PostgresDialect
-  override def escaper: Escaper = SqlString.DefaultJdbcEscaper
+  // Never quote identifiers: the generated continuum model carries mixed-case logical names
+  // (`ProcessRun`, `workerUid`), but the physical Postgres identifiers are all default-case
+  // (`processrun`, `workeruid`). Emitting them UNQUOTED lets Postgres fold them to the physical
+  // lowercase names; quoting would make them case-sensitive and fail (`column "workerUid" does not
+  // exist`). NoopEscaper leaves identifiers bare while still safely escaping string literal VALUES.
+  // (Simple fix for now; the firewall is also being taught to resolve identifier case server-side.)
+  override def escaper: Escaper = SqlString.NoopEscaper
   override val jdbcUrl: sttp.model.Uri = sttp.model.Uri.unsafeParse("rpc://dbaccess")
   override val jdbcMetadata: JdbcMetadata = JdbcMetadata.default
 

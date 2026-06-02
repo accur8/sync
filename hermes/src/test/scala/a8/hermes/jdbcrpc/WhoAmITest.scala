@@ -58,15 +58,28 @@ object WhoAmITest extends BootstrappedIOApp {
       timeout = Some(10.seconds),
     )(using appCtx, summon) match {
       case Some(info) =>
-        logger.info("\n--- whoami ---")
-        logger.info(s"  userUid     = ${info.userUid}")
-        logger.info(s"  name        = ${info.name}")
-        logger.info(s"  email       = ${info.email}")
-        logger.info(s"  workerUid   = ${info.workerUid} (${info.workerLabel})")
-        logger.info(s"  serverUid   = ${info.serverUid} (${info.serverLabel})")
-        logger.info(s"  groups      = ${info.groups.map(_.name).mkString(", ")}")
-        logger.info(s"  expiresAt   = ${info.expiresAt}")
-        logger.info("\n✓ WhoAmITest succeeded — full SSH-login + bind + whoami flow works end to end")
+        // Render a single multiline report mirroring `a8 auth whoami`'s output
+        // (cmd/a8/auth-client.go) so this proves the Scala client surfaces the same data.
+        val sb = new StringBuilder
+        sb.append("\nCurrent Authentication:\n\n")
+        sb.append(s"  User UID:    ${info.userUid}\n")
+        sb.append(s"  Name:        ${info.name}\n")
+        sb.append(s"  Mailbox:     ${hermes.mailbox.metadata.address.value}\n")
+        if info.email.nonEmpty then sb.append(s"  Email:       ${info.email}\n")
+        if info.description.nonEmpty then sb.append(s"  Description: ${info.description}\n")
+        if info.externalMaintainer.nonEmpty then sb.append(s"  Maintainer:  ${info.externalMaintainer}\n")
+        // worker/server identity — empty for plain user logins; shown only when present (the Go CLI
+        // omits empty fields too).
+        if info.workerUid.nonEmpty then sb.append(s"  Worker:      ${info.workerUid} (${info.workerLabel})\n")
+        if info.serverUid.nonEmpty then sb.append(s"  Server:      ${info.serverUid}\n")
+        if info.groups.nonEmpty then
+          sb.append("\n  Groups:\n")
+          info.groups.foreach { group =>
+            sb.append(s"    - ${group.name} (${group.uid})\n")
+            if group.description.nonEmpty then sb.append(s"      ${group.description}\n")
+          }
+        logger.info(sb.toString)
+        logger.info("✓ WhoAmITest succeeded — full SSH-login + bind + whoami flow works end to end")
       case None =>
         logger.error("✗ GetUserInfoForSelf returned no response / error (see RpcClient warning above)")
         System.exit(1)
