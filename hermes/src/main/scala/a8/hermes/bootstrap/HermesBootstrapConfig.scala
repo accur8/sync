@@ -33,14 +33,14 @@ object HermesBootstrapConfig {
    * if the block sets `namingEnvironment`, mappings are resolved dynamically at bootstrap time by
    * querying the naming service over NATS (see HermesBootstrap), with `nameMappings` as fallback.
    */
-  def load(): HermesBootstrapConfig = {
+  def load(env: Option[String] = None): HermesBootstrapConfig = {
     val configPath =
       searchPaths
         .find(_.toFile.exists())
         .getOrElse(throw new RuntimeException(s"Bootstrap config file not found in any of: ${searchPaths.mkString(", ")}"))
 
     val config = ConfigFactory.parseFile(configPath.toFile).resolve()
-    fromConfig(config)
+    fromConfig(config, env)
   }
 
   private def searchPaths: Seq[Path] = {
@@ -52,16 +52,18 @@ object HermesBootstrapConfig {
     )
   }
 
-  private def fromConfig(config: Config): HermesBootstrapConfig = {
-    // Environment selection: $BOOTSTRAP_ENV overrides the file's `env` field. Supports both a
-    // multi-env file (env + environments{}) and a single-env file (fields at the root).
+  private def fromConfig(config: Config, envOverride: Option[String] = None): HermesBootstrapConfig = {
+    // Environment selection priority: caller-supplied env > $BOOTSTRAP_ENV > file's `env` field.
+    // Supports both a multi-env file (env + environments{}) and a single-env file (fields at root).
     val hasEnvironments = config.hasPath("environments")
     val hasEnv = config.hasPath("env")
 
     val envConfig: Config =
       if (hasEnvironments || hasEnv) {
         val envName =
-          sys.env.getOrElse("BOOTSTRAP_ENV", if (hasEnv) config.getString("env") else "")
+          envOverride
+            .orElse(sys.env.get("BOOTSTRAP_ENV"))
+            .getOrElse(if (hasEnv) config.getString("env") else "")
         if (envName.isEmpty)
           throw new RuntimeException("no bootstrap environment selected (env field empty and $BOOTSTRAP_ENV unset)")
         if (!config.hasPath(s"environments.$envName"))

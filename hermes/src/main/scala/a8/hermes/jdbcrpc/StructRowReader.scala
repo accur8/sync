@@ -2,7 +2,7 @@ package a8.hermes.jdbcrpc
 
 import a8.hermes.proto.db.db.{QueryColumnMetadata, QueryResponse}
 import a8.shared.SharedImports.*
-import a8.shared.jdbcf.Row
+import a8.shared.jdbcf.{Bytes, Row}
 import a8.shared.zreplace.Chunk
 import com.google.protobuf.struct.{Struct, Value}
 import com.google.protobuf.struct.Value.Kind
@@ -24,6 +24,7 @@ import com.google.protobuf.struct.Value.Kind
  *   - float32/64     -> NumberValue
  *   - pgtype.Numeric -> NumberValue if float-convertible else StringValue
  *   - bool           -> BoolValue
+ *   - bytea          -> StructValue({"@type":"bytes", "text":...} or {"@type":"bytes","base64":...})
  *   - []byte / jsonb -> StringValue (raw text)
  *   - map            -> StructValue (nested)
  *   - string / other -> StringValue
@@ -78,8 +79,8 @@ object StructRowReader {
         java.lang.Boolean.valueOf(b)
 
       case Kind.StructValue(s) =>
-        // nested json object arriving as a Struct -> render to JSON text so the JsDoc/JsVal codecs parse it
-        structToJsonText(s)
+        // bytea marker -> Array[Byte] (read as Bytes); any other Struct -> JSON text
+        decodeByteaMarker(s).map(_.toArray: AnyRef).getOrElse(structToJsonText(s))
 
       case Kind.ListValue(l) =>
         listToJsonText(l)
@@ -162,6 +163,28 @@ object StructRowReader {
       case i  => lower.substring(0, i).trim
     }
     noParen
+  }
+
+  /**
+   * Decode a godev bytea marker Struct: `{"@type":"bytes","text":"..."}` or `{"@type":"bytes","base64":"..."}`.
+   * Returns `Some(Array[Byte])` when the marker is present, `None` for any other Struct.
+   */
+  private def decodeByteaMarker(s: Struct): Option[Bytes] = {
+    s.fields.get("@type") match {
+      case Some(Value(Kind.StringValue("bytes"), _)) =>
+        s.fields.get("text") match {
+          case Some(Value(Kind.StringValue(t), _)) =>
+            Some(Bytes.fromString(t))
+          case _ =>
+            s.fields.get("base64") match {
+              case Some(Value(Kind.StringValue(b), _)) =>
+                Some(Bytes(java.util.Base64.getDecoder.decode(b)))
+              case _ =>
+                None
+            }
+        }
+      case _ => None
+    }
   }
 
   // Render a protobuf Struct/List back to JSON text WITHOUT pulling in protobuf-java-util

@@ -44,6 +44,8 @@ object RowWriter {
 
   implicit val stringWriter: RowWriter[String] = create[String](ps => ps.setString(_, _))
 
+  implicit val bytesWriter: RowWriter[Bytes] = createx[Bytes]((ps, i, b) => ps.setBytes(i, b.toArray), parameterCount0 = 1)
+
   def apply[A : RowWriter]: RowWriter[A] = implicitly[RowWriter[A]]
 
   def mapWriter[A,B](outer: RowWriter[A])(fn: B=>A): RowWriter[B] =

@@ -19,4 +19,9 @@ trait MoreRowReaderCodecs {
   implicit val uri: RowReader[Uri] =
     RowReader.stringReader.map[Uri](Uri.unsafeParse)
 
+  implicit val bytesReader: RowReader[Bytes] =
+    singleColumnReader[Bytes] {
+      case b: Array[Byte] => Bytes(b)
+    }
+
 }
