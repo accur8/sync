@@ -2,14 +2,19 @@ package a8.hermes.continuum
 
 import a8.hermes.nats.NatsTransport
 import a8.hermes.proto.continuum.continuum_rpc.{
+  Buffer,
+  BufferSource,
   MessageFromRunner,
   ProcessCompletedRequest,
   ProcessPing,
   ProcessPingRequest,
   ProcessStartedRequest,
+  StreamRecord,
+  StreamWrite,
   UpdateMailboxRequest,
 }
 import a8.common.logging.Logging
+import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
 
 import java.io.Closeable
@@ -61,6 +66,31 @@ class ContinuumRunnerClient(transport: NatsTransport) extends Logging {
 
   def updateMailbox(req: UpdateMailboxRequest): Unit =
     publish(MessageFromRunner(MessageFromRunner.Message.UpdateMailboxRequest(req)))
+
+  def streamWrite(req: StreamWrite): Unit =
+    publish(MessageFromRunner(MessageFromRunner.Message.StreamWrite(req)))
+
+  /**
+   * Convenience: publish one chunk of per-process I/O onto `processrun.{uid}.{channel}` (via the central
+   * bus, which the continuum service fans out to the per-process stream). This is how a worker streams a
+   * running process's output so it is captured/archived/viewed identically to shell-job logs.
+   */
+  def streamWrite(processUid: String, channelName: String, data: Array[Byte], source: BufferSource): Unit = {
+    val ts = nowTimestamp()
+    streamWrite(
+      StreamWrite(
+        processUid = processUid,
+        channelName = channelName,
+        record = Some(
+          StreamRecord(
+            timestamp = Some(ts),
+            sequence = 0L,
+            buffers = Seq(Buffer(timestamp = Some(ts), data = ByteString.copyFrom(data), source = source)),
+          )
+        ),
+      )
+    )
+  }
 
   /** Convenience: ping a single process with the current channel byte-counts. */
   def ping(processUid: String, channelSizes: Map[String, Long]): Unit =
