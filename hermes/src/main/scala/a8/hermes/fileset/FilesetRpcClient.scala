@@ -1,7 +1,7 @@
 package a8.hermes.fileset
 
 import a8.hermes.core.Mailbox
-import a8.hermes.proto.fileset.fileset.{PullRevisionRequest, PullRevisionResponse}
+import a8.hermes.proto.fileset.fileset.{PullRequest, PullResponse, PullRevisionRequest, PullRevisionResponse}
 import a8.hermes.rpc.RpcClient
 import a8.shared.app.Ctx
 
@@ -32,15 +32,43 @@ trait FilesetRpcClient {
    */
   def pullRevision(filesetUid: String, revisionUid: String): FilesetFiles
 
+  /**
+   * Pull a fileset by NAME, resolving to its current latest revision. Used to run a program by a stable
+   * name (e.g. "healthchecks") rather than a pinned revision UID. The returned `revisionUid` is the
+   * concrete revision the name resolved to.
+   */
+  def pull(filesetName: String): FilesetFiles
+
 }
 
 object FilesetRpcClient {
 
-  /** RPC endpoint registered by godev `pkg/rpc/fileset/schema.go`. */
+  /** RPC endpoints registered by godev `pkg/rpc/fileset/schema.go`. */
   val PullRevisionEndpoint = "fileset.v1.PullRevision"
+  val PullEndpoint = "fileset.v1.Pull"
 
   def apply(rpcClient: RpcClient, filesetServiceMailbox: Mailbox.MailboxAddress, defaultTimeout: FiniteDuration = 30.seconds)(using Ctx): FilesetRpcClient =
     new FilesetRpcClient {
+      override def pull(filesetName: String): FilesetFiles =
+        rpcClient.callTyped[PullRequest, PullResponse](
+          targetMailbox = filesetServiceMailbox,
+          endpoint = PullEndpoint,
+          request = PullRequest(filesetName = filesetName),
+          timeout = Some(defaultTimeout),
+        ) match {
+          case Some(resp) if resp.errorMessage.nonEmpty =>
+            throw new FilesetRpcException(s"fileset Pull error for '$filesetName': ${resp.errorMessage}")
+          case Some(resp) =>
+            FilesetFiles(
+              filesetUid = resp.filesetUid,
+              filesetName = resp.filesetName,
+              revisionUid = resp.revisionUid,
+              files = resp.entries.map(e => FilesetFile(path = e.path, content = e.content.toByteArray)),
+            )
+          case None =>
+            throw new FilesetRpcException(s"fileset Pull RPC failed (timeout/transport/firewall) for '$filesetName'")
+        }
+
       override def pullRevision(filesetUid: String, revisionUid: String): FilesetFiles =
         rpcClient.callTyped[PullRevisionRequest, PullRevisionResponse](
           targetMailbox = filesetServiceMailbox,
