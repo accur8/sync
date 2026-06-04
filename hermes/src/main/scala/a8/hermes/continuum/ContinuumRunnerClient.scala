@@ -16,6 +16,9 @@ import a8.hermes.proto.continuum.continuum_rpc.{
 import a8.common.logging.Logging
 import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
+import io.nats.client.api.{CompressionOption, RetentionPolicy, StreamConfiguration}
+
+import java.time.Duration as JavaDuration
 
 import java.io.Closeable
 import java.time.Instant
@@ -55,6 +58,10 @@ class ContinuumRunnerClient(transport: NatsTransport) extends Logging {
     transport.connection.publish(ContinuumCentralSubject, bytes)
   }
 
+  // Mirror godev continuum.ScrubSubjectPart: keep only [A-Za-z0-9_-] in subject/stream name parts.
+  private def scrubSubjectPart(s: String): String =
+    s.filter(c => c.isLetterOrDigit || c == '-' || c == '_')
+
   def processStarted(req: ProcessStartedRequest): Unit =
     publish(MessageFromRunner(MessageFromRunner.Message.ProcessStartedRequest(req)))
 
@@ -71,9 +78,30 @@ class ContinuumRunnerClient(transport: NatsTransport) extends Logging {
     publish(MessageFromRunner(MessageFromRunner.Message.StreamWrite(req)))
 
   /**
-   * Convenience: publish one chunk of per-process I/O onto `processrun.{uid}.{channel}` (via the central
-   * bus, which the continuum service fans out to the per-process stream). This is how a worker streams a
-   * running process's output so it is captured/archived/viewed identically to shell-job logs.
+   * Ensure the per-process JetStream exists for a channel: stream `processrun-{uid}-{channel}` over subject
+   * `processrun.{uid}.{channel}`. A worker must create this itself at process start (the godev runner does
+   * the same locally) — the continuum.central bus message does NOT create it. Idempotent.
+   */
+  def ensureStream(processUid: String, channelName: String, maxAge: JavaDuration = JavaDuration.ofHours(24)): Unit = {
+    val p = scrubSubjectPart(processUid)
+    val c = scrubSubjectPart(channelName)
+    val config =
+      StreamConfiguration.builder()
+        .name(s"processrun-$p-$c")
+        .subjects(s"processrun.$p.$c")
+        .compressionOption(CompressionOption.S2)
+        .retentionPolicy(RetentionPolicy.Limits)
+        .maxAge(maxAge)
+        .build()
+    try transport.jetStreamManagement.addStream(config)
+    catch
+      case e: io.nats.client.JetStreamApiException if e.getMessage.contains("already in use") => ()
+      case e: Exception => logger.warn(s"ensureStream failed for processrun-$p-$c", e)
+  }
+
+  /**
+   * Convenience: publish one chunk of per-process I/O onto `processrun.{uid}.{channel}`. Call ensureStream
+   * first (at process start) so a JetStream is bound to the subject; otherwise the publish is dropped.
    */
   def streamWrite(processUid: String, channelName: String, data: Array[Byte], source: BufferSource): Unit = {
     val ts = nowTimestamp()
