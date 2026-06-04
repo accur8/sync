@@ -21,11 +21,12 @@ cp "$GODEV_DIR/pkg/rpc/auth/auth.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/mailbox/mailbox.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/process/process_rpc.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/db/db.proto" "$PROTO_DIR/"
+cp "$GODEV_DIR/pkg/rpc/fileset/fileset.proto" "$PROTO_DIR/"
 # continuum_rpc.proto imports pkg/discovery/discovery.proto; keep a local copy for compilation
 mkdir -p "$PROTO_DIR/pkg/discovery"
 cp "$GODEV_DIR/pkg/discovery/discovery.proto" "$PROTO_DIR/pkg/discovery/discovery.proto"
 
-echo "✓ Copied 6 proto files (+ discovery dependency)"
+echo "✓ Copied 7 proto files (+ discovery dependency)"
 
 # Fix package declarations for Scala
 echo ""
@@ -55,6 +56,9 @@ for proto in "$PROTO_DIR"/*.proto "$PROTO_DIR/pkg/discovery"/*.proto; do
         ;;
       db.proto)
         package_line='option java_package = "a8.hermes.proto.db";'
+        ;;
+      fileset.proto)
+        package_line='option java_package = "a8.hermes.proto.fileset";'
         ;;
       discovery.proto)
         package_line='option java_package = "a8.hermes.proto.discovery";'

@@ -3,14 +3,12 @@
 //
 // Protofile syntax: PROTO3
 
-package a8.hermes.proto.continuum.continuum_rpc
+package a8.hermes.proto.fileset.fileset
 
-/** Empty for now, may add filtering in future
-  */
 @SerialVersionUID(0L)
-final case class GetHealthchecksConfigRequest(
+final case class ListFilesetsRequest(
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[GetHealthchecksConfigRequest] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ListFilesetsRequest] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
@@ -35,13 +33,13 @@ final case class GetHealthchecksConfigRequest(
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = throw new MatchError(__fieldNumber)
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = throw new MatchError(__field)
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest.type = a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest
-    // @@protoc_insertion_point(GeneratedMessage[continuum_rpc.GetHealthchecksConfigRequest])
+    def companion: a8.hermes.proto.fileset.fileset.ListFilesetsRequest.type = a8.hermes.proto.fileset.fileset.ListFilesetsRequest
+    // @@protoc_insertion_point(GeneratedMessage[fileset.ListFilesetsRequest])
 }
 
-object GetHealthchecksConfigRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest = {
+object ListFilesetsRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fileset.fileset.ListFilesetsRequest] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.fileset.fileset.ListFilesetsRequest] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.fileset.fileset.ListFilesetsRequest = {
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -55,28 +53,28 @@ object GetHealthchecksConfigRequest extends scalapb.GeneratedMessageCompanion[a8
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest(
+    a8.hermes.proto.fileset.fileset.ListFilesetsRequest(
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.fileset.fileset.ListFilesetsRequest] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest(
+      a8.hermes.proto.fileset.fileset.ListFilesetsRequest(
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(17)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(17)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = FilesetProto.javaDescriptor.getMessageTypes().get(8)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = FilesetProto.scalaDescriptor.messages(8)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest(
+  lazy val defaultInstance = a8.hermes.proto.fileset.fileset.ListFilesetsRequest(
   )
-  implicit class GetHealthchecksConfigRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest](_l) {
+  implicit class ListFilesetsRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.fileset.fileset.ListFilesetsRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.fileset.fileset.ListFilesetsRequest](_l) {
   }
   def of(
-  ): _root_.a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest = _root_.a8.hermes.proto.continuum.continuum_rpc.GetHealthchecksConfigRequest(
+  ): _root_.a8.hermes.proto.fileset.fileset.ListFilesetsRequest = _root_.a8.hermes.proto.fileset.fileset.ListFilesetsRequest(
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.GetHealthchecksConfigRequest])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[fileset.ListFilesetsRequest])
 }

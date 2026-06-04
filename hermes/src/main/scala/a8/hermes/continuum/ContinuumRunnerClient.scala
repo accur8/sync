@@ -92,11 +92,15 @@ class ContinuumRunnerClient(transport: NatsTransport) extends Logging {
     )
   }
 
-  /** Convenience: ping a single process with the current channel byte-counts. */
-  def ping(processUid: String, channelSizes: Map[String, Long]): Unit =
+  /**
+   * Convenience: ping a single process with the current channel byte-counts and a liveness status.
+   * status "" / "running" = actively working; "paused" = alive but yielded/checkpointed (the process keeps
+   * pinging so it is not AWOL-swept, but is reported as paused rather than running).
+   */
+  def ping(processUid: String, channelSizes: Map[String, Long], status: String = ""): Unit =
     processPing(
       ProcessPingRequest(
-        pings = Seq(ProcessPing(processUid = processUid, channelSizes = channelSizes)),
+        pings = Seq(ProcessPing(processUid = processUid, channelSizes = channelSizes, status = status)),
         timestamp = Some(nowTimestamp()),
       )
     )

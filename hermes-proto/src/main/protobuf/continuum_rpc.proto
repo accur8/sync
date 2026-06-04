@@ -54,6 +54,10 @@ message ProcessPingRequest {
 message ProcessPing {
   string               processUid    = 1;
   map<string, uint64>  channelSizes  = 2;
+  // status reports liveness state: "" / "running" = actively working,
+  // "paused" = alive but yielded/checkpointed (e.g. a paused checkpoint program).
+  // A paused process keeps pinging so it is NOT AWOL-swept, but is not "running".
+  string               status        = 3;
 }
 
 message ProcessCompletedRequest {
@@ -148,16 +152,6 @@ message ResolveServiceUidRequest {
 
 message ResolveServiceUidResponse {
   string     serviceUid   = 1;
-}
-
-message GetHealthchecksConfigRequest {
-  // Empty for now, may add filtering in future
-}
-
-message GetHealthchecksConfigResponse {
-  string     apiKey     = 1;
-  string     baseUrl    = 2;  // e.g., "https://hc-ping.com"
-  string     hermesUrl  = 3;  // e.g., "https://hermes.accur8.net"
 }
 
 message ArchivedNatsMessage {
