@@ -4,6 +4,7 @@ import a8.hermes.core.{Mailbox, MailboxTransport}
 import a8.hermes.{nats, auth}
 import a8.hermes.nats.NatsTransport
 import a8.hermes.rpc.{RpcServer, RpcClient, StandardHandlers}
+import a8.hermes.proto.mailbox.mailbox.{BindIdentityRequest, BindIdentityResponse}
 import a8.hermes.discovery.ServiceDiscovery
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
@@ -141,6 +142,13 @@ object HermesBootstrap extends Logging {
         )
       )(using ctx)
 
+      // Step 5b: SSH-auth + BindIdentity so the mailbox carries an identity the mesh (and the SQL
+      // firewall) can ACL. This belongs in the bootstrapper, not each app: godev's bootstrap.Start
+      // binds identity for every worker, and the Scala side has all the pieces (SshAuth, AuthExtension,
+      // mailbox.v1.BindIdentity) — it just never wired them in. Gated on config so offline/test runs
+      // (no auth service, no ssh key) bootstrap unauthenticated as before. Mirrors WhoAmI.scala.
+      authExtension <- bindIdentityResource(bootstrapConfig, mailbox, rpcClient, staticServiceDiscovery)(using ctx)
+
       // Resolve stable processUid once at bootstrap time (before service discovery)
       processUid = sys.env.getOrElse("A8_PROCESS_UID",
         sys.env.getOrElse("PROCESS_UID", java.util.UUID.randomUUID().toString.replace("-", "").take(20)))
@@ -209,8 +217,79 @@ object HermesBootstrap extends Logging {
         staticServiceDiscovery = staticServiceDiscovery,
         dynamicServiceDiscovery = dynamicServiceDiscovery,
         processUid = processUid,
-        authExtension = None,  // Will be set by application if needed
+        authExtension = authExtension,
       )
+    }
+  }
+
+  /**
+   * SSH-authenticate and bind the mailbox identity, then start token auto-renewal. Returns the
+   * running [[auth.AuthExtension]] (released on shutdown) or None when auth is disabled/unconfigured.
+   *
+   * Disabled (returns None) when `autoRenewAuth` is false, or `sshKeyPath`/`authServiceMailbox` is
+   * unset — this keeps offline and unit-test bootstraps working without an auth service. The
+   * `mailbox` service name must be resolvable via static service discovery for the BindIdentity call.
+   */
+  private def bindIdentityResource(
+    bootstrapConfig: HermesBootstrapConfig,
+    mailbox: Mailbox,
+    rpcClient: RpcClient,
+    staticServiceDiscovery: StaticServiceDiscovery,
+  )(using ctx: Ctx): Resource[Option[auth.AuthExtension]] = {
+
+    val enabled = bootstrapConfig.autoRenewAuth &&
+      bootstrapConfig.sshKeyPath.isDefined &&
+      bootstrapConfig.authServiceMailbox.isDefined
+
+    if (!enabled) {
+      logger.info(
+        s"Mailbox auth disabled (autoRenewAuth=${bootstrapConfig.autoRenewAuth}, " +
+          s"sshKeyPath=${bootstrapConfig.sshKeyPath.isDefined}, authServiceMailbox=${bootstrapConfig.authServiceMailbox.isDefined}) " +
+          "— mailbox will be unauthenticated"
+      )
+      Resource.acquireRelease(Option.empty[auth.AuthExtension])(_ => ())
+    } else {
+      Resource.acquireRelease[Option[auth.AuthExtension]] {
+        val authMailbox = Mailbox.MailboxAddress(bootstrapConfig.authServiceMailbox.get)
+        val sshAuthConfig =
+          auth.SshAuth.Config(
+            sshPrivateKeyPath = bootstrapConfig.sshKeyPath.get,
+            authServiceMailbox = authMailbox,
+          )
+
+        // 1. SSH auth -> auth token
+        val authResult =
+          auth.SshAuth.authenticate(sshAuthConfig, rpcClient) match {
+            case scala.util.Success(r) =>
+              logger.info("✓ SSH authentication successful")
+              r
+            case scala.util.Failure(e) =>
+              throw new RuntimeException(s"SSH authentication failed: ${e.getMessage}", e)
+          }
+
+        // 2. Bind the token to this mailbox (mailbox.v1.BindIdentity)
+        val mailboxServiceMailbox = staticServiceDiscovery.getMailbox("mailbox")
+        val bindResp =
+          rpcClient.callTyped[BindIdentityRequest, BindIdentityResponse](
+            targetMailbox = mailboxServiceMailbox,
+            endpoint = "mailbox.v1.BindIdentity",
+            request = BindIdentityRequest(authToken = authResult.authToken),
+            timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
+          ).getOrElse {
+            throw new RuntimeException("BindIdentity RPC failed: no response from mailbox service")
+          }
+        if (!bindResp.success) {
+          throw new RuntimeException(s"BindIdentity failed: ${bindResp.message}")
+        }
+        logger.info(s"✓ Auth token bound to mailbox ${mailbox.address.value} (user_uid: ${bindResp.userUid})")
+
+        // 3. Start background token renewal
+        val authExt = new auth.AuthExtension(mailbox, sshAuthConfig, rpcClient, auth.AuthExtension.Config())
+        authExt.start(authResult.expiresAt)
+        Some(authExt)
+      } { authExtOpt =>
+        authExtOpt.foreach(_.stop())
+      }
     }
   }
 
