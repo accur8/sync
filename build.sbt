@@ -215,6 +215,10 @@ lazy val hermes =
       libraryDependencies ++= Seq(
         "org.bouncycastle" % "bcprov-jdk18on" % "1.77",
         "com.hierynomus" % "sshj" % "0.38.0",
+        // scalapb JSON (protojson) so RPC handlers can decode/encode by the request's contentType —
+        // a JSON-speaking client (e.g. the browser ws/send_receive_json path) is handled natively
+        // instead of every typed handler being hardwired to binary protobuf.
+        "com.thesamet.scalapb" %% "scalapb-json4s" % "0.12.1",
         "org.scalatest" %% "scalatest" % "3.2.15" % "test",
       )
     )

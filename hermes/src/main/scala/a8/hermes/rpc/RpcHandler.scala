@@ -2,17 +2,24 @@ package a8.hermes.rpc
 
 import a8.hermes.core.Mailbox
 import a8.hermes.core.MailboxTransport.Envelope
+import a8.hermes.proto.process.wsmessages.ContentType
 import a8.shared.app.Ctx
 
 /**
  * Context for RPC handler execution.
  * Contains the request envelope and sender information.
+ *
+ * `contentType` is the wire format the CALLER declared for the request body (from the request
+ * message header). Handlers decode/encode accordingly — a `Json` request is protojson, otherwise
+ * binary protobuf — so a handler is never hardwired to one format. Defaults to `UnspecifiedCT`,
+ * which is treated as protobuf for backward compatibility.
  */
 case class RpcContext(
   envelope: Envelope,
   senderMailbox: Option[Mailbox.MailboxAddress],
   correlationId: Option[String],
   endpoint: String,
+  contentType: ContentType = ContentType.UnspecifiedCT,
 )(using val ctx: Ctx)
 
 /**
@@ -60,13 +67,23 @@ abstract class TypedRpcHandler[Req <: scalapb.GeneratedMessage, Resp <: scalapb.
   def handleTyped(request: Req, ctx: RpcContext): Resp
 
   /**
-   * Deserialize, handle, and serialize
+   * Deserialize, handle, and serialize — honoring the request's contentType on BOTH legs. A `Json`
+   * request body is parsed as protojson and the response is serialized as protojson (UTF-8 bytes);
+   * any other contentType uses binary protobuf. This lets a JSON-speaking client (e.g. a browser)
+   * talk to the SAME typed handler as a protobuf client, with no per-handler wire-format hardcoding.
    */
-  override final def handle(request: Array[Byte], ctx: RpcContext): Array[Byte] = {
-    val req = reqCompanion.parseFrom(request)
-    val resp = handleTyped(req, ctx)
-    resp.toByteArray
-  }
+  override final def handle(request: Array[Byte], ctx: RpcContext): Array[Byte] =
+    ctx.contentType match {
+      case ContentType.Json =>
+        val jsonStr = new String(request, java.nio.charset.StandardCharsets.UTF_8)
+        val req = scalapb.json4s.JsonFormat.fromJsonString[Req](jsonStr)
+        val resp = handleTyped(req, ctx)
+        scalapb.json4s.JsonFormat.toJsonString[Resp](resp).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+      case _ =>
+        val req = reqCompanion.parseFrom(request)
+        val resp = handleTyped(req, ctx)
+        resp.toByteArray
+    }
 }
 
 /**

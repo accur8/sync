@@ -125,6 +125,9 @@ class RpcServer(config: RpcServer.Config) extends Logging {
             val endpoint = rpcHeader.endPoint
             val correlationId = Some(rpcHeader.correlationId)
             val senderMailbox = message.header.map(_.sender).map(Mailbox.MailboxAddress(_))
+            // The wire format the caller used for the request body — handlers decode/encode by it, and
+            // the response echoes it (a JSON request gets a JSON response).
+            val requestContentType = message.header.map(_.contentType).getOrElse(ContentType.UnspecifiedCT)
 
             logger.debug(s"Received RPC request: $endpoint (correlation: ${correlationId.getOrElse("none")})")
 
@@ -134,25 +137,40 @@ class RpcServer(config: RpcServer.Config) extends Logging {
               senderMailbox = senderMailbox,
               correlationId = correlationId,
               endpoint = endpoint,
+              contentType = requestContentType,
             )(using ctx)
 
             // Lookup handler (case-insensitive)
             val schemaName = RpcSchema.SchemaName(endpoint)
             handlers.get(schemaName) match {
               case Some(handler) =>
-                // Check authorization
-                if (handler.schema.requiresAuth && !handler.authorize(rpcContext)) {
-                  logger.warn(s"Authorization denied for endpoint: $endpoint")
-                  sendError(senderMailbox, "Authorization denied", correlationId)(using ctx)
-                } else {
-                  // Execute handler with the actual request data from message.data
-                  logger.debug(s"Handling RPC call: $endpoint (correlation: ${correlationId.getOrElse("none")})")
-                  val response = handler.handle(message.data.toByteArray, rpcContext)
+                // Dispatch (authorize + handle + respond) is wrapped so that ANY exception once we hold
+                // a correlation — a request-decode failure inside the handler, a throwing authorize, an
+                // NPE, a bug in user code — is turned into an ErrorResponse sent back to the caller for
+                // THIS correlation. Without this, a throwing handler leaves the caller's RPC promise
+                // unresolved forever (the request never gets a reply): an RPC that never returns. The
+                // framework's contract is "exactly one reply per request" — success or error — so callers
+                // never hang and never need a client-side timeout to defend against a buggy handler.
+                Try {
+                  if (handler.schema.requiresAuth && !handler.authorize(rpcContext)) {
+                    logger.warn(s"Authorization denied for endpoint: $endpoint")
+                    sendError(senderMailbox, "Authorization denied", correlationId)(using ctx)
+                  } else {
+                    // Execute handler with the actual request data from message.data
+                    logger.debug(s"Handling RPC call: $endpoint (correlation: ${correlationId.getOrElse("none")})")
+                    val response = handler.handle(message.data.toByteArray, rpcContext)
 
-                  // Send response back to sender
-                  senderMailbox.foreach { sender =>
-                    sendResponse(sender, response, correlationId, endpoint)(using ctx)
+                    // Send response back to sender, in the same wire format the request used.
+                    senderMailbox.foreach { sender =>
+                      sendResponse(sender, response, correlationId, endpoint, requestContentType)(using ctx)
+                    }
                   }
+                } match {
+                  case Success(_) => // replied (response or auth-denied error)
+                  case Failure(e) =>
+                    logger.error(s"RPC handler failed for $endpoint (correlation: ${correlationId.getOrElse("none")})", e)
+                    val detail = Option(e.getMessage).filter(_.nonEmpty).getOrElse(e.getClass.getName)
+                    sendError(senderMailbox, s"handler error: $detail", correlationId)(using ctx)
                 }
 
               case None =>
@@ -170,19 +188,22 @@ class RpcServer(config: RpcServer.Config) extends Logging {
   }
 
   /**
-   * Send RPC response
+   * Send RPC response. `responseContentType` is the wire format of `payload` and is echoed on the
+   * response header so the caller decodes it the same way it encoded its request (JSON request →
+   * protojson response → the caller's JSON.parse reads it; protobuf request → binary response).
    */
   private def sendResponse(
     senderMailbox: Mailbox.MailboxAddress,
     payload: Array[Byte],
     correlationId: Option[String],
     endpoint: String,
+    responseContentType: ContentType,
   )(using ctx: Ctx): Unit = {
     // Construct protobuf Message with SuccessResponse frame type
     val responseMessage = Message(
       header = Some(MessageHeader(
         sender = config.mailbox.address.value,
-        contentType = ContentType.Protobuf,
+        contentType = if (responseContentType == ContentType.UnspecifiedCT) ContentType.Protobuf else responseContentType,
         rpcHeader = Some(RpcHeader(
           correlationId = correlationId.getOrElse(""),
           endPoint = endpoint,
