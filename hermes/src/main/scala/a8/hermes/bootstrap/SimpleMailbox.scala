@@ -44,7 +44,7 @@ class SimpleMailbox(
     ) ++ message.metadata
 
     // Publish to recipient's RPC inbox using their adminKey
-    val targetSubject = s"hermes.${recipientAdminKey.value}.rpc-inbox"
+    val targetSubject = s"mesh.${recipientAdminKey.value}.rpc-inbox"
     logger.debug(s"Publishing to subject: $targetSubject")
 
     transport.publish(
@@ -56,7 +56,7 @@ class SimpleMailbox(
 
   override def subscribe(channel: Channel)(using ctx: Ctx): XStream[MailboxMessage] = {
     // Subscribe to our channel using our adminKey
-    val channelSubject = s"hermes.${metadata.adminKey.value}.${channel.name}"
+    val channelSubject = s"mesh.${metadata.adminKey.value}.${channel.name}"
 
     transport.subscribe(channelSubject)(using ctx).map { envelope =>
       MailboxMessage(

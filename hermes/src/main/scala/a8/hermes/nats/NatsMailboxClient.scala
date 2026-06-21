@@ -16,16 +16,21 @@ import scala.jdk.CollectionConverters._
  * NATS-specific mailbox client.
  *
  * Creates and fetches mailboxes using NATS KV stores, following godev's pattern:
- * - HermesMailboxesByAdminKey: adminKey → full mailbox JSON
- * - HermesMailboxesByRWKeys: (address|readerKey) → adminKey
+ * - MeshMailboxesByAdminKey: adminKey → full mailbox JSON
+ * - MeshMailboxesByRWKeys: (address|readerKey) → adminKey
  *
  * This is ONLY for direct NATS transport. For websocket/other transports,
  * use the RPC-based mailbox service client instead.
+ *
+ * NOTE: the bucket names + subject prefix below are WIRE-VISIBLE and MUST match godev's
+ * renamed mesh transport (godev `mesh/mailbox-store.go` MeshMailboxesBy*, `mesh/mailbox.go`
+ * "mesh.%s.%s" / "mesh-%s-%s"). The godev hermes→mesh rename (20260620) renamed these on the
+ * wire; this is the sync-side half of that rename so the checkpoint worker can reach the mesh.
  */
 object NatsMailboxClient extends Logging {
 
-  private val AdminMailboxesKVBucket = "HermesMailboxesByAdminKey"
-  private val RWKeysKVBucket = "HermesMailboxesByRWKeys"
+  private val AdminMailboxesKVBucket = "MeshMailboxesByAdminKey"
+  private val RWKeysKVBucket = "MeshMailboxesByRWKeys"
 
   // Timeouts matching godev
   private val NamedMailboxTimeoutMillis = 90L * 24 * 60 * 60 * 1000 // 90 days
@@ -277,8 +282,8 @@ object NatsMailboxClient extends Logging {
     logger.info(s"Created mailbox: ${mailboxAddress.value} (named=$isNamed)")
 
     // Create JetStream streams for mailbox channels (matching godev)
-    val rpcInboxSubject = s"hermes.${adminKey.value}.rpc-inbox"
-    val rpcInboxStream = s"hermes-${adminKey.value}-rpc-inbox"
+    val rpcInboxSubject = s"mesh.${adminKey.value}.rpc-inbox"
+    val rpcInboxStream = s"mesh-${adminKey.value}-rpc-inbox"
     natsTransport.createStream(
       name = rpcInboxStream,
       subjects = Seq(rpcInboxSubject),

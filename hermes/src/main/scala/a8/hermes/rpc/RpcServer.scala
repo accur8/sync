@@ -72,7 +72,7 @@ class RpcServer(config: RpcServer.Config) extends Logging {
     logger.info(s"Registered ${handlers.size} handlers")
 
     // Subscribe to the RPC inbox channel in a background fork
-    val rpcInboxSubject = s"hermes.${config.mailbox.adminKey.value}.rpc-inbox"
+    val rpcInboxSubject = s"mesh.${config.mailbox.adminKey.value}.rpc-inbox"
     logger.info(s"RPC Server subscribing to: $rpcInboxSubject")
 
     // Get the Ox instance from the context
