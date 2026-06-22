@@ -128,8 +128,11 @@ case class HermesBootstrapConfig(
   sshKeyPath: Option[String] = None,
   authServiceMailbox: Option[String] = None,
   namedMailboxes: Map[String, String] = Map.empty,
-  // when set, service->mailbox mappings are resolved dynamically via the naming service over NATS
-  // (naming.v1.GetEnvironment), falling back to the static `namedMailboxes` above
+  // The naming service (naming.v1.GetEnvironment over NATS) is always queried for
+  // service->mailbox mappings; static `namedMailboxes` above are merged as overrides.
+  // When None (the common case), an empty environment name is sent and the server
+  // returns its default name set, so clients don't have to get an environment name
+  // right. Set this only to request a specific (non-default) environment's set.
   namingEnvironment: Option[String] = None,
   discoverySubject: String = "continuum.discovery",
   autoRenewAuth: Boolean = true,

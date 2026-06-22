@@ -294,26 +294,26 @@ object HermesBootstrap extends Logging {
   }
 
   /**
-   * Resolve service->mailbox name mappings. If the config sets `namingEnvironment`, query the naming
-   * service (naming.v1.GetEnvironment) over the already-connected NATS for the live mappings, matching
-   * godev's `QueryNamingService`; static `namedMailboxes` from the config are merged as fallback/overrides.
-   * Any query failure falls back to the static mappings so bootstrap still works offline.
+   * Resolve service->mailbox name mappings. Always queries the naming service
+   * (naming.v1.GetEnvironment) over the already-connected NATS for the live mappings, matching
+   * godev's `QueryNamingService`. When `namingEnvironment` is unset (the common case) an empty
+   * environment name is sent, so the server returns its default name set and clients don't have
+   * to get an environment name right; only clients needing a specific set configure
+   * `namingEnvironment`. Static `namedMailboxes` from the config are merged as overrides, and any
+   * query failure falls back to the static mappings so bootstrap still works offline.
    */
   private def resolveNameMappings(config: HermesBootstrapConfig, natsTransport: NatsTransport): Map[String, String] = {
-    config.namingEnvironment match {
-      case None =>
-        config.namedMailboxes
-      case Some(env) =>
-        val dynamic =
-          try queryNamingService(natsTransport, env)
-          catch {
-            case e: Throwable =>
-              logger.warn(s"naming service query failed for env '$env'; falling back to static nameMappings", e)
-              Map.empty[String, String]
-          }
-        // static config entries win as explicit overrides
-        dynamic ++ config.namedMailboxes
-    }
+    // None => empty environment name => server's default name set
+    val env = config.namingEnvironment.getOrElse("")
+    val dynamic =
+      try queryNamingService(natsTransport, env)
+      catch {
+        case e: Throwable =>
+          logger.warn(s"naming service query failed for env '$env'; falling back to static nameMappings", e)
+          Map.empty[String, String]
+      }
+    // static config entries win as explicit overrides
+    dynamic ++ config.namedMailboxes
   }
 
   /** Raw naming.v1.GetEnvironment request over NATS, returning service->mailbox mappings. */
