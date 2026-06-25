@@ -61,7 +61,7 @@ final case class SenderEnvelope(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SenderEnvelope.type = a8.hermes.proto.process.wsmessages.SenderEnvelope
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SenderEnvelope])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SenderEnvelope])
 }
 
 object SenderEnvelope extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SenderEnvelope] {
@@ -113,5 +113,5 @@ object SenderEnvelope extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
   ): _root_.a8.hermes.proto.process.wsmessages.SenderEnvelope = _root_.a8.hermes.proto.process.wsmessages.SenderEnvelope(
     created
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SenderEnvelope])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SenderEnvelope])
 }

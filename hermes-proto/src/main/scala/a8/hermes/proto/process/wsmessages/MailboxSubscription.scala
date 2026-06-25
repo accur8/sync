@@ -161,7 +161,7 @@ final case class MailboxSubscription(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.MailboxSubscription.type = a8.hermes.proto.process.wsmessages.MailboxSubscription
-    // @@protoc_insertion_point(GeneratedMessage[hermes.MailboxSubscription])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.MailboxSubscription])
 }
 
 object MailboxSubscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.MailboxSubscription] {
@@ -263,5 +263,5 @@ object MailboxSubscription extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     startSeq,
     endSeq
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.MailboxSubscription])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.MailboxSubscription])
 }

@@ -4,10 +4,10 @@ syntax = "proto3";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
-package hermes;
+package mesh;
 option java_package = "a8.hermes.proto.process";
 option java_multiple_files = true;
-option go_package = "accur8.io/hermes/hproto";
+option go_package = "accur8.io/godev/mesh/hproto";
 
 message MessageFromClient {
   oneof message {
@@ -309,7 +309,7 @@ message AddChannelRequest {
 message AddChannelResponse {
 }
 
-service HermesService {
+service MeshService {
   rpc SendReceive(stream MessageFromClient) returns (stream MessageToClient);
   rpc CreateMailbox(CreateMailboxRequest) returns (CreateMailboxResponse);
   rpc AddChannel(AddChannelRequest) returns (AddChannelResponse);

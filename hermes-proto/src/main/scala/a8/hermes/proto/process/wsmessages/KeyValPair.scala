@@ -81,7 +81,7 @@ final case class KeyValPair(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.KeyValPair.type = a8.hermes.proto.process.wsmessages.KeyValPair
-    // @@protoc_insertion_point(GeneratedMessage[hermes.KeyValPair])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.KeyValPair])
 }
 
 object KeyValPair extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.KeyValPair] {
@@ -143,5 +143,5 @@ object KeyValPair extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.proc
     key,
     `val`
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.KeyValPair])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.KeyValPair])
 }

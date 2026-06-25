@@ -134,7 +134,7 @@ final case class MessageHeader(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.MessageHeader.type = a8.hermes.proto.process.wsmessages.MessageHeader
-    // @@protoc_insertion_point(GeneratedMessage[hermes.MessageHeader])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.MessageHeader])
 }
 
 object MessageHeader extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.MessageHeader] {
@@ -238,5 +238,5 @@ object MessageHeader extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.p
     senderSequence,
     extraHeaders
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.MessageHeader])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.MessageHeader])
 }

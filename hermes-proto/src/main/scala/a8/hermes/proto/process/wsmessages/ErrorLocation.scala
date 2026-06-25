@@ -103,7 +103,7 @@ final case class ErrorLocation(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.ErrorLocation.type = a8.hermes.proto.process.wsmessages.ErrorLocation
-    // @@protoc_insertion_point(GeneratedMessage[hermes.ErrorLocation])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.ErrorLocation])
 }
 
 object ErrorLocation extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ErrorLocation] {
@@ -175,5 +175,5 @@ object ErrorLocation extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.p
     line,
     function
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.ErrorLocation])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ErrorLocation])
 }

@@ -81,7 +81,7 @@ final case class SenderInfo(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SenderInfo.type = a8.hermes.proto.process.wsmessages.SenderInfo
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SenderInfo])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SenderInfo])
 }
 
 object SenderInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SenderInfo] {
@@ -143,5 +143,5 @@ object SenderInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.proc
     readerKey,
     address
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SenderInfo])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SenderInfo])
 }

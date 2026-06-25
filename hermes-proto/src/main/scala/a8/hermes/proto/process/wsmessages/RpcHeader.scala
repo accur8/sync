@@ -126,7 +126,7 @@ final case class RpcHeader(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.RpcHeader.type = a8.hermes.proto.process.wsmessages.RpcHeader
-    // @@protoc_insertion_point(GeneratedMessage[hermes.RpcHeader])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.RpcHeader])
 }
 
 object RpcHeader extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.RpcHeader] {
@@ -219,5 +219,5 @@ object RpcHeader extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.proce
     frameType,
     errorInfo
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.RpcHeader])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.RpcHeader])
 }

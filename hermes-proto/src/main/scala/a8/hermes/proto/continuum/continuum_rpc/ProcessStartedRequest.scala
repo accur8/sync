@@ -5,8 +5,12 @@
 
 package a8.hermes.proto.continuum.continuum_rpc
 
-/** @param startedAt
+/** @param jobUid
+  *   the job this run belongs to (renamed from serviceUid; field number 5 unchanged for wire compat)
+  * @param startedAt
   *   UTC timestamp
+  * @param jobName
+  *   the job name this run announces (renamed from serviceName; field number 16 unchanged for wire compat)
   * @param eventUid
   *   Scheduler event UID for correlation
   * @param discovery
@@ -26,7 +30,7 @@ final case class ProcessStartedRequest(
     parentProcessRunUid: _root_.scala.Predef.String = "",
     processPid: _root_.scala.Int = 0,
     workerUid: _root_.scala.Predef.String = "",
-    serviceUid: _root_.scala.Predef.String = "",
+    jobUid: _root_.scala.Predef.String = "",
     startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
     command: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
     cwd: _root_.scala.Predef.String = "",
@@ -37,7 +41,7 @@ final case class ProcessStartedRequest(
     launchError: _root_.scala.Predef.String = "",
     kind: _root_.scala.Predef.String = "",
     extraDataJsonStr: _root_.scala.Predef.String = "",
-    serviceName: _root_.scala.Predef.String = "",
+    jobName: _root_.scala.Predef.String = "",
     ephemeralName: _root_.scala.Predef.String = "",
     eventUid: _root_.scala.Predef.String = "",
     discovery: _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse] = _root_.scala.None,
@@ -78,7 +82,7 @@ final case class ProcessStartedRequest(
       };
       
       {
-        val __value = serviceUid
+        val __value = jobUid
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
         }
@@ -143,7 +147,7 @@ final case class ProcessStartedRequest(
       };
       
       {
-        val __value = serviceName
+        val __value = jobName
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(16, __value)
         }
@@ -211,7 +215,7 @@ final case class ProcessStartedRequest(
         }
       };
       {
-        val __v = serviceUid
+        val __v = jobUid
         if (!__v.isEmpty) {
           _output__.writeString(5, __v)
         }
@@ -271,7 +275,7 @@ final case class ProcessStartedRequest(
         }
       };
       {
-        val __v = serviceName
+        val __v = jobName
         if (!__v.isEmpty) {
           _output__.writeString(16, __v)
         }
@@ -306,7 +310,7 @@ final case class ProcessStartedRequest(
     def withParentProcessRunUid(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(parentProcessRunUid = __v)
     def withProcessPid(__v: _root_.scala.Int): ProcessStartedRequest = copy(processPid = __v)
     def withWorkerUid(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(workerUid = __v)
-    def withServiceUid(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(serviceUid = __v)
+    def withJobUid(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(jobUid = __v)
     def getStartedAt: com.google.protobuf.timestamp.Timestamp = startedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def clearStartedAt: ProcessStartedRequest = copy(startedAt = _root_.scala.None)
     def withStartedAt(__v: com.google.protobuf.timestamp.Timestamp): ProcessStartedRequest = copy(startedAt = Option(__v))
@@ -328,7 +332,7 @@ final case class ProcessStartedRequest(
     def withLaunchError(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(launchError = __v)
     def withKind(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(kind = __v)
     def withExtraDataJsonStr(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(extraDataJsonStr = __v)
-    def withServiceName(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(serviceName = __v)
+    def withJobName(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(jobName = __v)
     def withEphemeralName(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(ephemeralName = __v)
     def withEventUid(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(eventUid = __v)
     def getDiscovery: a8.hermes.proto.discovery.discovery.DiscoveryResponse = discovery.getOrElse(a8.hermes.proto.discovery.discovery.DiscoveryResponse.defaultInstance)
@@ -356,7 +360,7 @@ final case class ProcessStartedRequest(
           if (__t != "") __t else null
         }
         case 5 => {
-          val __t = serviceUid
+          val __t = jobUid
           if (__t != "") __t else null
         }
         case 6 => startedAt.orNull
@@ -388,7 +392,7 @@ final case class ProcessStartedRequest(
           if (__t != "") __t else null
         }
         case 16 => {
-          val __t = serviceName
+          val __t = jobName
           if (__t != "") __t else null
         }
         case 17 => {
@@ -413,7 +417,7 @@ final case class ProcessStartedRequest(
         case 2 => _root_.scalapb.descriptors.PString(parentProcessRunUid)
         case 3 => _root_.scalapb.descriptors.PInt(processPid)
         case 4 => _root_.scalapb.descriptors.PString(workerUid)
-        case 5 => _root_.scalapb.descriptors.PString(serviceUid)
+        case 5 => _root_.scalapb.descriptors.PString(jobUid)
         case 6 => startedAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 7 => _root_.scalapb.descriptors.PRepeated(command.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
         case 8 => _root_.scalapb.descriptors.PString(cwd)
@@ -424,7 +428,7 @@ final case class ProcessStartedRequest(
         case 13 => _root_.scalapb.descriptors.PString(launchError)
         case 14 => _root_.scalapb.descriptors.PString(kind)
         case 15 => _root_.scalapb.descriptors.PString(extraDataJsonStr)
-        case 16 => _root_.scalapb.descriptors.PString(serviceName)
+        case 16 => _root_.scalapb.descriptors.PString(jobName)
         case 17 => _root_.scalapb.descriptors.PString(ephemeralName)
         case 18 => _root_.scalapb.descriptors.PString(eventUid)
         case 19 => discovery.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
@@ -443,7 +447,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     var __parentProcessRunUid: _root_.scala.Predef.String = ""
     var __processPid: _root_.scala.Int = 0
     var __workerUid: _root_.scala.Predef.String = ""
-    var __serviceUid: _root_.scala.Predef.String = ""
+    var __jobUid: _root_.scala.Predef.String = ""
     var __startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
     val __command: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
     var __cwd: _root_.scala.Predef.String = ""
@@ -454,7 +458,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     var __launchError: _root_.scala.Predef.String = ""
     var __kind: _root_.scala.Predef.String = ""
     var __extraDataJsonStr: _root_.scala.Predef.String = ""
-    var __serviceName: _root_.scala.Predef.String = ""
+    var __jobName: _root_.scala.Predef.String = ""
     var __ephemeralName: _root_.scala.Predef.String = ""
     var __eventUid: _root_.scala.Predef.String = ""
     var __discovery: _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse] = _root_.scala.None
@@ -474,7 +478,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         case 34 =>
           __workerUid = _input__.readStringRequireUtf8()
         case 42 =>
-          __serviceUid = _input__.readStringRequireUtf8()
+          __jobUid = _input__.readStringRequireUtf8()
         case 50 =>
           __startedAt = _root_.scala.Option(__startedAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 58 =>
@@ -496,7 +500,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         case 122 =>
           __extraDataJsonStr = _input__.readStringRequireUtf8()
         case 130 =>
-          __serviceName = _input__.readStringRequireUtf8()
+          __jobName = _input__.readStringRequireUtf8()
         case 138 =>
           __ephemeralName = _input__.readStringRequireUtf8()
         case 146 =>
@@ -517,7 +521,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         parentProcessRunUid = __parentProcessRunUid,
         processPid = __processPid,
         workerUid = __workerUid,
-        serviceUid = __serviceUid,
+        jobUid = __jobUid,
         startedAt = __startedAt,
         command = __command.result(),
         cwd = __cwd,
@@ -528,7 +532,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         launchError = __launchError,
         kind = __kind,
         extraDataJsonStr = __extraDataJsonStr,
-        serviceName = __serviceName,
+        jobName = __jobName,
         ephemeralName = __ephemeralName,
         eventUid = __eventUid,
         discovery = __discovery,
@@ -544,7 +548,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         parentProcessRunUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         processPid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Int]).getOrElse(0),
         workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        serviceUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        jobUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         startedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
         command = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
         cwd = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
@@ -555,7 +559,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         launchError = __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         kind = __fieldsMap.get(scalaDescriptor.findFieldByNumber(14).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         extraDataJsonStr = __fieldsMap.get(scalaDescriptor.findFieldByNumber(15).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        serviceName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        jobName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(16).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         ephemeralName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(17).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         eventUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(18).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         discovery = __fieldsMap.get(scalaDescriptor.findFieldByNumber(19).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse]]),
@@ -580,7 +584,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     parentProcessRunUid = "",
     processPid = 0,
     workerUid = "",
-    serviceUid = "",
+    jobUid = "",
     startedAt = _root_.scala.None,
     command = _root_.scala.Seq.empty,
     cwd = "",
@@ -591,7 +595,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     launchError = "",
     kind = "",
     extraDataJsonStr = "",
-    serviceName = "",
+    jobName = "",
     ephemeralName = "",
     eventUid = "",
     discovery = _root_.scala.None,
@@ -602,7 +606,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     def parentProcessRunUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.parentProcessRunUid)((c_, f_) => c_.copy(parentProcessRunUid = f_))
     def processPid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.processPid)((c_, f_) => c_.copy(processPid = f_))
     def workerUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerUid)((c_, f_) => c_.copy(workerUid = f_))
-    def serviceUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.serviceUid)((c_, f_) => c_.copy(serviceUid = f_))
+    def jobUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.jobUid)((c_, f_) => c_.copy(jobUid = f_))
     def startedAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getStartedAt)((c_, f_) => c_.copy(startedAt = _root_.scala.Option(f_)))
     def optionalStartedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.startedAt)((c_, f_) => c_.copy(startedAt = f_))
     def command: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.command)((c_, f_) => c_.copy(command = f_))
@@ -614,7 +618,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     def launchError: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.launchError)((c_, f_) => c_.copy(launchError = f_))
     def kind: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.kind)((c_, f_) => c_.copy(kind = f_))
     def extraDataJsonStr: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.extraDataJsonStr)((c_, f_) => c_.copy(extraDataJsonStr = f_))
-    def serviceName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.serviceName)((c_, f_) => c_.copy(serviceName = f_))
+    def jobName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.jobName)((c_, f_) => c_.copy(jobName = f_))
     def ephemeralName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.ephemeralName)((c_, f_) => c_.copy(ephemeralName = f_))
     def eventUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.eventUid)((c_, f_) => c_.copy(eventUid = f_))
     def discovery: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.discovery.discovery.DiscoveryResponse] = field(_.getDiscovery)((c_, f_) => c_.copy(discovery = _root_.scala.Option(f_)))
@@ -625,7 +629,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
   final val PARENTPROCESSRUNUID_FIELD_NUMBER = 2
   final val PROCESSPID_FIELD_NUMBER = 3
   final val WORKERUID_FIELD_NUMBER = 4
-  final val SERVICEUID_FIELD_NUMBER = 5
+  final val JOBUID_FIELD_NUMBER = 5
   final val STARTEDAT_FIELD_NUMBER = 6
   final val COMMAND_FIELD_NUMBER = 7
   final val CWD_FIELD_NUMBER = 8
@@ -636,7 +640,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
   final val LAUNCHERROR_FIELD_NUMBER = 13
   final val KIND_FIELD_NUMBER = 14
   final val EXTRADATAJSONSTR_FIELD_NUMBER = 15
-  final val SERVICENAME_FIELD_NUMBER = 16
+  final val JOBNAME_FIELD_NUMBER = 16
   final val EPHEMERALNAME_FIELD_NUMBER = 17
   final val EVENTUID_FIELD_NUMBER = 18
   final val DISCOVERY_FIELD_NUMBER = 19
@@ -646,7 +650,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     parentProcessRunUid: _root_.scala.Predef.String,
     processPid: _root_.scala.Int,
     workerUid: _root_.scala.Predef.String,
-    serviceUid: _root_.scala.Predef.String,
+    jobUid: _root_.scala.Predef.String,
     startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
     command: _root_.scala.Seq[_root_.scala.Predef.String],
     cwd: _root_.scala.Predef.String,
@@ -657,7 +661,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     launchError: _root_.scala.Predef.String,
     kind: _root_.scala.Predef.String,
     extraDataJsonStr: _root_.scala.Predef.String,
-    serviceName: _root_.scala.Predef.String,
+    jobName: _root_.scala.Predef.String,
     ephemeralName: _root_.scala.Predef.String,
     eventUid: _root_.scala.Predef.String,
     discovery: _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse],
@@ -667,7 +671,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     parentProcessRunUid,
     processPid,
     workerUid,
-    serviceUid,
+    jobUid,
     startedAt,
     command,
     cwd,
@@ -678,7 +682,7 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     launchError,
     kind,
     extraDataJsonStr,
-    serviceName,
+    jobName,
     ephemeralName,
     eventUid,
     discovery,

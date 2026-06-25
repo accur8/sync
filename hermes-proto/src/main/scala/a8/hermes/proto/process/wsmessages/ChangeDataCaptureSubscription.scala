@@ -138,7 +138,7 @@ final case class ChangeDataCaptureSubscription(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription.type = a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription
-    // @@protoc_insertion_point(GeneratedMessage[hermes.ChangeDataCaptureSubscription])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.ChangeDataCaptureSubscription])
 }
 
 object ChangeDataCaptureSubscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ChangeDataCaptureSubscription] {
@@ -236,5 +236,5 @@ object ChangeDataCaptureSubscription extends scalapb.GeneratedMessageCompanion[a
     startSeq,
     endSeq
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.ChangeDataCaptureSubscription])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ChangeDataCaptureSubscription])
 }

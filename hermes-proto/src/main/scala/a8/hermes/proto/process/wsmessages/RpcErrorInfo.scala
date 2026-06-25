@@ -130,7 +130,7 @@ final case class RpcErrorInfo(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.RpcErrorInfo.type = a8.hermes.proto.process.wsmessages.RpcErrorInfo
-    // @@protoc_insertion_point(GeneratedMessage[hermes.RpcErrorInfo])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.RpcErrorInfo])
 }
 
 object RpcErrorInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.RpcErrorInfo] {
@@ -219,5 +219,5 @@ object RpcErrorInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
     stackTrace,
     errorNode
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.RpcErrorInfo])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.RpcErrorInfo])
 }

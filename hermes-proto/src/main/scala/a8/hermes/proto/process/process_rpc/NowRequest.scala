@@ -3,12 +3,15 @@
 //
 // Protofile syntax: PROTO3
 
-package a8.hermes.proto.process.wsmessages
+package a8.hermes.proto.process.process_rpc
 
+/** Now messages — returns this process's current UTC time
+  * Empty
+  */
 @SerialVersionUID(0L)
-final case class AddChannelResponse(
+final case class NowRequest(
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[AddChannelResponse] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[NowRequest] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
@@ -33,13 +36,13 @@ final case class AddChannelResponse(
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = throw new MatchError(__fieldNumber)
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = throw new MatchError(__field)
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.process.wsmessages.AddChannelResponse.type = a8.hermes.proto.process.wsmessages.AddChannelResponse
-    // @@protoc_insertion_point(GeneratedMessage[mesh.AddChannelResponse])
+    def companion: a8.hermes.proto.process.process_rpc.NowRequest.type = a8.hermes.proto.process.process_rpc.NowRequest
+    // @@protoc_insertion_point(GeneratedMessage[process_rpc.NowRequest])
 }
 
-object AddChannelResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.AddChannelResponse] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.AddChannelResponse] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.AddChannelResponse = {
+object NowRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.process_rpc.NowRequest] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.process_rpc.NowRequest] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.process_rpc.NowRequest = {
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -53,28 +56,28 @@ object AddChannelResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.process.wsmessages.AddChannelResponse(
+    a8.hermes.proto.process.process_rpc.NowRequest(
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.AddChannelResponse] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.process_rpc.NowRequest] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.process.wsmessages.AddChannelResponse(
+      a8.hermes.proto.process.process_rpc.NowRequest(
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(34)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(34)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ProcessRpcProto.javaDescriptor.getMessageTypes().get(17)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ProcessRpcProto.scalaDescriptor.messages(17)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.AddChannelResponse(
+  lazy val defaultInstance = a8.hermes.proto.process.process_rpc.NowRequest(
   )
-  implicit class AddChannelResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.AddChannelResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.AddChannelResponse](_l) {
+  implicit class NowRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.process_rpc.NowRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.process_rpc.NowRequest](_l) {
   }
   def of(
-  ): _root_.a8.hermes.proto.process.wsmessages.AddChannelResponse = _root_.a8.hermes.proto.process.wsmessages.AddChannelResponse(
+  ): _root_.a8.hermes.proto.process.process_rpc.NowRequest = _root_.a8.hermes.proto.process.process_rpc.NowRequest(
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.AddChannelResponse])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[process_rpc.NowRequest])
 }

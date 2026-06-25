@@ -76,7 +76,7 @@ final case class AddChannelRequest(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.AddChannelRequest.type = a8.hermes.proto.process.wsmessages.AddChannelRequest
-    // @@protoc_insertion_point(GeneratedMessage[hermes.AddChannelRequest])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.AddChannelRequest])
 }
 
 object AddChannelRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.AddChannelRequest] {
@@ -138,5 +138,5 @@ object AddChannelRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     adminKey,
     channels
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.AddChannelRequest])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.AddChannelRequest])
 }

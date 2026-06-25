@@ -128,7 +128,7 @@ final case class MessageFromClient(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.MessageFromClient.type = a8.hermes.proto.process.wsmessages.MessageFromClient
-    // @@protoc_insertion_point(GeneratedMessage[hermes.MessageFromClient])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.MessageFromClient])
 }
 
 object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.MessageFromClient] {
@@ -287,5 +287,5 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
   ): _root_.a8.hermes.proto.process.wsmessages.MessageFromClient = _root_.a8.hermes.proto.process.wsmessages.MessageFromClient(
     message
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.MessageFromClient])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.MessageFromClient])
 }

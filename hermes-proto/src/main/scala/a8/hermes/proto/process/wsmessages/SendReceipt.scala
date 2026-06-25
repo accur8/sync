@@ -89,7 +89,7 @@ final case class SendReceipt(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SendReceipt.type = a8.hermes.proto.process.wsmessages.SendReceipt
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SendReceipt])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SendReceipt])
 }
 
 object SendReceipt extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SendReceipt] {
@@ -172,5 +172,5 @@ object SendReceipt extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pro
     response,
     serverEnvelope
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SendReceipt])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SendReceipt])
 }

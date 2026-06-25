@@ -112,7 +112,7 @@ final case class SendMessageRequest(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SendMessageRequest.type = a8.hermes.proto.process.wsmessages.SendMessageRequest
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SendMessageRequest])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SendMessageRequest])
 }
 
 object SendMessageRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SendMessageRequest] {
@@ -201,5 +201,5 @@ object SendMessageRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
     channel,
     idempotentId
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SendMessageRequest])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SendMessageRequest])
 }

@@ -129,6 +129,18 @@ message PingResponse {
   string                        process_id = 3;  // Process identifier
 }
 
+// Now messages — returns this process's current UTC time
+message NowRequest {
+  // Empty
+}
+
+message NowResponse {
+  google.protobuf.Timestamp     utc_time          = 1;  // Current server time (UTC instant)
+  int64                         utc_epoch_millis  = 2;  // Same instant as Unix epoch milliseconds
+  string                        utc_rfc3339       = 3;  // Human-readable, e.g. "2026-06-15T12:00:00.123Z"
+  string                        timezone          = 4;  // Server's local zone name, e.g. "America/New_York" / "UTC"
+}
+
 // Describe messages — returns this process's full ProcessInfo + Capabilities
 message DescribeRequest {
   bool include_extended_metadata = 1;  // Include extended metadata in response

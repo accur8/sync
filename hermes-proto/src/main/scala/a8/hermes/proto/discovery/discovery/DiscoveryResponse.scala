@@ -17,7 +17,7 @@ package a8.hermes.proto.discovery.discovery
   * @param unixPid
   *   Unix process ID
   * @param appName
-  *   AppName is the application name (e.g., "worker", "hermes")
+  *   AppName is the application name (e.g., "worker", "mesh")
   * @param mailboxAddress
   *   MailboxAddress for sending messages to this process
   * @param serviceName

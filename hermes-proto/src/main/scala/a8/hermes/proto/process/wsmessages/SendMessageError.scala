@@ -81,7 +81,7 @@ final case class SendMessageError(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SendMessageError.type = a8.hermes.proto.process.wsmessages.SendMessageError
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SendMessageError])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SendMessageError])
 }
 
 object SendMessageError extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SendMessageError] {
@@ -143,5 +143,5 @@ object SendMessageError extends scalapb.GeneratedMessageCompanion[a8.hermes.prot
     message,
     to
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SendMessageError])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SendMessageError])
 }

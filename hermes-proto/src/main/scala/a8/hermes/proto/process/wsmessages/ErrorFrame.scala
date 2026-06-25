@@ -216,7 +216,7 @@ final case class ErrorFrame(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.ErrorFrame.type = a8.hermes.proto.process.wsmessages.ErrorFrame
-    // @@protoc_insertion_point(GeneratedMessage[hermes.ErrorFrame])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.ErrorFrame])
 }
 
 object ErrorFrame extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ErrorFrame] {
@@ -349,5 +349,5 @@ object ErrorFrame extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.proc
     location,
     timestamp
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.ErrorFrame])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ErrorFrame])
 }

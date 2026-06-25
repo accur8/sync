@@ -5,12 +5,18 @@
 
 package a8.hermes.proto.fileset.fileset
 
+/** @param settings
+  *   The fileset row's settings (raw JSON) to write back to continuum.fileset.extra_data — the reverse
+  *   of PullResponse.settings. The CLI sends what it read from .fileset.json's "settings". Empty "" or
+  *   "{}" leaves the row's settings unchanged-to-empty.
+  */
 @SerialVersionUID(0L)
 final case class PushRequest(
     filesetUid: _root_.scala.Predef.String = "",
     expectedRevisionUid: _root_.scala.Predef.String = "",
     entries: _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry] = _root_.scala.Seq.empty,
     message: _root_.scala.Predef.String = "",
+    settings: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[PushRequest] {
     @transient
@@ -40,6 +46,13 @@ final case class PushRequest(
         val __value = message
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
+        }
+      };
+      
+      {
+        val __value = settings
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -79,6 +92,12 @@ final case class PushRequest(
           _output__.writeString(4, __v)
         }
       };
+      {
+        val __v = settings
+        if (!__v.isEmpty) {
+          _output__.writeString(5, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withFilesetUid(__v: _root_.scala.Predef.String): PushRequest = copy(filesetUid = __v)
@@ -88,6 +107,7 @@ final case class PushRequest(
     def addAllEntries(__vs: Iterable[a8.hermes.proto.fileset.fileset.FileEntry]): PushRequest = copy(entries = entries ++ __vs)
     def withEntries(__v: _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry]): PushRequest = copy(entries = __v)
     def withMessage(__v: _root_.scala.Predef.String): PushRequest = copy(message = __v)
+    def withSettings(__v: _root_.scala.Predef.String): PushRequest = copy(settings = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -105,6 +125,10 @@ final case class PushRequest(
           val __t = message
           if (__t != "") __t else null
         }
+        case 5 => {
+          val __t = settings
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -114,6 +138,7 @@ final case class PushRequest(
         case 2 => _root_.scalapb.descriptors.PString(expectedRevisionUid)
         case 3 => _root_.scalapb.descriptors.PRepeated(entries.iterator.map(_.toPMessage).toVector)
         case 4 => _root_.scalapb.descriptors.PString(message)
+        case 5 => _root_.scalapb.descriptors.PString(settings)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -128,6 +153,7 @@ object PushRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fil
     var __expectedRevisionUid: _root_.scala.Predef.String = ""
     val __entries: _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.fileset.fileset.FileEntry] = new _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.fileset.fileset.FileEntry]
     var __message: _root_.scala.Predef.String = ""
+    var __settings: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -142,6 +168,8 @@ object PushRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fil
           __entries += _root_.scalapb.LiteParser.readMessage[a8.hermes.proto.fileset.fileset.FileEntry](_input__)
         case 34 =>
           __message = _input__.readStringRequireUtf8()
+        case 42 =>
+          __settings = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -154,6 +182,7 @@ object PushRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fil
         expectedRevisionUid = __expectedRevisionUid,
         entries = __entries.result(),
         message = __message,
+        settings = __settings,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -164,7 +193,8 @@ object PushRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fil
         filesetUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         expectedRevisionUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         entries = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry]]).getOrElse(_root_.scala.Seq.empty),
-        message = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        message = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        settings = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -183,28 +213,33 @@ object PushRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fil
     filesetUid = "",
     expectedRevisionUid = "",
     entries = _root_.scala.Seq.empty,
-    message = ""
+    message = "",
+    settings = ""
   )
   implicit class PushRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.fileset.fileset.PushRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.fileset.fileset.PushRequest](_l) {
     def filesetUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.filesetUid)((c_, f_) => c_.copy(filesetUid = f_))
     def expectedRevisionUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.expectedRevisionUid)((c_, f_) => c_.copy(expectedRevisionUid = f_))
     def entries: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry]] = field(_.entries)((c_, f_) => c_.copy(entries = f_))
     def message: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.message)((c_, f_) => c_.copy(message = f_))
+    def settings: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.settings)((c_, f_) => c_.copy(settings = f_))
   }
   final val FILESET_UID_FIELD_NUMBER = 1
   final val EXPECTED_REVISION_UID_FIELD_NUMBER = 2
   final val ENTRIES_FIELD_NUMBER = 3
   final val MESSAGE_FIELD_NUMBER = 4
+  final val SETTINGS_FIELD_NUMBER = 5
   def of(
     filesetUid: _root_.scala.Predef.String,
     expectedRevisionUid: _root_.scala.Predef.String,
     entries: _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry],
-    message: _root_.scala.Predef.String
+    message: _root_.scala.Predef.String,
+    settings: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.fileset.fileset.PushRequest = _root_.a8.hermes.proto.fileset.fileset.PushRequest(
     filesetUid,
     expectedRevisionUid,
     entries,
-    message
+    message,
+    settings
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[fileset.PushRequest])
 }

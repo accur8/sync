@@ -161,7 +161,7 @@ final case class ContinuumSubscription(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.ContinuumSubscription.type = a8.hermes.proto.process.wsmessages.ContinuumSubscription
-    // @@protoc_insertion_point(GeneratedMessage[hermes.ContinuumSubscription])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.ContinuumSubscription])
 }
 
 object ContinuumSubscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ContinuumSubscription] {
@@ -263,5 +263,5 @@ object ContinuumSubscription extends scalapb.GeneratedMessageCompanion[a8.hermes
     startSeq,
     endSeq
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.ContinuumSubscription])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ContinuumSubscription])
 }

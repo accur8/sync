@@ -144,7 +144,7 @@ final case class CreateMailboxRequest(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.CreateMailboxRequest.type = a8.hermes.proto.process.wsmessages.CreateMailboxRequest
-    // @@protoc_insertion_point(GeneratedMessage[hermes.CreateMailboxRequest])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.CreateMailboxRequest])
 }
 
 object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.CreateMailboxRequest] {
@@ -257,5 +257,5 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
     closeTimeoutInMillis,
     extraData
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.CreateMailboxRequest])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.CreateMailboxRequest])
 }

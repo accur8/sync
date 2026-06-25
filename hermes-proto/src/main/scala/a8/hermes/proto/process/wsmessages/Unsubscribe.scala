@@ -61,7 +61,7 @@ final case class Unsubscribe(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.Unsubscribe.type = a8.hermes.proto.process.wsmessages.Unsubscribe
-    // @@protoc_insertion_point(GeneratedMessage[hermes.Unsubscribe])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.Unsubscribe])
 }
 
 object Unsubscribe extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.Unsubscribe] {
@@ -113,5 +113,5 @@ object Unsubscribe extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pro
   ): _root_.a8.hermes.proto.process.wsmessages.Unsubscribe = _root_.a8.hermes.proto.process.wsmessages.Unsubscribe(
     id
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.Unsubscribe])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.Unsubscribe])
 }

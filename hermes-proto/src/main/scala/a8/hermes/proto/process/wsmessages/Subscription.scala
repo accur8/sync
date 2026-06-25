@@ -100,7 +100,7 @@ final case class Subscription(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.Subscription.type = a8.hermes.proto.process.wsmessages.Subscription
-    // @@protoc_insertion_point(GeneratedMessage[hermes.Subscription])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.Subscription])
 }
 
 object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.Subscription] {
@@ -229,5 +229,5 @@ object Subscription extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
   ): _root_.a8.hermes.proto.process.wsmessages.Subscription = _root_.a8.hermes.proto.process.wsmessages.Subscription(
     oneof
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.Subscription])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.Subscription])
 }

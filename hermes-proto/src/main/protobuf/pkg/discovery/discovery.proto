@@ -60,7 +60,7 @@ message ProcessCapabilities {
   // Location where this process is running
   ProcessLocation location = 2;
 
-  // Enabled engines/components (for services like Hermes)
+  // Enabled engines/components (for services like Mesh)
   repeated string engines = 3;
 }
 
@@ -90,7 +90,7 @@ message DiscoveryResponse {
   // Unix process ID
   int32 unix_pid = 3;
 
-  // AppName is the application name (e.g., "worker", "hermes")
+  // AppName is the application name (e.g., "worker", "mesh")
   string app_name = 4;
 
   // MailboxAddress for sending messages to this process

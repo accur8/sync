@@ -21,6 +21,8 @@ package a8.hermes.proto.auth.auth
   *   Human-readable explanation
   * @param rowFilter
   *   Optional SQL expr AND'd into SELECT/UPDATE; supports queryvar.useruid placeholder
+  * @param terminal
+  *   When this matching GRANT is reached (highest priority first), stop composing lower-priority grant filters (soft-delete still composes)
   */
 @SerialVersionUID(0L)
 final case class TableAccessRule(
@@ -31,6 +33,7 @@ final case class TableAccessRule(
     priority: _root_.scala.Int = 0,
     reason: _root_.scala.Predef.String = "",
     rowFilter: _root_.scala.Predef.String = "",
+    terminal: _root_.scala.Boolean = false,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[TableAccessRule] {
     @transient
@@ -81,6 +84,13 @@ final case class TableAccessRule(
         val __value = rowFilter
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(7, __value)
+        }
+      };
+      
+      {
+        val __value = terminal
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(8, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -136,6 +146,12 @@ final case class TableAccessRule(
           _output__.writeString(7, __v)
         }
       };
+      {
+        val __v = terminal
+        if (__v != false) {
+          _output__.writeBool(8, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withUsergroupName(__v: _root_.scala.Predef.String): TableAccessRule = copy(usergroupName = __v)
@@ -148,6 +164,7 @@ final case class TableAccessRule(
     def withPriority(__v: _root_.scala.Int): TableAccessRule = copy(priority = __v)
     def withReason(__v: _root_.scala.Predef.String): TableAccessRule = copy(reason = __v)
     def withRowFilter(__v: _root_.scala.Predef.String): TableAccessRule = copy(rowFilter = __v)
+    def withTerminal(__v: _root_.scala.Boolean): TableAccessRule = copy(terminal = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -177,6 +194,10 @@ final case class TableAccessRule(
           val __t = rowFilter
           if (__t != "") __t else null
         }
+        case 8 => {
+          val __t = terminal
+          if (__t != false) __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -189,6 +210,7 @@ final case class TableAccessRule(
         case 5 => _root_.scalapb.descriptors.PInt(priority)
         case 6 => _root_.scalapb.descriptors.PString(reason)
         case 7 => _root_.scalapb.descriptors.PString(rowFilter)
+        case 8 => _root_.scalapb.descriptors.PBoolean(terminal)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -206,6 +228,7 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     var __priority: _root_.scala.Int = 0
     var __reason: _root_.scala.Predef.String = ""
     var __rowFilter: _root_.scala.Predef.String = ""
+    var __terminal: _root_.scala.Boolean = false
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -226,6 +249,8 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
           __reason = _input__.readStringRequireUtf8()
         case 58 =>
           __rowFilter = _input__.readStringRequireUtf8()
+        case 64 =>
+          __terminal = _input__.readBool()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -241,6 +266,7 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
         priority = __priority,
         reason = __reason,
         rowFilter = __rowFilter,
+        terminal = __terminal,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -254,12 +280,13 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
         granted = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
         priority = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Int]).getOrElse(0),
         reason = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        rowFilter = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        rowFilter = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        terminal = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = AuthProto.javaDescriptor.getMessageTypes().get(25)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = AuthProto.scalaDescriptor.messages(25)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = AuthProto.javaDescriptor.getMessageTypes().get(27)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = AuthProto.scalaDescriptor.messages(27)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
@@ -270,7 +297,8 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     granted = false,
     priority = 0,
     reason = "",
-    rowFilter = ""
+    rowFilter = "",
+    terminal = false
   )
   implicit class TableAccessRuleLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.TableAccessRule]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.TableAccessRule](_l) {
     def usergroupName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.usergroupName)((c_, f_) => c_.copy(usergroupName = f_))
@@ -280,6 +308,7 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     def priority: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.priority)((c_, f_) => c_.copy(priority = f_))
     def reason: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.reason)((c_, f_) => c_.copy(reason = f_))
     def rowFilter: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.rowFilter)((c_, f_) => c_.copy(rowFilter = f_))
+    def terminal: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.terminal)((c_, f_) => c_.copy(terminal = f_))
   }
   final val USERGROUP_NAME_FIELD_NUMBER = 1
   final val TABLE_NAME_FIELD_NUMBER = 2
@@ -288,6 +317,7 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
   final val PRIORITY_FIELD_NUMBER = 5
   final val REASON_FIELD_NUMBER = 6
   final val ROW_FILTER_FIELD_NUMBER = 7
+  final val TERMINAL_FIELD_NUMBER = 8
   def of(
     usergroupName: _root_.scala.Predef.String,
     tableName: _root_.scala.Predef.String,
@@ -295,7 +325,8 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     granted: _root_.scala.Boolean,
     priority: _root_.scala.Int,
     reason: _root_.scala.Predef.String,
-    rowFilter: _root_.scala.Predef.String
+    rowFilter: _root_.scala.Predef.String,
+    terminal: _root_.scala.Boolean
   ): _root_.a8.hermes.proto.auth.auth.TableAccessRule = _root_.a8.hermes.proto.auth.auth.TableAccessRule(
     usergroupName,
     tableName,
@@ -303,7 +334,8 @@ object TableAccessRule extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     granted,
     priority,
     reason,
-    rowFilter
+    rowFilter,
+    terminal
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.TableAccessRule])
 }

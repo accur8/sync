@@ -101,7 +101,7 @@ final case class SubscribeError(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SubscribeError.type = a8.hermes.proto.process.wsmessages.SubscribeError
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SubscribeError])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SubscribeError])
 }
 
 object SubscribeError extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SubscribeError] {
@@ -173,5 +173,5 @@ object SubscribeError extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.
     state,
     message
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SubscribeError])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SubscribeError])
 }

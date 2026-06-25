@@ -113,7 +113,7 @@ final case class SendMessageResponse(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.SendMessageResponse.type = a8.hermes.proto.process.wsmessages.SendMessageResponse
-    // @@protoc_insertion_point(GeneratedMessage[hermes.SendMessageResponse])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.SendMessageResponse])
 }
 
 object SendMessageResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SendMessageResponse] {
@@ -201,5 +201,5 @@ object SendMessageResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     idempotentId,
     correlationId
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.SendMessageResponse])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SendMessageResponse])
 }

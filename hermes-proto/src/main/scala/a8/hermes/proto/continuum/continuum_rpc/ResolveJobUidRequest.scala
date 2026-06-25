@@ -5,19 +5,23 @@
 
 package a8.hermes.proto.continuum.continuum_rpc
 
+/** @param kind
+  *   the job.kind to create if absent: "worker" (a8 worker run) or "supervisor" (svcmgr/systemd). Empty -&gt; supervisor.
+  */
 @SerialVersionUID(0L)
-final case class ResolveServiceUidRequest(
-    serviceName: _root_.scala.Predef.String = "",
+final case class ResolveJobUidRequest(
+    jobName: _root_.scala.Predef.String = "",
     workerUid: _root_.scala.Predef.String = "",
+    kind: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ResolveServiceUidRequest] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ResolveJobUidRequest] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
       
       {
-        val __value = serviceName
+        val __value = jobName
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
         }
@@ -27,6 +31,13 @@ final case class ResolveServiceUidRequest(
         val __value = workerUid
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = kind
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -43,7 +54,7 @@ final case class ResolveServiceUidRequest(
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
-        val __v = serviceName
+        val __v = jobName
         if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
@@ -54,20 +65,31 @@ final case class ResolveServiceUidRequest(
           _output__.writeString(2, __v)
         }
       };
+      {
+        val __v = kind
+        if (!__v.isEmpty) {
+          _output__.writeString(3, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
-    def withServiceName(__v: _root_.scala.Predef.String): ResolveServiceUidRequest = copy(serviceName = __v)
-    def withWorkerUid(__v: _root_.scala.Predef.String): ResolveServiceUidRequest = copy(workerUid = __v)
+    def withJobName(__v: _root_.scala.Predef.String): ResolveJobUidRequest = copy(jobName = __v)
+    def withWorkerUid(__v: _root_.scala.Predef.String): ResolveJobUidRequest = copy(workerUid = __v)
+    def withKind(__v: _root_.scala.Predef.String): ResolveJobUidRequest = copy(kind = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
-          val __t = serviceName
+          val __t = jobName
           if (__t != "") __t else null
         }
         case 2 => {
           val __t = workerUid
+          if (__t != "") __t else null
+        }
+        case 3 => {
+          val __t = kind
           if (__t != "") __t else null
         }
       }
@@ -75,20 +97,22 @@ final case class ResolveServiceUidRequest(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PString(serviceName)
+        case 1 => _root_.scalapb.descriptors.PString(jobName)
         case 2 => _root_.scalapb.descriptors.PString(workerUid)
+        case 3 => _root_.scalapb.descriptors.PString(kind)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest.type = a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest
-    // @@protoc_insertion_point(GeneratedMessage[continuum_rpc.ResolveServiceUidRequest])
+    def companion: a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest.type = a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest
+    // @@protoc_insertion_point(GeneratedMessage[continuum_rpc.ResolveJobUidRequest])
 }
 
-object ResolveServiceUidRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest = {
-    var __serviceName: _root_.scala.Predef.String = ""
+object ResolveJobUidRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest = {
+    var __jobName: _root_.scala.Predef.String = ""
     var __workerUid: _root_.scala.Predef.String = ""
+    var __kind: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -96,9 +120,11 @@ object ResolveServiceUidRequest extends scalapb.GeneratedMessageCompanion[a8.her
       _tag__ match {
         case 0 => _done__ = true
         case 10 =>
-          __serviceName = _input__.readStringRequireUtf8()
+          __jobName = _input__.readStringRequireUtf8()
         case 18 =>
           __workerUid = _input__.readStringRequireUtf8()
+        case 26 =>
+          __kind = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -106,18 +132,20 @@ object ResolveServiceUidRequest extends scalapb.GeneratedMessageCompanion[a8.her
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest(
-        serviceName = __serviceName,
+    a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest(
+        jobName = __jobName,
         workerUid = __workerUid,
+        kind = __kind,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest(
-        serviceName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+      a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest(
+        jobName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        kind = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -126,22 +154,27 @@ object ResolveServiceUidRequest extends scalapb.GeneratedMessageCompanion[a8.her
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest(
-    serviceName = "",
-    workerUid = ""
+  lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest(
+    jobName = "",
+    workerUid = "",
+    kind = ""
   )
-  implicit class ResolveServiceUidRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest](_l) {
-    def serviceName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.serviceName)((c_, f_) => c_.copy(serviceName = f_))
+  implicit class ResolveJobUidRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest](_l) {
+    def jobName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.jobName)((c_, f_) => c_.copy(jobName = f_))
     def workerUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerUid)((c_, f_) => c_.copy(workerUid = f_))
+    def kind: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.kind)((c_, f_) => c_.copy(kind = f_))
   }
-  final val SERVICENAME_FIELD_NUMBER = 1
+  final val JOBNAME_FIELD_NUMBER = 1
   final val WORKERUID_FIELD_NUMBER = 2
+  final val KIND_FIELD_NUMBER = 3
   def of(
-    serviceName: _root_.scala.Predef.String,
-    workerUid: _root_.scala.Predef.String
-  ): _root_.a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest = _root_.a8.hermes.proto.continuum.continuum_rpc.ResolveServiceUidRequest(
-    serviceName,
-    workerUid
+    jobName: _root_.scala.Predef.String,
+    workerUid: _root_.scala.Predef.String,
+    kind: _root_.scala.Predef.String
+  ): _root_.a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest = _root_.a8.hermes.proto.continuum.continuum_rpc.ResolveJobUidRequest(
+    jobName,
+    workerUid,
+    kind
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.ResolveServiceUidRequest])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.ResolveJobUidRequest])
 }

@@ -138,6 +138,27 @@ message ManageRoleOverrideResponse {
   string expires_at = 5;       // ISO 8601 timestamp if duration was set
 }
 
+// ImpersonateUserRequest asks (as a ContinuumAdmin) for a session token that
+// authenticates AS another user, so an admin can view the app from that user's
+// perspective. The minted auth row links back (delegateauthuid) to the admin's
+// own auth row it was created from — the record shows "X impersonating Y".
+message ImpersonateUserRequest {
+  string target_user_uid = 1;  // usergroup.uid of the user to impersonate
+  string reason = 2;           // optional audit reason
+}
+
+// ImpersonateUserResponse returns a session token bound to the target user.
+message ImpersonateUserResponse {
+  string session_token = 1;            // token authenticating AS the target user
+  string target_user_uid = 2;          // the impersonated user's uid (Y)
+  string target_name = 3;              // the impersonated user's name
+  string target_email = 4;             // the impersonated user's email (may be empty)
+  repeated UserGroupInfo target_groups = 5;  // the impersonated user's groups
+  string impersonator_uid = 6;         // the admin who minted this (X)
+  string impersonator_name = 7;        // the admin's name (for the "viewing as" banner)
+  string expires_at = 8;               // ISO 8601 token expiry
+}
+
 // RemoveRoleOverrideRequest deletes a role override
 message RemoveRoleOverrideRequest {
   string user_identifier = 1;  // Email address or user UID
@@ -211,6 +232,7 @@ service Auth {
   rpc GetUserInfoForSelf(GetUserInfoForSelfRequest) returns (GetUserInfoForSelfResponse);
   rpc ManageRoleOverride(ManageRoleOverrideRequest) returns (ManageRoleOverrideResponse);
   rpc RemoveRoleOverride(RemoveRoleOverrideRequest) returns (RemoveRoleOverrideResponse);
+  rpc ImpersonateUser(ImpersonateUserRequest) returns (ImpersonateUserResponse);
   // ListRoleOverrides and ListAllEndpointAuth: types exist in auth.pb.go
   // but were never written into this .proto. Drift to clean up separately;
   // commenting out here lets the rest of the file regenerate.
@@ -267,6 +289,7 @@ message TableAccessRule {
   int32 priority = 5;                 // Higher priority wins conflicts
   string reason = 6;                  // Human-readable explanation
   string row_filter = 7;              // Optional SQL expr AND'd into SELECT/UPDATE; supports queryvar.useruid placeholder
+  bool terminal = 8;                  // When this matching GRANT is reached (highest priority first), stop composing lower-priority grant filters (soft-delete still composes)
 }
 
 // Policy represents a complete policy with groups and grants

@@ -33,6 +33,10 @@ message PullResponse {
   string revision_uid = 3;
   repeated FileEntry entries = 4;
   string error_message = 5;
+  // The fileset row's settings (continuum.fileset.extra_data) as raw JSON, e.g.
+  // {"type":"checkpoint","plugins":[]}. Empty "" when the row has no settings. The CLI writes this
+  // into .fileset.json's "settings"; the editor reads settings.type to pick the editor experience.
+  string settings = 6;
 }
 
 // ============================================================================
@@ -61,6 +65,10 @@ message PushRequest {
   string expected_revision_uid = 2;
   repeated FileEntry entries = 3;
   string message = 4;
+  // The fileset row's settings (raw JSON) to write back to continuum.fileset.extra_data — the reverse
+  // of PullResponse.settings. The CLI sends what it read from .fileset.json's "settings". Empty "" or
+  // "{}" leaves the row's settings unchanged-to-empty.
+  string settings = 5;
 }
 
 message PushResponse {

@@ -16,7 +16,7 @@ mkdir -p "$PROTO_DIR"
 
 # Copy proto files we need from godev
 cp "$GODEV_DIR/continuum/rpc/continuum_rpc.proto" "$PROTO_DIR/continuum_rpc.proto"
-cp "$GODEV_DIR/hermes/hproto/wsmessages.proto" "$PROTO_DIR/wsmessages.proto"
+cp "$GODEV_DIR/mesh/hproto/wsmessages.proto" "$PROTO_DIR/wsmessages.proto"
 cp "$GODEV_DIR/pkg/rpc/auth/auth.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/mailbox/mailbox.proto" "$PROTO_DIR/"
 cp "$GODEV_DIR/pkg/rpc/process/process_rpc.proto" "$PROTO_DIR/"

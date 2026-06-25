@@ -98,7 +98,7 @@ final case class RecordMatcher(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.RecordMatcher.type = a8.hermes.proto.process.wsmessages.RecordMatcher
-    // @@protoc_insertion_point(GeneratedMessage[hermes.RecordMatcher])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.RecordMatcher])
 }
 
 object RecordMatcher extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.RecordMatcher] {
@@ -176,5 +176,5 @@ object RecordMatcher extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.p
     table,
     primaryKeys
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.RecordMatcher])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.RecordMatcher])
 }

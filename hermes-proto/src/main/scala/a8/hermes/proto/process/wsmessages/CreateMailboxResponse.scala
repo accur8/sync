@@ -116,7 +116,7 @@ final case class CreateMailboxResponse(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.CreateMailboxResponse.type = a8.hermes.proto.process.wsmessages.CreateMailboxResponse
-    // @@protoc_insertion_point(GeneratedMessage[hermes.CreateMailboxResponse])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.CreateMailboxResponse])
 }
 
 object CreateMailboxResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.CreateMailboxResponse] {
@@ -198,5 +198,5 @@ object CreateMailboxResponse extends scalapb.GeneratedMessageCompanion[a8.hermes
     readerKey,
     channels
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.CreateMailboxResponse])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.CreateMailboxResponse])
 }

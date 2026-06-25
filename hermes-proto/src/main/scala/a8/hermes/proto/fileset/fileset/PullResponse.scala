@@ -5,6 +5,11 @@
 
 package a8.hermes.proto.fileset.fileset
 
+/** @param settings
+  *   The fileset row's settings (continuum.fileset.extra_data) as raw JSON, e.g.
+  *   {"type":"checkpoint","plugins":[]}. Empty "" when the row has no settings. The CLI writes this
+  *   into .fileset.json's "settings"; the editor reads settings.type to pick the editor experience.
+  */
 @SerialVersionUID(0L)
 final case class PullResponse(
     filesetUid: _root_.scala.Predef.String = "",
@@ -12,6 +17,7 @@ final case class PullResponse(
     revisionUid: _root_.scala.Predef.String = "",
     entries: _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry] = _root_.scala.Seq.empty,
     errorMessage: _root_.scala.Predef.String = "",
+    settings: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[PullResponse] {
     @transient
@@ -48,6 +54,13 @@ final case class PullResponse(
         val __value = errorMessage
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+        }
+      };
+      
+      {
+        val __value = settings
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(6, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -93,6 +106,12 @@ final case class PullResponse(
           _output__.writeString(5, __v)
         }
       };
+      {
+        val __v = settings
+        if (!__v.isEmpty) {
+          _output__.writeString(6, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withFilesetUid(__v: _root_.scala.Predef.String): PullResponse = copy(filesetUid = __v)
@@ -103,6 +122,7 @@ final case class PullResponse(
     def addAllEntries(__vs: Iterable[a8.hermes.proto.fileset.fileset.FileEntry]): PullResponse = copy(entries = entries ++ __vs)
     def withEntries(__v: _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry]): PullResponse = copy(entries = __v)
     def withErrorMessage(__v: _root_.scala.Predef.String): PullResponse = copy(errorMessage = __v)
+    def withSettings(__v: _root_.scala.Predef.String): PullResponse = copy(settings = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -124,6 +144,10 @@ final case class PullResponse(
           val __t = errorMessage
           if (__t != "") __t else null
         }
+        case 6 => {
+          val __t = settings
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -134,6 +158,7 @@ final case class PullResponse(
         case 3 => _root_.scalapb.descriptors.PString(revisionUid)
         case 4 => _root_.scalapb.descriptors.PRepeated(entries.iterator.map(_.toPMessage).toVector)
         case 5 => _root_.scalapb.descriptors.PString(errorMessage)
+        case 6 => _root_.scalapb.descriptors.PString(settings)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -149,6 +174,7 @@ object PullResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fi
     var __revisionUid: _root_.scala.Predef.String = ""
     val __entries: _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.fileset.fileset.FileEntry] = new _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.fileset.fileset.FileEntry]
     var __errorMessage: _root_.scala.Predef.String = ""
+    var __settings: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -165,6 +191,8 @@ object PullResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fi
           __entries += _root_.scalapb.LiteParser.readMessage[a8.hermes.proto.fileset.fileset.FileEntry](_input__)
         case 42 =>
           __errorMessage = _input__.readStringRequireUtf8()
+        case 50 =>
+          __settings = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -178,6 +206,7 @@ object PullResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fi
         revisionUid = __revisionUid,
         entries = __entries.result(),
         errorMessage = __errorMessage,
+        settings = __settings,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -189,7 +218,8 @@ object PullResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fi
         filesetName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         revisionUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         entries = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry]]).getOrElse(_root_.scala.Seq.empty),
-        errorMessage = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        errorMessage = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        settings = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -209,7 +239,8 @@ object PullResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fi
     filesetName = "",
     revisionUid = "",
     entries = _root_.scala.Seq.empty,
-    errorMessage = ""
+    errorMessage = "",
+    settings = ""
   )
   implicit class PullResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.fileset.fileset.PullResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.fileset.fileset.PullResponse](_l) {
     def filesetUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.filesetUid)((c_, f_) => c_.copy(filesetUid = f_))
@@ -217,24 +248,28 @@ object PullResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.fi
     def revisionUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.revisionUid)((c_, f_) => c_.copy(revisionUid = f_))
     def entries: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry]] = field(_.entries)((c_, f_) => c_.copy(entries = f_))
     def errorMessage: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.errorMessage)((c_, f_) => c_.copy(errorMessage = f_))
+    def settings: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.settings)((c_, f_) => c_.copy(settings = f_))
   }
   final val FILESET_UID_FIELD_NUMBER = 1
   final val FILESET_NAME_FIELD_NUMBER = 2
   final val REVISION_UID_FIELD_NUMBER = 3
   final val ENTRIES_FIELD_NUMBER = 4
   final val ERROR_MESSAGE_FIELD_NUMBER = 5
+  final val SETTINGS_FIELD_NUMBER = 6
   def of(
     filesetUid: _root_.scala.Predef.String,
     filesetName: _root_.scala.Predef.String,
     revisionUid: _root_.scala.Predef.String,
     entries: _root_.scala.Seq[a8.hermes.proto.fileset.fileset.FileEntry],
-    errorMessage: _root_.scala.Predef.String
+    errorMessage: _root_.scala.Predef.String,
+    settings: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.fileset.fileset.PullResponse = _root_.a8.hermes.proto.fileset.fileset.PullResponse(
     filesetUid,
     filesetName,
     revisionUid,
     entries,
-    errorMessage
+    errorMessage,
+    settings
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[fileset.PullResponse])
 }

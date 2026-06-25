@@ -61,7 +61,7 @@ final case class Notification(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.Notification.type = a8.hermes.proto.process.wsmessages.Notification
-    // @@protoc_insertion_point(GeneratedMessage[hermes.Notification])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.Notification])
 }
 
 object Notification extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.Notification] {
@@ -113,5 +113,5 @@ object Notification extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pr
   ): _root_.a8.hermes.proto.process.wsmessages.Notification = _root_.a8.hermes.proto.process.wsmessages.Notification(
     message
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.Notification])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.Notification])
 }

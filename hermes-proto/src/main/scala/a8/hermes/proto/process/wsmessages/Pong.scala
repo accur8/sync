@@ -61,7 +61,7 @@ final case class Pong(
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
     def companion: a8.hermes.proto.process.wsmessages.Pong.type = a8.hermes.proto.process.wsmessages.Pong
-    // @@protoc_insertion_point(GeneratedMessage[hermes.Pong])
+    // @@protoc_insertion_point(GeneratedMessage[mesh.Pong])
 }
 
 object Pong extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.Pong] {
@@ -113,5 +113,5 @@ object Pong extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.ws
   ): _root_.a8.hermes.proto.process.wsmessages.Pong = _root_.a8.hermes.proto.process.wsmessages.Pong(
     payload
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[hermes.Pong])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.Pong])
 }

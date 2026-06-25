@@ -13,7 +13,7 @@ message ProcessStartedRequest {
   string                        parentProcessRunUid = 2;
 	int32                         processPid          = 3;
   string                        workerUid           = 4;
-  string                        serviceUid          = 5;
+  string                        jobUid              = 5;  // the job this run belongs to (renamed from serviceUid; field number 5 unchanged for wire compat)
   google.protobuf.Timestamp     startedAt           = 6;  // UTC timestamp
 	repeated string               command             = 7;
 	string                        cwd                 = 8;
@@ -24,7 +24,7 @@ message ProcessStartedRequest {
   string                        launchError         = 13;
   string                        kind                = 14;
   string                        extraDataJsonStr    = 15;
-  string                        serviceName         = 16;
+  string                        jobName             = 16;  // the job name this run announces (renamed from serviceName; field number 16 unchanged for wire compat)
   string                        ephemeralName       = 17;
   string                        eventUid            = 18;  // Scheduler event UID for correlation
 
@@ -145,13 +145,31 @@ enum SystemdServiceStatus {
   SystemdServiceStatus_Unknown      = 4;
 }
 
-message ResolveServiceUidRequest {
-  string     serviceName  = 1;
+message ResolveJobUidRequest {
+  string     jobName      = 1;
   string     workerUid    = 2;
+  string     kind         = 3;  // the job.kind to create if absent: "worker" (a8 worker run) or "supervisor" (svcmgr/systemd). Empty -> supervisor.
 }
 
-message ResolveServiceUidResponse {
-  string     serviceUid   = 1;
+message ResolveJobUidResponse {
+  string     jobUid       = 1;
+}
+
+// AuthorizeForJob is the per-job authorization oracle. A server-side agent
+// (e.g. the svcmgr agent) calls this BEFORE performing a privileged action,
+// passing the ORIGINAL operator's mailbox (read from its own verified rpcCtx)
+// so continuum authorizes the operator — not the agent — against the job's
+// ACL. continuum evaluates the SAME jobauth.Checker predicate used by
+// scheduler.RunJobNow. Returns a binary allow/deny; the agent enforces.
+message AuthorizeForJobRequest {
+  string     callerMailbox = 1;  // the operator to authorize (NOT the RPC sender)
+  string     jobUid        = 2;  // the job the action targets
+  int32      requiredRank  = 3;  // jobauth rank (RankRun=2 for start/stop/restart)
+}
+
+message AuthorizeForJobResponse {
+  bool       allowed       = 1;
+  string     reason        = 2;  // human-readable denial reason when !allowed
 }
 
 message ArchivedNatsMessage {

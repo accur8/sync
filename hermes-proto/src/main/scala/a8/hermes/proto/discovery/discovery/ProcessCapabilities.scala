@@ -13,7 +13,7 @@ package a8.hermes.proto.discovery.discovery
   * @param location
   *   Location where this process is running
   * @param engines
-  *   Enabled engines/components (for services like Hermes)
+  *   Enabled engines/components (for services like Mesh)
   */
 @SerialVersionUID(0L)
 final case class ProcessCapabilities(
