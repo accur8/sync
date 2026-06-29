@@ -2,7 +2,7 @@ package a8.hermes.continuum
 
 import a8.hermes.core.Mailbox
 import a8.hermes.rpc.RpcClient
-import a8.hermes.proto.continuum.continuum_rpc.{ResolveServiceUidRequest, ResolveServiceUidResponse}
+import a8.hermes.proto.continuum.continuum_rpc.{ResolveJobUidRequest, ResolveJobUidResponse}
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
 
@@ -40,20 +40,20 @@ object ServiceResolver extends Logging {
   )(using ctx: Ctx): Option[String] = {
     logger.debug(s"Resolving service UID for service=$serviceName, worker=$workerUid")
 
-    val request = ResolveServiceUidRequest(
-      serviceName = serviceName,
+    val request = ResolveJobUidRequest(
+      jobName = serviceName,
       workerUid = workerUid,
     )
 
-    rpcClient.callTyped[ResolveServiceUidRequest, ResolveServiceUidResponse](
+    rpcClient.callTyped[ResolveJobUidRequest, ResolveJobUidResponse](
       targetMailbox = config.continuumServiceMailbox,
-      endpoint = "continuum.ResolveServiceUid",
+      endpoint = "continuum.ResolveJobUid",
       request = request,
       timeout = timeout.orElse(Some(config.defaultTimeout)),
     )(using ctx, summon) match {
       case Some(response) =>
-        logger.debug(s"Resolved service UID: ${response.serviceUid}")
-        Some(response.serviceUid)
+        logger.debug(s"Resolved job UID: ${response.jobUid}")
+        Some(response.jobUid)
 
       case None =>
         logger.error(s"ResolveServiceUid RPC failed for service=$serviceName, worker=$workerUid")
