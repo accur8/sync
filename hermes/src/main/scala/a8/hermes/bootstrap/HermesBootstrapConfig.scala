@@ -1,6 +1,7 @@
 package a8.hermes.bootstrap
 
 import a8.hermes.bootstrap.MxHermesBootstrapConfig.MxHermesAppConfig
+import a8.common.logging.Logging
 import a8.shared.{CompanionGen, FileSystem}
 import a8.shared.json.ast
 import com.typesafe.config.{Config, ConfigFactory}
@@ -21,7 +22,7 @@ case class HermesAppConfig(
 
 object HermesAppConfig extends MxHermesAppConfig
 
-object HermesBootstrapConfig {
+object HermesBootstrapConfig extends Logging {
 
   /**
    * Load bootstrap config, matching godev's canonical loader (a8-mod/bootstrap.go +
@@ -73,7 +74,10 @@ object HermesBootstrapConfig {
         config // single-env file: fields at the root
       }
 
-    val natsUrl = envConfig.getString("natsUrl")
+    // NATS transport: the structured `nats { servers, user, password }` block is the
+    // canonical form (matches godev's a8-mod/bootstrap.go resolveNats); the flat
+    // `natsUrl` string is the deprecated form, still accepted. Both set is ambiguous.
+    val natsUrl = resolveNatsUrl(envConfig)
 
     // godev key is `sshPrivateKeyPath`; accept legacy `sshKeyPath` too
     val sshKeyPath =
@@ -118,6 +122,59 @@ object HermesBootstrapConfig {
     } else {
       path
     }
+  }
+
+  /**
+   * Reconcile the structured `nats { servers, user, password }` block and the
+   * deprecated flat `natsUrl` string into a single connection URL, matching
+   * godev's a8-mod/bootstrap.go resolveNats:
+   *   - both set       -> error (ambiguous transport)
+   *   - nats block set  -> compose into a comma-joined nats://[user[:password]@]host:port URL
+   *   - natsUrl only    -> keep it (deprecated)
+   * At least one must be present (this loader is the NATS-transport path).
+   */
+  private def resolveNatsUrl(envConfig: Config): String = {
+    val hasBlock =
+      envConfig.hasPath("nats.servers") && !envConfig.getStringList("nats.servers").isEmpty
+    val hasFlat = envConfig.hasPath("natsUrl")
+    (hasBlock, hasFlat) match {
+      case (true, true) =>
+        throw new RuntimeException("set either the `nats { ... }` block or the deprecated `natsUrl`, not both")
+      case (true, _) =>
+        composeNatsUrl(envConfig.getConfig("nats"))
+      case (_, true) =>
+        logger.warn("`natsUrl` is deprecated; migrate to the `nats { servers, user, password }` block")
+        envConfig.getString("natsUrl")
+      case _ =>
+        throw new RuntimeException("no NATS transport configured: set a `nats { servers, user, password }` block (or the deprecated `natsUrl`)")
+    }
+  }
+
+  /**
+   * Compose a comma-joined nats://[user[:password]@]host:port URL from a `nats`
+   * block. Servers without an explicit port get the NATS default (4222); any
+   * nats:// / tls:// scheme prefix is stripped so it is not doubled. Mirrors
+   * godev's NatsBlock.composeURL.
+   */
+  private def composeNatsUrl(nats: Config): String = {
+    val servers = nats.getStringList("servers").asScala.toList
+    val user = if (nats.hasPath("user")) nats.getString("user") else ""
+    val password = if (nats.hasPath("password")) nats.getString("password") else ""
+    val userinfo =
+      if (user.isEmpty) ""
+      else if (password.isEmpty) s"$user@"
+      else s"$user:$password@"
+    val parts =
+      servers
+        .map(_.trim)
+        .filter(_.nonEmpty)
+        .map { raw =>
+          val noScheme = raw.stripPrefix("nats://").stripPrefix("tls://")
+          val hostPort = if (noScheme.contains(":")) noScheme else s"$noScheme:4222"
+          s"nats://$userinfo$hostPort"
+        }
+    if (parts.isEmpty) throw new RuntimeException("nats.servers has no usable entries")
+    parts.mkString(",")
   }
 
 }
