@@ -63,8 +63,8 @@ object LiveContinuumTest extends BootstrappedIOApp {
     val workerUid = s"test-worker-${hermes.processUid.take(8)}"
     val resolverConfig = ServiceResolver.Config(continuumServiceMailbox = continuumMailbox)
 
-    // --- 2. ResolveServiceUid RPC ---
-    logger.info("\n--- ResolveServiceUid ---")
+    // --- 2. ResolveJobUid RPC ---
+    logger.info("\n--- ResolveJobUid ---")
     val serviceUid =
       ServiceResolver.resolveServiceUid(
         serviceName = "live-continuum-test",
@@ -72,8 +72,8 @@ object LiveContinuumTest extends BootstrappedIOApp {
         config = resolverConfig,
         rpcClient = hermes.rpcClient,
       ) match {
-        case Some(uid) => logger.info(s"✓ resolved serviceUid=$uid"); uid
-        case None      => throw new RuntimeException("ResolveServiceUid returned None")
+        case Some(uid) => logger.info(s"✓ resolved jobUid=$uid"); uid
+        case None      => throw new RuntimeException("ResolveJobUid returned None")
       }
 
     // --- 3. Lifecycle bus: processStarted → ping → processCompleted ---

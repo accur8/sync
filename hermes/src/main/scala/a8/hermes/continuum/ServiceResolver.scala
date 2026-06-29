@@ -9,10 +9,10 @@ import a8.common.logging.Logging
 import scala.concurrent.duration.{FiniteDuration, *}
 
 /**
- * Service resolution using ResolveServiceUid RPC.
+ * Job resolution using the continuum.ResolveJobUid RPC.
  *
- * This resolves a service name + minion UID to a unique service UID.
- * The service UID is used for process lifecycle tracking in continuum.
+ * This resolves a job name + worker UID to a unique job UID.
+ * The job UID is used for process lifecycle tracking in continuum.
  */
 object ServiceResolver extends Logging {
 
@@ -27,7 +27,7 @@ object ServiceResolver extends Logging {
    * @param serviceName The service name (e.g., "continuum", "scheduler")
    * @param workerUid The worker UID (unique identifier for this user@host)
    * @param config Service resolver config (includes continuum service mailbox)
-   * @param rpcClient RPC client for making the ResolveServiceUid call
+   * @param rpcClient RPC client for making the ResolveJobUid call
    * @param timeout Optional timeout for the RPC call
    * @return Service UID if successful, None if failed
    */
@@ -56,7 +56,7 @@ object ServiceResolver extends Logging {
         Some(response.jobUid)
 
       case None =>
-        logger.error(s"ResolveServiceUid RPC failed for service=$serviceName, worker=$workerUid")
+        logger.error(s"ResolveJobUid RPC failed for service=$serviceName, worker=$workerUid")
         None
     }
   }
