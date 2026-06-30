@@ -6,6 +6,7 @@ import a8.shared.{CompanionGen, FileSystem}
 import a8.shared.json.ast
 import com.typesafe.config.{Config, ConfigFactory}
 
+import java.net.{InetAddress, UnknownHostException}
 import java.nio.file.{Path, Paths}
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.*
@@ -53,7 +54,9 @@ object HermesBootstrapConfig extends Logging {
     )
   }
 
-  private def fromConfig(config: Config, envOverride: Option[String] = None): HermesBootstrapConfig = {
+  // package-private (not fully private) so unit tests in this package can exercise
+  // the loader/NATS-URL composition directly from a parsed Config.
+  private[bootstrap] def fromConfig(config: Config, envOverride: Option[String] = None): HermesBootstrapConfig = {
     // Environment selection priority: caller-supplied env > $BOOTSTRAP_ENV > file's `env` field.
     // Supports both a multi-env file (env + environments{}) and a single-env file (fields at root).
     val hasEnvironments = config.hasPath("environments")
@@ -155,6 +158,14 @@ object HermesBootstrapConfig extends Logging {
    * block. Servers without an explicit port get the NATS default (4222); any
    * nats:// / tls:// scheme prefix is stripped so it is not doubled. Mirrors
    * godev's NatsBlock.composeURL.
+   *
+   * A server entry given as a hostname (e.g. a cluster round-robin name like
+   * `nats.lan`) is resolved to its A-records and expanded into one nats:// URL per
+   * resolved IP, so jnats' server pool knows about the whole cluster rather than
+   * pinning to the single IP it would otherwise pick per hostname. Literal IPs
+   * pass through unchanged. Resolution is a one-time snapshot at config load; a
+   * node IP change requires a restart. Only the structured block expands
+   * hostnames; the deprecated flat `natsUrl` string is passed through verbatim.
    */
   private def composeNatsUrl(nats: Config): String = {
     val servers = nats.getStringList("servers").asScala.toList
@@ -168,14 +179,47 @@ object HermesBootstrapConfig extends Logging {
       servers
         .map(_.trim)
         .filter(_.nonEmpty)
-        .map { raw =>
+        .flatMap { raw =>
           val noScheme = raw.stripPrefix("nats://").stripPrefix("tls://")
-          val hostPort = if (noScheme.contains(":")) noScheme else s"$noScheme:4222"
-          s"nats://$userinfo$hostPort"
+          // Split host:port; a bare IPv6 literal without brackets is out of scope
+          // (only treat the single-colon case as host:port), matching godev.
+          val (host, port) =
+            if (noScheme.count(_ == ':') == 1) {
+              val idx = noScheme.indexOf(':')
+              (noScheme.substring(0, idx), noScheme.substring(idx + 1))
+            } else (noScheme, "4222")
+          expandHostToUrls(host, port, userinfo)
         }
+        .distinct // de-dup defensively in case entries resolve to overlapping IPs
     if (parts.isEmpty) throw new RuntimeException("nats.servers has no usable entries")
     parts.mkString(",")
   }
+
+  /**
+   * Return the nats:// URLs for a single host:port server entry. A literal IP
+   * yields one URL unchanged. A hostname is resolved to its A-records and yields
+   * one URL per resolved IP. Fail-soft: on resolution failure (or no addresses)
+   * it falls back to the hostname as-is and warns, so the result is never worse
+   * than not expanding at all.
+   */
+  private def expandHostToUrls(host: String, port: String, userinfo: String): List[String] = {
+    if (isIpLiteral(host)) List(s"nats://$userinfo$host:$port")
+    else
+      try {
+        val addrs = InetAddress.getAllByName(host).toList.map(_.getHostAddress)
+        if (addrs.isEmpty) List(s"nats://$userinfo$host:$port")
+        else addrs.map(ip => s"nats://$userinfo$ip:$port")
+      } catch {
+        case _: UnknownHostException =>
+          logger.warn(s"bootstrap: could not resolve nats server host '$host', using it as-is")
+          List(s"nats://$userinfo$host:$port")
+      }
+  }
+
+  // True iff host is an IPv4 dotted-quad or a bracketed IPv6 literal, so we skip a
+  // DNS lookup on entries that are already addresses.
+  private def isIpLiteral(host: String): Boolean =
+    host.startsWith("[") || host.matches("""(\d{1,3}\.){3}\d{1,3}""")
 
 }
 
