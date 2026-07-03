@@ -95,8 +95,11 @@ object HermesBootstrap extends Logging {
                 throw new RuntimeException(s"Failed to create named mailbox: ${e.getMessage}", e)
             }
           case None =>
+            // Link the ephemeral mailbox to the owning processrun when we have one
+            // (the A8_PROCESS_UID env IS the processrun uid). Empty for a bare CLI.
+            val mailboxProcessRunUid = sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
             logger.info(s"Creating non-durable mailbox for client (lifecycle=${appConfig.mailboxLifecycle})...")
-            nats.NatsMailboxClient.createNonDurableMailbox(natsTransport, appConfig.mailboxLifecycle)(using ctx) match {
+            nats.NatsMailboxClient.createNonDurableMailbox(natsTransport, appConfig.mailboxLifecycle, mailboxProcessRunUid)(using ctx) match {
               case scala.util.Success(mbox) =>
                 logger.info(s"✓ Created mailbox: ${mbox.address.value}")
                 mbox

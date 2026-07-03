@@ -31,7 +31,8 @@ class MailboxTouchTest extends AnyFunSuite with Matchers {
       |  "privateMetadata": {"authToken": "SECRET-IDENTITY-TOKEN", "boundAt": 1234},
       |  "channels": ["rpc-inbox"],
       |  "isNamed": false,
-      |  "mailboxKind": "short-lived-cli"
+      |  "mailboxKind": "short-lived-cli",
+      |  "processRunUid": "prtestprocessrun00000000000000ab"
       |}""".stripMargin
 
   private def objOf(json: String): JsObj =
@@ -68,6 +69,7 @@ class MailboxTouchTest extends AnyFunSuite with Matchers {
     obj.values("purgeTimeoutInMillis") shouldBe JsNum(BigDecimal(900000))
     obj.values("isNamed") shouldBe a8.shared.json.ast.JsBool(false)
     obj.values("mailboxKind") shouldBe JsStr("short-lived-cli")
+    obj.values("processRunUid") shouldBe JsStr("prtestprocessrun00000000000000ab")
 
     // exactly the same set of keys as the original — nothing added or dropped
     obj.values.keySet shouldBe objOf(storedJson).values.keySet

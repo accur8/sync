@@ -73,6 +73,7 @@ object NatsMailboxClient extends Logging {
     channels: List[String] = List("rpc-inbox"),
     isNamed: Boolean = false,
     mailboxKind: String = "", // coarse lifecycle label; default keeps legacy KV records readable
+    processRunUid: String = "", // owning processrun uid when known; empty otherwise. Default keeps legacy records readable.
   )
   object MailboxKVData extends MxMailboxKVData
 
@@ -289,6 +290,7 @@ object NatsMailboxClient extends Logging {
           closeTimeoutMillis = NamedMailboxTimeoutMillis,
           isNamed = true,
           mailboxKind = LifecycleLongLivedDaemon,
+          processRunUid = "", // named/durable mailbox; no processrun link
           adminKV = adminKV,
           rwKV = rwKV,
           natsTransport = natsTransport,
@@ -318,6 +320,7 @@ object NatsMailboxClient extends Logging {
   def createNonDurableMailbox(
     natsTransport: NatsTransport,
     lifecycleKind: String = LifecycleShortLivedCli,
+    processRunUid: String = "", // owning processrun uid when the creator has one; empty otherwise
   )(using ctx: a8.shared.app.Ctx): Try[Mailbox] = {
     for {
       adminKV <- getOrCreateKV(natsTransport, AdminMailboxesKVBucket)
@@ -331,6 +334,7 @@ object NatsMailboxClient extends Logging {
         closeTimeoutMillis = close,
         isNamed = false,
         mailboxKind = label,
+        processRunUid = processRunUid,
         adminKV = adminKV,
         rwKV = rwKV,
         natsTransport = natsTransport,
@@ -347,6 +351,7 @@ object NatsMailboxClient extends Logging {
     closeTimeoutMillis: Long,
     isNamed: Boolean,
     mailboxKind: String,
+    processRunUid: String,
     adminKV: KeyValue,
     rwKV: KeyValue,
     natsTransport: NatsTransport,
@@ -389,6 +394,7 @@ object NatsMailboxClient extends Logging {
       closeTimeoutInMillis = closeTimeoutMillis,
       isNamed = isNamed,
       mailboxKind = mailboxKind,
+      processRunUid = processRunUid,
     )
 
     // Serialize to JSON (simple manual serialization for now)
@@ -404,7 +410,8 @@ object NatsMailboxClient extends Logging {
       "privateMetadata": {},
       "channels": [${mailboxData.channels.map(c => s""""$c"""").mkString(", ")}],
       "isNamed": ${mailboxData.isNamed},
-      "mailboxKind": "${mailboxData.mailboxKind}"
+      "mailboxKind": "${mailboxData.mailboxKind}",
+      "processRunUid": "${mailboxData.processRunUid}"
     }"""
 
     // Store in KV (following godev's triple-index pattern)
