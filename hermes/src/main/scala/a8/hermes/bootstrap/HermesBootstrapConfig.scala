@@ -19,6 +19,10 @@ import scala.jdk.CollectionConverters.*
 case class HermesAppConfig(
   namedMailbox: Option[String] = None,
   appName: Option[String] = None,
+  // Coarse mailbox lifecycle for an ANONYMOUS (non-named) mailbox: "short-lived-cli"
+  // (default, for CLIs) or "long-lived-daemon" (for a daemon that keeps a random
+  // mailbox for its whole life). Ignored when namedMailbox is set (named = durable).
+  mailboxLifecycle: String = "short-lived-cli",
 )
 
 object HermesAppConfig extends MxHermesAppConfig

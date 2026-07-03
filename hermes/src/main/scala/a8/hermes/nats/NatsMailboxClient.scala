@@ -9,6 +9,8 @@ import io.nats.client.api.{KeyValueConfiguration, StorageType}
 import io.nats.client.{JetStream, KeyValue}
 
 import java.time.Instant
+import java.io.Closeable
+import java.util.concurrent.{Executors, TimeUnit}
 import scala.util.Try
 import scala.jdk.CollectionConverters._
 
@@ -37,6 +39,25 @@ object NatsMailboxClient extends Logging {
   private val DefaultPurgeTimeoutMillis = 24L * 60 * 60 * 1000 // 24 hours
   private val NonDurablePurgeTimeoutMillis = 15L * 60 * 1000 // 15 minutes
 
+  // Coarse lifecycle labels stored in the mailbox KV (observability only; the purge
+  // reads the timeout NUMBERS, not this label). Local to the sync side — loosely
+  // aligned with godev's LifecycleShortLivedCli / LifecycleLongLivedDaemon, not a
+  // wire contract.
+  val LifecycleShortLivedCli = "short-lived-cli"
+  val LifecycleLongLivedDaemon = "long-lived-daemon"
+
+  // A ping bumps lastActivity in the KV only if the last write was more than this
+  // long ago — so a chatty pinger doesn't spam the KV store (matches godev's 5-min
+  // AlivenessPingDebounce).
+  private val TouchDebounceMillis = 5L * 60 * 1000 // 5 minutes
+
+  // How often a live owner pings its own mailbox: shorter than its purge timeout so
+  // a pinged mailbox never expires — min(5min, purgeTimeout/3), floored at 30s.
+  def pingIntervalMillis(purgeTimeoutInMillis: Long): Long = {
+    val derived = if (purgeTimeoutInMillis > 0) math.min(TouchDebounceMillis, purgeTimeoutInMillis / 3) else TouchDebounceMillis
+    math.max(derived, 30_000L)
+  }
+
   /**
    * Mailbox data as stored in NATS KV (matching godev's JSON structure)
    */
@@ -51,6 +72,7 @@ object NatsMailboxClient extends Logging {
     closeTimeoutInMillis: Long,
     channels: List[String] = List("rpc-inbox"),
     isNamed: Boolean = false,
+    mailboxKind: String = "", // coarse lifecycle label; default keeps legacy KV records readable
   )
   object MailboxKVData extends MxMailboxKVData
 
@@ -87,6 +109,87 @@ object NatsMailboxClient extends Logging {
   }
 
   /**
+   * Refresh a mailbox's lastActivity in the KV store — the sync-side "mailbox ping".
+   *
+   * CRITICAL: this is a RAW JSON PATCH, not a MailboxKVData re-marshal. The Scala
+   * case class is a lossy subset (it does not model publicMetadata / privateMetadata),
+   * and privateMetadata carries the bound SSH identity the SQL firewall depends on. A
+   * re-marshal would WIPE that identity. So we parse the stored JSON, replace ONLY the
+   * lastActivity field, and put it back — every other key survives byte-for-byte.
+   *
+   * Debounced: only writes when more than TouchDebounceMillis has elapsed since the
+   * STORED lastActivity, so a chatty pinger doesn't spam the KV store. Returns true if
+   * it wrote, false if debounced/absent.
+   */
+  /**
+   * The pure raw-JSON-patch: given the stored mailbox JSON and now, return the new JSON
+   * with ONLY lastActivity replaced (every other key — including privateMetadata —
+   * preserved byte-for-byte), or None if the debounce window has not elapsed since the
+   * stored lastActivity. Package-visible so the identity-preservation invariant is unit
+   * testable without a live NATS KV.
+   */
+  private[nats] def patchLastActivity(json: String, nowMillis: Long): Option[String] = {
+    import a8.shared.json.parse
+    import a8.shared.json.ast.{JsObj, JsNum}
+    import a8.shared.SharedImports.jsonCodecOps
+
+    val obj = parse(json) match {
+      case Right(o: JsObj) => o
+      case Right(_)        => throw new RuntimeException("mailbox KV is not a JSON object")
+      case Left(err)       => throw new RuntimeException(s"failed to parse mailbox KV: $err")
+    }
+    val storedLastActivity = obj.values.get("lastActivity").collect { case JsNum(v) => v.toLong }.getOrElse(0L)
+    if (nowMillis - storedLastActivity < TouchDebounceMillis) {
+      None // still fresh — skip the KV write
+    } else {
+      Some(JsObj(obj.values + ("lastActivity" -> JsNum(BigDecimal(nowMillis)))).compactJson)
+    }
+  }
+
+  private def touchMailbox(adminKey: AdminKey, adminKV: KeyValue, nowMillis: Long): Try[Boolean] = Try {
+    Option(adminKV.get(adminKey.value)) match {
+      case None =>
+        false // mailbox record gone (already purged) — nothing to refresh
+      case Some(e) =>
+        patchLastActivity(new String(e.getValue, "UTF-8"), nowMillis) match {
+          case Some(newJson) =>
+            adminKV.put(adminKey.value, newJson.getBytes("UTF-8"))
+            true
+          case None =>
+            false
+        }
+    }
+  }
+
+  /** The admin-key KV bucket handle, for the bootstrap pinger. */
+  def getOrCreateKVForPinger(natsTransport: NatsTransport): Try[KeyValue] =
+    getOrCreateKV(natsTransport, AdminMailboxesKVBucket)
+
+  /**
+   * Start a background pinger that keeps `adminKey`'s mailbox alive by refreshing its
+   * lastActivity at the derived interval (shorter than its purge timeout). Mirrors
+   * [[a8.hermes.continuum.ContinuumRunnerClient.startPingLoop]]. Returns a Closeable
+   * that stops the loop (call it when the mailbox is released).
+   */
+  def startMailboxPingLoop(adminKey: AdminKey, adminKV: KeyValue, purgeTimeoutInMillis: Long): Closeable = {
+    val intervalMillis = pingIntervalMillis(purgeTimeoutInMillis)
+    val exec = Executors.newSingleThreadScheduledExecutor { r =>
+      val t = new Thread(r, s"mailbox-ping-${adminKey.value.take(8)}")
+      t.setDaemon(true)
+      t
+    }
+    val task = new Runnable {
+      override def run(): Unit =
+        touchMailbox(adminKey, adminKV, System.currentTimeMillis()) match {
+          case scala.util.Failure(e) => logger.warn(s"mailbox ping failed for ${adminKey.value}", e)
+          case _                     => ()
+        }
+    }
+    exec.scheduleAtFixedRate(task, intervalMillis, intervalMillis, TimeUnit.MILLISECONDS)
+    () => exec.shutdownNow()
+  }
+
+  /**
    * Parse mailbox JSON and reconstruct Mailbox instance
    */
   private def parseMailboxJson(
@@ -94,6 +197,7 @@ object NatsMailboxClient extends Logging {
     adminKey: AdminKey,
     natsTransport: NatsTransport,
     rwKV: KeyValue,
+    adminKV: KeyValue,
   )(using ctx: a8.shared.app.Ctx): Try[Mailbox] = Try {
     import a8.shared.json.{parse, ast}
 
@@ -131,7 +235,14 @@ object NatsMailboxClient extends Logging {
         .map(entry => AdminKey(new String(entry.getValue, "UTF-8")))
     }
 
-    new a8.hermes.bootstrap.SimpleMailbox(metadata, natsTransport, lookupAdminKey)
+    val touchFn: () => Unit = () => {
+      touchMailbox(AdminKey(data.adminKey), adminKV, System.currentTimeMillis()) match {
+        case scala.util.Failure(e) => logger.warn(s"mailbox touch failed for ${data.adminKey}", e)
+        case _                     => ()
+      }
+    }
+
+    new a8.hermes.bootstrap.SimpleMailbox(metadata, natsTransport, lookupAdminKey, touchFn)
   }
 
   /**
@@ -158,7 +269,7 @@ object NatsMailboxClient extends Logging {
             .flatMap(Option(_))
             .flatMap { adminEntry =>
               val json = new String(adminEntry.getValue, "UTF-8")
-              parseMailboxJson(json, AdminKey(adminKeyValue), natsTransport, rwKV) match {
+              parseMailboxJson(json, AdminKey(adminKeyValue), natsTransport, rwKV, adminKV) match {
                 case scala.util.Success(mailbox) =>
                   logger.info(s"Successfully reconstructed existing mailbox: ${address.value}")
                   Some(mailbox)
@@ -177,6 +288,7 @@ object NatsMailboxClient extends Logging {
           purgeTimeoutMillis = NamedMailboxTimeoutMillis,
           closeTimeoutMillis = NamedMailboxTimeoutMillis,
           isNamed = true,
+          mailboxKind = LifecycleLongLivedDaemon,
           adminKV = adminKV,
           rwKV = rwKV,
           natsTransport = natsTransport,
@@ -186,21 +298,39 @@ object NatsMailboxClient extends Logging {
   }
 
   /**
-   * Create a non-durable mailbox (for CLI apps with short lifetime)
+   * Resolve a coarse lifecycle kind to concrete purge/close timeout millis + a label.
+   * Local to sync (loosely aligned with godev); the reader uses the stored numbers, so
+   * this mapping is not a wire contract. An anonymous long-lived daemon still gets the
+   * long timeout even without a named address.
+   */
+  private def resolveLifecycleTimeouts(kind: String): (Long, Long, String) =
+    kind match {
+      case LifecycleLongLivedDaemon => (NamedMailboxTimeoutMillis, NamedMailboxTimeoutMillis, LifecycleLongLivedDaemon)
+      case _                        => (NonDurablePurgeTimeoutMillis, NonDurablePurgeTimeoutMillis, LifecycleShortLivedCli)
+    }
+
+  /**
+   * Create a non-durable / anonymous mailbox. The coarse `lifecycleKind`
+   * (short-lived-cli by default, or long-lived-daemon) resolves to concrete stored
+   * timeouts — a long-lived daemon that has no named address still gets the long
+   * purge window so its pinger keeps it alive rather than being reaped at 15 minutes.
    */
   def createNonDurableMailbox(
     natsTransport: NatsTransport,
+    lifecycleKind: String = LifecycleShortLivedCli,
   )(using ctx: a8.shared.app.Ctx): Try[Mailbox] = {
     for {
       adminKV <- getOrCreateKV(natsTransport, AdminMailboxesKVBucket)
       rwKV <- getOrCreateKV(natsTransport, RWKeysKVBucket)
     } yield {
-      logger.info("Creating non-durable mailbox")
+      val (purge, close, label) = resolveLifecycleTimeouts(lifecycleKind)
+      logger.info(s"Creating mailbox kind=$label")
       createMailboxImpl(
         address = None,
-        purgeTimeoutMillis = NonDurablePurgeTimeoutMillis,
-        closeTimeoutMillis = NonDurablePurgeTimeoutMillis,
+        purgeTimeoutMillis = purge,
+        closeTimeoutMillis = close,
         isNamed = false,
+        mailboxKind = label,
         adminKV = adminKV,
         rwKV = rwKV,
         natsTransport = natsTransport,
@@ -216,6 +346,7 @@ object NatsMailboxClient extends Logging {
     purgeTimeoutMillis: Long,
     closeTimeoutMillis: Long,
     isNamed: Boolean,
+    mailboxKind: String,
     adminKV: KeyValue,
     rwKV: KeyValue,
     natsTransport: NatsTransport,
@@ -257,6 +388,7 @@ object NatsMailboxClient extends Logging {
       purgeTimeoutInMillis = purgeTimeoutMillis,
       closeTimeoutInMillis = closeTimeoutMillis,
       isNamed = isNamed,
+      mailboxKind = mailboxKind,
     )
 
     // Serialize to JSON (simple manual serialization for now)
@@ -271,7 +403,8 @@ object NatsMailboxClient extends Logging {
       "publicMetadata": {},
       "privateMetadata": {},
       "channels": [${mailboxData.channels.map(c => s""""$c"""").mkString(", ")}],
-      "isNamed": ${mailboxData.isNamed}
+      "isNamed": ${mailboxData.isNamed},
+      "mailboxKind": "${mailboxData.mailboxKind}"
     }"""
 
     // Store in KV (following godev's triple-index pattern)
@@ -317,7 +450,14 @@ object NatsMailboxClient extends Logging {
         .map(entry => AdminKey(new String(entry.getValue, "UTF-8")))
     }
 
-    new a8.hermes.bootstrap.SimpleMailbox(metadata, natsTransport, lookupAdminKey)
+    val touchFn: () => Unit = () => {
+      touchMailbox(adminKey, adminKV, System.currentTimeMillis()) match {
+        case scala.util.Failure(e) => logger.warn(s"mailbox touch failed for ${adminKey.value}", e)
+        case _                     => ()
+      }
+    }
+
+    new a8.hermes.bootstrap.SimpleMailbox(metadata, natsTransport, lookupAdminKey, touchFn)
   }
 
 }

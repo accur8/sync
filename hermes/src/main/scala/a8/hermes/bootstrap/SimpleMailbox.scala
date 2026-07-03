@@ -19,6 +19,7 @@ class SimpleMailbox(
   val metadata: MailboxMetadata,
   transport: MailboxTransport,
   lookupAdminKey: MailboxAddress => Option[AdminKey], // Function to look up adminKey by address
+  touchFn: () => Unit = () => (), // Refreshes this mailbox's lastActivity in KV (debounced); no-op by default
 ) extends Mailbox with Logging {
 
   override def send(
@@ -73,7 +74,10 @@ class SimpleMailbox(
   }
 
   override def touch()(using ctx: Ctx): Unit = {
-    // No-op for now - this would update last accessed time in mailbox service
+    // Refresh this mailbox's lastActivity in the KV store (raw JSON-patch, debounced).
+    // Default is a no-op for placeholder mailboxes (e.g. fromNamedMailbox) that have
+    // no KV handle bound.
+    touchFn()
   }
 
 }

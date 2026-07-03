@@ -85,11 +85,9 @@ object LiveContinuumTest extends BootstrappedIOApp {
       ProcessStartedRequest(
         processUid = processUid,
         workerUid = workerUid,
-        serviceUid = serviceUid,
         startedAt = Some(ContinuumRunnerClient.nowTimestamp()),
         command = Seq("sbt", "hermes/Test/runMain", "a8.hermes.continuum.LiveContinuumTest"),
         kind = "test",
-        serviceName = "live-continuum-test",
       )
     )
     logger.info(s"✓ processStarted published (processUid=$processUid)")
