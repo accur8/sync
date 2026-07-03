@@ -4,6 +4,7 @@ import a8.hermes.core.{Mailbox, MailboxTransport, Uid}
 import a8.hermes.core.Mailbox._
 import a8.common.logging.Logging
 import a8.shared.CompanionGen
+import a8.shared.json.ast.JsObj
 import a8.hermes.nats.MxNatsMailboxClient.MxMailboxKVData
 import io.nats.client.api.{KeyValueConfiguration, StorageType}
 import io.nats.client.{JetStream, KeyValue}
@@ -74,6 +75,13 @@ object NatsMailboxClient extends Logging {
     isNamed: Boolean = false,
     mailboxKind: String = "", // coarse lifecycle label; default keeps legacy KV records readable
     processRunUid: String = "", // owning processrun uid when known; empty otherwise. Default keeps legacy records readable.
+    // godev writes these nested JSON objects into the mailbox KV record;
+    // privateMetadata carries the bound SSH identity (authToken/boundAt). Model them
+    // so a READ of a godev-written record no longer logs "unused fields". Defaults keep
+    // legacy records readable. NOTE: touch() still patches raw JSON (never re-marshals
+    // from this case class), so a ping can never drop these even if this model drifts.
+    publicMetadata: JsObj = JsObj.empty,
+    privateMetadata: JsObj = JsObj.empty,
   )
   object MailboxKVData extends MxMailboxKVData
 

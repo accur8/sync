@@ -16,8 +16,8 @@ import org.scalatest.matchers.should.Matchers
  */
 class MailboxTouchTest extends AnyFunSuite with Matchers {
 
-  // A stored mailbox record as godev writes it, including publicMetadata / privateMetadata
-  // which the Scala MailboxKVData case class does NOT model.
+  // A stored mailbox record as godev writes it, including populated publicMetadata /
+  // privateMetadata (privateMetadata carries the bound SSH identity).
   private val storedJson =
     """{
       |  "adminKey": "zzADMIN",
@@ -82,5 +82,21 @@ class MailboxTouchTest extends AnyFunSuite with Matchers {
     NatsMailboxClient.pingIntervalMillis(90L * 24 * 60 * 60 * 1000) shouldBe (5L * 60 * 1000)
     // very short timeout floors at 30s rather than busy-looping
     NatsMailboxClient.pingIntervalMillis(30L * 1000) shouldBe (30L * 1000)
+  }
+
+  test("MailboxKVData codec now MODELS publicMetadata/privateMetadata (no more 'unused fields')") {
+    import a8.shared.json.ast.JsDoc
+    val jsdoc = JsDoc.jsDocRoot(parse(storedJson).toOption.get)
+    val data = NatsMailboxClient.MailboxKVData.jsonCodec.read(jsdoc) match {
+      case Right(d)  => d
+      case Left(err) => fail(s"codec read failed: $err")
+    }
+    // privateMetadata (the bound identity) is now captured on read, not dropped.
+    data.privateMetadata.values.get("authToken") shouldBe Some(JsStr("SECRET-IDENTITY-TOKEN"))
+    data.privateMetadata.values.get("boundAt") shouldBe Some(JsNum(BigDecimal(1234)))
+    data.publicMetadata.values.get("env") shouldBe Some(JsStr("prod"))
+    // and the fields we already modeled still read correctly.
+    data.mailboxKind shouldBe "short-lived-cli"
+    data.processRunUid shouldBe "prtestprocessrun00000000000000ab"
   }
 }

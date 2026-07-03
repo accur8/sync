@@ -12,6 +12,7 @@ package a8.hermes.nats
 // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 import _root_.scala
 import a8.hermes.nats.NatsMailboxClient.MailboxKVData
+import a8.shared.json.ast.JsObj
 import a8.shared.json.impl.JsonCodecs.given
 //====
 
@@ -37,6 +38,10 @@ object MxNatsMailboxClient {
           .addField(_.closeTimeoutInMillis)
           .addField(_.channels)
           .addField(_.isNamed)
+          .addField(_.mailboxKind)
+          .addField(_.processRunUid)
+          .addField(_.publicMetadata)
+          .addField(_.privateMetadata)
       )
       .build
     
@@ -46,7 +51,7 @@ object MxNatsMailboxClient {
     
     
     lazy val generator: Generator[MailboxKVData,parameters.type] =  {
-      val constructors = Constructors[MailboxKVData](9, unsafe.iterRawConstruct)
+      val constructors = Constructors[MailboxKVData](13, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -60,6 +65,10 @@ object MxNatsMailboxClient {
       lazy val closeTimeoutInMillis: CaseClassParm[MailboxKVData,Long] = CaseClassParm[MailboxKVData,Long]("closeTimeoutInMillis", _.closeTimeoutInMillis, (d,v) => d.copy(closeTimeoutInMillis = v), None, 6)
       lazy val channels: CaseClassParm[MailboxKVData,List[String]] = CaseClassParm[MailboxKVData,List[String]]("channels", _.channels, (d,v) => d.copy(channels = v), Some(()=> List("rpc-inbox")), 7)
       lazy val isNamed: CaseClassParm[MailboxKVData,Boolean] = CaseClassParm[MailboxKVData,Boolean]("isNamed", _.isNamed, (d,v) => d.copy(isNamed = v), Some(()=> false), 8)
+      lazy val mailboxKind: CaseClassParm[MailboxKVData,String] = CaseClassParm[MailboxKVData,String]("mailboxKind", _.mailboxKind, (d,v) => d.copy(mailboxKind = v), Some(()=> ""), 9)
+      lazy val processRunUid: CaseClassParm[MailboxKVData,String] = CaseClassParm[MailboxKVData,String]("processRunUid", _.processRunUid, (d,v) => d.copy(processRunUid = v), Some(()=> ""), 10)
+      lazy val publicMetadata: CaseClassParm[MailboxKVData,JsObj] = CaseClassParm[MailboxKVData,JsObj]("publicMetadata", _.publicMetadata, (d,v) => d.copy(publicMetadata = v), Some(()=> JsObj.empty), 11)
+      lazy val privateMetadata: CaseClassParm[MailboxKVData,JsObj] = CaseClassParm[MailboxKVData,JsObj]("privateMetadata", _.privateMetadata, (d,v) => d.copy(privateMetadata = v), Some(()=> JsObj.empty), 12)
     }
     
     
@@ -76,6 +85,10 @@ object MxNatsMailboxClient {
           closeTimeoutInMillis = values(6).asInstanceOf[Long],
           channels = values(7).asInstanceOf[List[String]],
           isNamed = values(8).asInstanceOf[Boolean],
+          mailboxKind = values(9).asInstanceOf[String],
+          processRunUid = values(10).asInstanceOf[String],
+          publicMetadata = values(11).asInstanceOf[JsObj],
+          privateMetadata = values(12).asInstanceOf[JsObj],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): MailboxKVData = {
@@ -90,13 +103,17 @@ object MxNatsMailboxClient {
             closeTimeoutInMillis = values.next().asInstanceOf[Long],
             channels = values.next().asInstanceOf[List[String]],
             isNamed = values.next().asInstanceOf[Boolean],
+            mailboxKind = values.next().asInstanceOf[String],
+            processRunUid = values.next().asInstanceOf[String],
+            publicMetadata = values.next().asInstanceOf[JsObj],
+            privateMetadata = values.next().asInstanceOf[JsObj],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(adminKey: String, readerKey: String, address: String, created: Long, lastActivity: Long, purgeTimeoutInMillis: Long, closeTimeoutInMillis: Long, channels: List[String], isNamed: Boolean): MailboxKVData =
-        MailboxKVData(adminKey, readerKey, address, created, lastActivity, purgeTimeoutInMillis, closeTimeoutInMillis, channels, isNamed)
+      def typedConstruct(adminKey: String, readerKey: String, address: String, created: Long, lastActivity: Long, purgeTimeoutInMillis: Long, closeTimeoutInMillis: Long, channels: List[String], isNamed: Boolean, mailboxKind: String, processRunUid: String, publicMetadata: JsObj, privateMetadata: JsObj): MailboxKVData =
+        MailboxKVData(adminKey, readerKey, address, created, lastActivity, purgeTimeoutInMillis, closeTimeoutInMillis, channels, isNamed, mailboxKind, processRunUid, publicMetadata, privateMetadata)
     
     }
     
