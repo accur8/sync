@@ -50,6 +50,14 @@ object HermesBootstrap extends Logging {
     authExtension: Option[auth.AuthExtension] = None,
   )
 
+  // One processrun per JVM: a process that builds MULTIPLE HermesBootstrap
+  // instances (e.g. checkpoint's `checkpoint` + `checkpoint-client` mailboxes)
+  // shares one self-generated processUid and announces/pings it exactly once —
+  // otherwise each bootstrap registers its own processrun and one worker shows
+  // up as N running processes.
+  private val jvmProcessUid = new java.util.concurrent.atomic.AtomicReference[String](null)
+  private val lifecycleAnnounced = new java.util.concurrent.atomic.AtomicBoolean(false)
+
   /**
    * Create a HermesBootstrap resource using default bootstrap config and no app config
    */
@@ -86,7 +94,10 @@ object HermesBootstrap extends Logging {
       longLived = appConfig.namedMailbox.isDefined ||
         appConfig.mailboxLifecycle == nats.NatsMailboxClient.LifecycleLongLivedDaemon
       envProcessUid = sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
-      processUid = if (envProcessUid.nonEmpty) envProcessUid else if (longLived) Uid.uid32() else ""
+      processUid =
+        if (envProcessUid.nonEmpty) envProcessUid
+        else if (longLived) jvmProcessUid.updateAndGet(u => if (u == null) Uid.uid32() else u)
+        else ""
 
       // Step 3: Create/Acquire Mailbox
       // Use named mailbox if configured, otherwise create ephemeral
@@ -157,6 +168,9 @@ object HermesBootstrap extends Logging {
       _ <- Resource.acquireRelease {
         if (!longLived) {
           logger.debug("short-lived CLI lifecycle: no processrun announced (mailbox pinger only)")
+          None
+        } else if (!lifecycleAnnounced.compareAndSet(false, true)) {
+          logger.debug(s"processrun $processUid already announced by an earlier bootstrap in this JVM")
           None
         } else {
           try {
