@@ -1,8 +1,10 @@
 package a8.hermes.bootstrap
 
-import a8.hermes.core.{Mailbox, MailboxTransport}
+import a8.hermes.core.{Mailbox, MailboxTransport, Uid}
 import a8.hermes.{nats, auth}
+import a8.hermes.continuum.ContinuumRunnerClient
 import a8.hermes.nats.NatsTransport
+import a8.hermes.proto.continuum.continuum_rpc.{ProcessCompletedRequest, ProcessStartedRequest}
 import a8.hermes.rpc.{RpcServer, RpcClient, StandardHandlers}
 import a8.hermes.proto.mailbox.mailbox.{BindIdentityRequest, BindIdentityResponse}
 import a8.hermes.discovery.ServiceDiscovery
@@ -77,6 +79,15 @@ object HermesBootstrap extends Logging {
       staticServiceDiscovery = new StaticServiceDiscovery(resolvedMappings)
       _ = logger.info(s"Service discovery initialized with ${resolvedMappings.size} mappings: ${resolvedMappings.keys.mkString(", ")}")
 
+      // The process uid for this run: A8_PROCESS_UID when runner-spawned (that IS
+      // the processrun uid, same as godev leaves); self-generated for a LONG-LIVED
+      // server (its step-3c ProcessStarted makes the row real); EMPTY for a
+      // short-lived CLI — never link a mailbox to a processrun that won't exist.
+      longLived = appConfig.namedMailbox.isDefined ||
+        appConfig.mailboxLifecycle == nats.NatsMailboxClient.LifecycleLongLivedDaemon
+      envProcessUid = sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
+      processUid = if (envProcessUid.nonEmpty) envProcessUid else if (longLived) Uid.uid32() else ""
+
       // Step 3: Create/Acquire Mailbox
       // Use named mailbox if configured, otherwise create ephemeral
       mailbox <- Resource.acquireRelease {
@@ -95,11 +106,11 @@ object HermesBootstrap extends Logging {
                 throw new RuntimeException(s"Failed to create named mailbox: ${e.getMessage}", e)
             }
           case None =>
-            // Link the ephemeral mailbox to the owning processrun when we have one
-            // (the A8_PROCESS_UID env IS the processrun uid). Empty for a bare CLI.
-            val mailboxProcessRunUid = sys.env.getOrElse("A8_PROCESS_UID", sys.env.getOrElse("PROCESS_UID", ""))
+            // Link the ephemeral mailbox to the owning processrun when one exists
+            // (runner-spawned or a long-lived daemon that announces its own — see
+            // the hoisted processUid above). Empty for a bare CLI.
             logger.info(s"Creating non-durable mailbox for client (lifecycle=${appConfig.mailboxLifecycle})...")
-            nats.NatsMailboxClient.createNonDurableMailbox(natsTransport, appConfig.mailboxLifecycle, mailboxProcessRunUid)(using ctx) match {
+            nats.NatsMailboxClient.createNonDurableMailbox(natsTransport, appConfig.mailboxLifecycle, processUid)(using ctx) match {
               case scala.util.Success(mbox) =>
                 logger.info(s"✓ Created mailbox: ${mbox.address.value}")
                 mbox
@@ -132,6 +143,59 @@ object HermesBootstrap extends Logging {
         }
       } { pinger =>
         pinger.close()
+      }
+
+      // Step 3c: Worker-level continuum process lifecycle. A LONG-LIVED server
+      // (named mailbox, or an anonymous mailbox declared long-lived-daemon)
+      // announces a processrun (ProcessStarted) and keeps it live with the 30s
+      // ping loop — mirroring godev's bootstrap — so an idle server is still
+      // visible to continuum's processrun/AWOL view. Short-lived CLIs stay out:
+      // their contract is the mailbox pinger + timeouts (step 3b), no processrun.
+      // uid: reuse A8_PROCESS_UID when runner-spawned (that IS the processrun
+      // uid, same as godev leaves); self-generate for e.g. a systemd-started
+      // worker. Best-effort: a lifecycle failure must not stop the server.
+      _ <- Resource.acquireRelease {
+        if (!longLived) {
+          logger.debug("short-lived CLI lifecycle: no processrun announced (mailbox pinger only)")
+          None
+        } else {
+          try {
+            val runnerClient = new ContinuumRunnerClient(natsTransport)
+            runnerClient.processStarted(
+              ProcessStartedRequest(
+                processUid = processUid,
+                processPid = ProcessHandle.current().pid().toInt,
+                startedAt = Some(ContinuumRunnerClient.nowTimestamp()),
+                command = Seq(appConfig.appName.getOrElse("hermes")),
+                cwd = System.getProperty("user.dir", ""),
+                kind = "bootstrap",
+              )
+            )
+            val pingLoop = runnerClient.startPingLoop(processUid, () => Map.empty)
+            logger.info(s"✓ Announced processrun $processUid + started 30s lifecycle ping")
+            Some((runnerClient, processUid, pingLoop))
+          } catch {
+            case e: Exception =>
+              logger.warn(s"Could not start continuum process lifecycle: ${e.getMessage}", e)
+              None
+          }
+        }
+      } {
+        case Some((runnerClient, processUid, pingLoop)) =>
+          pingLoop.close()
+          try
+            runnerClient.processCompleted(
+              ProcessCompletedRequest(
+                processUid = processUid,
+                exitCode = 0,
+                completedAt = Some(ContinuumRunnerClient.nowTimestamp()),
+              )
+            )
+          catch {
+            case e: Exception =>
+              logger.warn(s"processCompleted publish failed for $processUid: ${e.getMessage}")
+          }
+        case None => ()
       }
 
       // Step 4: Start RPC Server

@@ -26,7 +26,24 @@ object Mailbox {
 
   object LifecycleType {
 
-    implicit lazy val jsonCodec: JsonCodec[LifecycleType] = ???
+    // String-encoded: "ephemeral" | "non-durable" | "named:<name>" (the
+    // ServiceDiscovery.SerializationFormat idiom). Was an unimplemented ???
+    // stub — a NotImplementedError landmine for whoever first serialized a
+    // LifecycleType (TASK-20260702-server-lifecycle-audit).
+    implicit lazy val jsonCodec: JsonCodec[LifecycleType] =
+      JsonCodec.string.dimap[LifecycleType](
+        {
+          case "ephemeral"                 => Ephemeral
+          case "non-durable"               => NonDurable
+          case s if s.startsWith("named:") => Named(s.stripPrefix("named:"))
+          case other                       => throw new IllegalArgumentException(s"unknown LifecycleType: $other")
+        },
+        {
+          case Ephemeral   => "ephemeral"
+          case NonDurable  => "non-durable"
+          case Named(name) => s"named:$name"
+        },
+      ).asJsonCodec
 
     case object Ephemeral extends LifecycleType {
       override def ttl: FiniteDuration = 24.hours
