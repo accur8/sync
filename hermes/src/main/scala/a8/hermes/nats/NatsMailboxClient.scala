@@ -349,7 +349,15 @@ object NatsMailboxClient extends Logging {
     // key), the STREAM NAME carries kind + reader key; the adminKey appears in
     // neither. Eph streams get the 1h MaxAge backstop; daemon streams keep their
     // purge-timeout horizon.
-    val kindToken = if (isNamed) "daemon" else "eph"
+    // 3-kind, matching godev Mailbox.MailboxType() (BUG-20260705-daemon-mailboxes-eph):
+    // named (multi-process, permanent) | daemon (long-lived-daemon lifecycle, replicated)
+    // | eph (transient). godev derives the stream-name kind token identically, so a
+    // hermes-created named mailbox MUST be mesh-named-* (not mesh-daemon-*) or godev's
+    // reaper/archiver misclassifies it.
+    val kindToken =
+      if (isNamed) "named"
+      else if (mailboxKind == "long-lived-daemon") "daemon"
+      else "eph"
     val rpcInboxSubject = s"mesh.${mailboxAddress.value}.rpc-inbox"
     val rpcInboxStream = s"mesh-$kindToken-${readerKey.value}-rpc-inbox"
     val maxAgeMillis = if (isNamed) purgeTimeoutMillis else TransientRpcMaxAgeMillis
