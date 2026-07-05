@@ -72,7 +72,7 @@ class RpcClient(config: RpcClient.Config) extends Logging {
     logger.info("Starting RPC client")
 
     // Subscribe to our RPC inbox to receive responses
-    val rpcInboxSubject = s"mesh.${config.mailbox.adminKey.value}.rpc-inbox"
+    val rpcInboxSubject = s"mesh.${config.mailbox.address.value}.rpc-inbox" // address-based subjects (capability-aligned naming)
     logger.info(s"RPC Client subscribing to: $rpcInboxSubject")
 
     // Get the Ox instance from the context

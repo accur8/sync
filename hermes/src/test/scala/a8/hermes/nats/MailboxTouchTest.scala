@@ -2,22 +2,24 @@ package a8.hermes.nats
 
 import a8.shared.json.parse
 import a8.shared.json.ast.{JsObj, JsNum, JsStr}
+import a8.shared.SharedImports.jsonCodecOps
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 /**
- * Unit tests for NatsMailboxClient.patchLastActivity — the raw-JSON-patch that the
- * mailbox pinger uses to refresh lastActivity in the KV store.
+ * Unit tests for the mailbox aliveness path (NatsMailboxClient).
  *
- * The load-bearing invariant: the patch replaces ONLY lastActivity and preserves every
- * other key — CRITICALLY privateMetadata, which carries the bound SSH identity the SQL
- * firewall depends on. A naive MailboxKVData re-marshal would drop it (the case class is
- * a lossy subset); this guards against that regression.
+ * With mailbox records in pg behind the mesh mbxstore endpoints, the touch is
+ * fetch-current -> debounce -> update-with-bumped-lastActivity. The load-bearing
+ * invariants here:
+ *   - the DEBOUNCE rule (shouldTouch) keys off the STORED lastActivity;
+ *   - the MailboxKVData codec ROUND-TRIPS publicMetadata/privateMetadata, so the
+ *     fetch->update cycle can never drop them (the server additionally preserves
+ *     the identity columns when an update omits them — godev Mailbox.ApplyDto).
  */
 class MailboxTouchTest extends AnyFunSuite with Matchers {
 
-  // A stored mailbox record as godev writes it, including populated publicMetadata /
-  // privateMetadata (privateMetadata carries the bound SSH identity).
+  // A stored mailbox record as the mesh server serves it from pg.
   private val storedJson =
     """{
       |  "adminKey": "zzADMIN",
@@ -28,51 +30,21 @@ class MailboxTouchTest extends AnyFunSuite with Matchers {
       |  "purgeTimeoutInMillis": 900000,
       |  "closeTimeoutInMillis": 900000,
       |  "publicMetadata": {"env": "prod"},
-      |  "privateMetadata": {"authToken": "SECRET-IDENTITY-TOKEN", "boundAt": 1234},
+      |  "privateMetadata": {"note": "freeform client data"},
       |  "channels": ["rpc-inbox"],
       |  "isNamed": false,
       |  "mailboxKind": "short-lived-cli",
       |  "processRunUid": "prtestprocessrun00000000000000ab"
       |}""".stripMargin
 
-  private def objOf(json: String): JsObj =
-    parse(json).toOption.get.asInstanceOf[JsObj]
-
-  test("patch replaces lastActivity when outside the debounce window") {
+  test("touch fires when the stored lastActivity is outside the debounce window") {
     val now = 1000L + (6L * 60 * 1000) // 6 min later, > 5 min debounce
-    val patched = NatsMailboxClient.patchLastActivity(storedJson, now)
-    patched should not be empty
-    val obj = objOf(patched.get)
-    obj.values("lastActivity") shouldBe JsNum(BigDecimal(now))
+    NatsMailboxClient.shouldTouch(1000L, now) shouldBe true
   }
 
-  test("patch is debounced (no write) inside the 5-min window") {
+  test("touch is debounced inside the 5-min window") {
     val now = 1000L + (2L * 60 * 1000) // 2 min later, < 5 min debounce
-    NatsMailboxClient.patchLastActivity(storedJson, now) shouldBe None
-  }
-
-  test("patch PRESERVES privateMetadata (the bound identity) and every other key") {
-    val now = 1000L + (10L * 60 * 1000)
-    val obj = objOf(NatsMailboxClient.patchLastActivity(storedJson, now).get)
-
-    // privateMetadata (identity) survives byte-for-byte
-    val priv = obj.values("privateMetadata").asInstanceOf[JsObj]
-    priv.values("authToken") shouldBe JsStr("SECRET-IDENTITY-TOKEN")
-    priv.values("boundAt") shouldBe JsNum(BigDecimal(1234))
-
-    // every other key is unchanged
-    obj.values("publicMetadata").asInstanceOf[JsObj].values("env") shouldBe JsStr("prod")
-    obj.values("adminKey") shouldBe JsStr("zzADMIN")
-    obj.values("readerKey") shouldBe JsStr("rrREADER")
-    obj.values("address") shouldBe JsStr("aaADDRESS")
-    obj.values("created") shouldBe JsNum(BigDecimal(1000))
-    obj.values("purgeTimeoutInMillis") shouldBe JsNum(BigDecimal(900000))
-    obj.values("isNamed") shouldBe a8.shared.json.ast.JsBool(false)
-    obj.values("mailboxKind") shouldBe JsStr("short-lived-cli")
-    obj.values("processRunUid") shouldBe JsStr("prtestprocessrun00000000000000ab")
-
-    // exactly the same set of keys as the original — nothing added or dropped
-    obj.values.keySet shouldBe objOf(storedJson).values.keySet
+    NatsMailboxClient.shouldTouch(1000L, now) shouldBe false
   }
 
   test("derived ping interval is shorter than the purge timeout") {
@@ -84,19 +56,27 @@ class MailboxTouchTest extends AnyFunSuite with Matchers {
     NatsMailboxClient.pingIntervalMillis(30L * 1000) shouldBe (30L * 1000)
   }
 
-  test("MailboxKVData codec now MODELS publicMetadata/privateMetadata (no more 'unused fields')") {
+  test("MailboxKVData codec round-trips metadata (fetch->update can never drop it)") {
     import a8.shared.json.ast.JsDoc
     val jsdoc = JsDoc.jsDocRoot(parse(storedJson).toOption.get)
     val data = NatsMailboxClient.MailboxKVData.jsonCodec.read(jsdoc) match {
       case Right(d)  => d
       case Left(err) => fail(s"codec read failed: $err")
     }
-    // privateMetadata (the bound identity) is now captured on read, not dropped.
-    data.privateMetadata.values.get("authToken") shouldBe Some(JsStr("SECRET-IDENTITY-TOKEN"))
-    data.privateMetadata.values.get("boundAt") shouldBe Some(JsNum(BigDecimal(1234)))
+    data.privateMetadata.values.get("note") shouldBe Some(JsStr("freeform client data"))
     data.publicMetadata.values.get("env") shouldBe Some(JsStr("prod"))
-    // and the fields we already modeled still read correctly.
     data.mailboxKind shouldBe "short-lived-cli"
     data.processRunUid shouldBe "prtestprocessrun00000000000000ab"
+
+    // The exact shape a touch sends: same record, only lastActivity bumped.
+    val bumped = data.copy(lastActivity = 999999L)
+    val reread = NatsMailboxClient.MailboxKVData.jsonCodec.read(
+      JsDoc.jsDocRoot(parse(bumped.compactJson).toOption.get)
+    ).toOption.get
+    reread.lastActivity shouldBe 999999L
+    reread.privateMetadata shouldBe data.privateMetadata
+    reread.publicMetadata shouldBe data.publicMetadata
+    reread.adminKey shouldBe data.adminKey
+    reread.channels shouldBe data.channels
   }
 }

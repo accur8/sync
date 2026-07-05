@@ -12,30 +12,21 @@ import java.time.Instant
  * Simple mailbox implementation for bootstrap.
  * Uses a named mailbox from configuration.
  *
- * This is a minimal implementation - full mailbox client
- * functionality will be added later.
+ * Subjects are ADDRESS-based (capability-aligned naming, mesh-sprint): the
+ * subject `mesh.<address>.<channel>` carries the write key a sender already
+ * holds, so sending needs NO record lookup at all, and the adminKey never
+ * appears on the wire.
  */
 class SimpleMailbox(
   val metadata: MailboxMetadata,
   transport: MailboxTransport,
-  lookupAdminKey: MailboxAddress => Option[AdminKey], // Function to look up adminKey by address
-  touchFn: () => Unit = () => (), // Refreshes this mailbox's lastActivity in KV (debounced); no-op by default
+  touchFn: () => Unit = () => (), // Refreshes this mailbox's lastActivity (debounced); no-op by default
 ) extends Mailbox with Logging {
 
   override def send(
     to: MailboxAddress,
     message: MailboxMessage,
   )(using ctx: Ctx): Unit = {
-    logger.debug(s"Looking up adminKey for mailbox address: ${to.value}")
-
-    // Look up recipient's adminKey from KV store
-    val recipientAdminKey = lookupAdminKey(to).getOrElse {
-      logger.error(s"Mailbox address not found in KV store: ${to.value}")
-      throw new RuntimeException(s"Mailbox address not found: ${to.value}")
-    }
-
-    logger.debug(s"Found adminKey for ${to.value}: ${recipientAdminKey.value}")
-
     // Convert MailboxMessage to transport envelope
     val headers = Map(
       "endpoint" -> message.endpoint,
@@ -44,8 +35,8 @@ class SimpleMailbox(
       "content-type" -> message.contentType,
     ) ++ message.metadata
 
-    // Publish to recipient's RPC inbox using their adminKey
-    val targetSubject = s"mesh.${recipientAdminKey.value}.rpc-inbox"
+    // The address IS the write capability — publish straight to it.
+    val targetSubject = s"mesh.${to.value}.rpc-inbox"
     logger.debug(s"Publishing to subject: $targetSubject")
 
     transport.publish(
@@ -56,8 +47,8 @@ class SimpleMailbox(
   }
 
   override def subscribe(channel: Channel)(using ctx: Ctx): XStream[MailboxMessage] = {
-    // Subscribe to our channel using our adminKey
-    val channelSubject = s"mesh.${metadata.adminKey.value}.${channel.name}"
+    // Subscribe to our channel — subjects are address-based.
+    val channelSubject = s"mesh.${metadata.address.value}.${channel.name}"
 
     transport.subscribe(channelSubject)(using ctx).map { envelope =>
       MailboxMessage(
@@ -74,9 +65,9 @@ class SimpleMailbox(
   }
 
   override def touch()(using ctx: Ctx): Unit = {
-    // Refresh this mailbox's lastActivity in the KV store (raw JSON-patch, debounced).
-    // Default is a no-op for placeholder mailboxes (e.g. fromNamedMailbox) that have
-    // no KV handle bound.
+    // Refresh this mailbox's lastActivity via the mesh records endpoints
+    // (debounced). Default is a no-op for placeholder mailboxes (e.g.
+    // fromNamedMailbox) that have no records binding.
     touchFn()
   }
 
@@ -92,7 +83,6 @@ object SimpleMailbox {
     name: String,
     address: String,
     transport: MailboxTransport,
-    lookupAdminKey: MailboxAddress => Option[AdminKey],
   ): SimpleMailbox = {
     // For named mailboxes, the address is exactly as configured
     val mailboxAddress = MailboxAddress(address)
@@ -107,7 +97,7 @@ object SimpleMailbox {
       lastAccessedAt = Instant.now(),
     )
 
-    new SimpleMailbox(metadata, transport, lookupAdminKey)
+    new SimpleMailbox(metadata, transport)
   }
 
 }

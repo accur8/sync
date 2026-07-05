@@ -136,22 +136,17 @@ object HermesBootstrap extends Logging {
       }
 
       // Step 3b: Start a mailbox pinger that keeps this mailbox's lastActivity fresh
-      // in the KV store so the mesh purge does not reap it while this process is
-      // alive-but-quiet. Owned by its own Resource: started here, stopped on release.
+      // (via the mesh mbxstore endpoints — records live in pg on the mesh server)
+      // so the mesh purge does not reap it while this process is alive-but-quiet.
+      // Owned by its own Resource: started here, stopped on release.
       _ <- Resource.acquireRelease {
         val purgeTimeoutMillis =
           java.time.Duration.between(mailbox.metadata.createdAt, mailbox.metadata.expiresAt).toMillis
-        nats.NatsMailboxClient.getOrCreateKVForPinger(natsTransport) match {
-          case scala.util.Success(adminKV) =>
-            val pinger = nats.NatsMailboxClient.startMailboxPingLoop(
-              mailbox.metadata.adminKey, adminKV, purgeTimeoutMillis,
-            )
-            logger.info(s"✓ Started mailbox pinger for ${mailbox.address.value}")
-            pinger
-          case scala.util.Failure(e) =>
-            logger.warn(s"Could not start mailbox pinger for ${mailbox.address.value}: ${e.getMessage}", e)
-            (() => ()): java.io.Closeable
-        }
+        val pinger = nats.NatsMailboxClient.startMailboxPingLoop(
+          mailbox.metadata.adminKey, natsTransport, purgeTimeoutMillis,
+        )
+        logger.info(s"✓ Started mailbox pinger for ${mailbox.address.value}")
+        pinger
       } { pinger =>
         pinger.close()
       }
