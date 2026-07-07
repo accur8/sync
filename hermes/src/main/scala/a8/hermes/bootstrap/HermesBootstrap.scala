@@ -136,7 +136,7 @@ object HermesBootstrap extends Logging {
       }
 
       // Step 3b: Start a mailbox pinger that keeps this mailbox's lastActivity fresh
-      // (via the mesh mbxstore endpoints — records live in pg on the mesh server)
+      // (via the mesh mailbox-records endpoints — records live in pg on the mesh server)
       // so the mesh purge does not reap it while this process is alive-but-quiet.
       // Owned by its own Resource: started here, stopped on release.
       _ <- Resource.acquireRelease {

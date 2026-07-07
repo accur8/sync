@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 /**
  * Unit tests for the mailbox aliveness path (NatsMailboxClient).
  *
- * With mailbox records in pg behind the mesh mbxstore endpoints, the touch is
+ * With mailbox records in pg behind the mesh mailbox-records endpoints, the touch is
  * fetch-current -> debounce -> update-with-bumped-lastActivity. The load-bearing
  * invariants here:
  *   - the DEBOUNCE rule (shouldTouch) keys off the STORED lastActivity;

@@ -1,6 +1,6 @@
 package a8.hermes.nats
 
-import a8.hermes.core.{Mailbox, MailboxTransport, Uid}
+import a8.hermes.core.{Mailbox, Uid}
 import a8.hermes.core.Mailbox._
 import a8.common.logging.Logging
 import a8.shared.CompanionGen
@@ -19,31 +19,32 @@ import scala.util.Try
  * Mailbox RECORDS live in postgres on the mesh server (mesh-sprint,
  * TASK-20260704-drop-nats-kv-postgres — the MeshMailboxesBy* KV buckets are gone).
  * Leaves — this client — reach them through the mesh server's records endpoints:
- * plain core-NATS request/reply with JSON payloads on `mesh.mbxstore.v1.*`
+ * plain core-NATS request/reply with JSON payloads on `mesh.mailbox.v1.*`
  * (godev `mesh/mailbox-records-remote.go` is the Go twin of this file).
+ *
+ * The mesh server is the SOLE creator of mailbox channel streams: this client
+ * sends the record (with its channels) via the insert endpoint and the server
+ * creates the JetStream stream(s) at the cluster's replica/placement topology
+ * before replying. Leaves no longer create their own mailbox streams.
  *
  * This is ONLY for direct NATS transport. For websocket/other transports,
  * use the RPC-based mailbox service client instead.
  *
  * WIRE-VISIBLE names that MUST match godev:
- * - endpoint subjects: mesh.mbxstore.v1.{fetch,insert,update,remove}
+ * - endpoint subjects: mesh.mailbox.v1.{fetch,insert,update,remove}
  * - record JSON: MailboxDto (godev mesh/mailbox.go) == MailboxKVData below
  * - message subjects: mesh.<ADDRESS>.<channel> (the address/write key — the
  *   capability-aligned naming; the adminKey appears in NO subject or stream name)
- * - stream names: mesh-<kind>-<READERKEY>-<channel>, kind = daemon | eph
+ * - stream names: mesh-<kind>-<READERKEY>-<channel>, kind = named | daemon | eph
  */
 object NatsMailboxClient extends Logging {
 
-  private val MbxStoreSubjectPrefix = "mesh.mbxstore.v1."
-  private val MbxStoreTimeout = Duration.ofSeconds(10)
+  private val MailboxRecordsSubjectPrefix = "mesh.mailbox.v1."
+  private val MailboxRecordsTimeout = Duration.ofSeconds(10)
 
   // Timeouts matching godev
   private val NamedMailboxTimeoutMillis = 90L * 24 * 60 * 60 * 1000 // 90 days
   private val NonDurablePurgeTimeoutMillis = 15L * 60 * 1000 // 15 minutes
-
-  // Retention backstop on eph rpc streams, matching godev TransientRpcMaxAge —
-  // the eph streams are a wire, not storage.
-  private val TransientRpcMaxAgeMillis = 60L * 60 * 1000 // 1 hour
 
   // Coarse lifecycle labels stored on the mailbox record (observability only; the
   // purge reads the timeout NUMBERS, not this label). Loosely aligned with godev's
@@ -71,7 +72,7 @@ object NatsMailboxClient extends Logging {
     nowMillis - storedLastActivity >= TouchDebounceMillis
 
   /**
-   * The mailbox record as it travels the mbxstore endpoints and rests in the pg
+   * The mailbox record as it travels the mailbox-records endpoints and rests in the pg
    * `record`-derived columns — godev's MailboxDto (camelCase JSON, both sides).
    */
   @CompanionGen
@@ -95,10 +96,10 @@ object NatsMailboxClient extends Logging {
   )
   object MailboxKVData extends MxMailboxKVData
 
-  // --- mbxstore endpoint client ---------------------------------------------
+  // --- mailbox-records endpoint client ---------------------------------------------
 
   /**
-   * One request/reply against a mesh.mbxstore.v1.* endpoint. Reply envelope:
+   * One request/reply against a mesh.mailbox.v1.* endpoint. Reply envelope:
    * {"ok":bool, "error":string?, "data":...?}. Returns the data JsVal (JsNothing
    * when absent/null).
    */
@@ -107,22 +108,22 @@ object NatsMailboxClient extends Logging {
     import a8.shared.json.ast.{JsBool, JsStr}
 
     val reply = natsTransport.connection.request(
-      MbxStoreSubjectPrefix + op,
+      MailboxRecordsSubjectPrefix + op,
       payloadJson.getBytes("UTF-8"),
-      MbxStoreTimeout,
+      MailboxRecordsTimeout,
     )
     if (reply == null)
-      throw new RuntimeException(s"mbxstore $op: no reply (is a mesh server running?)")
+      throw new RuntimeException(s"mailbox-records $op: no reply (is a mesh server running?)")
 
     val env = parse(new String(reply.getData, "UTF-8")) match {
       case Right(o: JsObj) => o
-      case Right(_)        => throw new RuntimeException(s"mbxstore $op: reply is not a JSON object")
-      case Left(err)       => throw new RuntimeException(s"mbxstore $op: unparseable reply: $err")
+      case Right(_)        => throw new RuntimeException(s"mailbox-records $op: reply is not a JSON object")
+      case Left(err)       => throw new RuntimeException(s"mailbox-records $op: unparseable reply: $err")
     }
     val ok = env.values.get("ok").collect { case JsBool(b) => b }.getOrElse(false)
     if (!ok) {
       val msg = env.values.get("error").collect { case JsStr(s) => s }.getOrElse("unknown error")
-      throw new RuntimeException(s"mbxstore $op: $msg")
+      throw new RuntimeException(s"mailbox-records $op: $msg")
     }
     env.values.getOrElse("data", JsNothing)
   }
@@ -295,7 +296,7 @@ object NatsMailboxClient extends Logging {
 
   /**
    * Create mailbox implementation (matching godev's _CreateMailboxImpl): generate
-   * keys, dup-check, insert the record via the mbxstore endpoint, and create the
+   * keys, dup-check, insert the record via the mailbox-records endpoint, and create the
    * rpc-inbox stream under the capability-aligned naming.
    */
   private def createMailboxImpl(
@@ -340,34 +341,15 @@ object NatsMailboxClient extends Logging {
       processRunUid = processRunUid,
     )
 
+    // insertRecord (mesh.mailbox.v1.insert) is synchronous: the mesh server
+    // persists the record AND creates the mailbox's channel stream(s) — at the
+    // cluster's replica/placement topology, derived from the SERVER's own live
+    // node count — before replying. So by the time this returns the rpc-inbox
+    // stream exists and the mailbox can subscribe. Leaves no longer create their
+    // own mailbox streams (the server is the sole creator; it owns topology).
     insertRecord(natsTransport, mailboxData).get
 
     logger.info(s"Created mailbox: ${mailboxAddress.value} (named=$isNamed)")
-
-    // Create the rpc-inbox stream (capability-aligned naming, matching godev
-    // Mailbox.NatsSubject/NatsStreamName): the SUBJECT carries the address (write
-    // key), the STREAM NAME carries kind + reader key; the adminKey appears in
-    // neither. Eph streams get the 1h MaxAge backstop; daemon streams keep their
-    // purge-timeout horizon.
-    // 3-kind, matching godev Mailbox.MailboxType() (BUG-20260705-daemon-mailboxes-eph):
-    // named (multi-process, permanent) | daemon (long-lived-daemon lifecycle, replicated)
-    // | eph (transient). godev derives the stream-name kind token identically, so a
-    // hermes-created named mailbox MUST be mesh-named-* (not mesh-daemon-*) or godev's
-    // reaper/archiver misclassifies it.
-    val kindToken =
-      if (isNamed) "named"
-      else if (mailboxKind == "long-lived-daemon") "daemon"
-      else "eph"
-    val rpcInboxSubject = s"mesh.${mailboxAddress.value}.rpc-inbox"
-    val rpcInboxStream = s"mesh-$kindToken-${readerKey.value}-rpc-inbox"
-    val maxAgeMillis = if (isNamed) purgeTimeoutMillis else TransientRpcMaxAgeMillis
-    natsTransport.createStream(
-      name = rpcInboxStream,
-      subjects = Seq(rpcInboxSubject),
-      retention = MailboxTransport.StreamRetention.Limits,
-      maxAge = scala.concurrent.duration.FiniteDuration(maxAgeMillis, "milliseconds"),
-    )
-    logger.debug(s"created channel rpc-inbox in ${mailboxAddress.value} (stream $rpcInboxStream)")
 
     mailboxFromData(mailboxData, natsTransport)
   }
