@@ -7,12 +7,31 @@ package a8.hermes.proto.continuum.continuum_rpc
 
 /** @param timestamp
   *   UTC timestamp
+  * @param writerEpoch
+  *   writerEpoch identifies the writer INSTANCE (stamped once at construction).
+  *   sequence is contiguous only within one writer's life and resets to 1 for a
+  *   fresh writer (e.g. a job retry reusing the same processUid) — an epoch
+  *   change marks a reset legitimate; a sequence skip WITHIN an epoch is real
+  *   loss. Enables the gap detection that JetStream stream sequences cannot
+  *   provide (per-subject they are gappy by construction on shared streams).
+  * @param eof
+  *   eof marks the writer's terminal record: the writer closed cleanly and no
+  *   further records follow from this epoch. Emitted synchronously as the last
+  *   record on shutdown. Without this marker a dropped FINAL record is
+  *   undetectable — nothing follows it to reveal the skip.
+  * @param finalSequence
+  *   finalSequence (on eof records) is the last data-carrying sequence this
+  *   writer emitted: holding contiguous 1..finalSequence for the epoch == no
+  *   loss. The archiver can reconcile against this at run completion.
   */
 @SerialVersionUID(0L)
 final case class StreamRecord(
     timestamp: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
     sequence: _root_.scala.Long = 0L,
     buffers: _root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer] = _root_.scala.Seq.empty,
+    writerEpoch: _root_.scala.Long = 0L,
+    eof: _root_.scala.Boolean = false,
+    finalSequence: _root_.scala.Long = 0L,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[StreamRecord] {
     @transient
@@ -34,6 +53,27 @@ final case class StreamRecord(
         val __value = __item
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       }
+      
+      {
+        val __value = writerEpoch
+        if (__value != 0L) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeUInt64Size(5, __value)
+        }
+      };
+      
+      {
+        val __value = eof
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(6, __value)
+        }
+      };
+      
+      {
+        val __value = finalSequence
+        if (__value != 0L) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeUInt64Size(7, __value)
+        }
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -65,6 +105,24 @@ final case class StreamRecord(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      {
+        val __v = writerEpoch
+        if (__v != 0L) {
+          _output__.writeUInt64(5, __v)
+        }
+      };
+      {
+        val __v = eof
+        if (__v != false) {
+          _output__.writeBool(6, __v)
+        }
+      };
+      {
+        val __v = finalSequence
+        if (__v != 0L) {
+          _output__.writeUInt64(7, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def getTimestamp: com.google.protobuf.timestamp.Timestamp = timestamp.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
@@ -75,6 +133,9 @@ final case class StreamRecord(
     def addBuffers(__vs: a8.hermes.proto.continuum.continuum_rpc.Buffer *): StreamRecord = addAllBuffers(__vs)
     def addAllBuffers(__vs: Iterable[a8.hermes.proto.continuum.continuum_rpc.Buffer]): StreamRecord = copy(buffers = buffers ++ __vs)
     def withBuffers(__v: _root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer]): StreamRecord = copy(buffers = __v)
+    def withWriterEpoch(__v: _root_.scala.Long): StreamRecord = copy(writerEpoch = __v)
+    def withEof(__v: _root_.scala.Boolean): StreamRecord = copy(eof = __v)
+    def withFinalSequence(__v: _root_.scala.Long): StreamRecord = copy(finalSequence = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -85,6 +146,18 @@ final case class StreamRecord(
           if (__t != 0L) __t else null
         }
         case 4 => buffers
+        case 5 => {
+          val __t = writerEpoch
+          if (__t != 0L) __t else null
+        }
+        case 6 => {
+          val __t = eof
+          if (__t != false) __t else null
+        }
+        case 7 => {
+          val __t = finalSequence
+          if (__t != 0L) __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -93,6 +166,9 @@ final case class StreamRecord(
         case 2 => timestamp.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 3 => _root_.scalapb.descriptors.PLong(sequence)
         case 4 => _root_.scalapb.descriptors.PRepeated(buffers.iterator.map(_.toPMessage).toVector)
+        case 5 => _root_.scalapb.descriptors.PLong(writerEpoch)
+        case 6 => _root_.scalapb.descriptors.PBoolean(eof)
+        case 7 => _root_.scalapb.descriptors.PLong(finalSequence)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -106,6 +182,9 @@ object StreamRecord extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.co
     var __timestamp: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
     var __sequence: _root_.scala.Long = 0L
     val __buffers: _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.continuum.continuum_rpc.Buffer] = new _root_.scala.collection.immutable.VectorBuilder[a8.hermes.proto.continuum.continuum_rpc.Buffer]
+    var __writerEpoch: _root_.scala.Long = 0L
+    var __eof: _root_.scala.Boolean = false
+    var __finalSequence: _root_.scala.Long = 0L
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -118,6 +197,12 @@ object StreamRecord extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.co
           __sequence = _input__.readUInt64()
         case 34 =>
           __buffers += _root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.Buffer](_input__)
+        case 40 =>
+          __writerEpoch = _input__.readUInt64()
+        case 48 =>
+          __eof = _input__.readBool()
+        case 56 =>
+          __finalSequence = _input__.readUInt64()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -129,6 +214,9 @@ object StreamRecord extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.co
         timestamp = __timestamp,
         sequence = __sequence,
         buffers = __buffers.result(),
+        writerEpoch = __writerEpoch,
+        eof = __eof,
+        finalSequence = __finalSequence,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -138,12 +226,15 @@ object StreamRecord extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.co
       a8.hermes.proto.continuum.continuum_rpc.StreamRecord(
         timestamp = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
         sequence = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
-        buffers = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer]]).getOrElse(_root_.scala.Seq.empty)
+        buffers = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer]]).getOrElse(_root_.scala.Seq.empty),
+        writerEpoch = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
+        eof = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        finalSequence = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Long]).getOrElse(0L)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(8)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(8)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(13)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(13)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -157,25 +248,40 @@ object StreamRecord extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.co
   lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.StreamRecord(
     timestamp = _root_.scala.None,
     sequence = 0L,
-    buffers = _root_.scala.Seq.empty
+    buffers = _root_.scala.Seq.empty,
+    writerEpoch = 0L,
+    eof = false,
+    finalSequence = 0L
   )
   implicit class StreamRecordLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.StreamRecord]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.StreamRecord](_l) {
     def timestamp: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getTimestamp)((c_, f_) => c_.copy(timestamp = _root_.scala.Option(f_)))
     def optionalTimestamp: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.timestamp)((c_, f_) => c_.copy(timestamp = f_))
     def sequence: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.sequence)((c_, f_) => c_.copy(sequence = f_))
     def buffers: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer]] = field(_.buffers)((c_, f_) => c_.copy(buffers = f_))
+    def writerEpoch: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.writerEpoch)((c_, f_) => c_.copy(writerEpoch = f_))
+    def eof: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.eof)((c_, f_) => c_.copy(eof = f_))
+    def finalSequence: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.finalSequence)((c_, f_) => c_.copy(finalSequence = f_))
   }
   final val TIMESTAMP_FIELD_NUMBER = 2
   final val SEQUENCE_FIELD_NUMBER = 3
   final val BUFFERS_FIELD_NUMBER = 4
+  final val WRITEREPOCH_FIELD_NUMBER = 5
+  final val EOF_FIELD_NUMBER = 6
+  final val FINALSEQUENCE_FIELD_NUMBER = 7
   def of(
     timestamp: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
     sequence: _root_.scala.Long,
-    buffers: _root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer]
+    buffers: _root_.scala.Seq[a8.hermes.proto.continuum.continuum_rpc.Buffer],
+    writerEpoch: _root_.scala.Long,
+    eof: _root_.scala.Boolean,
+    finalSequence: _root_.scala.Long
   ): _root_.a8.hermes.proto.continuum.continuum_rpc.StreamRecord = _root_.a8.hermes.proto.continuum.continuum_rpc.StreamRecord(
     timestamp,
     sequence,
-    buffers
+    buffers,
+    writerEpoch,
+    eof,
+    finalSequence
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.StreamRecord])
 }

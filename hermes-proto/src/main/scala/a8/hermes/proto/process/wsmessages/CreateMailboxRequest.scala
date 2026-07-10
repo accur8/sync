@@ -5,6 +5,16 @@
 
 package a8.hermes.proto.process.wsmessages
 
+/** @param lifecycleKind
+  *   Coarse, ergonomic lifecycle declaration ("short-lived-cli" | "long-lived-daemon").
+  *   Creation input only (not stored on the wire): the server resolves it to concrete
+  *   purge/close timeouts, which ARE stored. Empty = short-lived-cli default.
+  * @param processRunUid
+  *   Owning processrun uid, when the creator has one backed by a processrun record
+  *   (the client's processUid IS the future processrun.uid, verbatim). Stored on the
+  *   mailbox so aliveness can be checked against the actual process. Empty when the
+  *   creator has no processrun (e.g. a bare CLI) — then only the idle timeout applies.
+  */
 @SerialVersionUID(0L)
 final case class CreateMailboxRequest(
     channels: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
@@ -13,6 +23,8 @@ final case class CreateMailboxRequest(
     purgeTimeoutInMillis: _root_.scala.Long = 0L,
     closeTimeoutInMillis: _root_.scala.Long = 0L,
     extraData: _root_.scala.Option[com.google.protobuf.struct.Struct] = _root_.scala.None,
+    lifecycleKind: _root_.scala.Predef.String = "",
+    processRunUid: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[CreateMailboxRequest] {
     @transient
@@ -48,6 +60,20 @@ final case class CreateMailboxRequest(
       if (extraData.isDefined) {
         val __value = extraData.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      
+      {
+        val __value = lifecycleKind
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(7, __value)
+        }
+      };
+      
+      {
+        val __value = processRunUid
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(8, __value)
+        }
       };
       __size += unknownFields.serializedSize
       __size
@@ -96,6 +122,18 @@ final case class CreateMailboxRequest(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      {
+        val __v = lifecycleKind
+        if (!__v.isEmpty) {
+          _output__.writeString(7, __v)
+        }
+      };
+      {
+        val __v = processRunUid
+        if (!__v.isEmpty) {
+          _output__.writeString(8, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def clearChannels = copy(channels = _root_.scala.Seq.empty)
@@ -113,6 +151,8 @@ final case class CreateMailboxRequest(
     def getExtraData: com.google.protobuf.struct.Struct = extraData.getOrElse(com.google.protobuf.struct.Struct.defaultInstance)
     def clearExtraData: CreateMailboxRequest = copy(extraData = _root_.scala.None)
     def withExtraData(__v: com.google.protobuf.struct.Struct): CreateMailboxRequest = copy(extraData = Option(__v))
+    def withLifecycleKind(__v: _root_.scala.Predef.String): CreateMailboxRequest = copy(lifecycleKind = __v)
+    def withProcessRunUid(__v: _root_.scala.Predef.String): CreateMailboxRequest = copy(processRunUid = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -129,6 +169,14 @@ final case class CreateMailboxRequest(
           if (__t != 0L) __t else null
         }
         case 6 => extraData.orNull
+        case 7 => {
+          val __t = lifecycleKind
+          if (__t != "") __t else null
+        }
+        case 8 => {
+          val __t = processRunUid
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -140,6 +188,8 @@ final case class CreateMailboxRequest(
         case 4 => _root_.scalapb.descriptors.PLong(purgeTimeoutInMillis)
         case 5 => _root_.scalapb.descriptors.PLong(closeTimeoutInMillis)
         case 6 => extraData.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 7 => _root_.scalapb.descriptors.PString(lifecycleKind)
+        case 8 => _root_.scalapb.descriptors.PString(processRunUid)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -156,6 +206,8 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
     var __purgeTimeoutInMillis: _root_.scala.Long = 0L
     var __closeTimeoutInMillis: _root_.scala.Long = 0L
     var __extraData: _root_.scala.Option[com.google.protobuf.struct.Struct] = _root_.scala.None
+    var __lifecycleKind: _root_.scala.Predef.String = ""
+    var __processRunUid: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -174,6 +226,10 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
           __closeTimeoutInMillis = _input__.readInt64()
         case 50 =>
           __extraData = _root_.scala.Option(__extraData.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.struct.Struct](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 58 =>
+          __lifecycleKind = _input__.readStringRequireUtf8()
+        case 66 =>
+          __processRunUid = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -188,6 +244,8 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
         purgeTimeoutInMillis = __purgeTimeoutInMillis,
         closeTimeoutInMillis = __closeTimeoutInMillis,
         extraData = __extraData,
+        lifecycleKind = __lifecycleKind,
+        processRunUid = __processRunUid,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -200,12 +258,14 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
         publicMetadata = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.struct.Struct]]),
         purgeTimeoutInMillis = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
         closeTimeoutInMillis = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
-        extraData = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.struct.Struct]])
+        extraData = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.struct.Struct]]),
+        lifecycleKind = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        processRunUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(31)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(31)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(32)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(32)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -223,7 +283,9 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
     publicMetadata = _root_.scala.None,
     purgeTimeoutInMillis = 0L,
     closeTimeoutInMillis = 0L,
-    extraData = _root_.scala.None
+    extraData = _root_.scala.None,
+    lifecycleKind = "",
+    processRunUid = ""
   )
   implicit class CreateMailboxRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.CreateMailboxRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.CreateMailboxRequest](_l) {
     def channels: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.channels)((c_, f_) => c_.copy(channels = f_))
@@ -235,6 +297,8 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
     def closeTimeoutInMillis: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.closeTimeoutInMillis)((c_, f_) => c_.copy(closeTimeoutInMillis = f_))
     def extraData: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.struct.Struct] = field(_.getExtraData)((c_, f_) => c_.copy(extraData = _root_.scala.Option(f_)))
     def optionalExtraData: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.struct.Struct]] = field(_.extraData)((c_, f_) => c_.copy(extraData = f_))
+    def lifecycleKind: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.lifecycleKind)((c_, f_) => c_.copy(lifecycleKind = f_))
+    def processRunUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processRunUid)((c_, f_) => c_.copy(processRunUid = f_))
   }
   final val CHANNELS_FIELD_NUMBER = 1
   final val PRIVATEMETADATA_FIELD_NUMBER = 2
@@ -242,20 +306,26 @@ object CreateMailboxRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
   final val PURGETIMEOUTINMILLIS_FIELD_NUMBER = 4
   final val CLOSETIMEOUTINMILLIS_FIELD_NUMBER = 5
   final val EXTRADATA_FIELD_NUMBER = 6
+  final val LIFECYCLEKIND_FIELD_NUMBER = 7
+  final val PROCESSRUNUID_FIELD_NUMBER = 8
   def of(
     channels: _root_.scala.Seq[_root_.scala.Predef.String],
     privateMetadata: _root_.scala.Option[com.google.protobuf.struct.Struct],
     publicMetadata: _root_.scala.Option[com.google.protobuf.struct.Struct],
     purgeTimeoutInMillis: _root_.scala.Long,
     closeTimeoutInMillis: _root_.scala.Long,
-    extraData: _root_.scala.Option[com.google.protobuf.struct.Struct]
+    extraData: _root_.scala.Option[com.google.protobuf.struct.Struct],
+    lifecycleKind: _root_.scala.Predef.String,
+    processRunUid: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.process.wsmessages.CreateMailboxRequest = _root_.a8.hermes.proto.process.wsmessages.CreateMailboxRequest(
     channels,
     privateMetadata,
     publicMetadata,
     purgeTimeoutInMillis,
     closeTimeoutInMillis,
-    extraData
+    extraData,
+    lifecycleKind,
+    processRunUid
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.CreateMailboxRequest])
 }

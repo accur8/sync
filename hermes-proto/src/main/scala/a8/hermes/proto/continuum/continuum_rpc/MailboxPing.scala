@@ -3,20 +3,25 @@
 //
 // Protofile syntax: PROTO3
 
-package a8.hermes.proto.process.wsmessages
+package a8.hermes.proto.continuum.continuum_rpc
 
+/** MailboxPing is a leaf mailbox's fire-and-forget aliveness signal. Leaves
+  * publish it on continuum.central instead of round-tripping the mailbox-records
+  * update endpoint with a full record — the server touches LastActivity
+  * through its store (cache-coherent, debounced server-side).
+  */
 @SerialVersionUID(0L)
-final case class Unsubscribe(
-    id: _root_.scala.Predef.String = "",
+final case class MailboxPing(
+    adminKey: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[Unsubscribe] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[MailboxPing] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
       
       {
-        val __value = id
+        val __value = adminKey
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
         }
@@ -35,20 +40,20 @@ final case class Unsubscribe(
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
-        val __v = id
+        val __v = adminKey
         if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
       unknownFields.writeTo(_output__)
     }
-    def withId(__v: _root_.scala.Predef.String): Unsubscribe = copy(id = __v)
+    def withAdminKey(__v: _root_.scala.Predef.String): MailboxPing = copy(adminKey = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
-          val __t = id
+          val __t = adminKey
           if (__t != "") __t else null
         }
       }
@@ -56,18 +61,18 @@ final case class Unsubscribe(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PString(id)
+        case 1 => _root_.scalapb.descriptors.PString(adminKey)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.process.wsmessages.Unsubscribe.type = a8.hermes.proto.process.wsmessages.Unsubscribe
-    // @@protoc_insertion_point(GeneratedMessage[mesh.Unsubscribe])
+    def companion: a8.hermes.proto.continuum.continuum_rpc.MailboxPing.type = a8.hermes.proto.continuum.continuum_rpc.MailboxPing
+    // @@protoc_insertion_point(GeneratedMessage[continuum_rpc.MailboxPing])
 }
 
-object Unsubscribe extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.Unsubscribe] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.Unsubscribe] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.Unsubscribe = {
-    var __id: _root_.scala.Predef.String = ""
+object MailboxPing extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.MailboxPing] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.MailboxPing] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.continuum.continuum_rpc.MailboxPing = {
+    var __adminKey: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -75,7 +80,7 @@ object Unsubscribe extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pro
       _tag__ match {
         case 0 => _done__ = true
         case 10 =>
-          __id = _input__.readStringRequireUtf8()
+          __adminKey = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -83,35 +88,35 @@ object Unsubscribe extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.pro
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.process.wsmessages.Unsubscribe(
-        id = __id,
+    a8.hermes.proto.continuum.continuum_rpc.MailboxPing(
+        adminKey = __adminKey,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.Unsubscribe] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.continuum.continuum_rpc.MailboxPing] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.process.wsmessages.Unsubscribe(
-        id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+      a8.hermes.proto.continuum.continuum_rpc.MailboxPing(
+        adminKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(31)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(31)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(11)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(11)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.Unsubscribe(
-    id = ""
+  lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.MailboxPing(
+    adminKey = ""
   )
-  implicit class UnsubscribeLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Unsubscribe]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.Unsubscribe](_l) {
-    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
+  implicit class MailboxPingLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.MailboxPing]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.MailboxPing](_l) {
+    def adminKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.adminKey)((c_, f_) => c_.copy(adminKey = f_))
   }
-  final val ID_FIELD_NUMBER = 1
+  final val ADMINKEY_FIELD_NUMBER = 1
   def of(
-    id: _root_.scala.Predef.String
-  ): _root_.a8.hermes.proto.process.wsmessages.Unsubscribe = _root_.a8.hermes.proto.process.wsmessages.Unsubscribe(
-    id
+    adminKey: _root_.scala.Predef.String
+  ): _root_.a8.hermes.proto.continuum.continuum_rpc.MailboxPing = _root_.a8.hermes.proto.continuum.continuum_rpc.MailboxPing(
+    adminKey
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.Unsubscribe])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.MailboxPing])
 }

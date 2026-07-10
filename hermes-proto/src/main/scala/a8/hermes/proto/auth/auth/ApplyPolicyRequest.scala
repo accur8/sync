@@ -11,11 +11,16 @@ package a8.hermes.proto.auth.auth
   *   Name of policy to apply
   * @param dryRun
   *   Preview without applying
+  * @param policyJson
+  *   Policy to evaluate, as JSON. When set, the server uses this instead of
+  *   reading the stored row -- so a dry run never has to stage the policy in
+  *   the database first. Empty = read the stored policy named policy_name.
   */
 @SerialVersionUID(0L)
 final case class ApplyPolicyRequest(
     policyName: _root_.scala.Predef.String = "",
     dryRun: _root_.scala.Boolean = false,
+    policyJson: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ApplyPolicyRequest] {
     @transient
@@ -34,6 +39,13 @@ final case class ApplyPolicyRequest(
         val __value = dryRun
         if (__value != false) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = policyJson
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -61,10 +73,17 @@ final case class ApplyPolicyRequest(
           _output__.writeBool(2, __v)
         }
       };
+      {
+        val __v = policyJson
+        if (!__v.isEmpty) {
+          _output__.writeString(3, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withPolicyName(__v: _root_.scala.Predef.String): ApplyPolicyRequest = copy(policyName = __v)
     def withDryRun(__v: _root_.scala.Boolean): ApplyPolicyRequest = copy(dryRun = __v)
+    def withPolicyJson(__v: _root_.scala.Predef.String): ApplyPolicyRequest = copy(policyJson = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -77,6 +96,10 @@ final case class ApplyPolicyRequest(
           val __t = dryRun
           if (__t != false) __t else null
         }
+        case 3 => {
+          val __t = policyJson
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -84,6 +107,7 @@ final case class ApplyPolicyRequest(
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(policyName)
         case 2 => _root_.scalapb.descriptors.PBoolean(dryRun)
+        case 3 => _root_.scalapb.descriptors.PString(policyJson)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -96,6 +120,7 @@ object ApplyPolicyRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
   def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.auth.auth.ApplyPolicyRequest = {
     var __policyName: _root_.scala.Predef.String = ""
     var __dryRun: _root_.scala.Boolean = false
+    var __policyJson: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -106,6 +131,8 @@ object ApplyPolicyRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
           __policyName = _input__.readStringRequireUtf8()
         case 16 =>
           __dryRun = _input__.readBool()
+        case 26 =>
+          __policyJson = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -116,6 +143,7 @@ object ApplyPolicyRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
     a8.hermes.proto.auth.auth.ApplyPolicyRequest(
         policyName = __policyName,
         dryRun = __dryRun,
+        policyJson = __policyJson,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -124,7 +152,8 @@ object ApplyPolicyRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.auth.auth.ApplyPolicyRequest(
         policyName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        dryRun = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+        dryRun = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        policyJson = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -135,20 +164,25 @@ object ApplyPolicyRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = a8.hermes.proto.auth.auth.ApplyPolicyRequest(
     policyName = "",
-    dryRun = false
+    dryRun = false,
+    policyJson = ""
   )
   implicit class ApplyPolicyRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.ApplyPolicyRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.ApplyPolicyRequest](_l) {
     def policyName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.policyName)((c_, f_) => c_.copy(policyName = f_))
     def dryRun: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.dryRun)((c_, f_) => c_.copy(dryRun = f_))
+    def policyJson: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.policyJson)((c_, f_) => c_.copy(policyJson = f_))
   }
   final val POLICY_NAME_FIELD_NUMBER = 1
   final val DRY_RUN_FIELD_NUMBER = 2
+  final val POLICY_JSON_FIELD_NUMBER = 3
   def of(
     policyName: _root_.scala.Predef.String,
-    dryRun: _root_.scala.Boolean
+    dryRun: _root_.scala.Boolean,
+    policyJson: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.auth.auth.ApplyPolicyRequest = _root_.a8.hermes.proto.auth.auth.ApplyPolicyRequest(
     policyName,
-    dryRun
+    dryRun,
+    policyJson
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.ApplyPolicyRequest])
 }

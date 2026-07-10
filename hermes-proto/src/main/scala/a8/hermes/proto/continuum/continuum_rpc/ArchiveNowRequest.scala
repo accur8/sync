@@ -3,12 +3,16 @@
 //
 // Protofile syntax: PROTO3
 
-package a8.hermes.proto.process.wsmessages
+package a8.hermes.proto.continuum.continuum_rpc
 
+/** ArchiveNow triggers ONE full log-archive pass on demand (the archiver runs it,
+  * single writer — no race with the scheduled loop). Used by the CLI purge to
+  * archive freshly-completed procs before a purge pass so they become eligible.
+  */
 @SerialVersionUID(0L)
-final case class AddChannelResponse(
+final case class ArchiveNowRequest(
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[AddChannelResponse] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ArchiveNowRequest] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
@@ -33,13 +37,13 @@ final case class AddChannelResponse(
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = throw new MatchError(__fieldNumber)
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = throw new MatchError(__field)
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.process.wsmessages.AddChannelResponse.type = a8.hermes.proto.process.wsmessages.AddChannelResponse
-    // @@protoc_insertion_point(GeneratedMessage[mesh.AddChannelResponse])
+    def companion: a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest.type = a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest
+    // @@protoc_insertion_point(GeneratedMessage[continuum_rpc.ArchiveNowRequest])
 }
 
-object AddChannelResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.AddChannelResponse] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.AddChannelResponse] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.AddChannelResponse = {
+object ArchiveNowRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest = {
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -53,28 +57,28 @@ object AddChannelResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.process.wsmessages.AddChannelResponse(
+    a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest(
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.AddChannelResponse] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.process.wsmessages.AddChannelResponse(
+      a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest(
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(35)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(35)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(7)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(7)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.AddChannelResponse(
+  lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest(
   )
-  implicit class AddChannelResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.AddChannelResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.AddChannelResponse](_l) {
+  implicit class ArchiveNowRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest](_l) {
   }
   def of(
-  ): _root_.a8.hermes.proto.process.wsmessages.AddChannelResponse = _root_.a8.hermes.proto.process.wsmessages.AddChannelResponse(
+  ): _root_.a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest = _root_.a8.hermes.proto.continuum.continuum_rpc.ArchiveNowRequest(
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.AddChannelResponse])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.ArchiveNowRequest])
 }

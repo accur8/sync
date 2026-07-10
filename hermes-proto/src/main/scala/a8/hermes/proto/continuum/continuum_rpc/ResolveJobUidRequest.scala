@@ -6,7 +6,7 @@
 package a8.hermes.proto.continuum.continuum_rpc
 
 /** @param kind
-  *   the job.kind to create if absent: "worker" (a8 worker run) or "supervisor" (svcmgr/systemd). Empty -&gt; supervisor.
+  *   the job.kind to create if absent: "worker" (a8 worker run) or "supervisor" (service-manager/systemd). Empty -&gt; supervisor.
   */
 @SerialVersionUID(0L)
 final case class ResolveJobUidRequest(
@@ -149,8 +149,8 @@ object ResolveJobUidRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(15)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(15)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(20)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(20)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)

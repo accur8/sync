@@ -11,13 +11,29 @@ option go_package = "accur8.io/godev/mesh/hproto";
 
 message MessageFromClient {
   oneof message {
-    SendMessageRequest    sendMessageRequest   = 1;
-    FirstMessage          firstMessage         = 2;
-    Ping                  ping                 = 3;
-    Pong                  pong                 = 4;
-    Notification          notification         = 5;
-    SubscribeRequest      subscribeRequest     = 6;
+    SendMessageRequest             sendMessageRequest         = 1;
+    FirstMessage                   firstMessage               = 2;
+    Ping                           ping                       = 3;
+    Pong                           pong                       = 4;
+    Notification                   notification               = 5;
+    SubscribeRequest               subscribeRequest           = 6;
+    PublishToContinuumCentral      publishToContinuumCentral  = 7;
   }
+}
+
+// PublishToContinuumCentral relays a runner process-lifecycle message
+// (continuum_rpc.MessageFromRunner: ProcessStart/Ping/Complete) from a WS client
+// to the NATS continuum.central subject, so a WS-only client emits lifecycle
+// identically to a NATS client (which publishes to continuum.central directly).
+//
+// The gateway authenticates the WS mailbox and VERIFIES that workerUid matches the
+// authenticated worker before publishing; a mismatch is an error and the message is
+// NOT relayed (no rewriting — verify and reject). messageFromRunnerBytes is the
+// protobuf-marshaled continuum_rpc.MessageFromRunner (carried as bytes so the mesh
+// proto need not depend on continuum_rpc); the gateway publishes it VERBATIM.
+message PublishToContinuumCentral {
+  string  workerUid               = 1;  // the worker this lifecycle is for; gateway checks == authed worker
+  bytes   messageFromRunnerBytes  = 2;  // marshaled continuum_rpc.MessageFromRunner, relayed verbatim
 }
 
 message Notification {
@@ -292,6 +308,15 @@ message CreateMailboxRequest {
   int64                    purgeTimeoutInMillis  = 4;
   int64                    closeTimeoutInMillis  = 5;
   google.protobuf.Struct   extraData             = 6;
+  // Coarse, ergonomic lifecycle declaration ("short-lived-cli" | "long-lived-daemon").
+  // Creation input only (not stored on the wire): the server resolves it to concrete
+  // purge/close timeouts, which ARE stored. Empty = short-lived-cli default.
+  string                   lifecycleKind         = 7;
+  // Owning processrun uid, when the creator has one backed by a processrun record
+  // (the client's processUid IS the future processrun.uid, verbatim). Stored on the
+  // mailbox so aliveness can be checked against the actual process. Empty when the
+  // creator has no processrun (e.g. a bare CLI) — then only the idle timeout applies.
+  string                   processRunUid         = 8;
 }
 
 message CreateMailboxResponse {

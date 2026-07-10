@@ -7,6 +7,13 @@ package a8.hermes.proto.continuum.continuum_rpc
 
 /** @param completedAt
   *   UTC timestamp
+  * @param eventUid
+  *   Scheduler event UID for correlation (mirrors ProcessStartedRequest.eventUid).
+  *   Carried on completion so the registry can resolve the lifecycle bundle's
+  *   schedule/event DIRECTLY instead of looking up the jobevent by process_run_uid —
+  *   which races for a REMOTE worker (the leaf's completion can reach the registry
+  *   before continuum commits the jobevent.process_run_uid link, yielding an empty
+  *   schedule/event on run.completed and breaking checker correlation).
   */
 @SerialVersionUID(0L)
 final case class ProcessCompletedRequest(
@@ -14,6 +21,7 @@ final case class ProcessCompletedRequest(
     exitCode: _root_.scala.Int = 0,
     exitMessage: _root_.scala.Predef.String = "",
     completedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
+    eventUid: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ProcessCompletedRequest] {
     @transient
@@ -44,6 +52,13 @@ final case class ProcessCompletedRequest(
       if (completedAt.isDefined) {
         val __value = completedAt.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      
+      {
+        val __value = eventUid
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+        }
       };
       __size += unknownFields.serializedSize
       __size
@@ -82,6 +97,12 @@ final case class ProcessCompletedRequest(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      {
+        val __v = eventUid
+        if (!__v.isEmpty) {
+          _output__.writeString(5, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withProcessUid(__v: _root_.scala.Predef.String): ProcessCompletedRequest = copy(processUid = __v)
@@ -90,6 +111,7 @@ final case class ProcessCompletedRequest(
     def getCompletedAt: com.google.protobuf.timestamp.Timestamp = completedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def clearCompletedAt: ProcessCompletedRequest = copy(completedAt = _root_.scala.None)
     def withCompletedAt(__v: com.google.protobuf.timestamp.Timestamp): ProcessCompletedRequest = copy(completedAt = Option(__v))
+    def withEventUid(__v: _root_.scala.Predef.String): ProcessCompletedRequest = copy(eventUid = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -107,6 +129,10 @@ final case class ProcessCompletedRequest(
           if (__t != "") __t else null
         }
         case 4 => completedAt.orNull
+        case 5 => {
+          val __t = eventUid
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -116,6 +142,7 @@ final case class ProcessCompletedRequest(
         case 2 => _root_.scalapb.descriptors.PInt(exitCode)
         case 3 => _root_.scalapb.descriptors.PString(exitMessage)
         case 4 => completedAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 5 => _root_.scalapb.descriptors.PString(eventUid)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -130,6 +157,7 @@ object ProcessCompletedRequest extends scalapb.GeneratedMessageCompanion[a8.herm
     var __exitCode: _root_.scala.Int = 0
     var __exitMessage: _root_.scala.Predef.String = ""
     var __completedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
+    var __eventUid: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -144,6 +172,8 @@ object ProcessCompletedRequest extends scalapb.GeneratedMessageCompanion[a8.herm
           __exitMessage = _input__.readStringRequireUtf8()
         case 34 =>
           __completedAt = _root_.scala.Option(__completedAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 42 =>
+          __eventUid = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -156,6 +186,7 @@ object ProcessCompletedRequest extends scalapb.GeneratedMessageCompanion[a8.herm
         exitCode = __exitCode,
         exitMessage = __exitMessage,
         completedAt = __completedAt,
+        eventUid = __eventUid,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -166,7 +197,8 @@ object ProcessCompletedRequest extends scalapb.GeneratedMessageCompanion[a8.herm
         processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         exitCode = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Int]).getOrElse(0),
         exitMessage = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        completedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]])
+        completedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
+        eventUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -185,7 +217,8 @@ object ProcessCompletedRequest extends scalapb.GeneratedMessageCompanion[a8.herm
     processUid = "",
     exitCode = 0,
     exitMessage = "",
-    completedAt = _root_.scala.None
+    completedAt = _root_.scala.None,
+    eventUid = ""
   )
   implicit class ProcessCompletedRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest](_l) {
     def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
@@ -193,21 +226,25 @@ object ProcessCompletedRequest extends scalapb.GeneratedMessageCompanion[a8.herm
     def exitMessage: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.exitMessage)((c_, f_) => c_.copy(exitMessage = f_))
     def completedAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getCompletedAt)((c_, f_) => c_.copy(completedAt = _root_.scala.Option(f_)))
     def optionalCompletedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.completedAt)((c_, f_) => c_.copy(completedAt = f_))
+    def eventUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.eventUid)((c_, f_) => c_.copy(eventUid = f_))
   }
   final val PROCESSUID_FIELD_NUMBER = 1
   final val EXITCODE_FIELD_NUMBER = 2
   final val EXITMESSAGE_FIELD_NUMBER = 3
   final val COMPLETEDAT_FIELD_NUMBER = 4
+  final val EVENTUID_FIELD_NUMBER = 5
   def of(
     processUid: _root_.scala.Predef.String,
     exitCode: _root_.scala.Int,
     exitMessage: _root_.scala.Predef.String,
-    completedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]
+    completedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
+    eventUid: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest = _root_.a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest(
     processUid,
     exitCode,
     exitMessage,
-    completedAt
+    completedAt,
+    eventUid
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.ProcessCompletedRequest])
 }

@@ -6,7 +6,7 @@
 package a8.hermes.proto.continuum.continuum_rpc
 
 /** AuthorizeForJob is the per-job authorization oracle. A server-side agent
-  * (e.g. the svcmgr agent) calls this BEFORE performing a privileged action,
+  * (e.g. the service-manager agent) calls this BEFORE performing a privileged action,
   * passing the ORIGINAL operator's mailbox (read from its own verified rpcCtx)
   * so continuum authorizes the operator — not the agent — against the job's
   * ACL. continuum evaluates the SAME jobauth.Checker predicate used by
@@ -160,8 +160,8 @@ object AuthorizeForJobRequest extends scalapb.GeneratedMessageCompanion[a8.herme
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(17)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(17)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(22)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(22)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)

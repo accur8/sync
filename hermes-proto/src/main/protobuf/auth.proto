@@ -342,6 +342,10 @@ message ListPoliciesResponse {
 message ApplyPolicyRequest {
   string policy_name = 1;      // Name of policy to apply
   bool dry_run = 2;            // Preview without applying
+  // Policy to evaluate, as JSON. When set, the server uses this instead of
+  // reading the stored row -- so a dry run never has to stage the policy in
+  // the database first. Empty = read the stored policy named policy_name.
+  string policy_json = 3;
 }
 
 // ApplyPolicyResponse returns results of applying a policy
@@ -354,4 +358,12 @@ message ApplyPolicyResponse {
   int32 policies_updated = 6;
   int32 policies_deleted = 7;
   repeated string errors = 8;
+  // table_access counts: computed all along, never reported.
+  int32 table_access_added = 9;
+  int32 table_access_updated = 10;
+  int32 table_access_deleted = 11;
+  // Human-readable drift lines ("Would add group: X"). The server computed these
+  // and logged them locally, so a dry run's whole report died in the auth
+  // service's log and the operator saw an empty, exit-0 run.
+  repeated string drift = 12;
 }

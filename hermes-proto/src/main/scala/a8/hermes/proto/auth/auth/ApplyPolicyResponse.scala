@@ -6,6 +6,13 @@
 package a8.hermes.proto.auth.auth
 
 /** ApplyPolicyResponse returns results of applying a policy
+  *
+  * @param tableAccessAdded
+  *   table_access counts: computed all along, never reported.
+  * @param drift
+  *   Human-readable drift lines ("Would add group: X"). The server computed these
+  *   and logged them locally, so a dry run's whole report died in the auth
+  *   service's log and the operator saw an empty, exit-0 run.
   */
 @SerialVersionUID(0L)
 final case class ApplyPolicyResponse(
@@ -17,6 +24,10 @@ final case class ApplyPolicyResponse(
     policiesUpdated: _root_.scala.Int = 0,
     policiesDeleted: _root_.scala.Int = 0,
     errors: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
+    tableAccessAdded: _root_.scala.Int = 0,
+    tableAccessUpdated: _root_.scala.Int = 0,
+    tableAccessDeleted: _root_.scala.Int = 0,
+    drift: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ApplyPolicyResponse] {
     @transient
@@ -75,6 +86,31 @@ final case class ApplyPolicyResponse(
       errors.foreach { __item =>
         val __value = __item
         __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(8, __value)
+      }
+      
+      {
+        val __value = tableAccessAdded
+        if (__value != 0) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(9, __value)
+        }
+      };
+      
+      {
+        val __value = tableAccessUpdated
+        if (__value != 0) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(10, __value)
+        }
+      };
+      
+      {
+        val __value = tableAccessDeleted
+        if (__value != 0) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(11, __value)
+        }
+      };
+      drift.foreach { __item =>
+        val __value = __item
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(12, __value)
       }
       __size += unknownFields.serializedSize
       __size
@@ -135,6 +171,28 @@ final case class ApplyPolicyResponse(
         val __m = __v
         _output__.writeString(8, __m)
       };
+      {
+        val __v = tableAccessAdded
+        if (__v != 0) {
+          _output__.writeInt32(9, __v)
+        }
+      };
+      {
+        val __v = tableAccessUpdated
+        if (__v != 0) {
+          _output__.writeInt32(10, __v)
+        }
+      };
+      {
+        val __v = tableAccessDeleted
+        if (__v != 0) {
+          _output__.writeInt32(11, __v)
+        }
+      };
+      drift.foreach { __v =>
+        val __m = __v
+        _output__.writeString(12, __m)
+      };
       unknownFields.writeTo(_output__)
     }
     def withSuccess(__v: _root_.scala.Boolean): ApplyPolicyResponse = copy(success = __v)
@@ -148,6 +206,13 @@ final case class ApplyPolicyResponse(
     def addErrors(__vs: _root_.scala.Predef.String *): ApplyPolicyResponse = addAllErrors(__vs)
     def addAllErrors(__vs: Iterable[_root_.scala.Predef.String]): ApplyPolicyResponse = copy(errors = errors ++ __vs)
     def withErrors(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ApplyPolicyResponse = copy(errors = __v)
+    def withTableAccessAdded(__v: _root_.scala.Int): ApplyPolicyResponse = copy(tableAccessAdded = __v)
+    def withTableAccessUpdated(__v: _root_.scala.Int): ApplyPolicyResponse = copy(tableAccessUpdated = __v)
+    def withTableAccessDeleted(__v: _root_.scala.Int): ApplyPolicyResponse = copy(tableAccessDeleted = __v)
+    def clearDrift = copy(drift = _root_.scala.Seq.empty)
+    def addDrift(__vs: _root_.scala.Predef.String *): ApplyPolicyResponse = addAllDrift(__vs)
+    def addAllDrift(__vs: Iterable[_root_.scala.Predef.String]): ApplyPolicyResponse = copy(drift = drift ++ __vs)
+    def withDrift(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ApplyPolicyResponse = copy(drift = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -181,6 +246,19 @@ final case class ApplyPolicyResponse(
           if (__t != 0) __t else null
         }
         case 8 => errors
+        case 9 => {
+          val __t = tableAccessAdded
+          if (__t != 0) __t else null
+        }
+        case 10 => {
+          val __t = tableAccessUpdated
+          if (__t != 0) __t else null
+        }
+        case 11 => {
+          val __t = tableAccessDeleted
+          if (__t != 0) __t else null
+        }
+        case 12 => drift
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -194,6 +272,10 @@ final case class ApplyPolicyResponse(
         case 6 => _root_.scalapb.descriptors.PInt(policiesUpdated)
         case 7 => _root_.scalapb.descriptors.PInt(policiesDeleted)
         case 8 => _root_.scalapb.descriptors.PRepeated(errors.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
+        case 9 => _root_.scalapb.descriptors.PInt(tableAccessAdded)
+        case 10 => _root_.scalapb.descriptors.PInt(tableAccessUpdated)
+        case 11 => _root_.scalapb.descriptors.PInt(tableAccessDeleted)
+        case 12 => _root_.scalapb.descriptors.PRepeated(drift.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -212,6 +294,10 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     var __policiesUpdated: _root_.scala.Int = 0
     var __policiesDeleted: _root_.scala.Int = 0
     val __errors: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
+    var __tableAccessAdded: _root_.scala.Int = 0
+    var __tableAccessUpdated: _root_.scala.Int = 0
+    var __tableAccessDeleted: _root_.scala.Int = 0
+    val __drift: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -234,6 +320,14 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
           __policiesDeleted = _input__.readInt32()
         case 66 =>
           __errors += _input__.readStringRequireUtf8()
+        case 72 =>
+          __tableAccessAdded = _input__.readInt32()
+        case 80 =>
+          __tableAccessUpdated = _input__.readInt32()
+        case 88 =>
+          __tableAccessDeleted = _input__.readInt32()
+        case 98 =>
+          __drift += _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -250,6 +344,10 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
         policiesUpdated = __policiesUpdated,
         policiesDeleted = __policiesDeleted,
         errors = __errors.result(),
+        tableAccessAdded = __tableAccessAdded,
+        tableAccessUpdated = __tableAccessUpdated,
+        tableAccessDeleted = __tableAccessDeleted,
+        drift = __drift.result(),
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -264,7 +362,11 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
         policiesAdded = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Int]).getOrElse(0),
         policiesUpdated = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Int]).getOrElse(0),
         policiesDeleted = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Int]).getOrElse(0),
-        errors = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty)
+        errors = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
+        tableAccessAdded = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Int]).getOrElse(0),
+        tableAccessUpdated = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Int]).getOrElse(0),
+        tableAccessDeleted = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Int]).getOrElse(0),
+        drift = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -281,7 +383,11 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     policiesAdded = 0,
     policiesUpdated = 0,
     policiesDeleted = 0,
-    errors = _root_.scala.Seq.empty
+    errors = _root_.scala.Seq.empty,
+    tableAccessAdded = 0,
+    tableAccessUpdated = 0,
+    tableAccessDeleted = 0,
+    drift = _root_.scala.Seq.empty
   )
   implicit class ApplyPolicyResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.auth.auth.ApplyPolicyResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.auth.auth.ApplyPolicyResponse](_l) {
     def success: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.success)((c_, f_) => c_.copy(success = f_))
@@ -292,6 +398,10 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     def policiesUpdated: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.policiesUpdated)((c_, f_) => c_.copy(policiesUpdated = f_))
     def policiesDeleted: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.policiesDeleted)((c_, f_) => c_.copy(policiesDeleted = f_))
     def errors: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.errors)((c_, f_) => c_.copy(errors = f_))
+    def tableAccessAdded: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.tableAccessAdded)((c_, f_) => c_.copy(tableAccessAdded = f_))
+    def tableAccessUpdated: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.tableAccessUpdated)((c_, f_) => c_.copy(tableAccessUpdated = f_))
+    def tableAccessDeleted: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.tableAccessDeleted)((c_, f_) => c_.copy(tableAccessDeleted = f_))
+    def drift: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.drift)((c_, f_) => c_.copy(drift = f_))
   }
   final val SUCCESS_FIELD_NUMBER = 1
   final val MESSAGE_FIELD_NUMBER = 2
@@ -301,6 +411,10 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
   final val POLICIES_UPDATED_FIELD_NUMBER = 6
   final val POLICIES_DELETED_FIELD_NUMBER = 7
   final val ERRORS_FIELD_NUMBER = 8
+  final val TABLE_ACCESS_ADDED_FIELD_NUMBER = 9
+  final val TABLE_ACCESS_UPDATED_FIELD_NUMBER = 10
+  final val TABLE_ACCESS_DELETED_FIELD_NUMBER = 11
+  final val DRIFT_FIELD_NUMBER = 12
   def of(
     success: _root_.scala.Boolean,
     message: _root_.scala.Predef.String,
@@ -309,7 +423,11 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     policiesAdded: _root_.scala.Int,
     policiesUpdated: _root_.scala.Int,
     policiesDeleted: _root_.scala.Int,
-    errors: _root_.scala.Seq[_root_.scala.Predef.String]
+    errors: _root_.scala.Seq[_root_.scala.Predef.String],
+    tableAccessAdded: _root_.scala.Int,
+    tableAccessUpdated: _root_.scala.Int,
+    tableAccessDeleted: _root_.scala.Int,
+    drift: _root_.scala.Seq[_root_.scala.Predef.String]
   ): _root_.a8.hermes.proto.auth.auth.ApplyPolicyResponse = _root_.a8.hermes.proto.auth.auth.ApplyPolicyResponse(
     success,
     message,
@@ -318,7 +436,11 @@ object ApplyPolicyResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     policiesAdded,
     policiesUpdated,
     policiesDeleted,
-    errors
+    errors,
+    tableAccessAdded,
+    tableAccessUpdated,
+    tableAccessDeleted,
+    drift
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[auth.ApplyPolicyResponse])
 }
