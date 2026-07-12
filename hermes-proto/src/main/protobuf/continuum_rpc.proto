@@ -170,6 +170,13 @@ message Buffer {
   google.protobuf.Timestamp     timestamp  = 1;  // UTC timestamp
   bytes                         data       = 2;
   BufferSource                  source     = 3;
+  // record is the STRUCTURED payload, carried by the applog channel (a process
+  // logging its own log/log.go events). console/journal leave it unset and carry
+  // opaque bytes in `data` — those are a byte stream with no level or caller to
+  // capture, and wrapping them here would only mint permanently-empty fields.
+  // Both payloads ride the same StreamRecord envelope, so ordering, epoch/EOF gap
+  // detection, archiving, and reaping are one mechanism rather than two.
+  LogRecord                     record     = 4;
 }
 
 enum BufferSource {
@@ -178,6 +185,86 @@ enum BufferSource {
   stdout              = 2;
   journalctl          = 3;
   windows_event_log   = 4;
+  // applog: emitted from INSIDE the process by its own logger, as opposed to
+  // captured from its stdout/stderr (stdout/stderr) or from the OS's view of it
+  // (journalctl/windows_event_log). Same axis, one more source.
+  applog              = 5;
+}
+
+// LogRecord is one structured log event from a process's own logger — the record
+// log/log.go builds and then currently destroys by Sprintf'ing every field into a
+// single string. Keeping it structured is what lets a reader filter by level or
+// caller instead of substring-matching a rendered line.
+message LogRecord {
+  LogLevel                      level      = 1;
+  string                        caller     = 2;  // "a8nats.go:816"
+  uint64                        goid       = 3;  // goroutine id
+  string                        message    = 4;  // the formatted message
+  // extraData is the structured-logging bag: request_id, job_uid, mailbox, etc.
+  // Fields the Sprintf-to-string format cannot express at all. Same shape as
+  // registry ProcessInfo.ExtendedMetadata, which is the existing precedent.
+  map<string, string>           extraData  = 5;
+  // Reserved for an opaque binary payload if one is ever genuinely needed, so
+  // adding it later is not a schema break.
+  reserved 6;
+  // rendered is the exact human line the process's own console showed. Sent
+  // ALONGSIDE the structured fields during rollout so a reader that has not
+  // learned LogRecord yet still prints something correct, and so a structured
+  // viewer can fall back to the writer's own formatting. Once every reader
+  // decodes the fields this can stop being populated — the structure is the
+  // source of truth, this is the compatibility shim.
+  string                        rendered   = 7;
+  // droppedRecords, when > 0, is how many records the WRITER's spool had to drop
+  // before this one (NATS unreachable long enough to overflow). Carried on the
+  // wire so the loss is VISIBLE to a reader — a truncated log that admits what
+  // it lost beats one that quietly shows a hole.
+  uint64                        droppedRecords = 8;
+  // error is the ERROR ITSELF, kept structured instead of flattened into message.
+  // Unset on non-error records.
+  //
+  // Both languages already HAVE this and both currently throw it away at the last
+  // moment — the same crime the level suffered. Go's log.ErrorE(err) takes a real
+  // error (routinely a stacktrace.Propagate chain carrying file/line frames) and
+  // immediately does err.Error(); the JVM attaches a Throwable that logback renders
+  // to a stack trace. In both cases the most valuable payload in the whole record —
+  // what broke and where — survives only as a substring.
+  LogError                      error      = 9;
+  // thread is the JVM's concurrent-context identity (the thread name: "main",
+  // "nats-worker-3"). It is the JVM's answer to the same question `goid` answers
+  // for Go, and the two are deliberately SEPARATE fields: a thread name is a
+  // string and a goroutine id is a number, so each language fills its own and
+  // neither has to fake or stringify the other's. Exactly one is populated.
+  string                        thread     = 10;
+}
+
+// LogError is a logged error, with its chain intact. The `cause` link is what
+// makes it worth being a message rather than a string: a wrapped error (Go's
+// stacktrace.Propagate / fmt.Errorf %w, the JVM's getCause) is a CHAIN, and the
+// root cause — the interesting one — is at the far end of it. Flattening it to
+// text is what forces a human to read a wall of prose to find the bottom frame.
+message LogError {
+  // message is this link's own message (err.Error() / Throwable.getMessage()).
+  string   message = 1;
+  // type is the concrete error/exception type ("*net.OpError",
+  // "java.io.IOException"). A FIELD, so "show me every IOException in the fleet"
+  // is a filter rather than a substring guess.
+  string   type    = 2;
+  // stack is the rendered stack trace / propagation frames for this link.
+  string   stack   = 3;
+  // cause is the wrapped error, recursively. Nil at the root.
+  LogError cause   = 4;
+}
+
+// LogLevel mirrors log/log.go's five levels. Deliberately NOT the LogLevel in
+// pkg/rpc/process/process_rpc.proto: that one is unused, lacks trace, and importing
+// it would couple continuum_rpc to process_rpc for nothing.
+enum LogLevel {
+  level_unspecified   = 0;
+  trace               = 1;
+  debug               = 2;
+  info                = 3;
+  warn                = 4;
+  error               = 5;
 }
 
 

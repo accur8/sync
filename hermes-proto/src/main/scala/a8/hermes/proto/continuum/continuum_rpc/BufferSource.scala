@@ -13,6 +13,7 @@ sealed abstract class BufferSource(val value: _root_.scala.Int) extends _root_.s
   def isstdout: _root_.scala.Boolean = false
   def isjournalctl: _root_.scala.Boolean = false
   def iswindowseventlog: _root_.scala.Boolean = false
+  def isapplog: _root_.scala.Boolean = false
   def companion: _root_.scalapb.GeneratedEnumCompanion[BufferSource] = a8.hermes.proto.continuum.continuum_rpc.BufferSource
   final def asRecognized: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.BufferSource.Recognized] = if (isUnrecognized) _root_.scala.None else _root_.scala.Some(this.asInstanceOf[a8.hermes.proto.continuum.continuum_rpc.BufferSource.Recognized])
 }
@@ -56,15 +57,27 @@ object BufferSource extends _root_.scalapb.GeneratedEnumCompanion[BufferSource] 
     override def iswindowseventlog: _root_.scala.Boolean = true
   }
   
+  /** applog: emitted from INSIDE the process by its own logger, as opposed to
+    * captured from its stdout/stderr (stdout/stderr) or from the OS's view of it
+    * (journalctl/windows_event_log). Same axis, one more source.
+    */
+  @SerialVersionUID(0L)
+  case object applog extends BufferSource(5) with BufferSource.Recognized {
+    val index = 5
+    val name = "applog"
+    override def isapplog: _root_.scala.Boolean = true
+  }
+  
   @SerialVersionUID(0L)
   final case class Unrecognized(unrecognizedValue: _root_.scala.Int) extends BufferSource(unrecognizedValue) with _root_.scalapb.UnrecognizedEnum
-  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(unspecified, stderr, stdout, journalctl, windows_event_log)
+  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(unspecified, stderr, stdout, journalctl, windows_event_log, applog)
   def fromValue(__value: _root_.scala.Int): BufferSource = __value match {
     case 0 => unspecified
     case 1 => stderr
     case 2 => stdout
     case 3 => journalctl
     case 4 => windows_event_log
+    case 5 => applog
     case __other => Unrecognized(__other)
   }
   def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = ContinuumRpcProto.javaDescriptor.getEnumTypes().get(0)

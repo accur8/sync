@@ -7,12 +7,20 @@ package a8.hermes.proto.continuum.continuum_rpc
 
 /** @param timestamp
   *   UTC timestamp
+  * @param record
+  *   record is the STRUCTURED payload, carried by the applog channel (a process
+  *   logging its own log/log.go events). console/journal leave it unset and carry
+  *   opaque bytes in `data` — those are a byte stream with no level or caller to
+  *   capture, and wrapping them here would only mint permanently-empty fields.
+  *   Both payloads ride the same StreamRecord envelope, so ordering, epoch/EOF gap
+  *   detection, archiving, and reaping are one mechanism rather than two.
   */
 @SerialVersionUID(0L)
 final case class Buffer(
     timestamp: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
     data: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY,
     source: a8.hermes.proto.continuum.continuum_rpc.BufferSource = a8.hermes.proto.continuum.continuum_rpc.BufferSource.unspecified,
+    record: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.LogRecord] = _root_.scala.None,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[Buffer] {
     @transient
@@ -36,6 +44,10 @@ final case class Buffer(
         if (__value != 0) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeEnumSize(3, __value)
         }
+      };
+      if (record.isDefined) {
+        val __value = record.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
       __size += unknownFields.serializedSize
       __size
@@ -68,6 +80,12 @@ final case class Buffer(
           _output__.writeEnum(3, __v)
         }
       };
+      record.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(4, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def getTimestamp: com.google.protobuf.timestamp.Timestamp = timestamp.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
@@ -75,6 +93,9 @@ final case class Buffer(
     def withTimestamp(__v: com.google.protobuf.timestamp.Timestamp): Buffer = copy(timestamp = Option(__v))
     def withData(__v: _root_.com.google.protobuf.ByteString): Buffer = copy(data = __v)
     def withSource(__v: a8.hermes.proto.continuum.continuum_rpc.BufferSource): Buffer = copy(source = __v)
+    def getRecord: a8.hermes.proto.continuum.continuum_rpc.LogRecord = record.getOrElse(a8.hermes.proto.continuum.continuum_rpc.LogRecord.defaultInstance)
+    def clearRecord: Buffer = copy(record = _root_.scala.None)
+    def withRecord(__v: a8.hermes.proto.continuum.continuum_rpc.LogRecord): Buffer = copy(record = Option(__v))
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -88,6 +109,7 @@ final case class Buffer(
           val __t = source.javaValueDescriptor
           if (__t.getNumber() != 0) __t else null
         }
+        case 4 => record.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -96,6 +118,7 @@ final case class Buffer(
         case 1 => timestamp.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 2 => _root_.scalapb.descriptors.PByteString(data)
         case 3 => _root_.scalapb.descriptors.PEnum(source.scalaValueDescriptor)
+        case 4 => record.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -109,6 +132,7 @@ object Buffer extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuu
     var __timestamp: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
     var __data: _root_.com.google.protobuf.ByteString = _root_.com.google.protobuf.ByteString.EMPTY
     var __source: a8.hermes.proto.continuum.continuum_rpc.BufferSource = a8.hermes.proto.continuum.continuum_rpc.BufferSource.unspecified
+    var __record: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.LogRecord] = _root_.scala.None
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -121,6 +145,8 @@ object Buffer extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuu
           __data = _input__.readBytes()
         case 24 =>
           __source = a8.hermes.proto.continuum.continuum_rpc.BufferSource.fromValue(_input__.readEnum())
+        case 34 =>
+          __record = _root_.scala.Option(__record.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.LogRecord](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -132,6 +158,7 @@ object Buffer extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuu
         timestamp = __timestamp,
         data = __data,
         source = __source,
+        record = __record,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -141,7 +168,8 @@ object Buffer extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuu
       a8.hermes.proto.continuum.continuum_rpc.Buffer(
         timestamp = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
         data = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.com.google.protobuf.ByteString]).getOrElse(_root_.com.google.protobuf.ByteString.EMPTY),
-        source = a8.hermes.proto.continuum.continuum_rpc.BufferSource.fromValue(__fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scalapb.descriptors.EnumValueDescriptor]).getOrElse(a8.hermes.proto.continuum.continuum_rpc.BufferSource.unspecified.scalaValueDescriptor).number)
+        source = a8.hermes.proto.continuum.continuum_rpc.BufferSource.fromValue(__fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scalapb.descriptors.EnumValueDescriptor]).getOrElse(a8.hermes.proto.continuum.continuum_rpc.BufferSource.unspecified.scalaValueDescriptor).number),
+        record = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.LogRecord]])
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -151,6 +179,7 @@ object Buffer extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuu
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
       case 1 => __out = com.google.protobuf.timestamp.Timestamp
+      case 4 => __out = a8.hermes.proto.continuum.continuum_rpc.LogRecord
     }
     __out
   }
@@ -163,25 +192,31 @@ object Buffer extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.continuu
   lazy val defaultInstance = a8.hermes.proto.continuum.continuum_rpc.Buffer(
     timestamp = _root_.scala.None,
     data = _root_.com.google.protobuf.ByteString.EMPTY,
-    source = a8.hermes.proto.continuum.continuum_rpc.BufferSource.unspecified
+    source = a8.hermes.proto.continuum.continuum_rpc.BufferSource.unspecified,
+    record = _root_.scala.None
   )
   implicit class BufferLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.Buffer]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.Buffer](_l) {
     def timestamp: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getTimestamp)((c_, f_) => c_.copy(timestamp = _root_.scala.Option(f_)))
     def optionalTimestamp: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.timestamp)((c_, f_) => c_.copy(timestamp = f_))
     def data: _root_.scalapb.lenses.Lens[UpperPB, _root_.com.google.protobuf.ByteString] = field(_.data)((c_, f_) => c_.copy(data = f_))
     def source: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.BufferSource] = field(_.source)((c_, f_) => c_.copy(source = f_))
+    def record: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.LogRecord] = field(_.getRecord)((c_, f_) => c_.copy(record = _root_.scala.Option(f_)))
+    def optionalRecord: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.LogRecord]] = field(_.record)((c_, f_) => c_.copy(record = f_))
   }
   final val TIMESTAMP_FIELD_NUMBER = 1
   final val DATA_FIELD_NUMBER = 2
   final val SOURCE_FIELD_NUMBER = 3
+  final val RECORD_FIELD_NUMBER = 4
   def of(
     timestamp: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
     data: _root_.com.google.protobuf.ByteString,
-    source: a8.hermes.proto.continuum.continuum_rpc.BufferSource
+    source: a8.hermes.proto.continuum.continuum_rpc.BufferSource,
+    record: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.LogRecord]
   ): _root_.a8.hermes.proto.continuum.continuum_rpc.Buffer = _root_.a8.hermes.proto.continuum.continuum_rpc.Buffer(
     timestamp,
     data,
-    source
+    source,
+    record
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.Buffer])
 }
