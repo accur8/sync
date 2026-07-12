@@ -67,6 +67,6 @@ object SystemdServiceStatus extends _root_.scalapb.GeneratedEnumCompanion[System
     case 4 => SystemdServiceStatus_Unknown
     case __other => Unrecognized(__other)
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = ContinuumRpcProto.javaDescriptor.getEnumTypes().get(1)
-  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = ContinuumRpcProto.scalaDescriptor.enums(1)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = ContinuumRpcProto.javaDescriptor.getEnumTypes().get(2)
+  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = ContinuumRpcProto.scalaDescriptor.enums(2)
 }
