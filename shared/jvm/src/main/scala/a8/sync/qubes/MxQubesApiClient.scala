@@ -164,7 +164,7 @@ object MxQubesApiClient {
       .build
     
     
-given scala.CanEqual[Parm, Parm] = scala.CanEqual.derived
+    given scala.CanEqual[Parm, Parm] = scala.CanEqual.derived
 
 
     object unsafe {
@@ -230,7 +230,7 @@ given scala.CanEqual[Parm, Parm] = scala.CanEqual.derived
       .build
     
     
-given scala.CanEqual[UpdateRowRequest, UpdateRowRequest] = scala.CanEqual.derived
+    given scala.CanEqual[UpdateRowRequest, UpdateRowRequest] = scala.CanEqual.derived
 
 
     object unsafe {
@@ -300,7 +300,7 @@ given scala.CanEqual[UpdateRowRequest, UpdateRowRequest] = scala.CanEqual.derive
       .build
     
     
-given scala.CanEqual[UpdateRowResponse, UpdateRowResponse] = scala.CanEqual.derived
+    given scala.CanEqual[UpdateRowResponse, UpdateRowResponse] = scala.CanEqual.derived
 
 
     object unsafe {

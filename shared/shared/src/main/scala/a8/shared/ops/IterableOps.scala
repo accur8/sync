@@ -42,7 +42,7 @@ class IterableOps[T, U[T] <: Iterable[T]](val _delegate: U[T]) {
   def toChain: Chain[T] = {
     val seq =
       _delegate match {
-        case s: Seq[T] =>
+        case s: Seq[T] @unchecked =>
           s
         case _ =>
           _delegate.toSeq

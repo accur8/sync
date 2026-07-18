@@ -16,7 +16,7 @@ trait ComponentMapper[A] extends Mapper[A] {
   override def materialize(columnNamePrefix: ColumnName, conn: Conn, resolvedJdbcTable: JdbcMetadata.ResolvedJdbcTable): RowReader[A] =
     materializeComponentMapper(columnNamePrefix, conn, resolvedJdbcTable)
       .map {
-        case rr: RowReader[A] =>
+        case rr: RowReader[A] @unchecked =>
           rr
       }
 

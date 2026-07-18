@@ -10,6 +10,7 @@ import scala.reflect.ClassTag
 import com.typesafe.config.{ ConfigObject, ConfigValue }
 import a8.shared.SharedImports.canEqual.given
 
+@scala.annotation.nowarn("cat=deprecation")
 object HoconDemo extends App {
 
   implicit val ll: JsonWarningLogLevel = JsonWarningLogLevel.Debug

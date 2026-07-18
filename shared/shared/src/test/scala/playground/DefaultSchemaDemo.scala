@@ -4,6 +4,7 @@ package playground
 import a8.shared.SharedImports._
 import sttp.model.Uri
 
+@scala.annotation.nowarn("cat=deprecation")
 object DefaultSchemaDemo extends App {
 
 

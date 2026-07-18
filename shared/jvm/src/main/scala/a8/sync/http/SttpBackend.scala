@@ -61,6 +61,11 @@ case class SttpBackend(
           r0.body(content)
         case http.Body.JsonBody(json) =>
           r0.body(json.compactJson)
+        case http.Body.StreamingBody(_) =>
+          // Streaming request bodies are not wired through this sttp backend yet
+          // (see the commented-out asStreamAlwaysUnsafe path below). Fail loudly
+          // rather than silently send an empty body.
+          sys.error("StreamingBody is not supported by the sttp backend")
       }
 
     def requestWithFollowRedirects(r0: SttpRequest): SttpRequest =

@@ -7,6 +7,7 @@ import a8.shared.json.JsonReader.JsonReaderOptions
 
 import java.nio.file.{Files, Path}
 
+@scala.annotation.nowarn("cat=deprecation")
 object BootstrapDefaultsDemo extends App {
 
   implicit val jsonReaderOptions: JsonReaderOptions = JsonReaderOptions.NoLogWarnings
