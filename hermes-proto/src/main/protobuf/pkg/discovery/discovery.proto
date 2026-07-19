@@ -64,6 +64,29 @@ message ProcessCapabilities {
   repeated string engines = 3;
 }
 
+// BuildInfo is the STRUCTURED, first-class identity of the binary a process is
+// running — "which build is this?", the single most useful question during an
+// incident (FEATURE-20260709-processstart-build-info). It is a typed message, not
+// extended_metadata string-map fishing: a client consuming a well-structured
+// proto beats parsing an anything-goes map. Every field mirrors a
+// pkg/buildinfo.GetInfo() key (Go) / META-INF/version-details.properties (Scala),
+// so the registry view is uniform across languages. Fields are empty (not
+// "unknown") when a build did not stamp them.
+message BuildInfo {
+  string version         = 1;  // release version string
+  string git_repo        = 2;  // source repo (e.g. "godev")
+  string git_commit      = 3;  // commit sha the binary was built from
+  string git_branch      = 4;
+  string git_dirty       = 5;  // "true" when the tree had uncommitted changes at build
+  string build_timestamp = 6;  // when the binary was built
+  string build_machine   = 7;
+  string build_user      = 8;
+  string build_ips       = 9;
+  string go_version      = 10; // language/runtime version (go version, or JVM/Scala on the sync side)
+  string goos            = 11; // target OS
+  string goarch          = 12; // target arch
+}
+
 // ProcessLocation describes where a process is running
 message ProcessLocation {
   // Server hostname
@@ -115,10 +138,22 @@ message DiscoveryResponse {
   // Extended build metadata (when requested)
   // Always includes "programming_language" key (e.g., "go", "scala")
   // Also includes: build_timestamp, build_machine, build_user, etc.
+  //
+  // DEPRECATED for build info: the structured build_info field below is the
+  // first-class form. extended_metadata is still populated with the same
+  // build_* keys during the transition (dual-publish) so existing map consumers
+  // keep working; new consumers should read build_info.
   map<string, string> extended_metadata = 11;
 
   // Service discovery mapping
   map<string, string> service_discovery_mapping = 12;
+
+  // Structured, first-class binary identity (FEATURE-20260709). The typed form
+  // of the build_* keys also carried in extended_metadata. Absent when the
+  // process reported no build info. Rides embedded in
+  // continuum_rpc.ProcessStartedRequest (field 19) so it reaches the registry at
+  // registration, and is returned by process.v1.Describe for ad-hoc queries.
+  BuildInfo build_info = 13;
 }
 
 // DiscoveryQuery contains filters for finding processes

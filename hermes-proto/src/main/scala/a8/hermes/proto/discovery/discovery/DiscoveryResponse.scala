@@ -35,8 +35,19 @@ package a8.hermes.proto.discovery.discovery
   *   Extended build metadata (when requested)
   *   Always includes "programming_language" key (e.g., "go", "scala")
   *   Also includes: build_timestamp, build_machine, build_user, etc.
+  *  
+  *   DEPRECATED for build info: the structured build_info field below is the
+  *   first-class form. extended_metadata is still populated with the same
+  *   build_* keys during the transition (dual-publish) so existing map consumers
+  *   keep working; new consumers should read build_info.
   * @param serviceDiscoveryMapping
   *   Service discovery mapping
+  * @param buildInfo
+  *   Structured, first-class binary identity (FEATURE-20260709). The typed form
+  *   of the build_* keys also carried in extended_metadata. Absent when the
+  *   process reported no build info. Rides embedded in
+  *   continuum_rpc.ProcessStartedRequest (field 19) so it reaches the registry at
+  *   registration, and is returned by process.v1.Describe for ad-hoc queries.
   */
 @SerialVersionUID(0L)
 final case class DiscoveryResponse(
@@ -52,6 +63,7 @@ final case class DiscoveryResponse(
     metadata: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String] = _root_.scala.collection.immutable.Map.empty,
     extendedMetadata: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String] = _root_.scala.collection.immutable.Map.empty,
     serviceDiscoveryMapping: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String] = _root_.scala.collection.immutable.Map.empty,
+    buildInfo: _root_.scala.Option[a8.hermes.proto.discovery.discovery.BuildInfo] = _root_.scala.None,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[DiscoveryResponse] {
     @transient
@@ -130,6 +142,10 @@ final case class DiscoveryResponse(
         val __value = a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_serviceDiscoveryMapping.toBase(__item)
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       }
+      if (buildInfo.isDefined) {
+        val __value = buildInfo.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -215,6 +231,12 @@ final case class DiscoveryResponse(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      buildInfo.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(13, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def withRequestId(__v: _root_.scala.Predef.String): DiscoveryResponse = copy(requestId = __v)
@@ -240,6 +262,9 @@ final case class DiscoveryResponse(
     def addServiceDiscoveryMapping(__vs: (_root_.scala.Predef.String, _root_.scala.Predef.String) *): DiscoveryResponse = addAllServiceDiscoveryMapping(__vs)
     def addAllServiceDiscoveryMapping(__vs: Iterable[(_root_.scala.Predef.String, _root_.scala.Predef.String)]): DiscoveryResponse = copy(serviceDiscoveryMapping = serviceDiscoveryMapping ++ __vs)
     def withServiceDiscoveryMapping(__v: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]): DiscoveryResponse = copy(serviceDiscoveryMapping = __v)
+    def getBuildInfo: a8.hermes.proto.discovery.discovery.BuildInfo = buildInfo.getOrElse(a8.hermes.proto.discovery.discovery.BuildInfo.defaultInstance)
+    def clearBuildInfo: DiscoveryResponse = copy(buildInfo = _root_.scala.None)
+    def withBuildInfo(__v: a8.hermes.proto.discovery.discovery.BuildInfo): DiscoveryResponse = copy(buildInfo = Option(__v))
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -280,6 +305,7 @@ final case class DiscoveryResponse(
         case 10 => metadata.iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_metadata.toBase(_)).toSeq
         case 11 => extendedMetadata.iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_extendedMetadata.toBase(_)).toSeq
         case 12 => serviceDiscoveryMapping.iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_serviceDiscoveryMapping.toBase(_)).toSeq
+        case 13 => buildInfo.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -297,6 +323,7 @@ final case class DiscoveryResponse(
         case 10 => _root_.scalapb.descriptors.PRepeated(metadata.iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_metadata.toBase(_).toPMessage).toVector)
         case 11 => _root_.scalapb.descriptors.PRepeated(extendedMetadata.iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_extendedMetadata.toBase(_).toPMessage).toVector)
         case 12 => _root_.scalapb.descriptors.PRepeated(serviceDiscoveryMapping.iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_serviceDiscoveryMapping.toBase(_).toPMessage).toVector)
+        case 13 => buildInfo.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -319,6 +346,7 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     val __metadata: _root_.scala.collection.mutable.Builder[(_root_.scala.Predef.String, _root_.scala.Predef.String), _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = _root_.scala.collection.immutable.Map.newBuilder[_root_.scala.Predef.String, _root_.scala.Predef.String]
     val __extendedMetadata: _root_.scala.collection.mutable.Builder[(_root_.scala.Predef.String, _root_.scala.Predef.String), _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = _root_.scala.collection.immutable.Map.newBuilder[_root_.scala.Predef.String, _root_.scala.Predef.String]
     val __serviceDiscoveryMapping: _root_.scala.collection.mutable.Builder[(_root_.scala.Predef.String, _root_.scala.Predef.String), _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = _root_.scala.collection.immutable.Map.newBuilder[_root_.scala.Predef.String, _root_.scala.Predef.String]
+    var __buildInfo: _root_.scala.Option[a8.hermes.proto.discovery.discovery.BuildInfo] = _root_.scala.None
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -349,6 +377,8 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
           __extendedMetadata += a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_extendedMetadata.toCustom(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.discovery.discovery.DiscoveryResponse.ExtendedMetadataEntry](_input__))
         case 98 =>
           __serviceDiscoveryMapping += a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_serviceDiscoveryMapping.toCustom(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.discovery.discovery.DiscoveryResponse.ServiceDiscoveryMappingEntry](_input__))
+        case 106 =>
+          __buildInfo = _root_.scala.Option(__buildInfo.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.discovery.discovery.BuildInfo](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -369,6 +399,7 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
         metadata = __metadata.result(),
         extendedMetadata = __extendedMetadata.result(),
         serviceDiscoveryMapping = __serviceDiscoveryMapping.result(),
+        buildInfo = __buildInfo,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -387,12 +418,13 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
         capabilities = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.discovery.discovery.ProcessCapabilities]]),
         metadata = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.discovery.discovery.DiscoveryResponse.MetadataEntry]]).getOrElse(_root_.scala.Seq.empty).iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_metadata.toCustom(_)).toMap,
         extendedMetadata = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.discovery.discovery.DiscoveryResponse.ExtendedMetadataEntry]]).getOrElse(_root_.scala.Seq.empty).iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_extendedMetadata.toCustom(_)).toMap,
-        serviceDiscoveryMapping = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.discovery.discovery.DiscoveryResponse.ServiceDiscoveryMappingEntry]]).getOrElse(_root_.scala.Seq.empty).iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_serviceDiscoveryMapping.toCustom(_)).toMap
+        serviceDiscoveryMapping = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Seq[a8.hermes.proto.discovery.discovery.DiscoveryResponse.ServiceDiscoveryMappingEntry]]).getOrElse(_root_.scala.Seq.empty).iterator.map(a8.hermes.proto.discovery.discovery.DiscoveryResponse._typemapper_serviceDiscoveryMapping.toCustom(_)).toMap,
+        buildInfo = __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.discovery.discovery.BuildInfo]])
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = DiscoveryProto.javaDescriptor.getMessageTypes().get(4)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = DiscoveryProto.scalaDescriptor.messages(4)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = DiscoveryProto.javaDescriptor.getMessageTypes().get(5)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = DiscoveryProto.scalaDescriptor.messages(5)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -400,6 +432,7 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
       case 10 => __out = a8.hermes.proto.discovery.discovery.DiscoveryResponse.MetadataEntry
       case 11 => __out = a8.hermes.proto.discovery.discovery.DiscoveryResponse.ExtendedMetadataEntry
       case 12 => __out = a8.hermes.proto.discovery.discovery.DiscoveryResponse.ServiceDiscoveryMappingEntry
+      case 13 => __out = a8.hermes.proto.discovery.discovery.BuildInfo
     }
     __out
   }
@@ -422,7 +455,8 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     capabilities = _root_.scala.None,
     metadata = _root_.scala.collection.immutable.Map.empty,
     extendedMetadata = _root_.scala.collection.immutable.Map.empty,
-    serviceDiscoveryMapping = _root_.scala.collection.immutable.Map.empty
+    serviceDiscoveryMapping = _root_.scala.collection.immutable.Map.empty,
+    buildInfo = _root_.scala.None
   )
   @SerialVersionUID(0L)
   final case class MetadataEntry(
@@ -870,6 +904,8 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def metadata: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = field(_.metadata)((c_, f_) => c_.copy(metadata = f_))
     def extendedMetadata: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = field(_.extendedMetadata)((c_, f_) => c_.copy(extendedMetadata = f_))
     def serviceDiscoveryMapping: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]] = field(_.serviceDiscoveryMapping)((c_, f_) => c_.copy(serviceDiscoveryMapping = f_))
+    def buildInfo: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.discovery.discovery.BuildInfo] = field(_.getBuildInfo)((c_, f_) => c_.copy(buildInfo = _root_.scala.Option(f_)))
+    def optionalBuildInfo: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[a8.hermes.proto.discovery.discovery.BuildInfo]] = field(_.buildInfo)((c_, f_) => c_.copy(buildInfo = f_))
   }
   final val REQUEST_ID_FIELD_NUMBER = 1
   final val PROCESS_UID_FIELD_NUMBER = 2
@@ -883,6 +919,7 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
   final val METADATA_FIELD_NUMBER = 10
   final val EXTENDED_METADATA_FIELD_NUMBER = 11
   final val SERVICE_DISCOVERY_MAPPING_FIELD_NUMBER = 12
+  final val BUILD_INFO_FIELD_NUMBER = 13
   @transient
   private[discovery] val _typemapper_metadata: _root_.scalapb.TypeMapper[a8.hermes.proto.discovery.discovery.DiscoveryResponse.MetadataEntry, (_root_.scala.Predef.String, _root_.scala.Predef.String)] = implicitly[_root_.scalapb.TypeMapper[a8.hermes.proto.discovery.discovery.DiscoveryResponse.MetadataEntry, (_root_.scala.Predef.String, _root_.scala.Predef.String)]]
   @transient
@@ -901,7 +938,8 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     capabilities: _root_.scala.Option[a8.hermes.proto.discovery.discovery.ProcessCapabilities],
     metadata: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String],
     extendedMetadata: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String],
-    serviceDiscoveryMapping: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String]
+    serviceDiscoveryMapping: _root_.scala.collection.immutable.Map[_root_.scala.Predef.String, _root_.scala.Predef.String],
+    buildInfo: _root_.scala.Option[a8.hermes.proto.discovery.discovery.BuildInfo]
   ): _root_.a8.hermes.proto.discovery.discovery.DiscoveryResponse = _root_.a8.hermes.proto.discovery.discovery.DiscoveryResponse(
     requestId,
     processUid,
@@ -914,7 +952,8 @@ object DiscoveryResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     capabilities,
     metadata,
     extendedMetadata,
-    serviceDiscoveryMapping
+    serviceDiscoveryMapping,
+    buildInfo
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[discovery.DiscoveryResponse])
 }

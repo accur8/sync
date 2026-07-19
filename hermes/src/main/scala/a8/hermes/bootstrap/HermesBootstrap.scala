@@ -5,6 +5,7 @@ import a8.hermes.{nats, auth}
 import a8.hermes.continuum.ContinuumRunnerClient
 import a8.hermes.nats.NatsTransport
 import a8.hermes.proto.continuum.continuum_rpc.{ProcessCompletedRequest, ProcessStartedRequest}
+import a8.hermes.proto.discovery.discovery.DiscoveryResponse
 import a8.hermes.rpc.{RpcServer, RpcClient, StandardHandlers}
 import a8.hermes.proto.mailbox.mailbox.{BindIdentityRequest, BindIdentityResponse}
 import a8.hermes.discovery.ServiceDiscovery
@@ -189,6 +190,11 @@ object HermesBootstrap extends Logging {
                 processManager = pm.manager,
                 processManagerUnit = pm.unit,
                 processManagerScope = pm.scope,
+                // Structured build identity (FEATURE-20260709). The Go side rides it on
+                // the embedded discovery response; we do the same — a minimal
+                // DiscoveryResponse carrying just build_info, which is where the registry
+                // reads it. Empty fields when the binary was not build-stamped.
+                discovery = Some(DiscoveryResponse(buildInfo = Some(BuildInfoReader.buildInfo))),
               )
             )
             val pingLoop = runnerClient.startPingLoop(processUid, () => Map.empty)

@@ -171,8 +171,8 @@ object DiscoveryRequest extends scalapb.GeneratedMessageCompanion[a8.hermes.prot
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = DiscoveryProto.javaDescriptor.getMessageTypes().get(7)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = DiscoveryProto.scalaDescriptor.messages(7)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = DiscoveryProto.javaDescriptor.getMessageTypes().get(8)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = DiscoveryProto.scalaDescriptor.messages(8)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
