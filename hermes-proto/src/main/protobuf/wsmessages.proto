@@ -18,7 +18,51 @@ message MessageFromClient {
     Notification                   notification               = 5;
     SubscribeRequest               subscribeRequest           = 6;
     PublishToContinuumCentral      publishToContinuumCentral  = 7;
+    BrowserSessionStart            browserSessionStart        = 8;
   }
+}
+
+// BrowserSessionStart is a CLASS-1 (browser app) session announcing itself so the
+// gateway can give it a processrun and fold it into the standard process lifecycle
+// (ledger reclaim on completion, AWOL when its pings stop). See tracker
+// FEATURE-20260714-browser-session-mailbox-accounting.
+//
+// This is deliberately NOT MessageFromRunner: a browser is an UNTRUSTED client and
+// must not marshal its own ProcessStart. It carries ONLY the fields a browser
+// legitimately knows — there is no workerUid / jobUid / jobName / eventUid slot
+// here, so a browser CANNOT set them (forge-proof by construction, not by
+// validation). The gateway TRANSLATES this into a ProcessStart server-side: it
+// forces kind=browser, leaves worker/job/event empty (worker identity resolves
+// later through the authenticated mailbox, as it already does for any process —
+// bootstrap.go:362), and stamps the server-captured IP + User-Agent (ClientInfo,
+// godev@e10a1fdb) into extraData. Class-2 CLI-over-WS clients keep using the
+// verbatim PublishToContinuumCentral relay; the two paths are distinct on purpose
+// (see tracker TASK-20260715-ws-client-class-audit).
+message BrowserSessionStart {
+  // processUid: the session's processrun uid, generated CLIENT-side — exactly as a
+  // daemon generates its own processUid (bootstrap.go: model.RandomProcessUid) and
+  // passes it into both ProcessStart and its mailbox. The browser mints this, sends
+  // it here, AND creates its mailbox with CreateMailboxRequest.processRunUid = this,
+  // so the mailbox↔processrun link is established at creation (the daemon pattern) —
+  // no post-hoc linking. processUid is identity/correlation, not a credential (the
+  // registry never authenticates it); the trust boundary is worker/job, which this
+  // message has no field for.
+  string                    processUid       = 5;
+  // tabUid: an immutable per-TAB uid, minted once by the browser when the tab
+  // loads and stable for the tab's whole life. It is the correlation key ABOVE the
+  // mailbox: one tab churns through many mailboxes (dedupe + re-mint-on-wake), all
+  // sharing one tabUid. Client-generated — a correlation label, not a credential.
+  string                    tabUid           = 1;
+  // mainName: which browser "main" / app entry point this session runs (there are
+  // several). Lands in the processrun's discovery/category so browser apps are
+  // distinguishable. Client-supplied label.
+  string                    mainName         = 2;
+  // startedAt: when this browser session began (client clock).
+  google.protobuf.Timestamp startedAt        = 3;
+  // extraData: free-form client-known context — URL, referer, locale, tz, etc. The
+  // gateway MERGES server-authoritative facts (IP, User-Agent) over this before it
+  // reaches the processrun, so a client value cannot override the server's.
+  google.protobuf.Struct    extraData        = 4;
 }
 
 // PublishToContinuumCentral relays a runner process-lifecycle message

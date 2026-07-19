@@ -30,10 +30,6 @@ final case class MessageFromRunner(
         val __value = message.streamWrite.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
-      if (message.updateMailboxRequest.isDefined) {
-        val __value = message.updateMailboxRequest.get
-        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
-      };
       if (message.pingRequest.isDefined) {
         val __value = message.pingRequest.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
@@ -87,12 +83,6 @@ final case class MessageFromRunner(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
-      message.updateMailboxRequest.foreach { __v =>
-        val __m = __v
-        _output__.writeTag(5, 2)
-        _output__.writeUInt32NoTag(__m.serializedSize)
-        __m.writeTo(_output__)
-      };
       message.pingRequest.foreach { __v =>
         val __m = __v
         _output__.writeTag(6, 2)
@@ -127,8 +117,6 @@ final case class MessageFromRunner(
     def withProcessCompletedRequest(__v: a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest): MessageFromRunner = copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.ProcessCompletedRequest(__v))
     def getStreamWrite: a8.hermes.proto.continuum.continuum_rpc.StreamWrite = message.streamWrite.getOrElse(a8.hermes.proto.continuum.continuum_rpc.StreamWrite.defaultInstance)
     def withStreamWrite(__v: a8.hermes.proto.continuum.continuum_rpc.StreamWrite): MessageFromRunner = copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.StreamWrite(__v))
-    def getUpdateMailboxRequest: a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest = message.updateMailboxRequest.getOrElse(a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest.defaultInstance)
-    def withUpdateMailboxRequest(__v: a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest): MessageFromRunner = copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.UpdateMailboxRequest(__v))
     def getPingRequest: a8.hermes.proto.continuum.continuum_rpc.PingRequest = message.pingRequest.getOrElse(a8.hermes.proto.continuum.continuum_rpc.PingRequest.defaultInstance)
     def withPingRequest(__v: a8.hermes.proto.continuum.continuum_rpc.PingRequest): MessageFromRunner = copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.PingRequest(__v))
     def getMailboxPing: a8.hermes.proto.continuum.continuum_rpc.MailboxPing = message.mailboxPing.getOrElse(a8.hermes.proto.continuum.continuum_rpc.MailboxPing.defaultInstance)
@@ -147,7 +135,6 @@ final case class MessageFromRunner(
         case 2 => message.processPingRequest.orNull
         case 3 => message.processCompletedRequest.orNull
         case 4 => message.streamWrite.orNull
-        case 5 => message.updateMailboxRequest.orNull
         case 6 => message.pingRequest.orNull
         case 7 => message.mailboxPing.orNull
         case 8 => message.streamCreatedRequest.orNull
@@ -161,7 +148,6 @@ final case class MessageFromRunner(
         case 2 => message.processPingRequest.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 3 => message.processCompletedRequest.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 4 => message.streamWrite.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-        case 5 => message.updateMailboxRequest.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 6 => message.pingRequest.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 7 => message.mailboxPing.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 8 => message.streamCreatedRequest.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
@@ -191,8 +177,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
           __message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.ProcessCompletedRequest(__message.processCompletedRequest.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 34 =>
           __message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.StreamWrite(__message.streamWrite.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.StreamWrite](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
-        case 42 =>
-          __message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.UpdateMailboxRequest(__message.updateMailboxRequest.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 50 =>
           __message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.PingRequest(__message.pingRequest.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.PingRequest](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 58 =>
@@ -221,7 +205,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
             .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessPingRequest]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.ProcessPingRequest(_)))
             .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.ProcessCompletedRequest(_)))
             .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.StreamWrite]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.StreamWrite(_)))
-            .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.UpdateMailboxRequest(_)))
             .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.PingRequest]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.PingRequest(_)))
             .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.MailboxPing]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.MailboxPing(_)))
             .orElse[a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.StreamCreatedRequest]]).map(a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.StreamCreatedRequest(_)))
@@ -230,8 +213,8 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(9)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(9)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ContinuumRpcProto.javaDescriptor.getMessageTypes().get(8)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ContinuumRpcProto.scalaDescriptor.messages(8)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -239,7 +222,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
       case 2 => __out = a8.hermes.proto.continuum.continuum_rpc.ProcessPingRequest
       case 3 => __out = a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest
       case 4 => __out = a8.hermes.proto.continuum.continuum_rpc.StreamWrite
-      case 5 => __out = a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest
       case 6 => __out = a8.hermes.proto.continuum.continuum_rpc.PingRequest
       case 7 => __out = a8.hermes.proto.continuum.continuum_rpc.MailboxPing
       case 8 => __out = a8.hermes.proto.continuum.continuum_rpc.StreamCreatedRequest
@@ -259,7 +241,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def isProcessPingRequest: _root_.scala.Boolean = false
     def isProcessCompletedRequest: _root_.scala.Boolean = false
     def isStreamWrite: _root_.scala.Boolean = false
-    def isUpdateMailboxRequest: _root_.scala.Boolean = false
     def isPingRequest: _root_.scala.Boolean = false
     def isMailboxPing: _root_.scala.Boolean = false
     def isStreamCreatedRequest: _root_.scala.Boolean = false
@@ -268,7 +249,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def processPingRequest: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessPingRequest] = _root_.scala.None
     def processCompletedRequest: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest] = _root_.scala.None
     def streamWrite: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.StreamWrite] = _root_.scala.None
-    def updateMailboxRequest: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest] = _root_.scala.None
     def pingRequest: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.PingRequest] = _root_.scala.None
     def mailboxPing: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.MailboxPing] = _root_.scala.None
     def streamCreatedRequest: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.StreamCreatedRequest] = _root_.scala.None
@@ -313,13 +293,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
       override def number: _root_.scala.Int = 4
     }
     @SerialVersionUID(0L)
-    final case class UpdateMailboxRequest(value: a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest) extends a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message {
-      type ValueType = a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest
-      override def isUpdateMailboxRequest: _root_.scala.Boolean = true
-      override def updateMailboxRequest: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest] = Some(value)
-      override def number: _root_.scala.Int = 5
-    }
-    @SerialVersionUID(0L)
     final case class PingRequest(value: a8.hermes.proto.continuum.continuum_rpc.PingRequest) extends a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message {
       type ValueType = a8.hermes.proto.continuum.continuum_rpc.PingRequest
       override def isPingRequest: _root_.scala.Boolean = true
@@ -353,7 +326,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def processPingRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessPingRequest] = field(_.getProcessPingRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.ProcessPingRequest(f_)))
     def processCompletedRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessCompletedRequest] = field(_.getProcessCompletedRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.ProcessCompletedRequest(f_)))
     def streamWrite: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.StreamWrite] = field(_.getStreamWrite)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.StreamWrite(f_)))
-    def updateMailboxRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.UpdateMailboxRequest] = field(_.getUpdateMailboxRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.UpdateMailboxRequest(f_)))
     def pingRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.PingRequest] = field(_.getPingRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.PingRequest(f_)))
     def mailboxPing: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.MailboxPing] = field(_.getMailboxPing)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.MailboxPing(f_)))
     def streamCreatedRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.StreamCreatedRequest] = field(_.getStreamCreatedRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.continuum.continuum_rpc.MessageFromRunner.Message.StreamCreatedRequest(f_)))
@@ -364,7 +336,6 @@ object MessageFromRunner extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
   final val PROCESSPINGREQUEST_FIELD_NUMBER = 2
   final val PROCESSCOMPLETEDREQUEST_FIELD_NUMBER = 3
   final val STREAMWRITE_FIELD_NUMBER = 4
-  final val UPDATEMAILBOXREQUEST_FIELD_NUMBER = 5
   final val PINGREQUEST_FIELD_NUMBER = 6
   final val MAILBOXPING_FIELD_NUMBER = 7
   final val STREAMCREATEDREQUEST_FIELD_NUMBER = 8

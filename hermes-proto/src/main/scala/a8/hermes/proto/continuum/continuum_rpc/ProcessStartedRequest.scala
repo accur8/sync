@@ -23,6 +23,20 @@ package a8.hermes.proto.continuum.continuum_rpc
   *   cwd, kind, …) on the existing processrun row untouched. If no
   *   existing row is found the consumer falls through to first-arrival
   *   behavior so the message is self-healing.
+  * @param processManager
+  *   Self-detected process manager (FEATURE-20260714-self-detect-process-manager):
+  *   the process reports, about ITSELF, who supervises it and under what name.
+  *   processManagerUnit is the CONTROL HANDLE — the systemd unit
+  *   ("a8-jobrun-&lt;id&gt;.service") or supervisord program ("group:program") you pass
+  *   to that manager to start/stop/restart it. So a job's unit is resolvable from
+  *   its processrun with no `a8 svc import`. Also carried in discovery.metadata
+  *   (process_manager*) for map-based consumers; these are the first-class form.
+  *   All empty when unmanaged (bare CLI / non-systemd) — normal, not an error.
+  *   "systemd" | "supervisord" | ""
+  * @param processManagerUnit
+  *   unit / program name (the control handle)
+  * @param processManagerScope
+  *   "system" | "user" (systemd only)
   */
 @SerialVersionUID(0L)
 final case class ProcessStartedRequest(
@@ -46,6 +60,9 @@ final case class ProcessStartedRequest(
     eventUid: _root_.scala.Predef.String = "",
     discovery: _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse] = _root_.scala.None,
     isUpdate: _root_.scala.Boolean = false,
+    processManager: _root_.scala.Predef.String = "",
+    processManagerUnit: _root_.scala.Predef.String = "",
+    processManagerScope: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ProcessStartedRequest] {
     @transient
@@ -177,6 +194,27 @@ final case class ProcessStartedRequest(
           __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(20, __value)
         }
       };
+      
+      {
+        val __value = processManager
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(21, __value)
+        }
+      };
+      
+      {
+        val __value = processManagerUnit
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(22, __value)
+        }
+      };
+      
+      {
+        val __value = processManagerScope
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(23, __value)
+        }
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -304,6 +342,24 @@ final case class ProcessStartedRequest(
           _output__.writeBool(20, __v)
         }
       };
+      {
+        val __v = processManager
+        if (!__v.isEmpty) {
+          _output__.writeString(21, __v)
+        }
+      };
+      {
+        val __v = processManagerUnit
+        if (!__v.isEmpty) {
+          _output__.writeString(22, __v)
+        }
+      };
+      {
+        val __v = processManagerScope
+        if (!__v.isEmpty) {
+          _output__.writeString(23, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withProcessUid(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(processUid = __v)
@@ -339,6 +395,9 @@ final case class ProcessStartedRequest(
     def clearDiscovery: ProcessStartedRequest = copy(discovery = _root_.scala.None)
     def withDiscovery(__v: a8.hermes.proto.discovery.discovery.DiscoveryResponse): ProcessStartedRequest = copy(discovery = Option(__v))
     def withIsUpdate(__v: _root_.scala.Boolean): ProcessStartedRequest = copy(isUpdate = __v)
+    def withProcessManager(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(processManager = __v)
+    def withProcessManagerUnit(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(processManagerUnit = __v)
+    def withProcessManagerScope(__v: _root_.scala.Predef.String): ProcessStartedRequest = copy(processManagerScope = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -408,6 +467,18 @@ final case class ProcessStartedRequest(
           val __t = isUpdate
           if (__t != false) __t else null
         }
+        case 21 => {
+          val __t = processManager
+          if (__t != "") __t else null
+        }
+        case 22 => {
+          val __t = processManagerUnit
+          if (__t != "") __t else null
+        }
+        case 23 => {
+          val __t = processManagerScope
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -433,6 +504,9 @@ final case class ProcessStartedRequest(
         case 18 => _root_.scalapb.descriptors.PString(eventUid)
         case 19 => discovery.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 20 => _root_.scalapb.descriptors.PBoolean(isUpdate)
+        case 21 => _root_.scalapb.descriptors.PString(processManager)
+        case 22 => _root_.scalapb.descriptors.PString(processManagerUnit)
+        case 23 => _root_.scalapb.descriptors.PString(processManagerScope)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -463,6 +537,9 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     var __eventUid: _root_.scala.Predef.String = ""
     var __discovery: _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse] = _root_.scala.None
     var __isUpdate: _root_.scala.Boolean = false
+    var __processManager: _root_.scala.Predef.String = ""
+    var __processManagerUnit: _root_.scala.Predef.String = ""
+    var __processManagerScope: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -509,6 +586,12 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
           __discovery = _root_.scala.Option(__discovery.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.discovery.discovery.DiscoveryResponse](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 160 =>
           __isUpdate = _input__.readBool()
+        case 170 =>
+          __processManager = _input__.readStringRequireUtf8()
+        case 178 =>
+          __processManagerUnit = _input__.readStringRequireUtf8()
+        case 186 =>
+          __processManagerScope = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -537,6 +620,9 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         eventUid = __eventUid,
         discovery = __discovery,
         isUpdate = __isUpdate,
+        processManager = __processManager,
+        processManagerUnit = __processManagerUnit,
+        processManagerScope = __processManagerScope,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -563,7 +649,10 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
         ephemeralName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(17).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         eventUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(18).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         discovery = __fieldsMap.get(scalaDescriptor.findFieldByNumber(19).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse]]),
-        isUpdate = __fieldsMap.get(scalaDescriptor.findFieldByNumber(20).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+        isUpdate = __fieldsMap.get(scalaDescriptor.findFieldByNumber(20).get).map(_.as[_root_.scala.Boolean]).getOrElse(false),
+        processManager = __fieldsMap.get(scalaDescriptor.findFieldByNumber(21).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        processManagerUnit = __fieldsMap.get(scalaDescriptor.findFieldByNumber(22).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        processManagerScope = __fieldsMap.get(scalaDescriptor.findFieldByNumber(23).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -599,7 +688,10 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     ephemeralName = "",
     eventUid = "",
     discovery = _root_.scala.None,
-    isUpdate = false
+    isUpdate = false,
+    processManager = "",
+    processManagerUnit = "",
+    processManagerScope = ""
   )
   implicit class ProcessStartedRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest](_l) {
     def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
@@ -624,6 +716,9 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     def discovery: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.discovery.discovery.DiscoveryResponse] = field(_.getDiscovery)((c_, f_) => c_.copy(discovery = _root_.scala.Option(f_)))
     def optionalDiscovery: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse]] = field(_.discovery)((c_, f_) => c_.copy(discovery = f_))
     def isUpdate: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.isUpdate)((c_, f_) => c_.copy(isUpdate = f_))
+    def processManager: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processManager)((c_, f_) => c_.copy(processManager = f_))
+    def processManagerUnit: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processManagerUnit)((c_, f_) => c_.copy(processManagerUnit = f_))
+    def processManagerScope: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processManagerScope)((c_, f_) => c_.copy(processManagerScope = f_))
   }
   final val PROCESSUID_FIELD_NUMBER = 1
   final val PARENTPROCESSRUNUID_FIELD_NUMBER = 2
@@ -645,6 +740,9 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
   final val EVENTUID_FIELD_NUMBER = 18
   final val DISCOVERY_FIELD_NUMBER = 19
   final val ISUPDATE_FIELD_NUMBER = 20
+  final val PROCESSMANAGER_FIELD_NUMBER = 21
+  final val PROCESSMANAGERUNIT_FIELD_NUMBER = 22
+  final val PROCESSMANAGERSCOPE_FIELD_NUMBER = 23
   def of(
     processUid: _root_.scala.Predef.String,
     parentProcessRunUid: _root_.scala.Predef.String,
@@ -665,7 +763,10 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     ephemeralName: _root_.scala.Predef.String,
     eventUid: _root_.scala.Predef.String,
     discovery: _root_.scala.Option[a8.hermes.proto.discovery.discovery.DiscoveryResponse],
-    isUpdate: _root_.scala.Boolean
+    isUpdate: _root_.scala.Boolean,
+    processManager: _root_.scala.Predef.String,
+    processManagerUnit: _root_.scala.Predef.String,
+    processManagerScope: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest = _root_.a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest(
     processUid,
     parentProcessRunUid,
@@ -686,7 +787,10 @@ object ProcessStartedRequest extends scalapb.GeneratedMessageCompanion[a8.hermes
     ephemeralName,
     eventUid,
     discovery,
-    isUpdate
+    isUpdate,
+    processManager,
+    processManagerUnit,
+    processManagerScope
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[continuum_rpc.ProcessStartedRequest])
 }

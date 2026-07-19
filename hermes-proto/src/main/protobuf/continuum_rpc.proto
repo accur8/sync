@@ -39,12 +39,25 @@ message ProcessStartedRequest {
   // existing row is found the consumer falls through to first-arrival
   // behavior so the message is self-healing.
   bool                          isUpdate            = 20;
+
+  // Self-detected process manager (FEATURE-20260714-self-detect-process-manager):
+  // the process reports, about ITSELF, who supervises it and under what name.
+  // processManagerUnit is the CONTROL HANDLE — the systemd unit
+  // ("a8-jobrun-<id>.service") or supervisord program ("group:program") you pass
+  // to that manager to start/stop/restart it. So a job's unit is resolvable from
+  // its processrun with no `a8 svc import`. Also carried in discovery.metadata
+  // (process_manager*) for map-based consumers; these are the first-class form.
+  // All empty when unmanaged (bare CLI / non-systemd) — normal, not an error.
+  string                        processManager      = 21;  // "systemd" | "supervisord" | ""
+  string                        processManagerUnit  = 22;  // unit / program name (the control handle)
+  string                        processManagerScope = 23;  // "system" | "user" (systemd only)
 }
 
-message UpdateMailboxRequest {
-  string        processUid     = 1;
-  string        mailbox        = 2;
-}
+// UpdateMailboxRequest (the processrun→mailbox REVERSE link) is RETIRED — the runner
+// stopped sending it, and the forward link (mailbox.process_run_uid, set at creation via
+// CreateMailboxRequest.processRunUid; the mailbox address carried on DiscoveryResponse at
+// ProcessStart) replaced it. Removed 2026-07-15 (TASK-20260715-deprecate-updatemailboxrequest).
+// Field 5 + name updateMailboxRequest are reserved below so the tag is never reused.
 
 message ProcessPingRequest {
   repeated ProcessPing          pings      = 1;
@@ -104,12 +117,16 @@ message ArchiveNowResponse {
 }
 
 message MessageFromRunner {
+  // Field 5 (updateMailboxRequest) is RETIRED — the processrun→mailbox reverse link;
+  // see TASK-20260715-deprecate-updatemailboxrequest. Reserved at the message level so the
+  // tag and name are never reused. (reserved must sit on the message, not inside the oneof.)
+  reserved 5;
+  reserved "updateMailboxRequest";
   oneof message {
     ProcessStartedRequest     processStartedRequest      = 1;
     ProcessPingRequest        processPingRequest         = 2;
     ProcessCompletedRequest   processCompletedRequest    = 3;
     StreamWrite               streamWrite                = 4;
-    UpdateMailboxRequest      updateMailboxRequest       = 5;
     PingRequest               pingRequest                = 6;
     MailboxPing               mailboxPing                = 7;
     StreamCreatedRequest      streamCreatedRequest       = 8;
