@@ -101,7 +101,7 @@ Global / scalacOptions ++= Seq(
   "-language:existentials",
   "-language:postfixOps",
   "-language:strictEquality",
- // "-Werror",
+  "-Werror",
 )
 
 lazy val logging =
