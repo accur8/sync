@@ -12,7 +12,6 @@ import a8.hermes.proto.continuum.continuum_rpc.{
   StreamCreatedRequest,
   StreamRecord,
   StreamWrite,
-  UpdateMailboxRequest,
 }
 import a8.common.logging.Logging
 import com.google.protobuf.ByteString
@@ -107,8 +106,9 @@ class ContinuumRunnerClient(transport: NatsTransport) extends Logging {
   def processCompleted(req: ProcessCompletedRequest): Unit =
     publish(MessageFromRunner(MessageFromRunner.Message.ProcessCompletedRequest(req)))
 
-  def updateMailbox(req: UpdateMailboxRequest): Unit =
-    publish(MessageFromRunner(MessageFromRunner.Message.UpdateMailboxRequest(req)))
+  // updateMailbox (the processrun→mailbox REVERSE link) was RETIRED when godev
+  // dropped UpdateMailboxRequest — the forward link (mailbox.process_run_uid) replaced
+  // it. See TASK-20260715-deprecate-updatemailboxrequest.
 
   def streamWrite(req: StreamWrite): Unit =
     publish(MessageFromRunner(MessageFromRunner.Message.StreamWrite(req)))

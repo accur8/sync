@@ -170,6 +170,14 @@ object HermesBootstrap extends Logging {
         } else {
           try {
             val runnerClient = new ContinuumRunnerClient(natsTransport)
+            // Self-detect the process manager (systemd unit / supervisord program)
+            // so this processrun auto-correlates with its control handle. Empty when
+            // unmanaged (bare CLI / macOS / non-systemd) — normal, not an error.
+            val pm = ProcManager.detect()
+            if (pm.managed)
+              logger.info(s"process manager: ${pm.manager} unit=${pm.unit}${if (pm.scope.nonEmpty) s" scope=${pm.scope}" else ""}")
+            else
+              logger.debug("process manager: none detected (unmanaged / non-systemd)")
             runnerClient.processStarted(
               ProcessStartedRequest(
                 processUid = processUid,
@@ -178,6 +186,9 @@ object HermesBootstrap extends Logging {
                 command = Seq(appConfig.appName.getOrElse("hermes")),
                 cwd = System.getProperty("user.dir", ""),
                 kind = "bootstrap",
+                processManager = pm.manager,
+                processManagerUnit = pm.unit,
+                processManagerScope = pm.scope,
               )
             )
             val pingLoop = runnerClient.startPingLoop(processUid, () => Map.empty)
@@ -266,13 +277,15 @@ object HermesBootstrap extends Logging {
           // Collect A8_* environment variables for metadata
           val a8Metadata = ServiceDiscovery.readA8EnvironmentMetadata()
 
-          // Build extended metadata with process info
+          // Build extended metadata with process info. The process_manager* keys
+          // mirror the first-class ProcessStartedRequest fields for map-based
+          // consumers (empty map when unmanaged, so a bare CLI adds nothing).
           val extendedMetadata = Map(
             "programming_language" -> "scala",
             "cwd"                  -> sys.props.getOrElse("user.dir", ""),
             "cli"                  -> (java.lang.ProcessHandle.current().info().command().orElse("") +
                                        " " + sys.props.getOrElse("sun.java.command", "")).trim,
-          ) ++ a8Metadata
+          ) ++ ProcManager.detect().metadata ++ a8Metadata
 
           val configWithMetadata = discoveryConfig.copy(
             metadata = discoveryConfig.metadata ++ a8Metadata,
