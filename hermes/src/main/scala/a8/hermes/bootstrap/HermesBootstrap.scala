@@ -100,6 +100,34 @@ object HermesBootstrap extends Logging {
         else if (longLived) jvmProcessUid.updateAndGet(u => if (u == null) Uid.uid32() else u)
         else ""
 
+      // Step 2c: DURABLE processrun BEFORE the mailbox.
+      //
+      // When this run owns a processrun (processUid non-empty — runner-spawned, or a
+      // long-lived daemon that self-minted above), its row MUST exist before we create a
+      // mailbox that references it: the mesh server now refuses a mailbox whose processrun
+      // has no row (godev create-mailbox hard check). The old ordering announced the
+      // processrun at Step 3c — AFTER the mailbox — via a fire-and-forget core publish, so
+      // the row could be absent at mailbox-creation time (or lost entirely). Hermes is
+      // NATS-only, so it commits the row over the synchronous mesh.mailbox.v1.process-start
+      // req/reply endpoint (the server holds the DB; hermes needs no credentials) and does
+      // not proceed until it is durable. Idempotent (InsertIfAbsent), so this is safe even
+      // when a runner parent already announced the same uid.
+      // TASK-20260723-switch-clients-processrun-before-mailbox.
+      _ <- Resource.acquireRelease {
+        if (processUid.isEmpty) {
+          logger.debug("no owning processrun (empty processUid) — mailbox will not reference one")
+        } else {
+          val runnerClient = new ContinuumRunnerClient(natsTransport)
+          runnerClient.processStartedSync(buildProcessStartedRequest(processUid, appConfig)) match {
+            case scala.util.Success(_) =>
+              logger.info(s"✓ processrun $processUid committed (durable) before mailbox")
+            case scala.util.Failure(e) =>
+              logger.error(s"Failed to commit processrun $processUid before mailbox: ${e.getMessage}", e)
+              throw new RuntimeException(s"processrun must be durable before the mailbox: ${e.getMessage}", e)
+          }
+        }
+      } { _ => () }
+
       // Step 3: Create/Acquire Mailbox
       // Use named mailbox if configured, otherwise create ephemeral
       mailbox <- Resource.acquireRelease {
@@ -179,24 +207,10 @@ object HermesBootstrap extends Logging {
               logger.info(s"process manager: ${pm.manager} unit=${pm.unit}${if (pm.scope.nonEmpty) s" scope=${pm.scope}" else ""}")
             else
               logger.debug("process manager: none detected (unmanaged / non-systemd)")
-            runnerClient.processStarted(
-              ProcessStartedRequest(
-                processUid = processUid,
-                processPid = ProcessHandle.current().pid().toInt,
-                startedAt = Some(ContinuumRunnerClient.nowTimestamp()),
-                command = Seq(appConfig.appName.getOrElse("hermes")),
-                cwd = System.getProperty("user.dir", ""),
-                kind = "bootstrap",
-                processManager = pm.manager,
-                processManagerUnit = pm.unit,
-                processManagerScope = pm.scope,
-                // Structured build identity (FEATURE-20260709). The Go side rides it on
-                // the embedded discovery response; we do the same — a minimal
-                // DiscoveryResponse carrying just build_info, which is where the registry
-                // reads it. Empty fields when the binary was not build-stamped.
-                discovery = Some(DiscoveryResponse(buildInfo = Some(BuildInfoReader.buildInfo))),
-              )
-            )
+            // Row already committed synchronously at Step 2c; this fire-and-forget publish
+            // keeps the existing lifecycle/backfill path (and is a no-op re-announce on the
+            // registry side — InsertIfAbsent). Same request either way (buildProcessStartedRequest).
+            runnerClient.processStarted(buildProcessStartedRequest(processUid, appConfig))
             val pingLoop = runnerClient.startPingLoop(processUid, () => Map.empty)
             logger.info(s"✓ Announced processrun $processUid + started 30s lifecycle ping")
             Some((runnerClient, processUid, pingLoop))
@@ -476,5 +490,27 @@ object HermesBootstrap extends Logging {
 
   private def quoteJson(s: String): String =
     "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+  /**
+   * Assemble this run's ProcessStartedRequest. Shared by the synchronous pre-mailbox
+   * announce (Step 2c) and the Step 3c lifecycle announce so the durable row and the
+   * lifecycle publish can never describe the process differently.
+   * TASK-20260723-switch-clients-processrun-before-mailbox.
+   */
+  private def buildProcessStartedRequest(processUid: String, appConfig: HermesAppConfig): ProcessStartedRequest = {
+    val pm = ProcManager.detect()
+    ProcessStartedRequest(
+      processUid = processUid,
+      processPid = ProcessHandle.current().pid().toInt,
+      startedAt = Some(ContinuumRunnerClient.nowTimestamp()),
+      command = Seq(appConfig.appName.getOrElse("hermes")),
+      cwd = System.getProperty("user.dir", ""),
+      kind = "bootstrap",
+      processManager = pm.manager,
+      processManagerUnit = pm.unit,
+      processManagerScope = pm.scope,
+      discovery = Some(DiscoveryResponse(buildInfo = Some(BuildInfoReader.buildInfo))),
+    )
+  }
 
 }
