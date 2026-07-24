@@ -14,13 +14,10 @@ import a8.hermes.proto.continuum.continuum_rpc.{
   StreamWrite,
 }
 import a8.common.logging.Logging
-import a8.shared.json.parse
-import a8.shared.json.ast.{JsBool, JsObj, JsStr}
 import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
 import io.nats.client.api.{CompressionOption, Placement, RetentionPolicy, StreamConfiguration}
 
-import scala.util.Try
 import java.time.Duration as JavaDuration
 
 import java.io.Closeable
@@ -40,13 +37,6 @@ object ContinuumRunnerClient extends Logging {
 
   /** godev `hermes/model/model.go`: NATS subject (dots) for the central lifecycle bus. */
   val ContinuumCentralSubject = "continuum.central"
-
-  /** godev mesh/api.MailboxRecordsSubjectPrefix + ProcessStartOp — the synchronous
-   * processrun-create endpoint served on the mailbox-records req/reply surface. */
-  val ProcessStartSubject = "mesh.mailbox.v1.process-start"
-
-  /** Matches godev mesh mailboxRecordsTimeout (10s). */
-  val ProcessStartTimeout: JavaDuration = JavaDuration.ofSeconds(10)
 
   /** Default ping cadence — matches the Go runner's 30s ticker. */
   val DefaultPingIntervalMillis = 30_000L
@@ -109,44 +99,6 @@ class ContinuumRunnerClient(transport: NatsTransport) extends Logging {
 
   def processStarted(req: ProcessStartedRequest): Unit =
     publish(MessageFromRunner(MessageFromRunner.Message.ProcessStartedRequest(req)))
-
-  /**
-   * SYNCHRONOUS processrun-create over req/reply. Unlike processStarted (fire-and-forget
-   * core publish, row written LATER by the registry consumer), this asks the mesh server
-   * to commit the row and does not return until it is durable — the Scala twin of godev's
-   * mesh.mailbox.v1.process-start endpoint (api.RequestProcessStart).
-   *
-   * Use this BEFORE creating a mailbox that names the processrun: the server now REFUSES a
-   * mailbox whose processrun has no row (godev create-mailbox hard check,
-   * TASK-20260723-create-mailbox-hard-check-processrun-exists), so the row must exist
-   * first. Hermes is NATS-only (no pg pool, no HTTP), so req/reply is the one mechanism it
-   * can use. TASK-20260723-switch-clients-processrun-before-mailbox.
-   *
-   * Wire format matches the godev responder exactly: subject mesh.mailbox.v1.process-start,
-   * body {"processStartedProto": <base64 of the bare ProcessStartedRequest>}, reply the
-   * standard {"ok","error"} envelope.
-   */
-  def processStartedSync(req: ProcessStartedRequest): Try[Unit] = Try {
-    val protoB64 = java.util.Base64.getEncoder.encodeToString(req.toByteArray)
-    val payload = JsObj(Map("processStartedProto" -> JsStr(protoB64))).compactJson
-    val reply = transport.connection.request(
-      ProcessStartSubject,
-      payload.getBytes("UTF-8"),
-      ProcessStartTimeout,
-    )
-    if (reply == null)
-      throw new RuntimeException("process-start: no reply (is a mesh server running?)")
-    parse(new String(reply.getData, "UTF-8")) match {
-      case Right(o: JsObj) =>
-        val ok = o.values.get("ok").collect { case JsBool(b) => b }.getOrElse(false)
-        if (!ok) {
-          val msg = o.values.get("error").collect { case JsStr(s) => s }.getOrElse("unknown error")
-          throw new RuntimeException(s"process-start rejected by server: $msg")
-        }
-      case Right(_)  => throw new RuntimeException("process-start: reply is not a JSON object")
-      case Left(err) => throw new RuntimeException(s"process-start: unparseable reply: $err")
-    }
-  }
 
   def processPing(req: ProcessPingRequest): Unit =
     publish(MessageFromRunner(MessageFromRunner.Message.ProcessPingRequest(req)))
