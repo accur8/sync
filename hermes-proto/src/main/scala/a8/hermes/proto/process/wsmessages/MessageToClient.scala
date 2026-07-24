@@ -38,6 +38,10 @@ final case class MessageToClient(
         val __value = message.subscribeResponse.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
+      if (message.clientSessionStarted.isDefined) {
+        val __value = message.clientSessionStarted.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -87,6 +91,12 @@ final case class MessageToClient(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      message.clientSessionStarted.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(7, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def getMessageEnvelope: a8.hermes.proto.process.wsmessages.MessageEnvelope = message.messageEnvelope.getOrElse(a8.hermes.proto.process.wsmessages.MessageEnvelope.defaultInstance)
@@ -101,6 +111,8 @@ final case class MessageToClient(
     def withNotification(__v: a8.hermes.proto.process.wsmessages.Notification): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(__v))
     def getSubscribeResponse: a8.hermes.proto.process.wsmessages.SubscribeResponse = message.subscribeResponse.getOrElse(a8.hermes.proto.process.wsmessages.SubscribeResponse.defaultInstance)
     def withSubscribeResponse(__v: a8.hermes.proto.process.wsmessages.SubscribeResponse): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(__v))
+    def getClientSessionStarted: a8.hermes.proto.process.wsmessages.ClientSessionStarted = message.clientSessionStarted.getOrElse(a8.hermes.proto.process.wsmessages.ClientSessionStarted.defaultInstance)
+    def withClientSessionStarted(__v: a8.hermes.proto.process.wsmessages.ClientSessionStarted): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(__v))
     def clearMessage: MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Empty)
     def withMessage(__v: a8.hermes.proto.process.wsmessages.MessageToClient.Message): MessageToClient = copy(message = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
@@ -113,6 +125,7 @@ final case class MessageToClient(
         case 4 => message.pong.orNull
         case 5 => message.notification.orNull
         case 6 => message.subscribeResponse.orNull
+        case 7 => message.clientSessionStarted.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -124,6 +137,7 @@ final case class MessageToClient(
         case 4 => message.pong.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 5 => message.notification.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 6 => message.subscribeResponse.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 7 => message.clientSessionStarted.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -153,6 +167,8 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
           __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(__message.notification.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.Notification](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 50 =>
           __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(__message.subscribeResponse.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.SubscribeResponse](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 58 =>
+          __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(__message.clientSessionStarted.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.ClientSessionStarted](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -175,12 +191,13 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
             .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.Pong]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.Pong(_)))
             .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.Notification]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(_)))
             .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeResponse]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(_)))
+            .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStarted]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(_)))
             .getOrElse(a8.hermes.proto.process.wsmessages.MessageToClient.Message.Empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(4)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(4)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(6)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(6)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -190,6 +207,7 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
       case 4 => __out = a8.hermes.proto.process.wsmessages.Pong
       case 5 => __out = a8.hermes.proto.process.wsmessages.Notification
       case 6 => __out = a8.hermes.proto.process.wsmessages.SubscribeResponse
+      case 7 => __out = a8.hermes.proto.process.wsmessages.ClientSessionStarted
     }
     __out
   }
@@ -207,12 +225,14 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     def isPong: _root_.scala.Boolean = false
     def isNotification: _root_.scala.Boolean = false
     def isSubscribeResponse: _root_.scala.Boolean = false
+    def isClientSessionStarted: _root_.scala.Boolean = false
     def messageEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.MessageEnvelope] = _root_.scala.None
     def sendMessageResponse: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SendMessageResponse] = _root_.scala.None
     def ping: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Ping] = _root_.scala.None
     def pong: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Pong] = _root_.scala.None
     def notification: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Notification] = _root_.scala.None
     def subscribeResponse: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeResponse] = _root_.scala.None
+    def clientSessionStarted: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStarted] = _root_.scala.None
   }
   object Message {
     @SerialVersionUID(0L)
@@ -266,6 +286,13 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
       override def subscribeResponse: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeResponse] = Some(value)
       override def number: _root_.scala.Int = 6
     }
+    @SerialVersionUID(0L)
+    final case class ClientSessionStarted(value: a8.hermes.proto.process.wsmessages.ClientSessionStarted) extends a8.hermes.proto.process.wsmessages.MessageToClient.Message {
+      type ValueType = a8.hermes.proto.process.wsmessages.ClientSessionStarted
+      override def isClientSessionStarted: _root_.scala.Boolean = true
+      override def clientSessionStarted: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStarted] = Some(value)
+      override def number: _root_.scala.Int = 7
+    }
   }
   implicit class MessageToClientLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageToClient]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.MessageToClient](_l) {
     def messageEnvelope: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageEnvelope] = field(_.getMessageEnvelope)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.MessageEnvelope(f_)))
@@ -274,6 +301,7 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     def pong: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Pong] = field(_.getPong)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Pong(f_)))
     def notification: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Notification] = field(_.getNotification)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(f_)))
     def subscribeResponse: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.SubscribeResponse] = field(_.getSubscribeResponse)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(f_)))
+    def clientSessionStarted: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted] = field(_.getClientSessionStarted)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(f_)))
     def message: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageToClient.Message] = field(_.message)((c_, f_) => c_.copy(message = f_))
   }
   final val MESSAGEENVELOPE_FIELD_NUMBER = 1
@@ -282,6 +310,7 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
   final val PONG_FIELD_NUMBER = 4
   final val NOTIFICATION_FIELD_NUMBER = 5
   final val SUBSCRIBERESPONSE_FIELD_NUMBER = 6
+  final val CLIENTSESSIONSTARTED_FIELD_NUMBER = 7
   def of(
     message: a8.hermes.proto.process.wsmessages.MessageToClient.Message
   ): _root_.a8.hermes.proto.process.wsmessages.MessageToClient = _root_.a8.hermes.proto.process.wsmessages.MessageToClient(

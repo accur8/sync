@@ -46,6 +46,10 @@ final case class MessageFromClient(
         val __value = message.browserSessionStart.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
+      if (message.clientSessionStart.isDefined) {
+        val __value = message.clientSessionStart.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -107,6 +111,12 @@ final case class MessageFromClient(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      message.clientSessionStart.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(9, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def getSendMessageRequest: a8.hermes.proto.process.wsmessages.SendMessageRequest = message.sendMessageRequest.getOrElse(a8.hermes.proto.process.wsmessages.SendMessageRequest.defaultInstance)
@@ -125,6 +135,8 @@ final case class MessageFromClient(
     def withPublishToContinuumCentral(__v: a8.hermes.proto.process.wsmessages.PublishToContinuumCentral): MessageFromClient = copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.PublishToContinuumCentral(__v))
     def getBrowserSessionStart: a8.hermes.proto.process.wsmessages.BrowserSessionStart = message.browserSessionStart.getOrElse(a8.hermes.proto.process.wsmessages.BrowserSessionStart.defaultInstance)
     def withBrowserSessionStart(__v: a8.hermes.proto.process.wsmessages.BrowserSessionStart): MessageFromClient = copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.BrowserSessionStart(__v))
+    def getClientSessionStart: a8.hermes.proto.process.wsmessages.ClientSessionStart = message.clientSessionStart.getOrElse(a8.hermes.proto.process.wsmessages.ClientSessionStart.defaultInstance)
+    def withClientSessionStart(__v: a8.hermes.proto.process.wsmessages.ClientSessionStart): MessageFromClient = copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.ClientSessionStart(__v))
     def clearMessage: MessageFromClient = copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.Empty)
     def withMessage(__v: a8.hermes.proto.process.wsmessages.MessageFromClient.Message): MessageFromClient = copy(message = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
@@ -139,6 +151,7 @@ final case class MessageFromClient(
         case 6 => message.subscribeRequest.orNull
         case 7 => message.publishToContinuumCentral.orNull
         case 8 => message.browserSessionStart.orNull
+        case 9 => message.clientSessionStart.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -152,6 +165,7 @@ final case class MessageFromClient(
         case 6 => message.subscribeRequest.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 7 => message.publishToContinuumCentral.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 8 => message.browserSessionStart.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 9 => message.clientSessionStart.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -185,6 +199,8 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
           __message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.PublishToContinuumCentral(__message.publishToContinuumCentral.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.PublishToContinuumCentral](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 66 =>
           __message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.BrowserSessionStart(__message.browserSessionStart.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.BrowserSessionStart](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 74 =>
+          __message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.ClientSessionStart(__message.clientSessionStart.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.ClientSessionStart](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -209,6 +225,7 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
             .orElse[a8.hermes.proto.process.wsmessages.MessageFromClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeRequest]]).map(a8.hermes.proto.process.wsmessages.MessageFromClient.Message.SubscribeRequest(_)))
             .orElse[a8.hermes.proto.process.wsmessages.MessageFromClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.PublishToContinuumCentral]]).map(a8.hermes.proto.process.wsmessages.MessageFromClient.Message.PublishToContinuumCentral(_)))
             .orElse[a8.hermes.proto.process.wsmessages.MessageFromClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.BrowserSessionStart]]).map(a8.hermes.proto.process.wsmessages.MessageFromClient.Message.BrowserSessionStart(_)))
+            .orElse[a8.hermes.proto.process.wsmessages.MessageFromClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStart]]).map(a8.hermes.proto.process.wsmessages.MessageFromClient.Message.ClientSessionStart(_)))
             .getOrElse(a8.hermes.proto.process.wsmessages.MessageFromClient.Message.Empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
@@ -226,6 +243,7 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
       case 6 => __out = a8.hermes.proto.process.wsmessages.SubscribeRequest
       case 7 => __out = a8.hermes.proto.process.wsmessages.PublishToContinuumCentral
       case 8 => __out = a8.hermes.proto.process.wsmessages.BrowserSessionStart
+      case 9 => __out = a8.hermes.proto.process.wsmessages.ClientSessionStart
     }
     __out
   }
@@ -245,6 +263,7 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def isSubscribeRequest: _root_.scala.Boolean = false
     def isPublishToContinuumCentral: _root_.scala.Boolean = false
     def isBrowserSessionStart: _root_.scala.Boolean = false
+    def isClientSessionStart: _root_.scala.Boolean = false
     def sendMessageRequest: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SendMessageRequest] = _root_.scala.None
     def firstMessage: _root_.scala.Option[a8.hermes.proto.process.wsmessages.FirstMessage] = _root_.scala.None
     def ping: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Ping] = _root_.scala.None
@@ -253,6 +272,7 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def subscribeRequest: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeRequest] = _root_.scala.None
     def publishToContinuumCentral: _root_.scala.Option[a8.hermes.proto.process.wsmessages.PublishToContinuumCentral] = _root_.scala.None
     def browserSessionStart: _root_.scala.Option[a8.hermes.proto.process.wsmessages.BrowserSessionStart] = _root_.scala.None
+    def clientSessionStart: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStart] = _root_.scala.None
   }
   object Message {
     @SerialVersionUID(0L)
@@ -320,6 +340,13 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
       override def browserSessionStart: _root_.scala.Option[a8.hermes.proto.process.wsmessages.BrowserSessionStart] = Some(value)
       override def number: _root_.scala.Int = 8
     }
+    @SerialVersionUID(0L)
+    final case class ClientSessionStart(value: a8.hermes.proto.process.wsmessages.ClientSessionStart) extends a8.hermes.proto.process.wsmessages.MessageFromClient.Message {
+      type ValueType = a8.hermes.proto.process.wsmessages.ClientSessionStart
+      override def isClientSessionStart: _root_.scala.Boolean = true
+      override def clientSessionStart: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStart] = Some(value)
+      override def number: _root_.scala.Int = 9
+    }
   }
   implicit class MessageFromClientLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageFromClient]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.MessageFromClient](_l) {
     def sendMessageRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.SendMessageRequest] = field(_.getSendMessageRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.SendMessageRequest(f_)))
@@ -330,6 +357,7 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
     def subscribeRequest: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.SubscribeRequest] = field(_.getSubscribeRequest)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.SubscribeRequest(f_)))
     def publishToContinuumCentral: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.PublishToContinuumCentral] = field(_.getPublishToContinuumCentral)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.PublishToContinuumCentral(f_)))
     def browserSessionStart: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.BrowserSessionStart] = field(_.getBrowserSessionStart)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.BrowserSessionStart(f_)))
+    def clientSessionStart: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStart] = field(_.getClientSessionStart)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageFromClient.Message.ClientSessionStart(f_)))
     def message: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageFromClient.Message] = field(_.message)((c_, f_) => c_.copy(message = f_))
   }
   final val SENDMESSAGEREQUEST_FIELD_NUMBER = 1
@@ -340,6 +368,7 @@ object MessageFromClient extends scalapb.GeneratedMessageCompanion[a8.hermes.pro
   final val SUBSCRIBEREQUEST_FIELD_NUMBER = 6
   final val PUBLISHTOCONTINUUMCENTRAL_FIELD_NUMBER = 7
   final val BROWSERSESSIONSTART_FIELD_NUMBER = 8
+  final val CLIENTSESSIONSTART_FIELD_NUMBER = 9
   def of(
     message: a8.hermes.proto.process.wsmessages.MessageFromClient.Message
   ): _root_.a8.hermes.proto.process.wsmessages.MessageFromClient = _root_.a8.hermes.proto.process.wsmessages.MessageFromClient(

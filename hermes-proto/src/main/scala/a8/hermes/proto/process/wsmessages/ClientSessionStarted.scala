@@ -5,28 +5,36 @@
 
 package a8.hermes.proto.process.wsmessages
 
+/** ClientSessionStarted is the gateway's reply to ClientSessionStart: the keys of the
+  * mailbox it just minted, so the client can use the mailbox it never created itself.
+  * The mailbox is ALREADY bound to this connection when this is sent.
+  *
+  * @param processUid
+  *   processUid echoed back so the client can confirm the row the gateway committed.
+  */
 @SerialVersionUID(0L)
-final case class CreateMailboxResponse(
-    adminKey: _root_.scala.Predef.String = "",
+final case class ClientSessionStarted(
     address: _root_.scala.Predef.String = "",
+    adminKey: _root_.scala.Predef.String = "",
     readerKey: _root_.scala.Predef.String = "",
     channels: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
+    processUid: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[CreateMailboxResponse] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ClientSessionStarted] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
       
       {
-        val __value = adminKey
+        val __value = address
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
         }
       };
       
       {
-        val __value = address
+        val __value = adminKey
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
         }
@@ -42,6 +50,13 @@ final case class CreateMailboxResponse(
         val __value = __item
         __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
       }
+      
+      {
+        val __value = processUid
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+        }
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -56,13 +71,13 @@ final case class CreateMailboxResponse(
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
-        val __v = adminKey
+        val __v = address
         if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
       {
-        val __v = address
+        val __v = adminKey
         if (!__v.isEmpty) {
           _output__.writeString(2, __v)
         }
@@ -77,25 +92,32 @@ final case class CreateMailboxResponse(
         val __m = __v
         _output__.writeString(4, __m)
       };
+      {
+        val __v = processUid
+        if (!__v.isEmpty) {
+          _output__.writeString(5, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
-    def withAdminKey(__v: _root_.scala.Predef.String): CreateMailboxResponse = copy(adminKey = __v)
-    def withAddress(__v: _root_.scala.Predef.String): CreateMailboxResponse = copy(address = __v)
-    def withReaderKey(__v: _root_.scala.Predef.String): CreateMailboxResponse = copy(readerKey = __v)
+    def withAddress(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(address = __v)
+    def withAdminKey(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(adminKey = __v)
+    def withReaderKey(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(readerKey = __v)
     def clearChannels = copy(channels = _root_.scala.Seq.empty)
-    def addChannels(__vs: _root_.scala.Predef.String *): CreateMailboxResponse = addAllChannels(__vs)
-    def addAllChannels(__vs: Iterable[_root_.scala.Predef.String]): CreateMailboxResponse = copy(channels = channels ++ __vs)
-    def withChannels(__v: _root_.scala.Seq[_root_.scala.Predef.String]): CreateMailboxResponse = copy(channels = __v)
+    def addChannels(__vs: _root_.scala.Predef.String *): ClientSessionStarted = addAllChannels(__vs)
+    def addAllChannels(__vs: Iterable[_root_.scala.Predef.String]): ClientSessionStarted = copy(channels = channels ++ __vs)
+    def withChannels(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ClientSessionStarted = copy(channels = __v)
+    def withProcessUid(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(processUid = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
-          val __t = adminKey
+          val __t = address
           if (__t != "") __t else null
         }
         case 2 => {
-          val __t = address
+          val __t = adminKey
           if (__t != "") __t else null
         }
         case 3 => {
@@ -103,29 +125,35 @@ final case class CreateMailboxResponse(
           if (__t != "") __t else null
         }
         case 4 => channels
+        case 5 => {
+          val __t = processUid
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PString(adminKey)
-        case 2 => _root_.scalapb.descriptors.PString(address)
+        case 1 => _root_.scalapb.descriptors.PString(address)
+        case 2 => _root_.scalapb.descriptors.PString(adminKey)
         case 3 => _root_.scalapb.descriptors.PString(readerKey)
         case 4 => _root_.scalapb.descriptors.PRepeated(channels.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
+        case 5 => _root_.scalapb.descriptors.PString(processUid)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.process.wsmessages.CreateMailboxResponse.type = a8.hermes.proto.process.wsmessages.CreateMailboxResponse
-    // @@protoc_insertion_point(GeneratedMessage[mesh.CreateMailboxResponse])
+    def companion: a8.hermes.proto.process.wsmessages.ClientSessionStarted.type = a8.hermes.proto.process.wsmessages.ClientSessionStarted
+    // @@protoc_insertion_point(GeneratedMessage[mesh.ClientSessionStarted])
 }
 
-object CreateMailboxResponse extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.CreateMailboxResponse] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.CreateMailboxResponse] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.CreateMailboxResponse = {
-    var __adminKey: _root_.scala.Predef.String = ""
+object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ClientSessionStarted] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ClientSessionStarted] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.ClientSessionStarted = {
     var __address: _root_.scala.Predef.String = ""
+    var __adminKey: _root_.scala.Predef.String = ""
     var __readerKey: _root_.scala.Predef.String = ""
     val __channels: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
+    var __processUid: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -133,13 +161,15 @@ object CreateMailboxResponse extends scalapb.GeneratedMessageCompanion[a8.hermes
       _tag__ match {
         case 0 => _done__ = true
         case 10 =>
-          __adminKey = _input__.readStringRequireUtf8()
-        case 18 =>
           __address = _input__.readStringRequireUtf8()
+        case 18 =>
+          __adminKey = _input__.readStringRequireUtf8()
         case 26 =>
           __readerKey = _input__.readStringRequireUtf8()
         case 34 =>
           __channels += _input__.readStringRequireUtf8()
+        case 42 =>
+          __processUid = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -147,56 +177,63 @@ object CreateMailboxResponse extends scalapb.GeneratedMessageCompanion[a8.hermes
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.process.wsmessages.CreateMailboxResponse(
-        adminKey = __adminKey,
+    a8.hermes.proto.process.wsmessages.ClientSessionStarted(
         address = __address,
+        adminKey = __adminKey,
         readerKey = __readerKey,
         channels = __channels.result(),
+        processUid = __processUid,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.CreateMailboxResponse] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.ClientSessionStarted] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.process.wsmessages.CreateMailboxResponse(
-        adminKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        address = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+      a8.hermes.proto.process.wsmessages.ClientSessionStarted(
+        address = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        adminKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         readerKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        channels = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty)
+        channels = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
+        processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(36)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(36)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(2)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(2)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.CreateMailboxResponse(
-    adminKey = "",
+  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.ClientSessionStarted(
     address = "",
+    adminKey = "",
     readerKey = "",
-    channels = _root_.scala.Seq.empty
+    channels = _root_.scala.Seq.empty,
+    processUid = ""
   )
-  implicit class CreateMailboxResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.CreateMailboxResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.CreateMailboxResponse](_l) {
-    def adminKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.adminKey)((c_, f_) => c_.copy(adminKey = f_))
+  implicit class ClientSessionStartedLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted](_l) {
     def address: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.address)((c_, f_) => c_.copy(address = f_))
+    def adminKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.adminKey)((c_, f_) => c_.copy(adminKey = f_))
     def readerKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.readerKey)((c_, f_) => c_.copy(readerKey = f_))
     def channels: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.channels)((c_, f_) => c_.copy(channels = f_))
+    def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
   }
-  final val ADMINKEY_FIELD_NUMBER = 1
-  final val ADDRESS_FIELD_NUMBER = 2
+  final val ADDRESS_FIELD_NUMBER = 1
+  final val ADMINKEY_FIELD_NUMBER = 2
   final val READERKEY_FIELD_NUMBER = 3
   final val CHANNELS_FIELD_NUMBER = 4
+  final val PROCESSUID_FIELD_NUMBER = 5
   def of(
-    adminKey: _root_.scala.Predef.String,
     address: _root_.scala.Predef.String,
+    adminKey: _root_.scala.Predef.String,
     readerKey: _root_.scala.Predef.String,
-    channels: _root_.scala.Seq[_root_.scala.Predef.String]
-  ): _root_.a8.hermes.proto.process.wsmessages.CreateMailboxResponse = _root_.a8.hermes.proto.process.wsmessages.CreateMailboxResponse(
-    adminKey,
+    channels: _root_.scala.Seq[_root_.scala.Predef.String],
+    processUid: _root_.scala.Predef.String
+  ): _root_.a8.hermes.proto.process.wsmessages.ClientSessionStarted = _root_.a8.hermes.proto.process.wsmessages.ClientSessionStarted(
     address,
+    adminKey,
     readerKey,
-    channels
+    channels,
+    processUid
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.CreateMailboxResponse])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ClientSessionStarted])
 }
