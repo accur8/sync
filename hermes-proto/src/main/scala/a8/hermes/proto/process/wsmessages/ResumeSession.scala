@@ -5,12 +5,23 @@
 
 package a8.hermes.proto.process.wsmessages
 
+/** ResumeSession reattaches to a mailbox that already exists. This is what FirstMessage
+  * becomes: readerKey is the only key needed (the gateway resolves the mailbox from it), so
+  * FirstMessage's senderInfo.address is gone — the server compared the client's claimed
+  * address to what it had just looked up, learning nothing. mailboxTimeoutInMs and meta are
+  * gone too: both were read nowhere.
+  *
+  * A RESUME MUST NOT MINT. Re-bootstrapping on reconnect creates a second mailbox and
+  * orphans the first — the failure that left 459 dead mailboxes on 2026-07-07. If the
+  * mailbox is genuinely gone the gateway answers MAILBOX_NOT_FOUND and the client decides
+  * deliberately whether to start a new session.
+  */
 @SerialVersionUID(0L)
-final case class SenderInfo(
+final case class ResumeSession(
     readerKey: _root_.scala.Predef.String = "",
-    address: _root_.scala.Predef.String = "",
+    authToken: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[SenderInfo] {
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ResumeSession] {
     @transient
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
@@ -24,7 +35,7 @@ final case class SenderInfo(
       };
       
       {
-        val __value = address
+        val __value = authToken
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
         }
@@ -49,15 +60,15 @@ final case class SenderInfo(
         }
       };
       {
-        val __v = address
+        val __v = authToken
         if (!__v.isEmpty) {
           _output__.writeString(2, __v)
         }
       };
       unknownFields.writeTo(_output__)
     }
-    def withReaderKey(__v: _root_.scala.Predef.String): SenderInfo = copy(readerKey = __v)
-    def withAddress(__v: _root_.scala.Predef.String): SenderInfo = copy(address = __v)
+    def withReaderKey(__v: _root_.scala.Predef.String): ResumeSession = copy(readerKey = __v)
+    def withAuthToken(__v: _root_.scala.Predef.String): ResumeSession = copy(authToken = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -67,7 +78,7 @@ final case class SenderInfo(
           if (__t != "") __t else null
         }
         case 2 => {
-          val __t = address
+          val __t = authToken
           if (__t != "") __t else null
         }
       }
@@ -76,19 +87,19 @@ final case class SenderInfo(
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(readerKey)
-        case 2 => _root_.scalapb.descriptors.PString(address)
+        case 2 => _root_.scalapb.descriptors.PString(authToken)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: a8.hermes.proto.process.wsmessages.SenderInfo.type = a8.hermes.proto.process.wsmessages.SenderInfo
-    // @@protoc_insertion_point(GeneratedMessage[mesh.SenderInfo])
+    def companion: a8.hermes.proto.process.wsmessages.ResumeSession.type = a8.hermes.proto.process.wsmessages.ResumeSession
+    // @@protoc_insertion_point(GeneratedMessage[mesh.ResumeSession])
 }
 
-object SenderInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SenderInfo] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.SenderInfo] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.SenderInfo = {
+object ResumeSession extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ResumeSession] {
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ResumeSession] = this
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.ResumeSession = {
     var __readerKey: _root_.scala.Predef.String = ""
-    var __address: _root_.scala.Predef.String = ""
+    var __authToken: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -98,7 +109,7 @@ object SenderInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.proc
         case 10 =>
           __readerKey = _input__.readStringRequireUtf8()
         case 18 =>
-          __address = _input__.readStringRequireUtf8()
+          __authToken = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -106,42 +117,42 @@ object SenderInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.proc
           _unknownFields__.parseField(tag, _input__)
       }
     }
-    a8.hermes.proto.process.wsmessages.SenderInfo(
+    a8.hermes.proto.process.wsmessages.ResumeSession(
         readerKey = __readerKey,
-        address = __address,
+        authToken = __authToken,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.SenderInfo] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[a8.hermes.proto.process.wsmessages.ResumeSession] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      a8.hermes.proto.process.wsmessages.SenderInfo(
+      a8.hermes.proto.process.wsmessages.ResumeSession(
         readerKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        address = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        authToken = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(31)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(31)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(3)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(3)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.SenderInfo(
+  lazy val defaultInstance = a8.hermes.proto.process.wsmessages.ResumeSession(
     readerKey = "",
-    address = ""
+    authToken = ""
   )
-  implicit class SenderInfoLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.SenderInfo]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.SenderInfo](_l) {
+  implicit class ResumeSessionLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ResumeSession]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.ResumeSession](_l) {
     def readerKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.readerKey)((c_, f_) => c_.copy(readerKey = f_))
-    def address: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.address)((c_, f_) => c_.copy(address = f_))
+    def authToken: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.authToken)((c_, f_) => c_.copy(authToken = f_))
   }
   final val READERKEY_FIELD_NUMBER = 1
-  final val ADDRESS_FIELD_NUMBER = 2
+  final val AUTHTOKEN_FIELD_NUMBER = 2
   def of(
     readerKey: _root_.scala.Predef.String,
-    address: _root_.scala.Predef.String
-  ): _root_.a8.hermes.proto.process.wsmessages.SenderInfo = _root_.a8.hermes.proto.process.wsmessages.SenderInfo(
+    authToken: _root_.scala.Predef.String
+  ): _root_.a8.hermes.proto.process.wsmessages.ResumeSession = _root_.a8.hermes.proto.process.wsmessages.ResumeSession(
     readerKey,
-    address
+    authToken
   )
-  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.SenderInfo])
+  // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ResumeSession])
 }

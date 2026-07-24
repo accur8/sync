@@ -22,15 +22,6 @@ package a8.hermes.proto.process.wsmessages
   * verbatim PublishToContinuumCentral relay; the two paths are distinct on purpose
   * (see tracker TASK-20260715-ws-client-class-audit).
   *
-  * @param processUid
-  *   processUid: the session's processrun uid, generated CLIENT-side — exactly as a
-  *   daemon generates its own processUid (bootstrap.go: model.RandomProcessUid) and
-  *   passes it into both ProcessStart and its mailbox. The browser mints this, sends
-  *   it here, AND creates its mailbox with CreateMailboxRequest.processRunUid = this,
-  *   so the mailbox↔processrun link is established at creation (the daemon pattern) —
-  *   no post-hoc linking. processUid is identity/correlation, not a credential (the
-  *   registry never authenticates it); the trust boundary is worker/job, which this
-  *   message has no field for.
   * @param tabUid
   *   tabUid: an immutable per-TAB uid, minted once by the browser when the tab
   *   loads and stable for the tab's whole life. It is the correlation key ABOVE the
@@ -42,17 +33,30 @@ package a8.hermes.proto.process.wsmessages
   *   distinguishable. Client-supplied label.
   * @param startedAt
   *   startedAt: when this browser session began (client clock).
+  * @param url
+  *   The page context, TOP-LEVEL and typed. These previously lived inside an untyped
+  *   extraData struct alongside the server's own facts, so "who set this" was a convention
+  *   rather than something the schema stated.
+  * @param authToken
+  *   authToken: obtained out of band via OAuth. A browser does not do the SSH challenge.
+  * @param ip
+  *   --- SERVER-POLYFILLED from the request: a client value here is IGNORED, not merged. ---
   * @param extraData
-  *   extraData: free-form client-known context — URL, referer, locale, tz, etc. The
-  *   gateway MERGES server-authoritative facts (IP, User-Agent) over this before it
-  *   reaches the processrun, so a client value cannot override the server's.
+  *   extraData: anything else client-known that has no field of its own. Server-authoritative
+  *   facts are NOT merged into this any more — they have real fields above.
   */
 @SerialVersionUID(0L)
 final case class BrowserSessionStart(
-    processUid: _root_.scala.Predef.String = "",
     tabUid: _root_.scala.Predef.String = "",
     mainName: _root_.scala.Predef.String = "",
     startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
+    url: _root_.scala.Predef.String = "",
+    referer: _root_.scala.Predef.String = "",
+    locale: _root_.scala.Predef.String = "",
+    timezone: _root_.scala.Predef.String = "",
+    authToken: _root_.scala.Predef.String = "",
+    ip: _root_.scala.Predef.String = "",
+    userAgent: _root_.scala.Predef.String = "",
     extraData: _root_.scala.Option[com.google.protobuf.struct.Struct] = _root_.scala.None,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[BrowserSessionStart] {
@@ -60,13 +64,6 @@ final case class BrowserSessionStart(
     private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
     private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      
-      {
-        val __value = processUid
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
-        }
-      };
       
       {
         val __value = tabUid
@@ -84,6 +81,55 @@ final case class BrowserSessionStart(
       if (startedAt.isDefined) {
         val __value = startedAt.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      
+      {
+        val __value = url
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(6, __value)
+        }
+      };
+      
+      {
+        val __value = referer
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(7, __value)
+        }
+      };
+      
+      {
+        val __value = locale
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(8, __value)
+        }
+      };
+      
+      {
+        val __value = timezone
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(9, __value)
+        }
+      };
+      
+      {
+        val __value = authToken
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(10, __value)
+        }
+      };
+      
+      {
+        val __value = ip
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(11, __value)
+        }
+      };
+      
+      {
+        val __value = userAgent
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(12, __value)
+        }
       };
       if (extraData.isDefined) {
         val __value = extraData.get
@@ -127,19 +173,61 @@ final case class BrowserSessionStart(
         __m.writeTo(_output__)
       };
       {
-        val __v = processUid
+        val __v = url
         if (!__v.isEmpty) {
-          _output__.writeString(5, __v)
+          _output__.writeString(6, __v)
+        }
+      };
+      {
+        val __v = referer
+        if (!__v.isEmpty) {
+          _output__.writeString(7, __v)
+        }
+      };
+      {
+        val __v = locale
+        if (!__v.isEmpty) {
+          _output__.writeString(8, __v)
+        }
+      };
+      {
+        val __v = timezone
+        if (!__v.isEmpty) {
+          _output__.writeString(9, __v)
+        }
+      };
+      {
+        val __v = authToken
+        if (!__v.isEmpty) {
+          _output__.writeString(10, __v)
+        }
+      };
+      {
+        val __v = ip
+        if (!__v.isEmpty) {
+          _output__.writeString(11, __v)
+        }
+      };
+      {
+        val __v = userAgent
+        if (!__v.isEmpty) {
+          _output__.writeString(12, __v)
         }
       };
       unknownFields.writeTo(_output__)
     }
-    def withProcessUid(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(processUid = __v)
     def withTabUid(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(tabUid = __v)
     def withMainName(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(mainName = __v)
     def getStartedAt: com.google.protobuf.timestamp.Timestamp = startedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
     def clearStartedAt: BrowserSessionStart = copy(startedAt = _root_.scala.None)
     def withStartedAt(__v: com.google.protobuf.timestamp.Timestamp): BrowserSessionStart = copy(startedAt = Option(__v))
+    def withUrl(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(url = __v)
+    def withReferer(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(referer = __v)
+    def withLocale(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(locale = __v)
+    def withTimezone(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(timezone = __v)
+    def withAuthToken(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(authToken = __v)
+    def withIp(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(ip = __v)
+    def withUserAgent(__v: _root_.scala.Predef.String): BrowserSessionStart = copy(userAgent = __v)
     def getExtraData: com.google.protobuf.struct.Struct = extraData.getOrElse(com.google.protobuf.struct.Struct.defaultInstance)
     def clearExtraData: BrowserSessionStart = copy(extraData = _root_.scala.None)
     def withExtraData(__v: com.google.protobuf.struct.Struct): BrowserSessionStart = copy(extraData = Option(__v))
@@ -147,10 +235,6 @@ final case class BrowserSessionStart(
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
-        case 5 => {
-          val __t = processUid
-          if (__t != "") __t else null
-        }
         case 1 => {
           val __t = tabUid
           if (__t != "") __t else null
@@ -160,16 +244,50 @@ final case class BrowserSessionStart(
           if (__t != "") __t else null
         }
         case 3 => startedAt.orNull
+        case 6 => {
+          val __t = url
+          if (__t != "") __t else null
+        }
+        case 7 => {
+          val __t = referer
+          if (__t != "") __t else null
+        }
+        case 8 => {
+          val __t = locale
+          if (__t != "") __t else null
+        }
+        case 9 => {
+          val __t = timezone
+          if (__t != "") __t else null
+        }
+        case 10 => {
+          val __t = authToken
+          if (__t != "") __t else null
+        }
+        case 11 => {
+          val __t = ip
+          if (__t != "") __t else null
+        }
+        case 12 => {
+          val __t = userAgent
+          if (__t != "") __t else null
+        }
         case 4 => extraData.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 5 => _root_.scalapb.descriptors.PString(processUid)
         case 1 => _root_.scalapb.descriptors.PString(tabUid)
         case 2 => _root_.scalapb.descriptors.PString(mainName)
         case 3 => startedAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 6 => _root_.scalapb.descriptors.PString(url)
+        case 7 => _root_.scalapb.descriptors.PString(referer)
+        case 8 => _root_.scalapb.descriptors.PString(locale)
+        case 9 => _root_.scalapb.descriptors.PString(timezone)
+        case 10 => _root_.scalapb.descriptors.PString(authToken)
+        case 11 => _root_.scalapb.descriptors.PString(ip)
+        case 12 => _root_.scalapb.descriptors.PString(userAgent)
         case 4 => extraData.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
@@ -181,10 +299,16 @@ final case class BrowserSessionStart(
 object BrowserSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.BrowserSessionStart] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.BrowserSessionStart] = this
   def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.BrowserSessionStart = {
-    var __processUid: _root_.scala.Predef.String = ""
     var __tabUid: _root_.scala.Predef.String = ""
     var __mainName: _root_.scala.Predef.String = ""
     var __startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
+    var __url: _root_.scala.Predef.String = ""
+    var __referer: _root_.scala.Predef.String = ""
+    var __locale: _root_.scala.Predef.String = ""
+    var __timezone: _root_.scala.Predef.String = ""
+    var __authToken: _root_.scala.Predef.String = ""
+    var __ip: _root_.scala.Predef.String = ""
+    var __userAgent: _root_.scala.Predef.String = ""
     var __extraData: _root_.scala.Option[com.google.protobuf.struct.Struct] = _root_.scala.None
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
@@ -192,14 +316,26 @@ object BrowserSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.p
       val _tag__ = _input__.readTag()
       _tag__ match {
         case 0 => _done__ = true
-        case 42 =>
-          __processUid = _input__.readStringRequireUtf8()
         case 10 =>
           __tabUid = _input__.readStringRequireUtf8()
         case 18 =>
           __mainName = _input__.readStringRequireUtf8()
         case 26 =>
           __startedAt = _root_.scala.Option(__startedAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 50 =>
+          __url = _input__.readStringRequireUtf8()
+        case 58 =>
+          __referer = _input__.readStringRequireUtf8()
+        case 66 =>
+          __locale = _input__.readStringRequireUtf8()
+        case 74 =>
+          __timezone = _input__.readStringRequireUtf8()
+        case 82 =>
+          __authToken = _input__.readStringRequireUtf8()
+        case 90 =>
+          __ip = _input__.readStringRequireUtf8()
+        case 98 =>
+          __userAgent = _input__.readStringRequireUtf8()
         case 34 =>
           __extraData = _root_.scala.Option(__extraData.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.struct.Struct](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
@@ -210,10 +346,16 @@ object BrowserSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.p
       }
     }
     a8.hermes.proto.process.wsmessages.BrowserSessionStart(
-        processUid = __processUid,
         tabUid = __tabUid,
         mainName = __mainName,
         startedAt = __startedAt,
+        url = __url,
+        referer = __referer,
+        locale = __locale,
+        timezone = __timezone,
+        authToken = __authToken,
+        ip = __ip,
+        userAgent = __userAgent,
         extraData = __extraData,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
@@ -222,16 +364,22 @@ object BrowserSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.p
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.process.wsmessages.BrowserSessionStart(
-        processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         tabUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         mainName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         startedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
+        url = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        referer = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        locale = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        timezone = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        authToken = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        ip = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        userAgent = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         extraData = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.struct.Struct]])
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(3)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(3)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(9)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(9)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -243,37 +391,67 @@ object BrowserSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.p
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = a8.hermes.proto.process.wsmessages.BrowserSessionStart(
-    processUid = "",
     tabUid = "",
     mainName = "",
     startedAt = _root_.scala.None,
+    url = "",
+    referer = "",
+    locale = "",
+    timezone = "",
+    authToken = "",
+    ip = "",
+    userAgent = "",
     extraData = _root_.scala.None
   )
   implicit class BrowserSessionStartLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.BrowserSessionStart]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.BrowserSessionStart](_l) {
-    def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
     def tabUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.tabUid)((c_, f_) => c_.copy(tabUid = f_))
     def mainName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.mainName)((c_, f_) => c_.copy(mainName = f_))
     def startedAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getStartedAt)((c_, f_) => c_.copy(startedAt = _root_.scala.Option(f_)))
     def optionalStartedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.startedAt)((c_, f_) => c_.copy(startedAt = f_))
+    def url: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.url)((c_, f_) => c_.copy(url = f_))
+    def referer: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.referer)((c_, f_) => c_.copy(referer = f_))
+    def locale: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.locale)((c_, f_) => c_.copy(locale = f_))
+    def timezone: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.timezone)((c_, f_) => c_.copy(timezone = f_))
+    def authToken: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.authToken)((c_, f_) => c_.copy(authToken = f_))
+    def ip: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.ip)((c_, f_) => c_.copy(ip = f_))
+    def userAgent: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.userAgent)((c_, f_) => c_.copy(userAgent = f_))
     def extraData: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.struct.Struct] = field(_.getExtraData)((c_, f_) => c_.copy(extraData = _root_.scala.Option(f_)))
     def optionalExtraData: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.struct.Struct]] = field(_.extraData)((c_, f_) => c_.copy(extraData = f_))
   }
-  final val PROCESSUID_FIELD_NUMBER = 5
   final val TABUID_FIELD_NUMBER = 1
   final val MAINNAME_FIELD_NUMBER = 2
   final val STARTEDAT_FIELD_NUMBER = 3
+  final val URL_FIELD_NUMBER = 6
+  final val REFERER_FIELD_NUMBER = 7
+  final val LOCALE_FIELD_NUMBER = 8
+  final val TIMEZONE_FIELD_NUMBER = 9
+  final val AUTHTOKEN_FIELD_NUMBER = 10
+  final val IP_FIELD_NUMBER = 11
+  final val USERAGENT_FIELD_NUMBER = 12
   final val EXTRADATA_FIELD_NUMBER = 4
   def of(
-    processUid: _root_.scala.Predef.String,
     tabUid: _root_.scala.Predef.String,
     mainName: _root_.scala.Predef.String,
     startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
+    url: _root_.scala.Predef.String,
+    referer: _root_.scala.Predef.String,
+    locale: _root_.scala.Predef.String,
+    timezone: _root_.scala.Predef.String,
+    authToken: _root_.scala.Predef.String,
+    ip: _root_.scala.Predef.String,
+    userAgent: _root_.scala.Predef.String,
     extraData: _root_.scala.Option[com.google.protobuf.struct.Struct]
   ): _root_.a8.hermes.proto.process.wsmessages.BrowserSessionStart = _root_.a8.hermes.proto.process.wsmessages.BrowserSessionStart(
-    processUid,
     tabUid,
     mainName,
     startedAt,
+    url,
+    referer,
+    locale,
+    timezone,
+    authToken,
+    ip,
+    userAgent,
     extraData
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.BrowserSessionStart])

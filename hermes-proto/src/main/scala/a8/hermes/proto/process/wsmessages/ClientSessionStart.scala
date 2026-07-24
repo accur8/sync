@@ -33,39 +33,20 @@ package a8.hermes.proto.process.wsmessages
   *   resolves an existing mailbox and this is the message that creates one. So it cannot
   *   rely on the connection already being authenticated; it carries and proves its own
   *   identity, validated through the same AuthProvider the HTTP endpoints use.
-  * @param processUid
-  *   processUid: the session's processrun uid, generated CLIENT-side — the daemon pattern
-  *   (bootstrap.go: model.RandomProcessUid). The gateway writes the processrun row
-  *   SYNCHRONOUSLY from this before it mints the mailbox, so the mailbox can never
-  *   reference an owner that does not exist. Identity/correlation, not a credential.
-  * @param workerUid
-  *   workerUid: the worker this process runs as. OWNERSHIP-CHECKED against the
-  *   authenticated user — see the trust-boundary note above. Empty is legal (an ad-hoc CLI
-  *   with no worker identity); when empty no worker link is made.
-  * @param appName
-  *   appName: which binary/app this is, for discovery and the processrun's category.
-  *   A client-supplied label, not an authorization input.
   * @param lifecycleKind
   *   lifecycleKind: short-lived-cli | long-lived-daemon — the coarse mailbox lifecycle the
-  *   client declares; the server resolves it to concrete purge/close timeouts.
+  *   client declares; the server resolves it to concrete purge/close timeouts. A MAILBOX
+  *   concern, which is why it is here rather than on the session message.
   * @param channels
-  *   channels: the mailbox channels to create (rpc-inbox, ...). Server-validated.
-  * @param startedAt
-  *   startedAt: when this process began (client clock).
-  * @param extraData
-  *   extraData: free-form client-known context. The gateway merges server-authoritative
-  *   facts over this, so a client value cannot override the server's.
+  *   channels: the mailbox channels to create (rpc-inbox, ...). Server-validated. Also a
+  *   mailbox concern.
   */
 @SerialVersionUID(0L)
 final case class ClientSessionStart(
     authToken: _root_.scala.Predef.String = "",
-    processUid: _root_.scala.Predef.String = "",
-    workerUid: _root_.scala.Predef.String = "",
-    appName: _root_.scala.Predef.String = "",
+    session: a8.hermes.proto.process.wsmessages.ClientSessionStart.Session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Empty,
     lifecycleKind: _root_.scala.Predef.String = "",
     channels: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
-    startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None,
-    extraData: _root_.scala.Option[com.google.protobuf.struct.Struct] = _root_.scala.None,
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ClientSessionStart] {
     @transient
@@ -79,26 +60,13 @@ final case class ClientSessionStart(
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(8, __value)
         }
       };
-      
-      {
-        val __value = processUid
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
-        }
+      if (session.browser.isDefined) {
+        val __value = session.browser.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
-      
-      {
-        val __value = workerUid
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
-        }
-      };
-      
-      {
-        val __value = appName
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
-        }
+      if (session.process.isDefined) {
+        val __value = session.process.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
       
       {
@@ -111,14 +79,6 @@ final case class ClientSessionStart(
         val __value = __item
         __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
       }
-      if (startedAt.isDefined) {
-        val __value = startedAt.get
-        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
-      };
-      if (extraData.isDefined) {
-        val __value = extraData.get
-        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
-      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -133,24 +93,6 @@ final case class ClientSessionStart(
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
-        val __v = processUid
-        if (!__v.isEmpty) {
-          _output__.writeString(1, __v)
-        }
-      };
-      {
-        val __v = workerUid
-        if (!__v.isEmpty) {
-          _output__.writeString(2, __v)
-        }
-      };
-      {
-        val __v = appName
-        if (!__v.isEmpty) {
-          _output__.writeString(3, __v)
-        }
-      };
-      {
         val __v = lifecycleKind
         if (!__v.isEmpty) {
           _output__.writeString(4, __v)
@@ -160,41 +102,38 @@ final case class ClientSessionStart(
         val __m = __v
         _output__.writeString(5, __m)
       };
-      startedAt.foreach { __v =>
-        val __m = __v
-        _output__.writeTag(6, 2)
-        _output__.writeUInt32NoTag(__m.serializedSize)
-        __m.writeTo(_output__)
-      };
-      extraData.foreach { __v =>
-        val __m = __v
-        _output__.writeTag(7, 2)
-        _output__.writeUInt32NoTag(__m.serializedSize)
-        __m.writeTo(_output__)
-      };
       {
         val __v = authToken
         if (!__v.isEmpty) {
           _output__.writeString(8, __v)
         }
       };
+      session.browser.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(9, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
+      session.process.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(10, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def withAuthToken(__v: _root_.scala.Predef.String): ClientSessionStart = copy(authToken = __v)
-    def withProcessUid(__v: _root_.scala.Predef.String): ClientSessionStart = copy(processUid = __v)
-    def withWorkerUid(__v: _root_.scala.Predef.String): ClientSessionStart = copy(workerUid = __v)
-    def withAppName(__v: _root_.scala.Predef.String): ClientSessionStart = copy(appName = __v)
+    def getBrowser: a8.hermes.proto.process.wsmessages.BrowserSessionStart = session.browser.getOrElse(a8.hermes.proto.process.wsmessages.BrowserSessionStart.defaultInstance)
+    def withBrowser(__v: a8.hermes.proto.process.wsmessages.BrowserSessionStart): ClientSessionStart = copy(session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Browser(__v))
+    def getProcess: a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest = session.process.getOrElse(a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest.defaultInstance)
+    def withProcess(__v: a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest): ClientSessionStart = copy(session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Process(__v))
     def withLifecycleKind(__v: _root_.scala.Predef.String): ClientSessionStart = copy(lifecycleKind = __v)
     def clearChannels = copy(channels = _root_.scala.Seq.empty)
     def addChannels(__vs: _root_.scala.Predef.String *): ClientSessionStart = addAllChannels(__vs)
     def addAllChannels(__vs: Iterable[_root_.scala.Predef.String]): ClientSessionStart = copy(channels = channels ++ __vs)
     def withChannels(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ClientSessionStart = copy(channels = __v)
-    def getStartedAt: com.google.protobuf.timestamp.Timestamp = startedAt.getOrElse(com.google.protobuf.timestamp.Timestamp.defaultInstance)
-    def clearStartedAt: ClientSessionStart = copy(startedAt = _root_.scala.None)
-    def withStartedAt(__v: com.google.protobuf.timestamp.Timestamp): ClientSessionStart = copy(startedAt = Option(__v))
-    def getExtraData: com.google.protobuf.struct.Struct = extraData.getOrElse(com.google.protobuf.struct.Struct.defaultInstance)
-    def clearExtraData: ClientSessionStart = copy(extraData = _root_.scala.None)
-    def withExtraData(__v: com.google.protobuf.struct.Struct): ClientSessionStart = copy(extraData = Option(__v))
+    def clearSession: ClientSessionStart = copy(session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Empty)
+    def withSession(__v: a8.hermes.proto.process.wsmessages.ClientSessionStart.Session): ClientSessionStart = copy(session = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -203,38 +142,23 @@ final case class ClientSessionStart(
           val __t = authToken
           if (__t != "") __t else null
         }
-        case 1 => {
-          val __t = processUid
-          if (__t != "") __t else null
-        }
-        case 2 => {
-          val __t = workerUid
-          if (__t != "") __t else null
-        }
-        case 3 => {
-          val __t = appName
-          if (__t != "") __t else null
-        }
+        case 9 => session.browser.orNull
+        case 10 => session.process.orNull
         case 4 => {
           val __t = lifecycleKind
           if (__t != "") __t else null
         }
         case 5 => channels
-        case 6 => startedAt.orNull
-        case 7 => extraData.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 8 => _root_.scalapb.descriptors.PString(authToken)
-        case 1 => _root_.scalapb.descriptors.PString(processUid)
-        case 2 => _root_.scalapb.descriptors.PString(workerUid)
-        case 3 => _root_.scalapb.descriptors.PString(appName)
+        case 9 => session.browser.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 10 => session.process.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 4 => _root_.scalapb.descriptors.PString(lifecycleKind)
         case 5 => _root_.scalapb.descriptors.PRepeated(channels.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
-        case 6 => startedAt.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-        case 7 => extraData.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -246,13 +170,9 @@ object ClientSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[a8.hermes.proto.process.wsmessages.ClientSessionStart] = this
   def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): a8.hermes.proto.process.wsmessages.ClientSessionStart = {
     var __authToken: _root_.scala.Predef.String = ""
-    var __processUid: _root_.scala.Predef.String = ""
-    var __workerUid: _root_.scala.Predef.String = ""
-    var __appName: _root_.scala.Predef.String = ""
     var __lifecycleKind: _root_.scala.Predef.String = ""
     val __channels: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
-    var __startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp] = _root_.scala.None
-    var __extraData: _root_.scala.Option[com.google.protobuf.struct.Struct] = _root_.scala.None
+    var __session: a8.hermes.proto.process.wsmessages.ClientSessionStart.Session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Empty
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -261,20 +181,14 @@ object ClientSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
         case 0 => _done__ = true
         case 66 =>
           __authToken = _input__.readStringRequireUtf8()
-        case 10 =>
-          __processUid = _input__.readStringRequireUtf8()
-        case 18 =>
-          __workerUid = _input__.readStringRequireUtf8()
-        case 26 =>
-          __appName = _input__.readStringRequireUtf8()
+        case 74 =>
+          __session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Browser(__session.browser.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.BrowserSessionStart](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 82 =>
+          __session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Process(__session.process.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 34 =>
           __lifecycleKind = _input__.readStringRequireUtf8()
         case 42 =>
           __channels += _input__.readStringRequireUtf8()
-        case 50 =>
-          __startedAt = _root_.scala.Option(__startedAt.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.timestamp.Timestamp](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
-        case 58 =>
-          __extraData = _root_.scala.Option(__extraData.fold(_root_.scalapb.LiteParser.readMessage[com.google.protobuf.struct.Struct](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -284,13 +198,9 @@ object ClientSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
     }
     a8.hermes.proto.process.wsmessages.ClientSessionStart(
         authToken = __authToken,
-        processUid = __processUid,
-        workerUid = __workerUid,
-        appName = __appName,
         lifecycleKind = __lifecycleKind,
         channels = __channels.result(),
-        startedAt = __startedAt,
-        extraData = __extraData,
+        session = __session,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -299,23 +209,21 @@ object ClientSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
       _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       a8.hermes.proto.process.wsmessages.ClientSessionStart(
         authToken = __fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        appName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         lifecycleKind = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         channels = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
-        startedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.timestamp.Timestamp]]),
-        extraData = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).flatMap(_.as[_root_.scala.Option[com.google.protobuf.struct.Struct]])
+        session = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.BrowserSessionStart]]).map(a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Browser(_))
+            .orElse[a8.hermes.proto.process.wsmessages.ClientSessionStart.Session](__fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest]]).map(a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Process(_)))
+            .getOrElse(a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(1)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(1)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(7)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(7)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
-      case 6 => __out = com.google.protobuf.timestamp.Timestamp
-      case 7 => __out = com.google.protobuf.struct.Struct
+      case 9 => __out = a8.hermes.proto.process.wsmessages.BrowserSessionStart
+      case 10 => __out = a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest
     }
     __out
   }
@@ -323,52 +231,66 @@ object ClientSessionStart extends scalapb.GeneratedMessageCompanion[a8.hermes.pr
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = a8.hermes.proto.process.wsmessages.ClientSessionStart(
     authToken = "",
-    processUid = "",
-    workerUid = "",
-    appName = "",
     lifecycleKind = "",
     channels = _root_.scala.Seq.empty,
-    startedAt = _root_.scala.None,
-    extraData = _root_.scala.None
+    session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Empty
   )
+  sealed trait Session extends _root_.scalapb.GeneratedOneof {
+    def isEmpty: _root_.scala.Boolean = false
+    def isDefined: _root_.scala.Boolean = true
+    def isBrowser: _root_.scala.Boolean = false
+    def isProcess: _root_.scala.Boolean = false
+    def browser: _root_.scala.Option[a8.hermes.proto.process.wsmessages.BrowserSessionStart] = _root_.scala.None
+    def process: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest] = _root_.scala.None
+  }
+  object Session {
+    @SerialVersionUID(0L)
+    case object Empty extends a8.hermes.proto.process.wsmessages.ClientSessionStart.Session {
+      type ValueType = _root_.scala.Nothing
+      override def isEmpty: _root_.scala.Boolean = true
+      override def isDefined: _root_.scala.Boolean = false
+      override def number: _root_.scala.Int = 0
+      override def value: _root_.scala.Nothing = throw new java.util.NoSuchElementException("Empty.value")
+    }
+  
+    @SerialVersionUID(0L)
+    final case class Browser(value: a8.hermes.proto.process.wsmessages.BrowserSessionStart) extends a8.hermes.proto.process.wsmessages.ClientSessionStart.Session {
+      type ValueType = a8.hermes.proto.process.wsmessages.BrowserSessionStart
+      override def isBrowser: _root_.scala.Boolean = true
+      override def browser: _root_.scala.Option[a8.hermes.proto.process.wsmessages.BrowserSessionStart] = Some(value)
+      override def number: _root_.scala.Int = 9
+    }
+    @SerialVersionUID(0L)
+    final case class Process(value: a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest) extends a8.hermes.proto.process.wsmessages.ClientSessionStart.Session {
+      type ValueType = a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest
+      override def isProcess: _root_.scala.Boolean = true
+      override def process: _root_.scala.Option[a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest] = Some(value)
+      override def number: _root_.scala.Int = 10
+    }
+  }
   implicit class ClientSessionStartLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStart]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStart](_l) {
     def authToken: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.authToken)((c_, f_) => c_.copy(authToken = f_))
-    def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
-    def workerUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerUid)((c_, f_) => c_.copy(workerUid = f_))
-    def appName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.appName)((c_, f_) => c_.copy(appName = f_))
+    def browser: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.BrowserSessionStart] = field(_.getBrowser)((c_, f_) => c_.copy(session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Browser(f_)))
+    def process: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest] = field(_.getProcess)((c_, f_) => c_.copy(session = a8.hermes.proto.process.wsmessages.ClientSessionStart.Session.Process(f_)))
     def lifecycleKind: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.lifecycleKind)((c_, f_) => c_.copy(lifecycleKind = f_))
     def channels: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.channels)((c_, f_) => c_.copy(channels = f_))
-    def startedAt: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.timestamp.Timestamp] = field(_.getStartedAt)((c_, f_) => c_.copy(startedAt = _root_.scala.Option(f_)))
-    def optionalStartedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.timestamp.Timestamp]] = field(_.startedAt)((c_, f_) => c_.copy(startedAt = f_))
-    def extraData: _root_.scalapb.lenses.Lens[UpperPB, com.google.protobuf.struct.Struct] = field(_.getExtraData)((c_, f_) => c_.copy(extraData = _root_.scala.Option(f_)))
-    def optionalExtraData: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[com.google.protobuf.struct.Struct]] = field(_.extraData)((c_, f_) => c_.copy(extraData = f_))
+    def session: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStart.Session] = field(_.session)((c_, f_) => c_.copy(session = f_))
   }
   final val AUTHTOKEN_FIELD_NUMBER = 8
-  final val PROCESSUID_FIELD_NUMBER = 1
-  final val WORKERUID_FIELD_NUMBER = 2
-  final val APPNAME_FIELD_NUMBER = 3
+  final val BROWSER_FIELD_NUMBER = 9
+  final val PROCESS_FIELD_NUMBER = 10
   final val LIFECYCLEKIND_FIELD_NUMBER = 4
   final val CHANNELS_FIELD_NUMBER = 5
-  final val STARTEDAT_FIELD_NUMBER = 6
-  final val EXTRADATA_FIELD_NUMBER = 7
   def of(
     authToken: _root_.scala.Predef.String,
-    processUid: _root_.scala.Predef.String,
-    workerUid: _root_.scala.Predef.String,
-    appName: _root_.scala.Predef.String,
+    session: a8.hermes.proto.process.wsmessages.ClientSessionStart.Session,
     lifecycleKind: _root_.scala.Predef.String,
-    channels: _root_.scala.Seq[_root_.scala.Predef.String],
-    startedAt: _root_.scala.Option[com.google.protobuf.timestamp.Timestamp],
-    extraData: _root_.scala.Option[com.google.protobuf.struct.Struct]
+    channels: _root_.scala.Seq[_root_.scala.Predef.String]
   ): _root_.a8.hermes.proto.process.wsmessages.ClientSessionStart = _root_.a8.hermes.proto.process.wsmessages.ClientSessionStart(
     authToken,
-    processUid,
-    workerUid,
-    appName,
+    session,
     lifecycleKind,
-    channels,
-    startedAt,
-    extraData
+    channels
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ClientSessionStart])
 }

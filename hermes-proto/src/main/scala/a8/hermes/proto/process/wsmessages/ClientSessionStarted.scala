@@ -10,7 +10,12 @@ package a8.hermes.proto.process.wsmessages
   * The mailbox is ALREADY bound to this connection when this is sent.
   *
   * @param processUid
-  *   processUid echoed back so the client can confirm the row the gateway committed.
+  *   processUid: the row the gateway committed. MINTED by the gateway for a browser
+  *   session; echoed back for a process session, which supplies its own.
+  * @param workerUid
+  *   workerUid: the identity the gateway RESOLVED for this connection, returned so a client
+  *   learns who it is from the exchange instead of asserting it. Empty when the identity is
+  *   not a worker (a human at a CLI, a browser user).
   */
 @SerialVersionUID(0L)
 final case class ClientSessionStarted(
@@ -19,6 +24,7 @@ final case class ClientSessionStarted(
     readerKey: _root_.scala.Predef.String = "",
     channels: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
     processUid: _root_.scala.Predef.String = "",
+    workerUid: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ClientSessionStarted] {
     @transient
@@ -55,6 +61,13 @@ final case class ClientSessionStarted(
         val __value = processUid
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+        }
+      };
+      
+      {
+        val __value = workerUid
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(6, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -98,6 +111,12 @@ final case class ClientSessionStarted(
           _output__.writeString(5, __v)
         }
       };
+      {
+        val __v = workerUid
+        if (!__v.isEmpty) {
+          _output__.writeString(6, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withAddress(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(address = __v)
@@ -108,6 +127,7 @@ final case class ClientSessionStarted(
     def addAllChannels(__vs: Iterable[_root_.scala.Predef.String]): ClientSessionStarted = copy(channels = channels ++ __vs)
     def withChannels(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ClientSessionStarted = copy(channels = __v)
     def withProcessUid(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(processUid = __v)
+    def withWorkerUid(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(workerUid = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -129,6 +149,10 @@ final case class ClientSessionStarted(
           val __t = processUid
           if (__t != "") __t else null
         }
+        case 6 => {
+          val __t = workerUid
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -139,6 +163,7 @@ final case class ClientSessionStarted(
         case 3 => _root_.scalapb.descriptors.PString(readerKey)
         case 4 => _root_.scalapb.descriptors.PRepeated(channels.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
         case 5 => _root_.scalapb.descriptors.PString(processUid)
+        case 6 => _root_.scalapb.descriptors.PString(workerUid)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -154,6 +179,7 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
     var __readerKey: _root_.scala.Predef.String = ""
     val __channels: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
     var __processUid: _root_.scala.Predef.String = ""
+    var __workerUid: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -170,6 +196,8 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
           __channels += _input__.readStringRequireUtf8()
         case 42 =>
           __processUid = _input__.readStringRequireUtf8()
+        case 50 =>
+          __workerUid = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -183,6 +211,7 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
         readerKey = __readerKey,
         channels = __channels.result(),
         processUid = __processUid,
+        workerUid = __workerUid,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -194,12 +223,13 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
         adminKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         readerKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         channels = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
-        processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(2)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(2)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(8)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(8)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
@@ -208,7 +238,8 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
     adminKey = "",
     readerKey = "",
     channels = _root_.scala.Seq.empty,
-    processUid = ""
+    processUid = "",
+    workerUid = ""
   )
   implicit class ClientSessionStartedLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted](_l) {
     def address: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.address)((c_, f_) => c_.copy(address = f_))
@@ -216,24 +247,28 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
     def readerKey: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.readerKey)((c_, f_) => c_.copy(readerKey = f_))
     def channels: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.channels)((c_, f_) => c_.copy(channels = f_))
     def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
+    def workerUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerUid)((c_, f_) => c_.copy(workerUid = f_))
   }
   final val ADDRESS_FIELD_NUMBER = 1
   final val ADMINKEY_FIELD_NUMBER = 2
   final val READERKEY_FIELD_NUMBER = 3
   final val CHANNELS_FIELD_NUMBER = 4
   final val PROCESSUID_FIELD_NUMBER = 5
+  final val WORKERUID_FIELD_NUMBER = 6
   def of(
     address: _root_.scala.Predef.String,
     adminKey: _root_.scala.Predef.String,
     readerKey: _root_.scala.Predef.String,
     channels: _root_.scala.Seq[_root_.scala.Predef.String],
-    processUid: _root_.scala.Predef.String
+    processUid: _root_.scala.Predef.String,
+    workerUid: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.process.wsmessages.ClientSessionStarted = _root_.a8.hermes.proto.process.wsmessages.ClientSessionStarted(
     address,
     adminKey,
     readerKey,
     channels,
-    processUid
+    processUid,
+    workerUid
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ClientSessionStarted])
 }
