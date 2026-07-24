@@ -1,6 +1,6 @@
 package a8.hermes.ws
 
-import a8.common.logging.Logging
+import a8.common.logging.{Level, Logging, LoggingBootstrapConfig}
 import a8.hermes.auth.SshAuth
 
 /**
@@ -30,6 +30,22 @@ import a8.hermes.auth.SshAuth
 object WsBootstrapProbeMain extends Logging {
 
   def main(args: Array[String]): Unit = {
+    // Any Logging touch fails until the global config is finalized. The full AutoBoostrap
+    // would drag in the Bootstrapper/ConfigMojo stack, which a probe has no use for — this
+    // is the minimum that makes the logging subsystem legal to call.
+    LoggingBootstrapConfig.finalizeConfig(
+      LoggingBootstrapConfig(
+        overrideSystemErr = false,
+        overrideSystemOut = false, // the WS-PROBE-* contract line must reach stdout unmangled
+        setDefaultUncaughtExceptionHandler = true,
+        fileLogging = false,
+        consoleLogging = true,
+        hasColorConsole = false,
+        appName = "hermes-ws-probe",
+        defaultLogLevel = Level.Info,
+      )
+    )
+
     val meshRootUrl = required("MESH_ROOT_URL")
     val privateKey = required("SSH_PRIVATE_KEY")
     val processUid = required("PROCESS_UID")
