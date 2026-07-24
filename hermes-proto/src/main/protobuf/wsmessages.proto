@@ -19,7 +19,115 @@ message MessageFromClient {
     SubscribeRequest               subscribeRequest           = 6;
     PublishToContinuumCentral      publishToContinuumCentral  = 7;
     BrowserSessionStart            browserSessionStart        = 8;
+    ClientSessionStart             clientSessionStart         = 9;
   }
+}
+
+// BrowserSessionStart is a CLASS-1 (browser app) session announcing itself so the
+// gateway can give it a processrun and fold it into the standard process lifecycle
+// (ledger reclaim on completion, AWOL when its pings stop). See tracker
+// FEATURE-20260714-browser-session-mailbox-accounting.
+//
+// This is deliberately NOT MessageFromRunner: a browser is an UNTRUSTED client and
+// must not marshal its own ProcessStart. It carries ONLY the fields a browser
+// legitimately knows — there is no workerUid / jobUid / jobName / eventUid slot
+// here, so a browser CANNOT set them (forge-proof by construction, not by
+// validation). The gateway TRANSLATES this into a ProcessStart server-side: it
+// forces kind=browser, leaves worker/job/event empty (worker identity resolves
+// later through the authenticated mailbox, as it already does for any process —
+// bootstrap.go:362), and stamps the server-captured IP + User-Agent (ClientInfo,
+// godev@e10a1fdb) into extraData. Class-2 CLI-over-WS clients keep using the
+// verbatim PublishToContinuumCentral relay; the two paths are distinct on purpose
+// (see tracker TASK-20260715-ws-client-class-audit).
+message BrowserSessionStart {
+  // processUid: the session's processrun uid, generated CLIENT-side — exactly as a
+  // daemon generates its own processUid (bootstrap.go: model.RandomProcessUid) and
+  // passes it into both ProcessStart and its mailbox. The browser mints this, sends
+  // it here, AND creates its mailbox with CreateMailboxRequest.processRunUid = this,
+  // so the mailbox↔processrun link is established at creation (the daemon pattern) —
+  // no post-hoc linking. processUid is identity/correlation, not a credential (the
+  // registry never authenticates it); the trust boundary is worker/job, which this
+  // message has no field for.
+  string                    processUid       = 5;
+  // tabUid: an immutable per-TAB uid, minted once by the browser when the tab
+  // loads and stable for the tab's whole life. It is the correlation key ABOVE the
+  // mailbox: one tab churns through many mailboxes (dedupe + re-mint-on-wake), all
+  // sharing one tabUid. Client-generated — a correlation label, not a credential.
+  string                    tabUid           = 1;
+  // mainName: which browser "main" / app entry point this session runs (there are
+  // several). Lands in the processrun's discovery/category so browser apps are
+  // distinguishable. Client-supplied label.
+  string                    mainName         = 2;
+  // startedAt: when this browser session began (client clock).
+  google.protobuf.Timestamp startedAt        = 3;
+  // extraData: free-form client-known context — URL, referer, locale, tz, etc. The
+  // gateway MERGES server-authoritative facts (IP, User-Agent) over this before it
+  // reaches the processrun, so a client value cannot override the server's.
+  google.protobuf.Struct    extraData        = 4;
+}
+
+// ClientSessionStart is a CLASS-3 (CLI / daemon) session bootstrapping ITSELF over the
+// WebSocket: the client connects authenticated but with NO mailbox, and the gateway mints
+// the processrun AND the mailbox server-side and binds them to THIS connection. The same
+// socket then carries the mailbox for everything after — one authenticated, load-balanced
+// connection doing bootstrap and runtime.
+// See tracker FEATURE-20260724-ws-native-bootstrap-and-mailbox-transport.
+//
+// WHY THIS EXISTS: the WS FirstMessage handshake resolves a mailbox BY READER KEY and
+// fails the connection when it is absent, so a WS connection has always required a
+// mailbox that already existed — which is why a CLI had to create one over HTTP first and
+// then open a WS for the data plane only. This message removes that ordering constraint.
+//
+// TRUST BOUNDARY — the CLI is an untrusted client, exactly like the browser, but unlike a
+// browser it legitimately HAS a worker identity. So rather than omitting the field (the
+// browser's forge-proof-by-construction trick, which works because a browser has no
+// worker), workerUid is present but OWNERSHIP-CHECKED: the gateway verifies the claimed
+// worker is owned by the AUTHENTICATED user (the workerOwnedByUser check already used for
+// the lifecycle relay) and refuses otherwise. A client may CLAIM a worker; it may not
+// claim one it does not own. kind is forced server-side and can never be the gateway-only
+// browser kind. There is deliberately NO jobUid/eventUid slot here: bootstrap does not
+// need them, and a field a client cannot set is a field it cannot forge.
+message ClientSessionStart {
+  // authToken: the caller's auth token (from SSH/oauth login). This message is the FIRST
+  // thing a WS-native client sends — it arrives BEFORE FirstMessage, because FirstMessage
+  // resolves an existing mailbox and this is the message that creates one. So it cannot
+  // rely on the connection already being authenticated; it carries and proves its own
+  // identity, validated through the same AuthProvider the HTTP endpoints use.
+  string                    authToken        = 8;
+  // processUid: the session's processrun uid, generated CLIENT-side — the daemon pattern
+  // (bootstrap.go: model.RandomProcessUid). The gateway writes the processrun row
+  // SYNCHRONOUSLY from this before it mints the mailbox, so the mailbox can never
+  // reference an owner that does not exist. Identity/correlation, not a credential.
+  string                    processUid       = 1;
+  // workerUid: the worker this process runs as. OWNERSHIP-CHECKED against the
+  // authenticated user — see the trust-boundary note above. Empty is legal (an ad-hoc CLI
+  // with no worker identity); when empty no worker link is made.
+  string                    workerUid        = 2;
+  // appName: which binary/app this is, for discovery and the processrun's category.
+  // A client-supplied label, not an authorization input.
+  string                    appName          = 3;
+  // lifecycleKind: short-lived-cli | long-lived-daemon — the coarse mailbox lifecycle the
+  // client declares; the server resolves it to concrete purge/close timeouts.
+  string                    lifecycleKind    = 4;
+  // channels: the mailbox channels to create (rpc-inbox, ...). Server-validated.
+  repeated string           channels         = 5;
+  // startedAt: when this process began (client clock).
+  google.protobuf.Timestamp startedAt        = 6;
+  // extraData: free-form client-known context. The gateway merges server-authoritative
+  // facts over this, so a client value cannot override the server's.
+  google.protobuf.Struct    extraData        = 7;
+}
+
+// ClientSessionStarted is the gateway's reply to ClientSessionStart: the keys of the
+// mailbox it just minted, so the client can use the mailbox it never created itself.
+// The mailbox is ALREADY bound to this connection when this is sent.
+message ClientSessionStarted {
+  string          address    = 1;
+  string          adminKey   = 2;
+  string          readerKey  = 3;
+  repeated string channels   = 4;
+  // processUid echoed back so the client can confirm the row the gateway committed.
+  string          processUid = 5;
 }
 
 // BrowserSessionStart is a CLASS-1 (browser app) session announcing itself so the
@@ -92,6 +200,7 @@ message MessageToClient {
     Pong                  pong                 = 4;
     Notification          notification         = 5;
     SubscribeResponse     subscribeResponse    = 6;
+    ClientSessionStarted  clientSessionStarted = 7;
   }
 }
 
