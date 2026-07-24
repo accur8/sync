@@ -58,6 +58,6 @@ object RpcFrameType extends _root_.scalapb.GeneratedEnumCompanion[RpcFrameType] 
     case 3 => ErrorResponse
     case __other => Unrecognized(__other)
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = WsmessagesProto.javaDescriptor.getEnumTypes().get(0)
-  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = WsmessagesProto.scalaDescriptor.enums(0)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = WsmessagesProto.javaDescriptor.getEnumTypes().get(2)
+  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = WsmessagesProto.scalaDescriptor.enums(2)
 }

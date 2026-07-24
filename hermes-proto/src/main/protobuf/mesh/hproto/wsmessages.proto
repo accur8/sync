@@ -3,6 +3,14 @@ syntax = "proto3";
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
+// The WS layer carries the REAL lifecycle messages rather than hand-mirrored copies or
+// opaque bytes. This import was previously avoided on the stated grounds that "the mesh
+// proto need not depend on continuum_rpc" — a self-imposed rule, not a protobuf limit, and
+// one every consumer already breaks: continuum_rpc imports discovery.proto, and godev,
+// hermes (ScalaPB) and react-playground (ts-proto) all generate continuum_rpc today.
+import "continuum/rpc/continuum_rpc.proto";
+// Inline SSH login on the socket: a CLI pays one TLS handshake instead of three.
+import "pkg/rpc/auth/auth.proto";
 
 package mesh;
 option java_package = "a8.hermes.proto.process";
@@ -19,7 +27,189 @@ message MessageFromClient {
     SubscribeRequest               subscribeRequest           = 6;
     PublishToContinuumCentral      publishToContinuumCentral  = 7;
     BrowserSessionStart            browserSessionStart        = 8;
+    ClientSessionStart             clientSessionStart         = 9;
+    ClientHello                    clientHello                = 10;
+    LoginComplete                  loginComplete              = 11;
   }
+}
+
+// ClientHello is THE first frame on every WebSocket. One message, three variants — start a
+// browser session, start a process session, or resume a mailbox that already exists — plus
+// the subscriptions this connection wants.
+//
+// It replaces the accreted handshake it supersedes: FirstMessage as the first frame, with
+// ClientSessionStart bolted on ahead of it for WS-native bootstrap. That shape cost TWO
+// round-trips (mint, then re-send the keys the gateway had just minted, only to subscribe)
+// and made the connection's CLASS depend on which message happened to arrive first — which
+// the WS gateway trust model (§2) calls "an accident of implementation, not a trust model".
+// Here the class is an explicit oneof, and create+subscribe happen in one frame.
+//
+// Spec: docs/2026-07/20260724-ws-client-protocol.md
+message ClientHello {
+  oneof start {
+    BrowserSessionStart browserSession = 1;  // no mailbox yet; requires ContinuumUser
+    ProcessSessionStart processSession = 2;  // no mailbox yet; ContinuumAdmin or a worker
+    ResumeSession       resumeSession  = 3;  // mailbox already exists
+  }
+  // What this connection wants to hear — applied for every variant, so a fresh session
+  // subscribes in the SAME frame that creates it. On a hello, MailboxSubscription.readerKey
+  // may be left empty: the gateway just resolved or minted the mailbox and knows it.
+  repeated Subscription subscriptions = 4;
+}
+
+// ProcessSessionStart is the CLASS-3 (CLI / daemon) variant. It carries the REAL
+// ProcessStartedRequest rather than a hand-picked mirror of one, so jobUid, eventUid,
+// discovery, process-manager fields, pid, cwd and command all survive — a mirror was tried
+// and silently dropped every one of them, and would drift on each new field.
+//
+// Trust model §5 says the gateway CONSTRUCTS lifecycle messages and never relays
+// client-marshaled ones. This obeys that where it matters: the gateway OVERWRITES every
+// field carrying AUTHORITY — workerUid from the authenticated identity, kind forced (never
+// the gateway-only browser kind), server-observed IP stamped over extraData — and passes
+// through only DESCRIPTIVE fields. The invariant is "authority is server-derived", not
+// "a client may not describe itself".
+message ProcessSessionStart {
+  continuum_rpc.ProcessStartedRequest process   = 1;
+  MailboxLifecycle                    lifecycle = 2;
+  repeated string                     channels  = 3;
+
+  // Present a token already held, or start the SSH login ON THIS SOCKET. Inline login costs
+  // one TLS handshake instead of three (login-begin, login-complete, then the WS); because
+  // SSH login is a challenge-response it takes three frames, but only one connection.
+  oneof auth {
+    string                 authToken  = 4;
+    auth.LoginBeginRequest loginBegin = 5;
+  }
+}
+
+// ResumeSession reattaches to a mailbox that already exists. This is what FirstMessage
+// becomes: readerKey is the only key needed (the gateway resolves the mailbox from it), so
+// FirstMessage's senderInfo.address is gone — the server compared the client's claimed
+// address to what it had just looked up, learning nothing. mailboxTimeoutInMs and meta are
+// gone too: both were read nowhere.
+//
+// A RESUME MUST NOT MINT. Re-bootstrapping on reconnect creates a second mailbox and
+// orphans the first — the failure that left 459 dead mailboxes on 2026-07-07. If the
+// mailbox is genuinely gone the gateway answers MAILBOX_NOT_FOUND and the client decides
+// deliberately whether to start a new session.
+message ResumeSession {
+  string readerKey = 1;
+  string authToken = 2;
+}
+
+// The coarse mailbox lifecycle. An enum rather than a string: the set is closed and the
+// server resolves it to concrete purge/close timeouts. UNSPECIFIED = the server default.
+enum MailboxLifecycle {
+  MAILBOX_LIFECYCLE_UNSPECIFIED = 0;
+  SHORT_LIVED_CLI               = 1;
+  LONG_LIVED_DAEMON             = 2;
+}
+
+// LoginComplete carries the client's signature over the nonce from LoginChallenge. Only
+// used on the inline-login path.
+message LoginComplete {
+  string sessionId = 1;
+  bytes  signature = 2;
+}
+
+// LoginChallenge is the nonce a client must sign. Only on the inline-login path.
+message LoginChallenge {
+  string sessionId = 1;
+  bytes  nonce     = 2;
+}
+
+// HelloError is a CODED refusal. Notification (free text) is too weak for a handshake with
+// a challenge-response in the middle: a client has to tell "give up" from "retry" without
+// parsing English.
+message HelloError {
+  HelloErrorCode code    = 1;
+  string         message = 2;  // human text; clients MUST NOT parse it
+}
+
+enum HelloErrorCode {
+  HELLO_ERROR_UNSPECIFIED = 0;
+  UNAUTHENTICATED         = 1;  // bad/expired token or signature — re-login, do NOT retry
+  FORBIDDEN               = 2;  // authenticated but wrong role — permanent
+  MAILBOX_NOT_FOUND       = 3;  // resume target gone — decide deliberately, do NOT auto-mint
+  INVALID_REQUEST         = 4;  // malformed hello — permanent
+  UNAVAILABLE             = 5;  // server/database transient — retry with backoff
+}
+
+// ClientSessionStart is a CLASS-3 (CLI / daemon) session bootstrapping ITSELF over the
+// WebSocket: the client connects authenticated but with NO mailbox, and the gateway mints
+// the processrun AND the mailbox server-side and binds them to THIS connection. The same
+// socket then carries the mailbox for everything after — one authenticated, load-balanced
+// connection doing bootstrap and runtime.
+// See tracker FEATURE-20260724-ws-native-bootstrap-and-mailbox-transport.
+//
+// WHY THIS EXISTS: the WS FirstMessage handshake resolves a mailbox BY READER KEY and
+// fails the connection when it is absent, so a WS connection has always required a
+// mailbox that already existed — which is why a CLI had to create one over HTTP first and
+// then open a WS for the data plane only. This message removes that ordering constraint.
+//
+// TRUST BOUNDARY — the CLI is an untrusted client, exactly like the browser, but unlike a
+// browser it legitimately HAS a worker identity. So rather than omitting the field (the
+// browser's forge-proof-by-construction trick, which works because a browser has no
+// worker), workerUid is present but OWNERSHIP-CHECKED: the gateway verifies the claimed
+// worker is owned by the AUTHENTICATED user (the workerOwnedByUser check already used for
+// the lifecycle relay) and refuses otherwise. A client may CLAIM a worker; it may not
+// claim one it does not own. kind is forced server-side and can never be the gateway-only
+// browser kind. There is deliberately NO jobUid/eventUid slot here: bootstrap does not
+// need them, and a field a client cannot set is a field it cannot forge.
+message ClientSessionStart {
+  // authToken: the caller's auth token (from SSH/oauth login). This message is the FIRST
+  // thing a WS-native client sends — it arrives BEFORE FirstMessage, because FirstMessage
+  // resolves an existing mailbox and this is the message that creates one. So it cannot
+  // rely on the connection already being authenticated; it carries and proves its own
+  // identity, validated through the same AuthProvider the HTTP endpoints use.
+  string                    authToken        = 8;
+
+  // The session announcement itself — the REAL message for this client's class, never a
+  // hand-picked subset of one. A mirror of ProcessStart's fields would silently drop
+  // jobUid / eventUid / discovery / process-manager / pid / cwd / command, and would drift
+  // from ProcessStart every time a field is added.
+  //
+  // WHICH BRANCH A CLIENT MAY SEND IS AN AUTHORIZATION QUESTION, not a schema one:
+  //   - process : requires ContinuumAdmin OR a worker. Full fidelity, because a CLI /
+  //               daemon legitimately owns job/event/discovery facts.
+  //   - browser : requires ContinuumUser (minimum). Fewer fields BY NATURE — a browser has
+  //               no worker, job or event to describe.
+  // So forge-proofing lives on IDENTITY, not on field absence. The gateway still stamps
+  // server-authoritative facts (IP) over anything the client sent, still forces the
+  // processrun kind, and kind=browser remains gateway-only on the process branch.
+  //
+  // NOTE workerUid is NOT here: the gateway correlates it from the AUTHENTICATED identity,
+  // and login-complete returns it to the client. A field a client cannot send is a field it
+  // cannot forge — better than validating an assertion.
+  oneof session {
+    BrowserSessionStart                 browser = 9;
+    continuum_rpc.ProcessStartedRequest process = 10;
+  }
+
+  // lifecycleKind: short-lived-cli | long-lived-daemon — the coarse mailbox lifecycle the
+  // client declares; the server resolves it to concrete purge/close timeouts. A MAILBOX
+  // concern, which is why it is here rather than on the session message.
+  string                    lifecycleKind    = 4;
+  // channels: the mailbox channels to create (rpc-inbox, ...). Server-validated. Also a
+  // mailbox concern.
+  repeated string           channels         = 5;
+}
+
+// ClientSessionStarted is the gateway's reply to ClientSessionStart: the keys of the
+// mailbox it just minted, so the client can use the mailbox it never created itself.
+// The mailbox is ALREADY bound to this connection when this is sent.
+message ClientSessionStarted {
+  string          address    = 1;
+  string          adminKey   = 2;
+  string          readerKey  = 3;
+  repeated string channels   = 4;
+  // processUid: the row the gateway committed. MINTED by the gateway for a browser
+  // session; echoed back for a process session, which supplies its own.
+  string          processUid = 5;
+  // workerUid: the identity the gateway RESOLVED for this connection, returned so a client
+  // learns who it is from the exchange instead of asserting it. Empty when the identity is
+  // not a worker (a human at a CLI, a browser user).
+  string          workerUid  = 6;
 }
 
 // BrowserSessionStart is a CLASS-1 (browser app) session announcing itself so the
@@ -39,15 +229,14 @@ message MessageFromClient {
 // verbatim PublishToContinuumCentral relay; the two paths are distinct on purpose
 // (see tracker TASK-20260715-ws-client-class-audit).
 message BrowserSessionStart {
-  // processUid: the session's processrun uid, generated CLIENT-side — exactly as a
-  // daemon generates its own processUid (bootstrap.go: model.RandomProcessUid) and
-  // passes it into both ProcessStart and its mailbox. The browser mints this, sends
-  // it here, AND creates its mailbox with CreateMailboxRequest.processRunUid = this,
-  // so the mailbox↔processrun link is established at creation (the daemon pattern) —
-  // no post-hoc linking. processUid is identity/correlation, not a credential (the
-  // registry never authenticates it); the trust boundary is worker/job, which this
-  // message has no field for.
-  string                    processUid       = 5;
+  // Tag 5 held processUid, which the browser used to generate. The GATEWAY now mints it and
+  // returns it on ClientSessionStarted: it was never a credential, and server-owned means
+  // one fewer thing a browser asserts about itself. Reserved so the tag is never reused.
+  reserved 5;
+  reserved "processUid";
+
+  // --- CLIENT-PROVIDED: things only the browser knows. ---
+
   // tabUid: an immutable per-TAB uid, minted once by the browser when the tab
   // loads and stable for the tab's whole life. It is the correlation key ABOVE the
   // mailbox: one tab churns through many mailboxes (dedupe + re-mint-on-wake), all
@@ -59,9 +248,22 @@ message BrowserSessionStart {
   string                    mainName         = 2;
   // startedAt: when this browser session began (client clock).
   google.protobuf.Timestamp startedAt        = 3;
-  // extraData: free-form client-known context — URL, referer, locale, tz, etc. The
-  // gateway MERGES server-authoritative facts (IP, User-Agent) over this before it
-  // reaches the processrun, so a client value cannot override the server's.
+  // The page context, TOP-LEVEL and typed. These previously lived inside an untyped
+  // extraData struct alongside the server's own facts, so "who set this" was a convention
+  // rather than something the schema stated.
+  string                    url              = 6;
+  string                    referer          = 7;
+  string                    locale           = 8;
+  string                    timezone         = 9;
+  // authToken: obtained out of band via OAuth. A browser does not do the SSH challenge.
+  string                    authToken        = 10;
+
+  // --- SERVER-POLYFILLED from the request: a client value here is IGNORED, not merged. ---
+  string                    ip               = 11;
+  string                    userAgent        = 12;
+
+  // extraData: anything else client-known that has no field of its own. Server-authoritative
+  // facts are NOT merged into this any more — they have real fields above.
   google.protobuf.Struct    extraData        = 4;
 }
 
@@ -92,6 +294,9 @@ message MessageToClient {
     Pong                  pong                 = 4;
     Notification          notification         = 5;
     SubscribeResponse     subscribeResponse    = 6;
+    ClientSessionStarted  clientSessionStarted = 7;
+    LoginChallenge        loginChallenge       = 8;
+    HelloError            helloError           = 9;
   }
 }
 

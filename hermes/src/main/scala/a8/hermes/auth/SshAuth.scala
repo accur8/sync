@@ -113,7 +113,9 @@ object SshAuth extends Logging {
   /**
    * Read SSH public key from file
    */
-  private def readPublicKey(publicKeyPath: String): String = {
+  // Not private: the WS inline-login path signs the gateway's nonce with the SAME
+  // ssh-keygen invocation this NATS path uses. A second copy would drift.
+  def readPublicKey(publicKeyPath: String): String = {
     val expanded = expandHome(publicKeyPath)
     val path = Paths.get(expanded)
 
@@ -136,7 +138,7 @@ object SshAuth extends Logging {
    *
    * Command: echo -n <nonce_base64> | ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n continuum
    */
-  private def signNonce(nonce: Array[Byte], privateKeyPath: String): Array[Byte] = {
+  def signNonce(nonce: Array[Byte], privateKeyPath: String): Array[Byte] = {
     val expanded = expandHome(privateKeyPath)
     val noncePath = Paths.get(expanded)
 

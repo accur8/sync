@@ -67,6 +67,6 @@ object ContentType extends _root_.scalapb.GeneratedEnumCompanion[ContentType] {
     case 4 => Text
     case __other => Unrecognized(__other)
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = WsmessagesProto.javaDescriptor.getEnumTypes().get(1)
-  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = WsmessagesProto.scalaDescriptor.enums(1)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = WsmessagesProto.javaDescriptor.getEnumTypes().get(3)
+  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = WsmessagesProto.scalaDescriptor.enums(3)
 }

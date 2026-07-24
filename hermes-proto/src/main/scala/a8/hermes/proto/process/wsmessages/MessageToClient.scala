@@ -38,6 +38,18 @@ final case class MessageToClient(
         val __value = message.subscribeResponse.get
         __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
       };
+      if (message.clientSessionStarted.isDefined) {
+        val __value = message.clientSessionStarted.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      if (message.loginChallenge.isDefined) {
+        val __value = message.loginChallenge.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
+      if (message.helloError.isDefined) {
+        val __value = message.helloError.get
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -87,6 +99,24 @@ final case class MessageToClient(
         _output__.writeUInt32NoTag(__m.serializedSize)
         __m.writeTo(_output__)
       };
+      message.clientSessionStarted.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(7, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
+      message.loginChallenge.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(8, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
+      message.helloError.foreach { __v =>
+        val __m = __v
+        _output__.writeTag(9, 2)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
+      };
       unknownFields.writeTo(_output__)
     }
     def getMessageEnvelope: a8.hermes.proto.process.wsmessages.MessageEnvelope = message.messageEnvelope.getOrElse(a8.hermes.proto.process.wsmessages.MessageEnvelope.defaultInstance)
@@ -101,6 +131,12 @@ final case class MessageToClient(
     def withNotification(__v: a8.hermes.proto.process.wsmessages.Notification): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(__v))
     def getSubscribeResponse: a8.hermes.proto.process.wsmessages.SubscribeResponse = message.subscribeResponse.getOrElse(a8.hermes.proto.process.wsmessages.SubscribeResponse.defaultInstance)
     def withSubscribeResponse(__v: a8.hermes.proto.process.wsmessages.SubscribeResponse): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(__v))
+    def getClientSessionStarted: a8.hermes.proto.process.wsmessages.ClientSessionStarted = message.clientSessionStarted.getOrElse(a8.hermes.proto.process.wsmessages.ClientSessionStarted.defaultInstance)
+    def withClientSessionStarted(__v: a8.hermes.proto.process.wsmessages.ClientSessionStarted): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(__v))
+    def getLoginChallenge: a8.hermes.proto.process.wsmessages.LoginChallenge = message.loginChallenge.getOrElse(a8.hermes.proto.process.wsmessages.LoginChallenge.defaultInstance)
+    def withLoginChallenge(__v: a8.hermes.proto.process.wsmessages.LoginChallenge): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.LoginChallenge(__v))
+    def getHelloError: a8.hermes.proto.process.wsmessages.HelloError = message.helloError.getOrElse(a8.hermes.proto.process.wsmessages.HelloError.defaultInstance)
+    def withHelloError(__v: a8.hermes.proto.process.wsmessages.HelloError): MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.HelloError(__v))
     def clearMessage: MessageToClient = copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Empty)
     def withMessage(__v: a8.hermes.proto.process.wsmessages.MessageToClient.Message): MessageToClient = copy(message = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
@@ -113,6 +149,9 @@ final case class MessageToClient(
         case 4 => message.pong.orNull
         case 5 => message.notification.orNull
         case 6 => message.subscribeResponse.orNull
+        case 7 => message.clientSessionStarted.orNull
+        case 8 => message.loginChallenge.orNull
+        case 9 => message.helloError.orNull
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -124,6 +163,9 @@ final case class MessageToClient(
         case 4 => message.pong.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 5 => message.notification.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 6 => message.subscribeResponse.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 7 => message.clientSessionStarted.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 8 => message.loginChallenge.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+        case 9 => message.helloError.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -153,6 +195,12 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
           __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(__message.notification.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.Notification](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case 50 =>
           __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(__message.subscribeResponse.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.SubscribeResponse](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 58 =>
+          __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(__message.clientSessionStarted.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.ClientSessionStarted](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 66 =>
+          __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.LoginChallenge(__message.loginChallenge.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.LoginChallenge](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+        case 74 =>
+          __message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.HelloError(__message.helloError.fold(_root_.scalapb.LiteParser.readMessage[a8.hermes.proto.process.wsmessages.HelloError](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -175,12 +223,15 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
             .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.Pong]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.Pong(_)))
             .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.Notification]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(_)))
             .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeResponse]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(_)))
+            .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStarted]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(_)))
+            .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(8).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.LoginChallenge]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.LoginChallenge(_)))
+            .orElse[a8.hermes.proto.process.wsmessages.MessageToClient.Message](__fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).flatMap(_.as[_root_.scala.Option[a8.hermes.proto.process.wsmessages.HelloError]]).map(a8.hermes.proto.process.wsmessages.MessageToClient.Message.HelloError(_)))
             .getOrElse(a8.hermes.proto.process.wsmessages.MessageToClient.Message.Empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(4)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(4)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = WsmessagesProto.javaDescriptor.getMessageTypes().get(12)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = WsmessagesProto.scalaDescriptor.messages(12)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
     (__number: @_root_.scala.unchecked) match {
@@ -190,6 +241,9 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
       case 4 => __out = a8.hermes.proto.process.wsmessages.Pong
       case 5 => __out = a8.hermes.proto.process.wsmessages.Notification
       case 6 => __out = a8.hermes.proto.process.wsmessages.SubscribeResponse
+      case 7 => __out = a8.hermes.proto.process.wsmessages.ClientSessionStarted
+      case 8 => __out = a8.hermes.proto.process.wsmessages.LoginChallenge
+      case 9 => __out = a8.hermes.proto.process.wsmessages.HelloError
     }
     __out
   }
@@ -207,12 +261,18 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     def isPong: _root_.scala.Boolean = false
     def isNotification: _root_.scala.Boolean = false
     def isSubscribeResponse: _root_.scala.Boolean = false
+    def isClientSessionStarted: _root_.scala.Boolean = false
+    def isLoginChallenge: _root_.scala.Boolean = false
+    def isHelloError: _root_.scala.Boolean = false
     def messageEnvelope: _root_.scala.Option[a8.hermes.proto.process.wsmessages.MessageEnvelope] = _root_.scala.None
     def sendMessageResponse: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SendMessageResponse] = _root_.scala.None
     def ping: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Ping] = _root_.scala.None
     def pong: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Pong] = _root_.scala.None
     def notification: _root_.scala.Option[a8.hermes.proto.process.wsmessages.Notification] = _root_.scala.None
     def subscribeResponse: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeResponse] = _root_.scala.None
+    def clientSessionStarted: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStarted] = _root_.scala.None
+    def loginChallenge: _root_.scala.Option[a8.hermes.proto.process.wsmessages.LoginChallenge] = _root_.scala.None
+    def helloError: _root_.scala.Option[a8.hermes.proto.process.wsmessages.HelloError] = _root_.scala.None
   }
   object Message {
     @SerialVersionUID(0L)
@@ -266,6 +326,27 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
       override def subscribeResponse: _root_.scala.Option[a8.hermes.proto.process.wsmessages.SubscribeResponse] = Some(value)
       override def number: _root_.scala.Int = 6
     }
+    @SerialVersionUID(0L)
+    final case class ClientSessionStarted(value: a8.hermes.proto.process.wsmessages.ClientSessionStarted) extends a8.hermes.proto.process.wsmessages.MessageToClient.Message {
+      type ValueType = a8.hermes.proto.process.wsmessages.ClientSessionStarted
+      override def isClientSessionStarted: _root_.scala.Boolean = true
+      override def clientSessionStarted: _root_.scala.Option[a8.hermes.proto.process.wsmessages.ClientSessionStarted] = Some(value)
+      override def number: _root_.scala.Int = 7
+    }
+    @SerialVersionUID(0L)
+    final case class LoginChallenge(value: a8.hermes.proto.process.wsmessages.LoginChallenge) extends a8.hermes.proto.process.wsmessages.MessageToClient.Message {
+      type ValueType = a8.hermes.proto.process.wsmessages.LoginChallenge
+      override def isLoginChallenge: _root_.scala.Boolean = true
+      override def loginChallenge: _root_.scala.Option[a8.hermes.proto.process.wsmessages.LoginChallenge] = Some(value)
+      override def number: _root_.scala.Int = 8
+    }
+    @SerialVersionUID(0L)
+    final case class HelloError(value: a8.hermes.proto.process.wsmessages.HelloError) extends a8.hermes.proto.process.wsmessages.MessageToClient.Message {
+      type ValueType = a8.hermes.proto.process.wsmessages.HelloError
+      override def isHelloError: _root_.scala.Boolean = true
+      override def helloError: _root_.scala.Option[a8.hermes.proto.process.wsmessages.HelloError] = Some(value)
+      override def number: _root_.scala.Int = 9
+    }
   }
   implicit class MessageToClientLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageToClient]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.MessageToClient](_l) {
     def messageEnvelope: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageEnvelope] = field(_.getMessageEnvelope)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.MessageEnvelope(f_)))
@@ -274,6 +355,9 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
     def pong: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Pong] = field(_.getPong)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Pong(f_)))
     def notification: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.Notification] = field(_.getNotification)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.Notification(f_)))
     def subscribeResponse: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.SubscribeResponse] = field(_.getSubscribeResponse)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.SubscribeResponse(f_)))
+    def clientSessionStarted: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted] = field(_.getClientSessionStarted)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.ClientSessionStarted(f_)))
+    def loginChallenge: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.LoginChallenge] = field(_.getLoginChallenge)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.LoginChallenge(f_)))
+    def helloError: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.HelloError] = field(_.getHelloError)((c_, f_) => c_.copy(message = a8.hermes.proto.process.wsmessages.MessageToClient.Message.HelloError(f_)))
     def message: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.MessageToClient.Message] = field(_.message)((c_, f_) => c_.copy(message = f_))
   }
   final val MESSAGEENVELOPE_FIELD_NUMBER = 1
@@ -282,6 +366,9 @@ object MessageToClient extends scalapb.GeneratedMessageCompanion[a8.hermes.proto
   final val PONG_FIELD_NUMBER = 4
   final val NOTIFICATION_FIELD_NUMBER = 5
   final val SUBSCRIBERESPONSE_FIELD_NUMBER = 6
+  final val CLIENTSESSIONSTARTED_FIELD_NUMBER = 7
+  final val LOGINCHALLENGE_FIELD_NUMBER = 8
+  final val HELLOERROR_FIELD_NUMBER = 9
   def of(
     message: a8.hermes.proto.process.wsmessages.MessageToClient.Message
   ): _root_.a8.hermes.proto.process.wsmessages.MessageToClient = _root_.a8.hermes.proto.process.wsmessages.MessageToClient(

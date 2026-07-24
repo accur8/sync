@@ -14,25 +14,47 @@ echo "=== Copying proto files from godev ==="
 # Create proto directory if it doesn't exist
 mkdir -p "$PROTO_DIR"
 
-# Copy proto files we need from godev
-cp "$GODEV_DIR/continuum/rpc/continuum_rpc.proto" "$PROTO_DIR/continuum_rpc.proto"
-cp "$GODEV_DIR/mesh/hproto/wsmessages.proto" "$PROTO_DIR/wsmessages.proto"
-cp "$GODEV_DIR/pkg/rpc/auth/auth.proto" "$PROTO_DIR/"
-cp "$GODEV_DIR/pkg/rpc/mailbox/mailbox.proto" "$PROTO_DIR/"
-cp "$GODEV_DIR/pkg/rpc/process/process_rpc.proto" "$PROTO_DIR/"
-cp "$GODEV_DIR/pkg/rpc/db/db.proto" "$PROTO_DIR/"
-cp "$GODEV_DIR/pkg/rpc/fileset/fileset.proto" "$PROTO_DIR/"
-# continuum_rpc.proto imports pkg/discovery/discovery.proto; keep a local copy for compilation
-mkdir -p "$PROTO_DIR/pkg/discovery"
-cp "$GODEV_DIR/pkg/discovery/discovery.proto" "$PROTO_DIR/pkg/discovery/discovery.proto"
+# MIRROR GODEV'S LAYOUT — do not flatten.
+#
+# protos import each other by REPO-ROOT-RELATIVE path (continuum_rpc.proto imports
+# "pkg/discovery/discovery.proto"; wsmessages.proto imports "continuum/rpc/continuum_rpc.proto"
+# and "pkg/rpc/auth/auth.proto"). Copying files to flat names breaks every one of those,
+# and copying the SAME file to two paths is worse: protoc treats path as identity, so the
+# messages appear twice and every cross-file reference becomes ambiguous.
+#
+# Keeping the tree identical to godev's means an import that resolves there resolves here,
+# with no rewriting and no special cases.
+copy_proto() {
+  local rel="$1"
+  mkdir -p "$PROTO_DIR/$(dirname "$rel")"
+  cp "$GODEV_DIR/$rel" "$PROTO_DIR/$rel"
+}
 
-echo "✓ Copied 7 proto files (+ discovery dependency)"
+# Clear previously-flattened copies so a stale duplicate cannot shadow the real tree.
+rm -f "$PROTO_DIR"/continuum_rpc.proto "$PROTO_DIR"/wsmessages.proto "$PROTO_DIR"/auth.proto \
+      "$PROTO_DIR"/mailbox.proto "$PROTO_DIR"/process_rpc.proto "$PROTO_DIR"/db.proto \
+      "$PROTO_DIR"/fileset.proto
+
+PROTOS=(
+  continuum/rpc/continuum_rpc.proto
+  mesh/hproto/wsmessages.proto
+  pkg/rpc/auth/auth.proto
+  pkg/rpc/mailbox/mailbox.proto
+  pkg/rpc/process/process_rpc.proto
+  pkg/rpc/db/db.proto
+  pkg/rpc/fileset/fileset.proto
+  pkg/discovery/discovery.proto
+)
+for rel in "${PROTOS[@]}"; do copy_proto "$rel"; done
+
+echo "✓ Copied ${#PROTOS[@]} proto files, mirroring godev's layout"
 
 # Fix package declarations for Scala
 echo ""
 echo "=== Fixing proto package declarations ==="
 
-for proto in "$PROTO_DIR"/*.proto "$PROTO_DIR/pkg/discovery"/*.proto; do
+# Walk the mirrored tree; google/protobuf/* are vendored well-known types and are skipped.
+while IFS= read -r proto; do
   filename=$(basename "$proto")
   echo "Processing $filename..."
 
@@ -71,7 +93,7 @@ $package_line\\
 option java_multiple_files = true;
 " "$proto"
   fi
-done
+done < <(find "$PROTO_DIR" -name '*.proto' -not -path "$PROTO_DIR/google/*")
 
 echo "✓ Fixed package declarations"
 
@@ -100,10 +122,13 @@ rm -rf "$SCALA_OUT_DIR/com/google/protobuf"
 #   --proto_path=<dir>            - Where to find proto files (can be repeated)
 echo "Generating Scala code..."
 
+# Generate for every mirrored proto. --proto_path is the tree root, so the repo-root-relative
+# imports inside the files resolve exactly as they do in godev.
+mapfile -t GEN_PROTOS < <(find "$PROTO_DIR" -name '*.proto' -not -path "$PROTO_DIR/google/*")
 scalapbc \
   "--scala_out=$SCALA_OUT_DIR" \
   "--proto_path=$PROTO_DIR" \
-  "$PROTO_DIR"/*.proto "$PROTO_DIR/pkg/discovery"/*.proto
+  "${GEN_PROTOS[@]}"
 
 echo "✓ Generated Scala code"
 
