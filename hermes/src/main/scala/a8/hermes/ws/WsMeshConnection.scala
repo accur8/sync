@@ -1,12 +1,19 @@
 package a8.hermes.ws
 
 import a8.common.logging.Logging
+import a8.hermes.proto.auth.auth.LoginBeginRequest
+import a8.hermes.proto.continuum.continuum_rpc.ProcessStartedRequest
 import a8.hermes.proto.process.wsmessages.{
-  ClientSessionStart,
+  ClientHello,
   ClientSessionStarted,
+  LoginComplete,
+  MailboxLifecycle,
   MessageFromClient,
   MessageToClient,
+  ProcessSessionStart,
+  Subscription,
 }
+import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
 
 import java.net.URI
@@ -141,42 +148,83 @@ class WsMeshConnection(uri: URI) extends Logging {
   }
 
   /**
-   * The WS-NATIVE BOOTSTRAP exchange: send ClientSessionStart and wait for the gateway's
+   * The WS-NATIVE BOOTSTRAP exchange: send ClientHello and wait for the gateway's
    * ClientSessionStarted carrying the keys of the mailbox it minted.
+   *
+   * ONE frame does session-start AND subscribe. The old shape needed two (mint, then re-send
+   * the keys the gateway had just handed back, only to subscribe) — the subscriptions ride on
+   * the hello now, so there is nothing to send afterwards.
    *
    * The gateway writes the processrun row SYNCHRONOUSLY and mints the mailbox linked to it
    * before replying, so by the time this returns the mailbox's owner is durable — which is
    * exactly what the create-mailbox hard check enforces server-side.
    *
-   * The auth token rides ON the message: this is the FIRST thing sent, before FirstMessage,
-   * so the connection is not authenticated yet and cannot be leaned on.
+   * Auth rides ON the hello, as one of two variants: an already-minted token, or a
+   * login-begin that gets answered with a nonce to sign (see awaitSessionStarted). Either
+   * way the connection is not authenticated until the gateway says so, and nothing about
+   * the socket itself can be leaned on as a credential.
    */
   def bootstrap(
     authToken: String,
     processUid: String,
-    workerUid: String,
     appName: String,
-    lifecycleKind: String,
+    lifecycleKind: MailboxLifecycle,
     channels: Seq[String],
+    subscriptions: Seq[Subscription] = Seq.empty,
+    sshPublicKey: String = "",
+    sshOrigin: String = "",
+    signNonce: Array[Byte] => Array[Byte] = null,
   ): ClientSessionStarted = {
-    require(authToken.nonEmpty, "ws-native bootstrap requires an auth token")
+    val inlineLogin = authToken.isEmpty && signNonce != null && sshPublicKey.nonEmpty
+    require(
+      authToken.nonEmpty || inlineLogin,
+      "ws-native bootstrap needs either an auth token or inline-login credentials (sshPublicKey + signNonce)",
+    )
+
     val now = Instant.now()
+    val processStart =
+      ProcessStartedRequest(
+        processUid = processUid,
+        command = Seq(appName),
+        startedAt = Some(Timestamp(seconds = now.getEpochSecond, nanos = now.getNano)),
+      )
+
+    // ONE FRAME: the session announcement AND the subscriptions. No workerUid — the
+    // gateway derives it from the authenticated identity, so a client cannot assert one.
+    val auth: ProcessSessionStart.Auth =
+      if (inlineLogin) ProcessSessionStart.Auth.LoginBegin(LoginBeginRequest(sshPublicKey = sshPublicKey, origin = sshOrigin))
+      else ProcessSessionStart.Auth.AuthToken(authToken)
+
     send(
       MessageFromClient(
-        MessageFromClient.Message.ClientSessionStart(
-          ClientSessionStart(
-            authToken = authToken,
-            processUid = processUid,
-            workerUid = workerUid,
-            appName = appName,
-            lifecycleKind = lifecycleKind,
-            channels = channels,
-            startedAt = Some(Timestamp(seconds = now.getEpochSecond, nanos = now.getNano)),
+        MessageFromClient.Message.ClientHello(
+          ClientHello(
+            start = ClientHello.Start.ProcessSession(
+              ProcessSessionStart(
+                process = Some(processStart),
+                lifecycle = lifecycleKind,
+                channels = channels,
+                auth = auth,
+              )
+            ),
+            subscriptions = subscriptions,
           )
         )
       )
     )
 
+    awaitSessionStarted(inlineLogin, signNonce)
+  }
+
+  /**
+   * Read the gateway's answer, handling the INLINE LOGIN challenge when it comes: the
+   * gateway replies with a nonce, signing it proves possession of the key, and the session
+   * continues on this same socket. One TLS handshake instead of three.
+   */
+  private def awaitSessionStarted(
+    inlineLogin: Boolean,
+    signNonce: Array[Byte] => Array[Byte],
+  ): ClientSessionStarted = {
     receive(BootstrapTimeout) match {
       case None =>
         throw new RuntimeException(s"ws-native bootstrap: no reply within $BootstrapTimeout (is a mesh server running at $uri?)")
@@ -185,10 +233,29 @@ class WsMeshConnection(uri: URI) extends Logging {
           case MessageToClient.Message.ClientSessionStarted(started) =>
             logger.info(s"ws-native bootstrap: gateway minted mailbox ${started.address} for processrun ${started.processUid}")
             started
+
+          case MessageToClient.Message.LoginChallenge(challenge) if inlineLogin =>
+            val signature = signNonce(challenge.nonce.toByteArray)
+            send(
+              MessageFromClient(
+                MessageFromClient.Message.LoginComplete(
+                  LoginComplete(
+                    sessionId = challenge.sessionId,
+                    signature = ByteString.copyFrom(signature),
+                  )
+                )
+              )
+            )
+            awaitSessionStarted(inlineLogin = false, signNonce = null)
+
+          case MessageToClient.Message.HelloError(err) =>
+            // A CODED refusal: the code is what a retry policy reads, the text is the
+            // actual reason. Surface both.
+            throw new RuntimeException(s"ws-native bootstrap refused by the gateway [${err.code}]: ${err.message}")
+
           case MessageToClient.Message.Notification(n) =>
-            // The gateway refuses with a Notification (bad token, unowned worker, ...).
-            // Surface its text: that IS the reason bootstrap failed.
             throw new RuntimeException(s"ws-native bootstrap refused by the gateway: ${n.message}")
+
           case other =>
             throw new RuntimeException(s"ws-native bootstrap: expected ClientSessionStarted, got ${other.getClass.getSimpleName}")
         }

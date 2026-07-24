@@ -169,48 +169,54 @@ object WsMailbox extends Logging {
    * WS-NATIVE BOOTSTRAP: dial, authenticate, and have the gateway write the processrun and
    * mint the mailbox — then keep that socket as the mailbox's transport.
    *
-   * workerUid is OWNERSHIP-CHECKED server-side against the authenticated user (claiming a
-   * worker you do not own is refused, not silently accepted); empty is legal for an ad-hoc
-   * CLI. The gateway commits the processrun row BEFORE minting, so the mailbox can never
-   * name an owner that does not exist.
+   * The worker is DERIVED server-side from the authenticated identity. There is no workerUid
+   * parameter because there is nothing for a client to assert and therefore nothing to forge.
+   * The gateway commits the processrun row BEFORE minting, so the mailbox can never name an
+   * owner that does not exist.
+   *
+   * Auth is either an existing token or, when `signNonce` is supplied with an SSH public key,
+   * an inline login on this very socket — one TLS handshake for the whole bootstrap instead
+   * of three. Possession of SSH keys is the process-class credential.
    */
   def bootstrap(
     meshRootUrl: String,
-    authToken: String,
+    authToken: String = "",
     processUid: String,
-    workerUid: String = "",
     appName: String = "hermes",
-    lifecycleKind: String = "short-lived-cli",
+    lifecycleKind: ws.MailboxLifecycle = ws.MailboxLifecycle.SHORT_LIVED_CLI,
     channels: Seq[String] = Seq(Channel.RpcInbox.name),
+    sshPublicKey: String = "",
+    sshOrigin: String = "hermes",
+    signNonce: Array[Byte] => Array[Byte] = null,
   ): WsMailbox = {
     val conn = WsMeshConnection.connect(meshRootUrl)
     try {
-      val started = conn.bootstrap(authToken, processUid, workerUid, appName, lifecycleKind, channels)
-
-      // Assert the subscription for this mailbox's inbox, exactly as the godev client does
-      // after its own bootstrap: FirstMessage carries the keys the gateway just handed us.
-      conn.send(
-        ws.MessageFromClient(
-          ws.MessageFromClient.Message.FirstMessage(
-            ws.FirstMessage(
-              senderInfo = Some(ws.SenderInfo(readerKey = started.readerKey, address = started.address)),
-              subscriptions = Seq(
-                ws.Subscription(
-                  ws.Subscription.Oneof.Mailbox(
-                    ws.MailboxSubscription(
-                      id = Channel.RpcInbox.name,
-                      channel = Channel.RpcInbox.name,
-                      readerKey = started.readerKey,
-                      startSeq = "first",
-                    )
-                  )
+      // ONE FRAME does session-start AND subscribe. The gateway resolves a mailbox
+      // subscription by readerKey — which the client does not have yet — so it fills the
+      // minted keys in server-side. Omitting that fill is what silently dropped the
+      // subscription and hung the first RPC for 80s during the godev work.
+      val started =
+        conn.bootstrap(
+          authToken = authToken,
+          processUid = processUid,
+          appName = appName,
+          lifecycleKind = lifecycleKind,
+          channels = channels,
+          subscriptions = Seq(
+            ws.Subscription(
+              ws.Subscription.Oneof.Mailbox(
+                ws.MailboxSubscription(
+                  id = Channel.RpcInbox.name,
+                  channel = Channel.RpcInbox.name,
+                  startSeq = "first",
                 )
-              ),
-              authToken = authToken,
+              )
             )
-          )
+          ),
+          sshPublicKey = sshPublicKey,
+          sshOrigin = sshOrigin,
+          signNonce = signNonce,
         )
-      )
 
       val now = Instant.now()
       val metadata =
