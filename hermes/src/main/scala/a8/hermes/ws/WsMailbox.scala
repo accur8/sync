@@ -22,7 +22,7 @@ import scala.concurrent.duration.*
  * See tracker FEATURE-20260724-ws-native-bootstrap-and-mailbox-transport.
  *
  * Sending is a SendMessageRequest addressed to the recipient; receiving is the gateway
- * pushing MessageEnvelopes for the subscriptions asserted on FirstMessage. The subject
+ * pushing MessageEnvelopes for the subscriptions asserted on the ClientHello. The subject
  * arithmetic SimpleMailbox does (mesh.<address>.<channel>) has no analogue here — the
  * gateway routes, which is the point of going through it.
  */
@@ -76,8 +76,8 @@ class WsMailbox(
   /**
    * Inbound messages for `channel`, as they arrive on the socket.
    *
-   * The subscription itself was asserted on FirstMessage during bootstrap (the gateway
-   * pushes without a further request), so this only decodes what arrives. Envelopes for
+   * The subscription itself rode on the ClientHello during bootstrap (the gateway pushes
+   * without a further request), so this only decodes what arrives. Envelopes for
    * other channels are skipped rather than failing the stream: one socket carries every
    * subscription, so seeing another channel's traffic is normal, not an error.
    */
