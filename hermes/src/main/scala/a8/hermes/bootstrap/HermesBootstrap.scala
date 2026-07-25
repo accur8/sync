@@ -1,7 +1,7 @@
 package a8.hermes.bootstrap
 
 import a8.hermes.core.{Mailbox, MailboxTransport, Uid}
-import a8.hermes.{nats, auth}
+import a8.hermes.{nats, auth, ws}
 import a8.hermes.continuum.ContinuumRunnerClient
 import a8.hermes.nats.NatsTransport
 import a8.hermes.proto.continuum.continuum_rpc.{ProcessCompletedRequest, ProcessStartedRequest}
@@ -100,54 +100,41 @@ object HermesBootstrap extends Logging {
         else if (longLived) jvmProcessUid.updateAndGet(u => if (u == null) Uid.uid32() else u)
         else ""
 
-      // Step 3: Create/Acquire Mailbox
-      // Use named mailbox if configured, otherwise create ephemeral
+      // Step 3: Acquire the mailbox — THREE ways, in priority order, all ending with a
+      // NATS-serving Mailbox (run over direct NATS regardless of how it was acquired):
+      //   1. DURABLE ATTACH (config carries namedMailboxKeys): attach to a pre-provisioned
+      //      named mailbox by its keys — no create, no mesh.mailbox.v1.fetch. The config file
+      //      is the gate. (FEATURE-20260725-durable-named-mailbox-out-of-band-config)
+      //   2. WS-MINT (httpUrl set): bootstrap an ephemeral mailbox over the WS gateway
+      //      (ClientHello inline login), take its keys, attach a NATS mailbox to them, drop the
+      //      WS. No mesh.mailbox.v1.create. (FEATURE-20260724-remove-mesh-control-req-reply-...)
+      //   3. LEGACY CREATE (neither): the old fetchOrCreate/createNonDurable over
+      //      mesh.mailbox.v1.* — the fallback until httpUrl / namedMailboxKeys are deployed.
       mailbox <- Resource.acquireRelease {
-        appConfig.namedMailbox match {
-          case Some(name) =>
-            logger.info(s"Creating named mailbox: $name")
-            nats.NatsMailboxClient.fetchOrCreateNamedMailbox(
-              address = Mailbox.MailboxAddress(name),
-              natsTransport = natsTransport
-            )(using ctx) match {
-              case scala.util.Success(mbox) =>
-                logger.info(s"✓ Created named mailbox: ${mbox.address.value}")
-                mbox
-              case scala.util.Failure(e) =>
-                logger.error(s"Failed to create named mailbox: ${e.getMessage}", e)
-                throw new RuntimeException(s"Failed to create named mailbox: ${e.getMessage}", e)
-            }
-          case None =>
-            // Link the ephemeral mailbox to the owning processrun when one exists
-            // (runner-spawned or a long-lived daemon that announces its own — see
-            // the hoisted processUid above). Empty for a bare CLI.
-            logger.info(s"Creating non-durable mailbox for client (lifecycle=${appConfig.mailboxLifecycle})...")
-            nats.NatsMailboxClient.createNonDurableMailbox(natsTransport, appConfig.mailboxLifecycle, processUid)(using ctx) match {
-              case scala.util.Success(mbox) =>
-                logger.info(s"✓ Created mailbox: ${mbox.address.value}")
-                mbox
-              case scala.util.Failure(e) =>
-                logger.error(s"Failed to create mailbox: ${e.getMessage}", e)
-                throw new RuntimeException(s"Failed to create mailbox: ${e.getMessage}", e)
-            }
-        }
+        acquireMailbox(bootstrapConfig, appConfig, processUid, natsTransport)(using ctx)
       } { mbox =>
         logger.debug(s"Releasing mailbox: ${mbox.address.value}")
         // Mailbox cleanup happens automatically via NATS TTL
       }
 
-      // Step 3b: Start a mailbox pinger that keeps this mailbox's lastActivity fresh
-      // (via the mesh mailbox-records endpoints — records live in pg on the mesh server)
-      // so the mesh purge does not reap it while this process is alive-but-quiet.
-      // Owned by its own Resource: started here, stopped on release.
+      // Step 3b: Start a mailbox pinger that keeps this mailbox's lastActivity fresh via the
+      // mesh mailbox-records endpoints (mesh.mailbox.v1.update). ONLY on the LEGACY create path:
+      // an ATTACHED mailbox (durable-attach or WS-mint) does not touch records at all — its
+      // aliveness lives on the PROCESSRUN (step 3c's ping), so the mailbox-record pinger is both
+      // unnecessary and would call the surface this drive is retiring. Owned by its own Resource.
       _ <- Resource.acquireRelease {
-        val purgeTimeoutMillis =
-          java.time.Duration.between(mailbox.metadata.createdAt, mailbox.metadata.expiresAt).toMillis
-        val pinger = nats.NatsMailboxClient.startMailboxPingLoop(
-          mailbox.metadata.adminKey, natsTransport, purgeTimeoutMillis,
-        )
-        logger.info(s"✓ Started mailbox pinger for ${mailbox.address.value}")
-        pinger
+        if (mailboxWasAttached(bootstrapConfig)) {
+          logger.debug("mailbox was attached (records-free) — skipping the mesh.mailbox.v1 pinger; aliveness is on the processrun")
+          (() => ()): java.io.Closeable
+        } else {
+          val purgeTimeoutMillis =
+            java.time.Duration.between(mailbox.metadata.createdAt, mailbox.metadata.expiresAt).toMillis
+          val pinger = nats.NatsMailboxClient.startMailboxPingLoop(
+            mailbox.metadata.adminKey, natsTransport, purgeTimeoutMillis,
+          )
+          logger.info(s"✓ Started mailbox pinger for ${mailbox.address.value}")
+          pinger
+        }
       } { pinger =>
         pinger.close()
       }
@@ -476,5 +463,79 @@ object HermesBootstrap extends Logging {
 
   private def quoteJson(s: String): String =
     "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+  /**
+   * Acquire the mailbox — the three-way branch (durable-attach / WS-mint / legacy-create).
+   * All three return a NATS-serving Mailbox. When the mailbox is ATTACHED (durable or WS-mint)
+   * it touches NO mesh.mailbox.v1.* records; only the legacy branch does. The caller uses
+   * `wasAttached` to skip the records-op mailbox pinger (step 3b) — an attached mailbox's
+   * aliveness lives on its processrun, not on a mailbox-record touch.
+   */
+  private def acquireMailbox(
+    bootstrapConfig: HermesBootstrapConfig,
+    appConfig: HermesAppConfig,
+    processUid: String,
+    natsTransport: NatsTransport,
+  )(using ctx: Ctx): Mailbox = {
+    bootstrapConfig.namedMailboxKeys match {
+      // 1. DURABLE ATTACH from config keys — no create, no fetch.
+      case Some(keys) =>
+        logger.info(s"Attaching to durable named mailbox from config keys: ${keys.address}")
+        nats.NatsMailboxClient.attachFromKeys(
+          address = Mailbox.MailboxAddress(keys.address),
+          adminKey = Mailbox.AdminKey(keys.adminKey),
+          readerKey = Mailbox.ReaderKey(keys.readerKey),
+          isNamed = true,
+          natsTransport = natsTransport,
+        )
+
+      case None =>
+        bootstrapConfig.httpUrl match {
+          // 2. WS-MINT then attach a NATS mailbox to the minted keys; drop the WS.
+          case Some(httpUrl) =>
+            logger.info(s"Bootstrapping ephemeral mailbox over WS gateway $httpUrl, then attaching over NATS")
+            val sshKeyPath = bootstrapConfig.sshKeyPath.getOrElse("~/.ssh/id_ed25519")
+            val sshPublicKey = auth.SshAuth.readPublicKey(sshKeyPath + ".pub")
+            val ws =
+              ws.WsMailbox.bootstrap(
+                meshRootUrl = httpUrl,
+                processUid = processUid,
+                sshPublicKey = sshPublicKey,
+                sshOrigin = appConfig.appName.getOrElse("hermes"),
+                signNonce = nonce => auth.SshAuth.signNonce(nonce, sshKeyPath),
+              )
+            try {
+              val md = ws.metadata
+              nats.NatsMailboxClient.attachFromKeys(
+                address = md.address,
+                adminKey = md.adminKey,
+                readerKey = md.readerKey,
+                isNamed = false, // WS-minted ephemeral
+                natsTransport = natsTransport,
+              )
+            } finally {
+              ws.close() // the WS was only used to mint; the mailbox runs over NATS now
+            }
+
+          // 3. LEGACY CREATE over mesh.mailbox.v1.* — the fallback until httpUrl/keys are deployed.
+          case None =>
+            appConfig.namedMailbox match {
+              case Some(name) =>
+                logger.info(s"[legacy mesh.mailbox.v1] Creating named mailbox: $name")
+                nats.NatsMailboxClient.fetchOrCreateNamedMailbox(
+                  address = Mailbox.MailboxAddress(name), natsTransport = natsTransport,
+                )(using ctx).get
+              case None =>
+                logger.info(s"[legacy mesh.mailbox.v1] Creating non-durable mailbox (lifecycle=${appConfig.mailboxLifecycle})")
+                nats.NatsMailboxClient.createNonDurableMailbox(natsTransport, appConfig.mailboxLifecycle, processUid)(using ctx).get
+            }
+        }
+    }
+  }
+
+  /** True when the config drives the ATTACH path (durable keys or WS-mint) rather than the
+   *  legacy mesh.mailbox.v1 create — used to skip the records-op mailbox pinger. */
+  private def mailboxWasAttached(bootstrapConfig: HermesBootstrapConfig): Boolean =
+    bootstrapConfig.namedMailboxKeys.isDefined || bootstrapConfig.httpUrl.isDefined
 
 }

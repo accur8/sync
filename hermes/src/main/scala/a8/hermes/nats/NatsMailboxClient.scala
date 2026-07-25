@@ -295,6 +295,44 @@ object NatsMailboxClient extends Logging {
   }
 
   /**
+   * ATTACH to a mailbox whose keys came from ELSEWHERE — a WS bootstrap (ephemeral) or config
+   * (durable named) — WITHOUT inserting a record. The mesh server already inserted the record
+   * and created the channel stream(s) when the mailbox was minted; here we only build the
+   * serving NATS Mailbox on those keys. This is the Scala counterpart of godev's
+   * MailboxStoreStruct.AttachMailbox: it is what lets hermes stop touching mesh.mailbox.v1.*
+   * (no fetch/insert). isNamed MUST match how the mailbox was created — the channel stream name
+   * is derived from it. FEATURE-20260724-remove-mesh-control-req-reply-records-surface,
+   * FEATURE-20260725-durable-named-mailbox-out-of-band-config.
+   */
+  def attachFromKeys(
+    address: MailboxAddress,
+    adminKey: AdminKey,
+    readerKey: ReaderKey,
+    isNamed: Boolean,
+    natsTransport: NatsTransport,
+  )(using ctx: a8.shared.app.Ctx): Mailbox = {
+    // Runtime uses ONLY the keys: sends/subscribes are address-based (mesh.<address>.<channel>),
+    // and the channel stream name derives from address + isNamed. The mailbox metadata
+    // (timeouts, lastActivity) is NO LONGER carried here — aliveness now lives on the
+    // PROCESSRUN (its ping drives AWOL reclaim), so there is nothing to touch on the mailbox
+    // record. touchFn is a NO-OP: touching the record would call mesh.mailbox.v1.update, the
+    // surface this attach exists to avoid.
+    val now = System.currentTimeMillis()
+    val lifecycle = if (isNamed) LifecycleType.Named(address) else LifecycleType.Ephemeral
+    val metadata = MailboxMetadata(
+      adminKey = adminKey,
+      readerKey = readerKey,
+      address = address,
+      lifecycle = lifecycle,
+      createdAt = Instant.ofEpochMilli(now),
+      expiresAt = Instant.ofEpochMilli(now), // unused at runtime; aliveness is on the processrun
+      lastAccessedAt = Instant.ofEpochMilli(now),
+    )
+    logger.info(s"Attaching to mailbox ${address.value} (named=$isNamed) from provided keys — no fetch/insert, no record touch")
+    new a8.hermes.bootstrap.SimpleMailbox(metadata, natsTransport, () => ())
+  }
+
+  /**
    * Create mailbox implementation (matching godev's _CreateMailboxImpl): generate
    * keys, dup-check, insert the record via the mailbox-records endpoint, and create the
    * rpc-inbox stream under the capability-aligned naming.

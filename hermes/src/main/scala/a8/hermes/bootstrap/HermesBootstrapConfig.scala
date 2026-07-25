@@ -113,8 +113,23 @@ object HermesBootstrapConfig extends Logging {
     val discoverySubject =
       if (envConfig.hasPath("discoverySubject")) envConfig.getString("discoverySubject") else "continuum.discovery"
 
+    val httpUrl =
+      if (envConfig.hasPath("httpUrl")) Some(envConfig.getString("httpUrl")) else None
+
+    val namedMailboxKeys =
+      if (envConfig.hasPath("namedMailboxKeys")) {
+        val k = envConfig.getConfig("namedMailboxKeys")
+        Some(NamedMailboxKeys(
+          address = k.getString("address"),
+          adminKey = k.getString("adminKey"),
+          readerKey = k.getString("readerKey"),
+        ))
+      } else None
+
     HermesBootstrapConfig(
       natsUrl = natsUrl,
+      httpUrl = httpUrl,
+      namedMailboxKeys = namedMailboxKeys,
       sshKeyPath = sshKeyPath,
       authServiceMailbox = authServiceMailbox,
       namedMailboxes = nameMappings,
@@ -227,9 +242,28 @@ object HermesBootstrapConfig extends Logging {
 
 }
 
+// NamedMailboxKeys carries a DURABLE named mailbox's keys directly in config, so a consumer
+// ATTACHES to a pre-provisioned mailbox instead of fetching it over the mesh.mailbox.v1.*
+// records surface (being retired). The keys are the read/write capability, so the config file
+// is the security gate (same trust boundary as sshKeyPath). Provision once with
+// `a8 mailbox create-named` and paste the keys here. Mirrors godev's a8.NamedMailboxKeys.
+// See FEATURE-20260725-durable-named-mailbox-out-of-band-config.
+@CompanionGen
+case class NamedMailboxKeys(
+  address: String,
+  adminKey: String,
+  readerKey: String,
+)
+
 @CompanionGen
 case class HermesBootstrapConfig(
   natsUrl: String,
+  // httpUrl is the mesh WS gateway. When set, an EPHEMERAL mailbox is bootstrapped over WS
+  // (ClientHello: auth + processrun + mint on one socket) and then RUN over direct NATS —
+  // no mesh.mailbox.v1.create. Coexists with natsUrl (bootstrap vs runtime transport).
+  httpUrl: Option[String] = None,
+  // namedMailboxKeys attaches to a durable named mailbox from config (no create, no fetch).
+  namedMailboxKeys: Option[NamedMailboxKeys] = None,
   sshKeyPath: Option[String] = None,
   authServiceMailbox: Option[String] = None,
   namedMailboxes: Map[String, String] = Map.empty,
