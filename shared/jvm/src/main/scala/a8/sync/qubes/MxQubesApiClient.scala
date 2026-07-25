@@ -25,7 +25,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxQubesApiClient {
   
-  trait MxConfig { self: Config.type =>
+  trait MxConfig {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type] = builder
     
@@ -41,22 +41,10 @@ object MxQubesApiClient {
     
     given scala.CanEqual[Config, Config] = scala.CanEqual.derived
     
-    
-    
-    lazy val generator: Generator[Config,parameters.type] =  {
-      val constructors = Constructors[Config](3, unsafe.iterRawConstruct)
-      Generator(constructors, parameters)
-    }
-    
-    object parameters {
-      lazy val uri: CaseClassParm[Config,Uri] = CaseClassParm[Config,Uri]("uri", _.uri, (d,v) => d.copy(uri = v), None, 0)
-      lazy val authToken: CaseClassParm[Config,AuthToken] = CaseClassParm[Config,AuthToken]("authToken", _.authToken, (d,v) => d.copy(authToken = v), None, 1)
-      lazy val requestProcessor: CaseClassParm[Config,RequestProcessorConfig] = CaseClassParm[Config,RequestProcessorConfig]("requestProcessor", _.requestProcessor, (d,v) => d.copy(requestProcessor = v), Some(()=> RequestProcessorConfig.default), 2)
-    }
-    
-    
+
+
     object unsafe {
-    
+
       def rawConstruct(values: IndexedSeq[Any]): Config = {
         Config(
           uri = values(0).asInstanceOf[Uri],
@@ -77,7 +65,18 @@ object MxQubesApiClient {
       }
       def typedConstruct(uri: Uri, authToken: AuthToken, requestProcessor: RequestProcessorConfig): Config =
         Config(uri, authToken, requestProcessor)
-    
+
+    }
+
+    object parameters {
+      val uri: CaseClassParm[Config,Uri] = CaseClassParm[Config,Uri]("uri", _.uri, (d,v) => d.copy(uri = v), None, 0)
+      val authToken: CaseClassParm[Config,AuthToken] = CaseClassParm[Config,AuthToken]("authToken", _.authToken, (d,v) => d.copy(authToken = v), None, 1)
+      val requestProcessor: CaseClassParm[Config,RequestProcessorConfig] = CaseClassParm[Config,RequestProcessorConfig]("requestProcessor", _.requestProcessor, (d,v) => d.copy(requestProcessor = v), Some(()=> RequestProcessorConfig.default), 2)
+    }
+
+    def generator: Generator[Config,parameters.type] =  {
+      val constructors = Constructors[Config](3, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
     }
     
     
@@ -88,7 +87,7 @@ object MxQubesApiClient {
   
   
   
-  trait MxQueryRequest { self: QueryRequest.type =>
+  trait MxQueryRequest {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[QueryRequest,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[QueryRequest,parameters.type] = builder
     
@@ -101,25 +100,13 @@ object MxQubesApiClient {
       )
       .build
     
-    
+
+
     given scala.CanEqual[QueryRequest, QueryRequest] = scala.CanEqual.derived
-    
-    
-    
-    lazy val generator: Generator[QueryRequest,parameters.type] =  {
-      val constructors = Constructors[QueryRequest](3, unsafe.iterRawConstruct)
-      Generator(constructors, parameters)
-    }
-    
-    object parameters {
-      lazy val query: CaseClassParm[QueryRequest,String] = CaseClassParm[QueryRequest,String]("query", _.query, (d,v) => d.copy(query = v), None, 0)
-      lazy val dataFormat: CaseClassParm[QueryRequest,String] = CaseClassParm[QueryRequest,String]("dataFormat", _.dataFormat, (d,v) => d.copy(dataFormat = v), Some(()=> QueryRequest.verbose), 1)
-      lazy val appSpace: CaseClassParm[QueryRequest,Option[String]] = CaseClassParm[QueryRequest,Option[String]]("appSpace", _.appSpace, (d,v) => d.copy(appSpace = v), Some(()=> None), 2)
-    }
-    
-    
+
+
     object unsafe {
-    
+
       def rawConstruct(values: IndexedSeq[Any]): QueryRequest = {
         QueryRequest(
           query = values(0).asInstanceOf[String],
@@ -140,7 +127,18 @@ object MxQubesApiClient {
       }
       def typedConstruct(query: String, dataFormat: String, appSpace: Option[String]): QueryRequest =
         QueryRequest(query, dataFormat, appSpace)
-    
+
+    }
+
+    object parameters {
+      val query: CaseClassParm[QueryRequest,String] = CaseClassParm[QueryRequest,String]("query", _.query, (d,v) => d.copy(query = v), None, 0)
+      val dataFormat: CaseClassParm[QueryRequest,String] = CaseClassParm[QueryRequest,String]("dataFormat", _.dataFormat, (d,v) => d.copy(dataFormat = v), Some(()=> QueryRequest.verbose), 1)
+      val appSpace: CaseClassParm[QueryRequest,Option[String]] = CaseClassParm[QueryRequest,Option[String]]("appSpace", _.appSpace, (d,v) => d.copy(appSpace = v), Some(()=> None), 2)
+    }
+
+    def generator: Generator[QueryRequest,parameters.type] =  {
+      val constructors = Constructors[QueryRequest](3, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
     }
     
     
@@ -151,7 +149,7 @@ object MxQubesApiClient {
   
   
   
-  trait MxParm { self: Parm.type =>
+  trait MxParm {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Parm,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Parm,parameters.type] = builder
     
@@ -167,24 +165,10 @@ object MxQubesApiClient {
     
     
     given scala.CanEqual[Parm, Parm] = scala.CanEqual.derived
-    
-    
-    
-    lazy val generator: Generator[Parm,parameters.type] =  {
-      val constructors = Constructors[Parm](4, unsafe.iterRawConstruct)
-      Generator(constructors, parameters)
-    }
-    
-    object parameters {
-      lazy val dataType: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("dataType", _.dataType, (d,v) => d.copy(dataType = v), Some(()=> None), 0)
-      lazy val cube: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("cube", _.cube, (d,v) => d.copy(cube = v), Some(()=> None), 1)
-      lazy val field: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("field", _.field, (d,v) => d.copy(field = v), Some(()=> None), 2)
-      lazy val value: CaseClassParm[Parm,String] = CaseClassParm[Parm,String]("value", _.value, (d,v) => d.copy(value = v), None, 3)
-    }
-    
-    
+
+
     object unsafe {
-    
+
       def rawConstruct(values: IndexedSeq[Any]): Parm = {
         Parm(
           dataType = values(0).asInstanceOf[Option[String]],
@@ -207,7 +191,19 @@ object MxQubesApiClient {
       }
       def typedConstruct(dataType: Option[String], cube: Option[String], field: Option[String], value: String): Parm =
         Parm(dataType, cube, field, value)
-    
+
+    }
+
+    object parameters {
+      val dataType: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("dataType", _.dataType, (d,v) => d.copy(dataType = v), Some(()=> None), 0)
+      val cube: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("cube", _.cube, (d,v) => d.copy(cube = v), Some(()=> None), 1)
+      val field: CaseClassParm[Parm,Option[String]] = CaseClassParm[Parm,Option[String]]("field", _.field, (d,v) => d.copy(field = v), Some(()=> None), 2)
+      val value: CaseClassParm[Parm,String] = CaseClassParm[Parm,String]("value", _.value, (d,v) => d.copy(value = v), None, 3)
+    }
+
+    def generator: Generator[Parm,parameters.type] =  {
+      val constructors = Constructors[Parm](4, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
     }
     
     
@@ -218,7 +214,7 @@ object MxQubesApiClient {
   
   
   
-  trait MxUpdateRowRequest { self: UpdateRowRequest.type =>
+  trait MxUpdateRowRequest {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UpdateRowRequest,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UpdateRowRequest,parameters.type] = builder
     
@@ -235,25 +231,10 @@ object MxQubesApiClient {
     
     
     given scala.CanEqual[UpdateRowRequest, UpdateRowRequest] = scala.CanEqual.derived
-    
-    
-    
-    lazy val generator: Generator[UpdateRowRequest,parameters.type] =  {
-      val constructors = Constructors[UpdateRowRequest](5, unsafe.iterRawConstruct)
-      Generator(constructors, parameters)
-    }
-    
-    object parameters {
-      lazy val cube: CaseClassParm[UpdateRowRequest,String] = CaseClassParm[UpdateRowRequest,String]("cube", _.cube, (d,v) => d.copy(cube = v), None, 0)
-      lazy val fields: CaseClassParm[UpdateRowRequest,JsObj] = CaseClassParm[UpdateRowRequest,JsObj]("fields", _.fields, (d,v) => d.copy(fields = v), None, 1)
-      lazy val parameters: CaseClassParm[UpdateRowRequest,Iterable[Parm]] = CaseClassParm[UpdateRowRequest,Iterable[Parm]]("parameters", _.parameters, (d,v) => d.copy(parameters = v), Some(()=> Iterable()), 2)
-      lazy val where: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("where", _.where, (d,v) => d.copy(where = v), Some(()=> None), 3)
-      lazy val appSpace: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("appSpace", _.appSpace, (d,v) => d.copy(appSpace = v), Some(()=> None), 4)
-    }
-    
-    
+
+
     object unsafe {
-    
+
       def rawConstruct(values: IndexedSeq[Any]): UpdateRowRequest = {
         UpdateRowRequest(
           cube = values(0).asInstanceOf[String],
@@ -278,7 +259,20 @@ object MxQubesApiClient {
       }
       def typedConstruct(cube: String, fields: JsObj, parameters: Iterable[Parm], where: Option[String], appSpace: Option[String]): UpdateRowRequest =
         UpdateRowRequest(cube, fields, parameters, where, appSpace)
-    
+
+    }
+
+    object parameters {
+      val cube: CaseClassParm[UpdateRowRequest,String] = CaseClassParm[UpdateRowRequest,String]("cube", _.cube, (d,v) => d.copy(cube = v), None, 0)
+      val fields: CaseClassParm[UpdateRowRequest,JsObj] = CaseClassParm[UpdateRowRequest,JsObj]("fields", _.fields, (d,v) => d.copy(fields = v), None, 1)
+      val parameters: CaseClassParm[UpdateRowRequest,Iterable[Parm]] = CaseClassParm[UpdateRowRequest,Iterable[Parm]]("parameters", _.parameters, (d,v) => d.copy(parameters = v), Some(()=> Iterable()), 2)
+      val where: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("where", _.where, (d,v) => d.copy(where = v), Some(()=> None), 3)
+      val appSpace: CaseClassParm[UpdateRowRequest,Option[String]] = CaseClassParm[UpdateRowRequest,Option[String]]("appSpace", _.appSpace, (d,v) => d.copy(appSpace = v), Some(()=> None), 4)
+    }
+
+    def generator: Generator[UpdateRowRequest,parameters.type] =  {
+      val constructors = Constructors[UpdateRowRequest](5, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
     }
     
     
@@ -289,7 +283,7 @@ object MxQubesApiClient {
   
   
   
-  trait MxUpdateRowResponse { self: UpdateRowResponse.type =>
+  trait MxUpdateRowResponse {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UpdateRowResponse,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UpdateRowResponse,parameters.type] = builder
     
@@ -307,26 +301,10 @@ object MxQubesApiClient {
     
     
     given scala.CanEqual[UpdateRowResponse, UpdateRowResponse] = scala.CanEqual.derived
-    
-    
-    
-    lazy val generator: Generator[UpdateRowResponse,parameters.type] =  {
-      val constructors = Constructors[UpdateRowResponse](6, unsafe.iterRawConstruct)
-      Generator(constructors, parameters)
-    }
-    
-    object parameters {
-      lazy val success: CaseClassParm[UpdateRowResponse,Boolean] = CaseClassParm[UpdateRowResponse,Boolean]("success", _.success, (d,v) => d.copy(success = v), None, 0)
-      lazy val validationFailures: CaseClassParm[UpdateRowResponse,Option[JsObj]] = CaseClassParm[UpdateRowResponse,Option[JsObj]]("validationFailures", _.validationFailures, (d,v) => d.copy(validationFailures = v), Some(()=> None), 1)
-      lazy val errorMessage: CaseClassParm[UpdateRowResponse,Option[String]] = CaseClassParm[UpdateRowResponse,Option[String]]("errorMessage", _.errorMessage, (d,v) => d.copy(errorMessage = v), Some(()=> None), 2)
-      lazy val serverStackTrace: CaseClassParm[UpdateRowResponse,Option[String]] = CaseClassParm[UpdateRowResponse,Option[String]]("serverStackTrace", _.serverStackTrace, (d,v) => d.copy(serverStackTrace = v), Some(()=> None), 3)
-      lazy val numberOfRowsUpdated: CaseClassParm[UpdateRowResponse,Int] = CaseClassParm[UpdateRowResponse,Int]("numberOfRowsUpdated", _.numberOfRowsUpdated, (d,v) => d.copy(numberOfRowsUpdated = v), Some(()=> 0), 4)
-      lazy val keys: CaseClassParm[UpdateRowResponse,JsObj] = CaseClassParm[UpdateRowResponse,JsObj]("keys", _.keys, (d,v) => d.copy(keys = v), Some(()=> JsObj.empty), 5)
-    }
-    
-    
+
+
     object unsafe {
-    
+
       def rawConstruct(values: IndexedSeq[Any]): UpdateRowResponse = {
         UpdateRowResponse(
           success = values(0).asInstanceOf[Boolean],
@@ -353,7 +331,21 @@ object MxQubesApiClient {
       }
       def typedConstruct(success: Boolean, validationFailures: Option[JsObj], errorMessage: Option[String], serverStackTrace: Option[String], numberOfRowsUpdated: Int, keys: JsObj): UpdateRowResponse =
         UpdateRowResponse(success, validationFailures, errorMessage, serverStackTrace, numberOfRowsUpdated, keys)
-    
+
+    }
+
+    object parameters {
+      val success: CaseClassParm[UpdateRowResponse,Boolean] = CaseClassParm[UpdateRowResponse,Boolean]("success", _.success, (d,v) => d.copy(success = v), None, 0)
+      val validationFailures: CaseClassParm[UpdateRowResponse,Option[JsObj]] = CaseClassParm[UpdateRowResponse,Option[JsObj]]("validationFailures", _.validationFailures, (d,v) => d.copy(validationFailures = v), Some(()=> None), 1)
+      val errorMessage: CaseClassParm[UpdateRowResponse,Option[String]] = CaseClassParm[UpdateRowResponse,Option[String]]("errorMessage", _.errorMessage, (d,v) => d.copy(errorMessage = v), Some(()=> None), 2)
+      val serverStackTrace: CaseClassParm[UpdateRowResponse,Option[String]] = CaseClassParm[UpdateRowResponse,Option[String]]("serverStackTrace", _.serverStackTrace, (d,v) => d.copy(serverStackTrace = v), Some(()=> None), 3)
+      val numberOfRowsUpdated: CaseClassParm[UpdateRowResponse,Int] = CaseClassParm[UpdateRowResponse,Int]("numberOfRowsUpdated", _.numberOfRowsUpdated, (d,v) => d.copy(numberOfRowsUpdated = v), Some(()=> 0), 4)
+      val keys: CaseClassParm[UpdateRowResponse,JsObj] = CaseClassParm[UpdateRowResponse,JsObj]("keys", _.keys, (d,v) => d.copy(keys = v), Some(()=> JsObj.empty), 5)
+    }
+
+    def generator: Generator[UpdateRowResponse,parameters.type] =  {
+      val constructors = Constructors[UpdateRowResponse](6, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
     }
     
     
