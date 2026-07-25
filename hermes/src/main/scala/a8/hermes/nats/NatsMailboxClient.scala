@@ -318,7 +318,7 @@ object NatsMailboxClient extends Logging {
     // record. touchFn is a NO-OP: touching the record would call mesh.mailbox.v1.update, the
     // surface this attach exists to avoid.
     val now = System.currentTimeMillis()
-    val lifecycle = if (isNamed) LifecycleType.Named(address) else LifecycleType.Ephemeral
+    val lifecycle = if (isNamed) LifecycleType.Named(address.value) else LifecycleType.Ephemeral
     val metadata = MailboxMetadata(
       adminKey = adminKey,
       readerKey = readerKey,
