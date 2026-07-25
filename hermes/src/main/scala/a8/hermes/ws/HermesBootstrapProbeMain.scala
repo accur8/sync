@@ -43,17 +43,16 @@ object HermesBootstrapProbeMain extends BootstrappedIOApp with Logging {
       )
       val appConfig = HermesAppConfig(appName = Some("hermes-bs-probe"), mailboxLifecycle = "long-lived-daemon")
 
-      Resource.free.run(HermesBootstrap.resource(bootstrapConfig, appConfig)) { hermes =>
-        val addr = hermes.mailbox.address.value
-        if (addr.isEmpty) fail("HermesBootstrap yielded a mailbox with no address")
-        else {
-          // The mailbox serves over NATS now (its inbox is subscribed on NATS subjects). We proved
-          // the mint + attach happened by holding a NATS mailbox with a real address; the godev
-          // harness confirms the processrun+mailbox linkage in the shared DB.
-          println(s"HERMES-BS-PROBE-OK address=$addr processUid=$processUid")
-          System.out.flush()
-          Thread.sleep(1500) // let a live, subscribed connection be observed
-        }
+      val hermes = Resource.free.run(HermesBootstrap.resource(bootstrapConfig, appConfig))
+      val addr = hermes.mailbox.address.value
+      if (addr.isEmpty) fail("HermesBootstrap yielded a mailbox with no address")
+      else {
+        // The mailbox serves over NATS now (its inbox is subscribed on NATS subjects). We proved
+        // the mint + attach happened by holding a NATS mailbox with a real address; the godev
+        // harness confirms the processrun+mailbox linkage in the shared DB.
+        println(s"HERMES-BS-PROBE-OK address=$addr processUid=$processUid")
+        System.out.flush()
+        Thread.sleep(1500) // let a live, subscribed connection be observed
       }
     } catch {
       case e: Throwable => fail(s"${e.getClass.getSimpleName}: ${e.getMessage}")
