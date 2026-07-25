@@ -496,7 +496,7 @@ object HermesBootstrap extends Logging {
             logger.info(s"Bootstrapping ephemeral mailbox over WS gateway $httpUrl, then attaching over NATS")
             val sshKeyPath = bootstrapConfig.sshKeyPath.getOrElse("~/.ssh/id_ed25519")
             val sshPublicKey = auth.SshAuth.readPublicKey(sshKeyPath + ".pub")
-            val ws =
+            val wsMbox =
               ws.WsMailbox.bootstrap(
                 meshRootUrl = httpUrl,
                 processUid = processUid,
@@ -505,7 +505,7 @@ object HermesBootstrap extends Logging {
                 signNonce = nonce => auth.SshAuth.signNonce(nonce, sshKeyPath),
               )
             try {
-              val md = ws.metadata
+              val md = wsMbox.metadata
               nats.NatsMailboxClient.attachFromKeys(
                 address = md.address,
                 adminKey = md.adminKey,
@@ -514,7 +514,7 @@ object HermesBootstrap extends Logging {
                 natsTransport = natsTransport,
               )
             } finally {
-              ws.close() // the WS was only used to mint; the mailbox runs over NATS now
+              wsMbox.close() // the WS was only used to mint; the mailbox runs over NATS now
             }
 
           // 3. LEGACY CREATE over mesh.mailbox.v1.* — the fallback until httpUrl/keys are deployed.

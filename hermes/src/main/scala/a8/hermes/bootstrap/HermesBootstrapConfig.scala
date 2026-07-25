@@ -1,6 +1,6 @@
 package a8.hermes.bootstrap
 
-import a8.hermes.bootstrap.MxHermesBootstrapConfig.MxHermesAppConfig
+import a8.hermes.bootstrap.MxHermesBootstrapConfig.{MxHermesAppConfig, MxNamedMailboxKeys}
 import a8.common.logging.Logging
 import a8.shared.{CompanionGen, FileSystem}
 import a8.shared.json.ast
@@ -254,6 +254,8 @@ case class NamedMailboxKeys(
   adminKey: String,
   readerKey: String,
 )
+
+object NamedMailboxKeys extends MxNamedMailboxKeys
 
 @CompanionGen
 case class HermesBootstrapConfig(
