@@ -1,6 +1,5 @@
 package a8.hermes.ws
 
-import a8.common.logging.Logging
 import a8.hermes.bootstrap.{HermesAppConfig, HermesBootstrap, HermesBootstrapConfig}
 import a8.shared.app.{AppCtx, BootstrappedIOApp}
 import a8.shared.zreplace.Resource
@@ -25,7 +24,7 @@ import a8.shared.zreplace.Resource
  *   SSH_PRIVATE_KEY   the key whose .pub authenticates the inline WS login
  *   PROCESS_UID       the processrun uid to link
  */
-object HermesBootstrapProbeMain extends BootstrappedIOApp with Logging {
+object HermesBootstrapProbeMain extends BootstrappedIOApp {
 
   override def run()(using appCtx: AppCtx): Unit = {
     val meshRootUrl = required("MESH_ROOT_URL")
