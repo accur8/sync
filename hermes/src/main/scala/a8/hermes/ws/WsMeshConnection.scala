@@ -198,6 +198,17 @@ class WsMeshConnection(uri: URI) extends Logging {
 
   private val closed = new AtomicBoolean(false)
 
+  // Recovery counters, exposed so a caller can SAY what happened rather than infer it.
+  // The conformance harness reports these per scenario; a client that cannot report them has
+  // to answer -1 ("not tracked"), and -1 across the board makes a row's recovery behaviour
+  // invisible exactly where it matters most.
+  private val reconnectCount = new AtomicLong(0)
+  private val resendCount = new AtomicLong(0)
+  // Nanos of the most recent reconnect, so "drop -> first message after" is measurable. That
+  // number IS what reconnect quality means, and it cannot be seen from outside the client.
+  private val lastReconnectAtNanos = new AtomicLong(0)
+  private val recoveryMillis = new AtomicLong(-1)
+
   private object listener extends WebSocket.Listener {
 
     override def onOpen(webSocket: WebSocket): Unit = {
@@ -208,7 +219,12 @@ class WsMeshConnection(uri: URI) extends Logging {
     override def onBinary(webSocket: WebSocket, data: ByteBuffer, last: Boolean): CompletionStage[?] = {
       // Any inbound traffic proves the socket is alive — stamp BEFORE decoding, so even a
       // frame we cannot parse still counts as liveness. Silence is the signal, not content.
-      lastInboundAtNanos.set(System.nanoTime())
+      val now = System.nanoTime()
+      lastInboundAtNanos.set(now)
+      // First frame after a reconnect closes the recovery window. Latched (compareAndSet to
+      // 0) so it measures the FIRST message back, not every later one.
+      val since = lastReconnectAtNanos.getAndSet(0)
+      if (since > 0) recoveryMillis.set((now - since) / 1000000L)
       val chunk = new Array[Byte](data.remaining())
       data.get(chunk)
       val acc = partial.get() ++ chunk
@@ -300,6 +316,22 @@ class WsMeshConnection(uri: URI) extends Logging {
   /** How many requests are awaiting a response. Exposed for tests and diagnostics. */
   def inFlightCount: Int = inFlight.size()
 
+  /** How many times this connection has been rebuilt. */
+  def reconnects: Long = reconnectCount.get()
+
+  /** How many in-flight requests have been re-sent across those reconnects. */
+  def resends: Long = resendCount.get()
+
+  /**
+   * Millis from the most recent reconnect to the first frame that arrived after it, or -1 if
+   * no reconnect has completed a round trip yet.
+   *
+   * This is the number that says what reconnect QUALITY means: a client can reconnect
+   * promptly and still be useless for seconds afterwards, and a pass/fail cannot see the
+   * difference.
+   */
+  def recoveryMs: Long = recoveryMillis.get()
+
   /**
    * Rebuild the socket and re-assert everything the server forgot.
    *
@@ -353,6 +385,9 @@ class WsMeshConnection(uri: URI) extends Logging {
               logger.info(s"ws reconnected (attempt $attempt), no session to resume yet")
           }
           lastInboundAtNanos.set(System.nanoTime())
+          reconnectCount.incrementAndGet()
+          // Opens the recovery window; the next inbound frame closes it.
+          lastReconnectAtNanos.set(System.nanoTime())
           connected = true
         } catch {
           case e: Exception =>
@@ -375,8 +410,11 @@ class WsMeshConnection(uri: URI) extends Logging {
     if (pending.nonEmpty) {
       logger.info(s"ws: resending ${pending.length} in-flight request(s) after reconnect")
       pending.foreach { msg =>
-        try sendRaw(msg, allowReconnect = false)
-        catch { case e: Exception => logger.warn(s"ws: resend failed, will retry on next reconnect: ${e.getMessage}") }
+        try {
+          sendRaw(msg, allowReconnect = false)
+          resendCount.incrementAndGet()
+          ()
+        } catch { case e: Exception => logger.warn(s"ws: resend failed, will retry on next reconnect: ${e.getMessage}") }
       }
     }
   }

@@ -14,6 +14,9 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
+// See the hermes project for why the wsconform harness needs the classpath as a file.
+val wsconformClasspath = taskKey[File]("write hermes's runtime classpath for the wsconform harness")
+
 val scalaLibVersion = "3.8.4"
 //val zioVersion = "2.0.19"
 //val zioLoggingVersion = "2.1.15"
@@ -212,6 +215,16 @@ lazy val hermes =
     .settings(
       // Disable strict equality for protobuf generated code and enum types
       scalacOptions := scalacOptions.value.filterNot(_ == "-language:strictEquality"),
+      // The wsconform harness drives WsConformClientMain over stdin/stdout, and sbt does not
+      // forward stdin to a forked run (connectInput has no effect in -batch). So the harness
+      // never launches sbt: it calls this task ONCE to materialize the classpath, then execs
+      // `java -cp @<file>` per scenario. That also drops the sbt+JVM boot cost from every one
+      // of them, and keeps sbt off the stream that carries the protocol.
+      wsconformClasspath := {
+        val file = target.value / "wsconform-classpath.txt"
+        IO.write(file, (Compile / fullClasspath).value.files.mkString(":"))
+        file
+      },
       libraryDependencies ++= Seq(
         "org.bouncycastle" % "bcprov-jdk18on" % "1.77",
         "com.hierynomus" % "sshj" % "0.38.0",
