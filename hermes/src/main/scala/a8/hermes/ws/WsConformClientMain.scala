@@ -60,7 +60,12 @@ object WsConformClientMain extends Logging {
         overrideSystemOut = false, // the WSC-* contract lines must reach stdout unmangled
         setDefaultUncaughtExceptionHandler = true,
         fileLogging = false,
-        consoleLogging = false, // console logging would pollute stdout; stderr only
+        // Console logging goes to STDERR (overrideSystemOut=false keeps stdout clean), and the
+        // harness keeps a bounded tail of it for failure messages. It was off, and that cost a
+        // whole diagnostic pass: the client's own "resumed mailbox …" / "no session to resume"
+        // lines are the only direct evidence of which reconnect branch ran, and without them
+        // the reason a row failed had to be inferred from gateway logs.
+        consoleLogging = true,
         hasColorConsole = false,
         appName = "wsconform-hermes",
         defaultLogLevel = Level.Info,
