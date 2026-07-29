@@ -60,12 +60,14 @@ object WsConformClientMain extends Logging {
         overrideSystemOut = false, // the WSC-* contract lines must reach stdout unmangled
         setDefaultUncaughtExceptionHandler = true,
         fileLogging = false,
-        // Console logging goes to STDERR (overrideSystemOut=false keeps stdout clean), and the
-        // harness keeps a bounded tail of it for failure messages. It was off, and that cost a
-        // whole diagnostic pass: the client's own "resumed mailbox …" / "no session to resume"
-        // lines are the only direct evidence of which reconnect branch ran, and without them
-        // the reason a row failed had to be inferred from gateway logs.
-        consoleLogging = true,
+        // MUST stay false. The shared ConsoleAppender defaults to Kind.Daemon when
+        // hasColorConsole=false (ConsoleAppender.scala:24-30), and Daemon writes INFO to
+        // STDOUT — the protocol stream — sending only WARN+ to stderr. Turning console
+        // logging on therefore does not surface diagnostics; it pipes hermes's INFO logs into
+        // the contract channel. The driver drops them as non-WSC- noise, but that is luck: a
+        // log line containing "WSC-" would corrupt the protocol. Diagnostics go to
+        // System.err directly instead — see diag() below.
+        consoleLogging = false,
         hasColorConsole = false,
         appName = "wsconform-hermes",
         defaultLogLevel = Level.Info,
@@ -197,7 +199,7 @@ object WsConformClientMain extends Logging {
             sent.incrementAndGet()
             ()
           } catch {
-            case e: Throwable => System.err.println(s"send $i failed: ${e.getMessage}")
+            case e: Throwable => diag(s"wsconform: send $i failed: ${e.getMessage}")
           }
           i += 1
         }
@@ -226,6 +228,15 @@ object WsConformClientMain extends Logging {
         val gaps = (0 until want).count(i => !observed.contains(i))
         val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last"
         val withForeign = if (foreign > 0) s"$base foreign=$foreign" else base
+
+        // The client's own account of what recovery did, on the stream the harness keeps for
+        // failure tails. Without this a failing cell shows only the harness's view of the
+        // numbers, and which reconnect branch ran has to be inferred from gateway logs —
+        // exactly the blind spot that cost a diagnostic pass on this suite.
+        if (timedOut || gaps > 0)
+          diag(s"wsconform: EXPECT ended want=$want $withForeign " +
+            s"reconnects=${c.reconnects} resends=${c.resends} recoveryMs=${c.recoveryMs}")
+
         ok(if (timedOut) s"$withForeign timedOut=true" else withForeign)
     }
 
@@ -293,6 +304,16 @@ object WsConformClientMain extends Logging {
   private def err(message: String): Unit = {
     println(s"WSC-ERR message=$message")
     System.out.flush()
+  }
+
+  /**
+   * Diagnostics for the harness's failure tail. STDERR ONLY, and written directly rather than
+   * through the logger: the shared ConsoleAppender's Daemon default would put INFO on stdout,
+   * which is the protocol stream (see the consoleLogging note in main).
+   */
+  private def diag(message: String): Unit = {
+    System.err.println(message)
+    System.err.flush()
   }
 
   private def intArg(args: Map[String, String], key: String, default: Int): Int =
