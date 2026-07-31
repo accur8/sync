@@ -54,6 +54,25 @@ object WsMeshConnection extends Logging {
   val BootstrapTimeout: FiniteDuration = 30.seconds
 
   /**
+   * How long a reconnect waits for the gateway's verdict on its ResumeSession.
+   *
+   * Shorter than BootstrapTimeout on purpose: the socket has JUST been dialled, so the reply
+   * is one round-trip away. A resume that goes unanswered this long is a connection worth
+   * rebuilding, not one worth waiting on.
+   */
+  val ResumeVerdictTimeout: FiniteDuration = 10.seconds
+
+  /**
+   * The gateway REFUSED a resume, with its coded reason.
+   *
+   * Distinct from a transient failure because it must not be retried: the gateway considered
+   * this exact resume and said no, so re-sending it earns the same answer forever. The caller
+   * decides what to do (re-login, or fail); this client has no re-mint branch by design.
+   */
+  final case class ResumeRefused(reason: String)
+    extends RuntimeException(s"ws resume refused by the gateway: $reason")
+
+  /**
    * Inbound silence beyond this is treated as a dead (half-open) connection.
    *
    * Generously longer than any legitimate quiet period — an idle mailbox is normal, and
@@ -164,6 +183,17 @@ class WsMeshConnection(uri: URI) extends Logging {
 
   private val inbound = new LinkedBlockingQueue[MessageToClient]()
   private val socketRef = new AtomicReference[WebSocket](null)
+
+  /**
+   * The gateway's verdict on a ClientHello, so a reconnect can WAIT for it.
+   *
+   * Signalled from the listener rather than polled off `inbound`, because a reconnect that
+   * drained `inbound` looking for its own reply would swallow data frames belonging to the
+   * caller. The listener still queues every frame as before; this is an additional tap.
+   *
+   * Left = refused (the HelloError's code and text), Right = accepted.
+   */
+  private val handshakeOutcome = new LinkedBlockingQueue[Either[String, Unit]]()
   // Binary frames can arrive in pieces; accumulate until the JDK says `last`.
   private val partial = new AtomicReference[Array[Byte]](Array.emptyByteArray)
 
@@ -233,6 +263,16 @@ class WsMeshConnection(uri: URI) extends Logging {
         try {
           val m2c = MessageToClient.parseFrom(acc)
           retireInFlight(m2c)
+          // Tap the handshake verdict on its way past. The gateway answers a ClientHello with
+          // SubscribeResponse (accepted) or HelloError (refused); a reconnect blocks on this
+          // so a refused resume cannot be mistaken for a working one.
+          m2c.message match {
+            case MessageToClient.Message.HelloError(err) =>
+              handshakeOutcome.offer(Left(s"[${err.code}] ${err.message}"))
+            case MessageToClient.Message.SubscribeResponse(_) =>
+              handshakeOutcome.offer(Right(()))
+            case _ => ()
+          }
           inbound.put(m2c)
         } catch {
           case e: Exception => logger.warn(s"ws: undecodable MessageToClient (${acc.length} bytes)", e)
@@ -365,6 +405,10 @@ class WsMeshConnection(uri: URI) extends Logging {
             case (ResumeAction.Resume, Some(readerKey)) =>
               // Reattach to the EXISTING mailbox and re-assert the subscriptions the
               // gateway dropped with the old connection.
+              //
+              // Drain FIRST: a verdict left over from the bootstrap handshake (or a previous
+              // attempt) would otherwise be read as this resume's answer.
+              handshakeOutcome.clear()
               sendRaw(
                 MessageFromClient(
                   MessageFromClient.Message.ClientHello(
@@ -378,7 +422,31 @@ class WsMeshConnection(uri: URI) extends Logging {
                 ),
                 allowReconnect = false,
               )
-              logger.info(s"ws reconnected (attempt $attempt), resumed mailbox readerKey=$readerKey")
+
+              // WAIT FOR THE VERDICT. This used to log "resumed mailbox" and carry on without
+              // reading the reply, so a REFUSED resume was indistinguishable from a working
+              // one: the client believed it held a session, resent its in-flight requests into
+              // a socket the gateway had rejected, and the backlog on the real mailbox was
+              // never delivered. A refusal must be loud — re-minting here would orphan the
+              // mailbox we still hold, which is the leak ResumeAction exists to prevent.
+              Option(handshakeOutcome.poll(ResumeVerdictTimeout.toMillis, TimeUnit.MILLISECONDS)) match {
+                case Some(Right(_)) =>
+                  logger.info(s"ws reconnected (attempt $attempt), resumed mailbox readerKey=$readerKey")
+                case Some(Left(reason)) =>
+                  // Typically UNAUTHENTICATED on the inline-login path, which has no token to
+                  // present (ClientSessionStarted returns keys but no minted token). Surfaced
+                  // rather than silently re-bootstrapped; the real fix is the gateway
+                  // returning its token — see the class doc.
+                  //
+                  // ResumeRefused, not a plain exception, because the retry loop below MUST
+                  // NOT back off and try again: a coded refusal is a deliberate answer and the
+                  // identical resume earns the identical refusal, forever.
+                  throw ResumeRefused(reason)
+                case None =>
+                  throw new RuntimeException(
+                    s"ws resume got no verdict within $ResumeVerdictTimeout — treating the connection as unusable"
+                  )
+              }
             case _ =>
               // Dropped before bootstrap ever completed — there is no mailbox to resume, so
               // the caller's bootstrap will run on this fresh socket.
@@ -390,6 +458,11 @@ class WsMeshConnection(uri: URI) extends Logging {
           lastReconnectAtNanos.set(System.nanoTime())
           connected = true
         } catch {
+          // A CODED refusal is final: the gateway considered this exact resume and said no, so
+          // backing off and re-sending it just earns the same answer forever. Propagate to the
+          // caller, who can decide (re-login, or fail) — this client deliberately has no
+          // re-mint branch, because re-minting orphans the mailbox it still holds.
+          case e: ResumeRefused => throw e
           case e: Exception =>
             val delayMs = backoffMillis(attempt)
             logger.debug(s"ws redial failed (attempt $attempt), retrying in ${delayMs}ms: ${e.getMessage}")
