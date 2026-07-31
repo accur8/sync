@@ -175,6 +175,12 @@ object WsConformClientMain extends Logging {
                 ws.SendMessageRequest(
                   to = Seq(address),
                   channel = "rpc-inbox",
+                  // PER-MESSAGE key. Without it the transport falls back to correlationId,
+                  // which is per CONVERSATION — and this run sends every message under ONE
+                  // correlation, so 20,000 sends collapse to a single in-flight entry and
+                  // exactly one can ever be resent. It is also what the stream's dedup window
+                  // matches on, so a resend that did land is dropped rather than duplicated.
+                  idempotentId = java.util.UUID.randomUUID().toString,
                   message = Some(
                     ws.Message(
                       header = Some(

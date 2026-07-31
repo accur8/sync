@@ -16,6 +16,18 @@ package a8.hermes.proto.process.wsmessages
   *   workerUid: the identity the gateway RESOLVED for this connection, returned so a client
   *   learns who it is from the exchange instead of asserting it. Empty when the identity is
   *   not a worker (a human at a CLI, a browser user).
+  * @param authToken
+  *   authToken: the token the gateway MINTED during inline (SSH) login, returned for the same
+  *   reason workerUid is — a client should learn what the auth exchange produced rather than
+  *   be unable to name it.
+  *  
+  *   Without this a client that authenticated inline holds NO token, so ResumeSession presents
+  *   an empty one and the gateway answers UNAUTHENTICATED — a resume that cannot possibly
+  *   succeed. Measured on hermes: 17,900 of 20,000 messages lost on kill-mid-request, entirely
+  *   because its (correct) resume could never authenticate.
+  *  
+  *   Empty when the client supplied its own token: it already has one, and echoing it back
+  *   would put a credential on the wire for no reason.
   */
 @SerialVersionUID(0L)
 final case class ClientSessionStarted(
@@ -25,6 +37,7 @@ final case class ClientSessionStarted(
     channels: _root_.scala.Seq[_root_.scala.Predef.String] = _root_.scala.Seq.empty,
     processUid: _root_.scala.Predef.String = "",
     workerUid: _root_.scala.Predef.String = "",
+    authToken: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ClientSessionStarted] {
     @transient
@@ -68,6 +81,13 @@ final case class ClientSessionStarted(
         val __value = workerUid
         if (!__value.isEmpty) {
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(6, __value)
+        }
+      };
+      
+      {
+        val __value = authToken
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(7, __value)
         }
       };
       __size += unknownFields.serializedSize
@@ -117,6 +137,12 @@ final case class ClientSessionStarted(
           _output__.writeString(6, __v)
         }
       };
+      {
+        val __v = authToken
+        if (!__v.isEmpty) {
+          _output__.writeString(7, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withAddress(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(address = __v)
@@ -128,6 +154,7 @@ final case class ClientSessionStarted(
     def withChannels(__v: _root_.scala.Seq[_root_.scala.Predef.String]): ClientSessionStarted = copy(channels = __v)
     def withProcessUid(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(processUid = __v)
     def withWorkerUid(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(workerUid = __v)
+    def withAuthToken(__v: _root_.scala.Predef.String): ClientSessionStarted = copy(authToken = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -153,6 +180,10 @@ final case class ClientSessionStarted(
           val __t = workerUid
           if (__t != "") __t else null
         }
+        case 7 => {
+          val __t = authToken
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -164,6 +195,7 @@ final case class ClientSessionStarted(
         case 4 => _root_.scalapb.descriptors.PRepeated(channels.iterator.map(_root_.scalapb.descriptors.PString(_)).toVector)
         case 5 => _root_.scalapb.descriptors.PString(processUid)
         case 6 => _root_.scalapb.descriptors.PString(workerUid)
+        case 7 => _root_.scalapb.descriptors.PString(authToken)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -180,6 +212,7 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
     val __channels: _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String] = new _root_.scala.collection.immutable.VectorBuilder[_root_.scala.Predef.String]
     var __processUid: _root_.scala.Predef.String = ""
     var __workerUid: _root_.scala.Predef.String = ""
+    var __authToken: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -198,6 +231,8 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
           __processUid = _input__.readStringRequireUtf8()
         case 50 =>
           __workerUid = _input__.readStringRequireUtf8()
+        case 58 =>
+          __authToken = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -212,6 +247,7 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
         channels = __channels.result(),
         processUid = __processUid,
         workerUid = __workerUid,
+        authToken = __authToken,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -224,7 +260,8 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
         readerKey = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         channels = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[_root_.scala.Predef.String]]).getOrElse(_root_.scala.Seq.empty),
         processUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        workerUid = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        authToken = __fieldsMap.get(scalaDescriptor.findFieldByNumber(7).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -239,7 +276,8 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
     readerKey = "",
     channels = _root_.scala.Seq.empty,
     processUid = "",
-    workerUid = ""
+    workerUid = "",
+    authToken = ""
   )
   implicit class ClientSessionStartedLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.process.wsmessages.ClientSessionStarted](_l) {
     def address: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.address)((c_, f_) => c_.copy(address = f_))
@@ -248,6 +286,7 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
     def channels: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[_root_.scala.Predef.String]] = field(_.channels)((c_, f_) => c_.copy(channels = f_))
     def processUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.processUid)((c_, f_) => c_.copy(processUid = f_))
     def workerUid: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.workerUid)((c_, f_) => c_.copy(workerUid = f_))
+    def authToken: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.authToken)((c_, f_) => c_.copy(authToken = f_))
   }
   final val ADDRESS_FIELD_NUMBER = 1
   final val ADMINKEY_FIELD_NUMBER = 2
@@ -255,20 +294,23 @@ object ClientSessionStarted extends scalapb.GeneratedMessageCompanion[a8.hermes.
   final val CHANNELS_FIELD_NUMBER = 4
   final val PROCESSUID_FIELD_NUMBER = 5
   final val WORKERUID_FIELD_NUMBER = 6
+  final val AUTHTOKEN_FIELD_NUMBER = 7
   def of(
     address: _root_.scala.Predef.String,
     adminKey: _root_.scala.Predef.String,
     readerKey: _root_.scala.Predef.String,
     channels: _root_.scala.Seq[_root_.scala.Predef.String],
     processUid: _root_.scala.Predef.String,
-    workerUid: _root_.scala.Predef.String
+    workerUid: _root_.scala.Predef.String,
+    authToken: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.process.wsmessages.ClientSessionStarted = _root_.a8.hermes.proto.process.wsmessages.ClientSessionStarted(
     address,
     adminKey,
     readerKey,
     channels,
     processUid,
-    workerUid
+    workerUid,
+    authToken
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[mesh.ClientSessionStarted])
 }

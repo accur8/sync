@@ -210,6 +210,18 @@ message ClientSessionStarted {
   // learns who it is from the exchange instead of asserting it. Empty when the identity is
   // not a worker (a human at a CLI, a browser user).
   string          workerUid  = 6;
+  // authToken: the token the gateway MINTED during inline (SSH) login, returned for the same
+  // reason workerUid is — a client should learn what the auth exchange produced rather than
+  // be unable to name it.
+  //
+  // Without this a client that authenticated inline holds NO token, so ResumeSession presents
+  // an empty one and the gateway answers UNAUTHENTICATED — a resume that cannot possibly
+  // succeed. Measured on hermes: 17,900 of 20,000 messages lost on kill-mid-request, entirely
+  // because its (correct) resume could never authenticate.
+  //
+  // Empty when the client supplied its own token: it already has one, and echoing it back
+  // would put a credential on the wire for no reason.
+  string          authToken  = 7;
 }
 
 // BrowserSessionStart is a CLASS-1 (browser app) session announcing itself so the

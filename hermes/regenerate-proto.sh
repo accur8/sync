@@ -5,7 +5,18 @@ set -euo pipefail
 # Generated Scala files are committed to git in src/main/scala/
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GODEV_DIR="/Users/glen/code/accur8/godev"
+# GODEV_DIR: derived from this script's location, overridable.
+#
+# It was hardcoded to an absolute path, which silently regenerates from the WRONG checkout when
+# you are working in a git worktree — the generated Scala then reflects a proto you did not
+# edit, and nothing says so. Deriving it as a sibling of the sync repo matches how godev and
+# sync are actually colocated; GODEV_DIR=... overrides for anything else.
+GODEV_DIR="${GODEV_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)/godev}"
+if [[ ! -d "$GODEV_DIR" ]]; then
+  echo "GODEV_DIR does not exist: $GODEV_DIR (set GODEV_DIR to your godev checkout)" >&2
+  exit 1
+fi
+echo "=== Using godev checkout: $GODEV_DIR ==="
 PROTO_DIR="$SCRIPT_DIR/../hermes-proto/src/main/protobuf"
 SCALA_OUT_DIR="$SCRIPT_DIR/../hermes-proto/src/main/scala"
 

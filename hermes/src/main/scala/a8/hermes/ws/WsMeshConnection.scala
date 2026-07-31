@@ -138,7 +138,23 @@ object WsMeshConnection extends Logging {
   def trackingKey(msg: MessageFromClient): Option[String] =
     msg.message match {
       case MessageFromClient.Message.SendMessageRequest(smr) =>
-        smr.message.flatMap(_.header).flatMap(_.rpcHeader).map(_.correlationId).filter(_.nonEmpty)
+        // idempotentId FIRST — it is PER MESSAGE, where correlationId is per CONVERSATION.
+        //
+        // Keying on correlationId alone silently collapses a stream: N messages sharing one
+        // correlation overwrite each other in the map, so exactly ONE survives to be resent.
+        // Measured — a 20,000-message run under a single correlation tracked 1 entry and lost
+        // 4,940 messages that resend should have recovered.
+        //
+        // This is audit divergence #4, "two different resend keys": godev and the browser key
+        // by idempotentId, hermes keyed by correlationId. The keys were never equivalent, and
+        // idempotentId is the correct one because it is also what the stream's dedup window
+        // matches on — so a resend that DID land is dropped rather than double-delivered.
+        //
+        // correlationId remains the fallback for a request that carries no idempotentId: one
+        // key is better than none, and an RPC round-trip is genuinely per-conversation.
+        Option(smr.idempotentId)
+          .filter(_.nonEmpty)
+          .orElse(smr.message.flatMap(_.header).flatMap(_.rpcHeader).map(_.correlationId).filter(_.nonEmpty))
       case _ => None
     }
 
@@ -149,6 +165,12 @@ object WsMeshConnection extends Logging {
    */
   def retiringKey(m2c: MessageToClient): Option[String] =
     m2c.message match {
+      // THE SEND ACK. hermes ignored SendMessageResponse entirely, exactly as godev did — so
+      // with tracking keyed on idempotentId nothing would ever retire and every send would be
+      // replayed forever. The inner Message carries no idempotentId, so this frame is the ONLY
+      // thing that can retire an idempotentId-keyed entry.
+      case MessageToClient.Message.SendMessageResponse(resp) =>
+        Option(resp.idempotentId).filter(_.nonEmpty)
       case MessageToClient.Message.MessageEnvelope(env) =>
         try {
           val inner = a8.hermes.proto.process.wsmessages.Message.parseFrom(env.messageBytes.toByteArray)
@@ -618,7 +640,16 @@ class WsMeshConnection(uri: URI) extends Logging {
     // which belongs with the ClientSessionStart typed-proto work rather than here.
     rememberSession(
       readerKey = started.readerKey,
-      authToken = authToken,
+      // Prefer the token the GATEWAY MINTED. On the inline-login (SSH) path the caller's
+      // authToken is empty by construction — the whole point of inline login is that the client
+      // has no token yet — so retaining the caller's value left the resume presenting nothing
+      // and earning UNAUTHENTICATED every time. That cost 17,900 of 20,000 messages on
+      // kill-mid-request: the resend was working and resending onto a session that had resumed
+      // nothing. ClientSessionStarted.authToken (godev@8585095f) is now that token.
+      //
+      // Falls back to the caller's for the path where the client DID supply one — the gateway
+      // leaves the field empty there rather than echoing a credential back.
+      authToken = Option(started.authToken).filter(_.nonEmpty).getOrElse(authToken),
       subscriptions = subscriptions,
     )
 

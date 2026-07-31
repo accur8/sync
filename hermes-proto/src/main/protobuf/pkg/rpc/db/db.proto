@@ -302,6 +302,21 @@ message CatalogJoin {
   string join_type = 4;
 }
 
+// ReloadFirewallRequest forces the SQL firewall to re-read its model (table_metadata / table_access
+// / table_fields / table_joins / table_validation) straight from Postgres and rebuild its in-memory
+// snapshot. The steady-state refresh is the CDC pipeline, but that is best-effort (ephemeral
+// consumer, start-at-new): a dropped/lagged event leaves a just-written grant inert until a restart.
+// A policy sync calls this after writing table_access so the new grant is live immediately. No
+// fields — it is a whole-model reload.
+message ReloadFirewallRequest {
+}
+
+message ReloadFirewallResponse {
+  bool success = 1;
+  string error = 2;              // populated when success=false
+  int32 access_rule_count = 3;   // rules loaded, for the caller to log/sanity-check
+}
+
 // ============================================================================
 // Error Types
 // ============================================================================
