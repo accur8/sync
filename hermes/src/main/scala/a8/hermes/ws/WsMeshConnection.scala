@@ -184,7 +184,10 @@ object WsMeshConnection extends Logging {
    * ws(s) scheme and the /api/ws/send_receive_proto path are derived from it, matching the
    * godev client.
    */
-  def connect(meshRootUrl: String): WsMeshConnection = {
+  def connect(
+    meshRootUrl: String,
+    livenessTimeout: FiniteDuration = LivenessTimeout,
+  ): WsMeshConnection = {
     val base = meshRootUrl.stripSuffix("/")
     val wsUrl =
       if (base.startsWith("https://")) base.replaceFirst("^https://", "wss://")
@@ -192,14 +195,19 @@ object WsMeshConnection extends Logging {
       else base
     val uri = URI.create(s"$wsUrl/api/ws/send_receive_proto")
 
-    val conn = new WsMeshConnection(uri)
+    val conn = new WsMeshConnection(uri, livenessTimeout)
     conn.open()
     conn
   }
 
 }
 
-class WsMeshConnection(uri: URI) extends Logging {
+// livenessTimeout: how long inbound silence is tolerated before the connection is treated
+// as half-open (default: the production LivenessTimeout, which is CONTRACT — declared in
+// godev docs/mesh-client/client-invariants.md invariant 4). Overridable so the conformance
+// testbed can exercise the detection mechanism at test scale
+// (FEATURE-20260802-wsconform-testbed-injected-timeouts).
+class WsMeshConnection(uri: URI, livenessTimeout: FiniteDuration = WsMeshConnection.LivenessTimeout) extends Logging {
 
   import WsMeshConnection.*
 
@@ -605,8 +613,17 @@ class WsMeshConnection(uri: URI) extends Logging {
    */
   def receive(timeout: FiniteDuration): Option[MessageToClient] = {
     val msg = Option(inbound.poll(timeout.toMillis, TimeUnit.MILLISECONDS))
-    if (msg.isEmpty && !closed.get() && isHalfOpen(resumeKeyRef.get().isDefined, silentFor)) {
+    if (msg.isEmpty && !closed.get() && isHalfOpen(resumeKeyRef.get().isDefined, silentFor, livenessTimeout)) {
       logger.warn(s"ws: no inbound traffic for ${silentFor.toSeconds}s — treating the connection as half-open and reconnecting")
+      // ABORT the socket FIRST. reconnect()'s already-rebuilt guard checks
+      // isInputClosed/isOutputClosed, and a HALF-OPEN socket passes that check forever —
+      // TCP reports it healthy, which is the entire problem — so a plain reconnect()
+      // concluded "someone already rebuilt it" and returned without redialing. Detection
+      // fired every poll; the rebuild refused every time; reconnects stayed 0 while the
+      // whole window expired (measured: 18,049 of 20,000 lost with the deadline injected
+      // at 8s). Dooming the socket here is the same move godev's watchdog makes by
+      // closing via connPtr: make the liveness verdict VISIBLE to the guard.
+      Option(socketRef.get()).foreach(s => try s.abort() catch { case _: Exception => () })
       try reconnect()
       catch { case e: Exception => logger.warn(s"ws: liveness reconnect failed: ${e.getMessage}") }
     }

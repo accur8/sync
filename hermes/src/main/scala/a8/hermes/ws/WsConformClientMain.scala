@@ -105,7 +105,13 @@ object WsConformClientMain extends Logging {
         // implemented in this client today, so it declares only that. Claiming `nats` and
         // then failing CONNECT would produce a FAIL where the honest answer is "not
         // implemented", and a matrix that lies is worse than one with holes.
-        ok("transports=ws")
+        //
+        // knobs= declares the liveness timing this client ACCEPTS on CONNECT and applies
+        // to the REAL client. Only silenceDeadlineMs: hermes has no client-driven ping
+        // (its detection is inbound-silence in receive()), so declaring pingIntervalMs
+        // would be a knob it silently ignores — the dishonesty the declaration exists to
+        // prevent. FEATURE-20260802-wsconform-testbed-injected-timeouts.
+        ok("transports=ws knobs=silenceDeadlineMs")
         true
       case "CONNECT" => connect(args); true
       case "SEND"    => send(args); true
@@ -130,7 +136,15 @@ object WsConformClientMain extends Logging {
           val processUid = required("WSC_PROCESS_UID")
           val publicKey = SshAuth.readPublicKey(privateKey + ".pub")
 
-          val c = WsMeshConnection.connect(meshRootUrl)
+          // Injected liveness, when the harness sent the knob this client declared —
+          // applied to the REAL connection, so the production detection mechanism runs
+          // at test scale rather than at its 5-minute default.
+          val livenessTimeout =
+            args.get("silenceDeadlineMs").flatMap(_.toLongOption).filter(_ > 0)
+              .map(_.milliseconds)
+              .getOrElse(WsMeshConnection.LivenessTimeout)
+
+          val c = WsMeshConnection.connect(meshRootUrl, livenessTimeout)
           val started =
             c.bootstrap(
               authToken = "",
