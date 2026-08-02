@@ -39,10 +39,16 @@ class SimpleMailbox(
     val targetSubject = s"mesh.${to.value}.rpc-inbox"
     logger.debug(s"Publishing to subject: $targetSubject")
 
-    transport.publish(
+    // ACKED, not fire-and-forget (invariant 3's outbound leg): a plain publish already
+    // flushed into a socket the outage kills is silently gone — measured at 1-4 messages
+    // per outage. The per-message msg-id keys the stream's duplicate window, so the
+    // transport's republish-until-acked is safe when the original landed.
+    // BUG-20260802-hermes-nats-publish-unacked-inflight-loss.
+    transport.publishAcked(
       subject = targetSubject,
       headers = headers,
       payload = message.payload,
+      msgId = java.util.UUID.randomUUID().toString,
     )(using ctx)
   }
 

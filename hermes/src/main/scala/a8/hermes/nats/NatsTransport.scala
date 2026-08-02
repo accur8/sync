@@ -133,7 +133,7 @@ object NatsTransport {
 /**
  * NATS implementation of MailboxTransport
  */
-class NatsTransport(val connection: Connection) extends MailboxTransport {
+class NatsTransport(val connection: Connection) extends MailboxTransport with a8.common.logging.Logging {
 
   lazy val jetStream: JetStream = connection.jetStream()
   lazy val jetStreamManagement: JetStreamManagement = connection.jetStreamManagement()
@@ -151,6 +151,93 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
       .build()
     connection.publish(msg)
     connection.flush(java.time.Duration.ofMillis(100))  // Ensure message is sent immediately
+  }
+
+  // --- acked publish (invariant 3's outbound leg) ----------------------------------------
+  //
+  // Bounded outstanding window: backpressure, not memory. A sender that outruns the acks
+  // blocks here until the window drains — which during an outage is exactly the brake that
+  // keeps the unacked tail small.
+  private val ackedWindow = new java.util.concurrent.Semaphore(1024)
+  private val ackedRetryExec = {
+    java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r =>
+      val t = new Thread(r, "nats-acked-publish-retry")
+      t.setDaemon(true)
+      t
+    }
+  }
+
+  /**
+   * Publish through JetStream with a Nats-Msg-Id, and REPUBLISH until the stream acks —
+   * the fix for the fire-and-forget loss (a message flushed into a socket the outage
+   * kills has no ack to notice it is gone). The msg-id makes every republish safe: the
+   * stream's duplicate window drops a resend whose original landed. Async — one
+   * outstanding window, ack-driven — because 20k sequential ack round-trips would
+   * measure latency, not deliver messages. Gives up loudly after ~2.5 minutes of
+   * retries; by then the outage has outlived the java client's own reconnect story.
+   */
+  override def publishAcked(
+    subject: String,
+    headers: Map[String, String],
+    payload: Array[Byte],
+    msgId: String,
+  )(using Ctx): Unit = {
+    ackedWindow.acquire()
+    publishAckedAttempt(subject, headers, payload, msgId, attempt = 1)
+  }
+
+  private def publishAckedAttempt(
+    subject: String,
+    headers: Map[String, String],
+    payload: Array[Byte],
+    msgId: String,
+    attempt: Int,
+  ): Unit = {
+    val maxAttempts = 30
+    def backoffMs(n: Int): Long = math.min(250L * (1L << math.min(n - 1, 5)), 2000L)
+    def retryOrGiveUp(reason: => String): Unit = {
+      if (attempt >= maxAttempts) {
+        ackedWindow.release()
+        logger.warn(s"acked publish GAVE UP after $attempt attempts msgId=$msgId: $reason")
+      } else {
+        ackedRetryExec.schedule(
+          new Runnable {
+            override def run(): Unit =
+              publishAckedAttempt(subject, headers, payload, msgId, attempt + 1)
+          },
+          backoffMs(attempt),
+          java.util.concurrent.TimeUnit.MILLISECONDS,
+        )
+        ()
+      }
+    }
+
+    try {
+      val natsHeaders = toNatsHeaders(headers)
+      natsHeaders.put("Nats-Msg-Id", msgId)
+      val msg = io.nats.client.impl.NatsMessage.builder()
+        .subject(subject)
+        .headers(natsHeaders)
+        .data(payload)
+        .build()
+      jetStream
+        .publishAsync(msg)
+        // OUR OWN deadline on the ack. An ask written into a socket the outage KILLED
+        // never gets a reply and jnats never completes the future — no failure, no
+        // retry, message silently gone (measured: gaps=40 on kill-mid-request while
+        // half-open, whose asks were buffered rather than written into a corpse,
+        // passed). orTimeout turns the hang into the failure the retry path handles.
+        .orTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+        .whenComplete { (_, err) =>
+          if (err == null) ackedWindow.release()
+          else retryOrGiveUp(err.getMessage)
+        }
+      ()
+    } catch {
+      // publishAsync can throw synchronously (reconnect buffer full, connection state) —
+      // the same retry path applies.
+      case e: Exception => retryOrGiveUp(e.getMessage)
+    }
   }
 
   /**

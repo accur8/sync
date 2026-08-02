@@ -127,6 +127,25 @@ trait MailboxTransport {
   )(using Ctx): Option[Envelope]
 
   /**
+   * Publish with an END-TO-END ACK and a dedup key — invariant 3's outbound leg
+   * (godev docs/mesh-client/client-invariants.md) for this transport.
+   *
+   * A plain publish is fire-and-forget: a message already flushed into the socket an
+   * outage kills has no ack to notice the loss, so every outage eats the in-flight tail
+   * (measured at 1-4 messages per outage on the scala-sync-nats row,
+   * BUG-20260802-hermes-nats-publish-unacked-inflight-loss). An acked publish is
+   * REPUBLISHED until the stream confirms it; msgId is the dedup key that makes the
+   * republish safe when the original did land. May return before the ack arrives — the
+   * tracking is the transport's job.
+   */
+  def publishAcked(
+    subject: String,
+    headers: Map[String, String],
+    payload: Array[Byte],
+    msgId: String,
+  )(using Ctx): Unit
+
+  /**
    * Subscribe to a subject with optional queue group
    */
   def subscribe(
