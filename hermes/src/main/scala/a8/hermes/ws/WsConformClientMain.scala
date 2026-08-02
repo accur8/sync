@@ -2,10 +2,15 @@ package a8.hermes.ws
 
 import a8.common.logging.{Level, Logging, LoggingBootstrapConfig}
 import a8.hermes.auth.SshAuth
+import a8.hermes.bootstrap.SimpleMailbox
+import a8.hermes.core.Mailbox.*
+import a8.hermes.nats.NatsTransport
 import a8.hermes.proto.process.wsmessages as ws
+import a8.shared.app.{AppCtx, Ctx}
 import com.google.protobuf.ByteString
 
-import java.util.concurrent.atomic.AtomicInteger
+import java.time.Instant
+import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import scala.collection.mutable
 import scala.concurrent.duration.*
 import scala.io.StdIn
@@ -41,8 +46,35 @@ object WsConformClientMain extends Logging {
   private var conn: Option[WsMeshConnection] = None
   private var address: String = ""
 
-  // Observation state. Single-threaded: the loop reads one command at a time by contract, so
-  // no synchronisation is needed and adding it would only obscure that.
+  // --- direct-NATS transport state (the scala-sync-nats row) -----------------------------
+  //
+  // The data plane is hermes's REAL direct-NATS client — NatsTransport + SimpleMailbox with
+  // its durable consumer (sync@66613ef) — through the harness's proxy. The mailbox is
+  // minted over an UNPROXIED ws bootstrap first (protocol §6's bootstrap-only-WS shape):
+  // the mint is control plane, not the thing under test, and the ws socket is closed the
+  // moment the keys are in hand.
+  private var natsConn: Option[io.nats.client.Connection] = None
+  private var natsReader: Option[Thread] = None
+  private var transportMode: String = "ws"
+  private val natsReconnects = new AtomicLong(0)
+  private val natsLastReconnectAtNanos = new AtomicLong(0)
+  private val natsRecoveryMs = new AtomicLong(-1)
+
+  // A minimal Ctx for this standalone remote-control process. The transport API threads a
+  // Ctx, but this client's streams are plain iterator pulls (no ox concurrency) and there
+  // is no app bootstrap to hang a real AppCtx off — the logging hazard in main() is exactly
+  // why this binary must not run the full bootstrap.
+  private object conformCtx extends Ctx with Ctx.InternalCtx {
+    override def parent: Ctx = this
+    override def parentOpt: Option[Ctx] = None
+    override def ancestry: Iterator[Ctx] = Iterator(this)
+    override def appCtx: AppCtx =
+      throw new UnsupportedOperationException("wsconform client has no AppCtx")
+  }
+
+  // Observation state. The ws path is single-threaded by contract, but the NATS reader
+  // fills the accumulator from its own thread, so all observe() calls take this lock.
+  private val observeLock = new Object
   private val observed = mutable.Map[Int, Int]()
   private var received = 0
   private var dups = 0
@@ -107,11 +139,13 @@ object WsConformClientMain extends Logging {
         // implemented", and a matrix that lies is worse than one with holes.
         //
         // knobs= declares the liveness timing this client ACCEPTS on CONNECT and applies
-        // to the REAL client. Only silenceDeadlineMs: hermes has no client-driven ping
-        // (its detection is inbound-silence in receive()), so declaring pingIntervalMs
-        // would be a knob it silently ignores — the dishonesty the declaration exists to
-        // prevent. FEATURE-20260802-wsconform-testbed-injected-timeouts.
-        ok("transports=ws knobs=silenceDeadlineMs")
+        // to the REAL client. Only silenceDeadlineMs: on ws hermes has no client-driven
+        // ping (its detection is inbound-silence in receive()); on nats the deadline maps
+        // onto the java client's OWN ping machinery (pingInterval = deadline/2,
+        // maxPingsOut=2). Declaring pingIntervalMs would be a knob the ws path silently
+        // ignores — the dishonesty the declaration exists to prevent.
+        // FEATURE-20260802-wsconform-testbed-injected-timeouts.
+        ok("transports=ws,nats knobs=silenceDeadlineMs")
         true
       case "CONNECT" => connect(args); true
       case "SEND"    => send(args); true
@@ -119,6 +153,8 @@ object WsConformClientMain extends Logging {
       case "REPORT"  => report(); true
       case "CLOSE" =>
         conn.foreach(c => try c.close() catch { case _: Throwable => () })
+        natsConn.foreach(c => try c.close() catch { case _: Throwable => () })
+        natsReader.foreach(t => try t.interrupt() catch { case _: Throwable => () })
         ok("")
         false
       case other =>
@@ -169,12 +205,154 @@ object WsConformClientMain extends Logging {
         } catch {
           case e: Throwable => err(s"${e.getClass.getSimpleName}: ${e.getMessage}")
         }
+      case "nats" =>
+        try {
+          val meshRootUrl = required("WSC_MESH_URL") // DIRECT gateway — control plane, unproxied
+          val natsUrl = required("WSC_NATS_URL")     // PROXIED nats — the data plane under test
+          val privateKey = required("WSC_SSH_KEY")
+          val processUid = required("WSC_PROCESS_UID")
+          val publicKey = SshAuth.readPublicKey(privateKey + ".pub")
+
+          // 1. CONTROL PLANE: mint the mailbox over an unproxied ws hello with NO
+          // subscriptions, and close the socket the moment the keys are in hand. The mint
+          // also creates the channel streams server-side; the mailbox itself is durable.
+          val wsConn = WsMeshConnection.connect(meshRootUrl)
+          val started =
+            try
+              wsConn.bootstrap(
+                authToken = "",
+                processUid = processUid,
+                appName = "wsconform-hermes-nats",
+                lifecycleKind = ws.MailboxLifecycle.SHORT_LIVED_CLI,
+                channels = Seq("rpc-inbox"),
+                subscriptions = Seq.empty,
+                sshPublicKey = publicKey,
+                sshOrigin = "wsconform",
+                signNonce = nonce => SshAuth.signNonce(nonce, privateKey),
+              )
+            finally wsConn.close()
+
+          // 2. DATA PLANE through the proxy. Reconnect settings mirror production
+          // (NatsTransport.scala: reconnectWait 2s); the injected silence deadline maps
+          // onto the java client's own ping machinery so half-open is detectable inside a
+          // test-scale window.
+          val silenceDeadlineMs =
+            args.get("silenceDeadlineMs").flatMap(_.toLongOption).filter(_ > 0)
+          val optionsBuilder =
+            io.nats.client.Options.builder()
+              .server(natsUrl)
+              .maxReconnects(-1) // the SCENARIO decides when giving up matters; the window bounds the run
+              .reconnectWait(java.time.Duration.ofSeconds(2))
+              .connectionListener((_, event) => {
+                if (event == io.nats.client.ConnectionListener.Events.RECONNECTED) {
+                  natsReconnects.incrementAndGet()
+                  natsLastReconnectAtNanos.set(System.nanoTime())
+                  ()
+                }
+              })
+          silenceDeadlineMs.foreach { ms =>
+            optionsBuilder
+              .pingInterval(java.time.Duration.ofMillis(math.max(ms / 2, 250)))
+              .maxPingsOut(2)
+            ()
+          }
+          val connection = io.nats.client.Nats.connect(optionsBuilder.build())
+          val transport = new NatsTransport(connection)
+
+          val now = Instant.now()
+          val metadata =
+            MailboxMetadata(
+              adminKey = AdminKey(started.adminKey),
+              readerKey = ReaderKey(started.readerKey),
+              address = MailboxAddress(started.address),
+              lifecycle = LifecycleType.Ephemeral,
+              createdAt = now,
+              expiresAt = now.plusSeconds(LifecycleType.Ephemeral.ttl.toSeconds),
+              lastAccessedAt = now,
+            )
+          val mbox = new SimpleMailbox(metadata, transport)
+
+          // 3. The reader: hermes's REAL subscribe path — the durable JetStream consumer
+          // (sync@66613ef) whose server-side position is what survives the outage.
+          val reader = new Thread(() => {
+            try
+              mbox
+                // DeliverPolicy.All, not New: this mailbox was minted moments ago, so All
+                // means exactly "everything this run sends" — and it closes the bind-window
+                // race where the first ~48 sends landed before the consumer existed and
+                // were never delivered (New only delivers what arrives after binding).
+                .subscribe(Channel.RpcInbox, a8.hermes.core.MailboxTransport.DeliverPolicy.All)(using conformCtx)
+                .runForeach { mm =>
+                  val nowNanos = System.nanoTime()
+                  val since = natsLastReconnectAtNanos.getAndSet(0)
+                  if (since > 0) natsRecoveryMs.set((nowNanos - since) / 1000000L)
+                  observeLock.synchronized {
+                    observe(new String(mm.payload, java.nio.charset.StandardCharsets.UTF_8))
+                  }
+                }(using conformCtx)
+            catch {
+              case e: Throwable => diag(s"wsconform: nats reader ended: ${e.getMessage}")
+            }
+          })
+          reader.setDaemon(true)
+          reader.setName("wsconform-nats-reader")
+          reader.start()
+
+          natsConn = Some(connection)
+          natsReader = Some(reader)
+          natsMailboxRef = Some(mbox)
+          address = started.address
+          transportMode = "nats"
+          ok(s"address=${started.address} readerKey=${started.readerKey}")
+        } catch {
+          case e: Throwable => err(s"${e.getClass.getSimpleName}: ${e.getMessage}")
+        }
+
       case other =>
-        err(s"transport $other not implemented by this client (CAPABILITIES says ws)")
+        err(s"transport $other not implemented by this client (CAPABILITIES says ws,nats)")
     }
   }
 
+  private var natsMailboxRef: Option[SimpleMailbox] = None
+
+  // The direct-NATS send: hermes's REAL publish path (SimpleMailbox.send -> core publish to
+  // mesh.<address>.rpc-inbox, captured by the channel stream). Failures are reported, not
+  // fatal, for the same reason as the ws branch — the outage severing the path mid-SEND is
+  // the scenario, and the java client's own reconnect buffering is part of what is measured.
+  private def sendNats(args: Map[String, String], mbox: SimpleMailbox): Unit = {
+    val n = intArg(args, "n", 0)
+    seed = intArg(args, "seed", 0)
+    val sent = new AtomicInteger(0)
+    var i = 0
+    while (i < n) {
+      try {
+        mbox.send(
+          to = MailboxAddress(address),
+          message = MailboxMessage(
+            correlationId = CounterCorrelation,
+            fromMailbox = MailboxAddress(address),
+            endpoint = "wsconform.counter",
+            contentType = ContentType.Protobuf,
+            payload = payload(seed, i).getBytes(java.nio.charset.StandardCharsets.UTF_8),
+          ),
+        )(using conformCtx)
+        sent.incrementAndGet()
+        ()
+      } catch {
+        case e: Throwable => diag(s"wsconform: nats send $i failed: ${e.getMessage}")
+      }
+      i += 1
+    }
+    ok(s"sent=${sent.get()}")
+  }
+
   private def send(args: Map[String, String]): Unit =
+    if (transportMode == "nats") {
+      natsMailboxRef match {
+        case None       => err("SEND before CONNECT")
+        case Some(mbox) => sendNats(args, mbox)
+      }
+    } else
     conn match {
       case None => err("SEND before CONNECT")
       case Some(c) =>
@@ -226,7 +404,34 @@ object WsConformClientMain extends Logging {
         ok(s"sent=${sent.get()}")
     }
 
+  // The direct-NATS EXPECT: the reader THREAD fills the accumulator (durable-consumer
+  // deliveries), so this just waits on it. All accumulator access is under observeLock.
+  private def expectNats(args: Map[String, String]): Unit = {
+    val want = intArg(args, "n", 0)
+    val timeoutMs = intArg(args, "timeoutMs", 30000).toLong
+    val deadline = System.currentTimeMillis() + timeoutMs
+    var timedOut = false
+
+    while (!timedOut && observeLock.synchronized(observed.size) < want) {
+      if (System.currentTimeMillis() >= deadline) timedOut = true
+      else Thread.sleep(100)
+    }
+
+    val line = observeLock.synchronized {
+      val gaps = (0 until want).count(i => !observed.contains(i))
+      val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last"
+      val withForeign = if (foreign > 0) s"$base foreign=$foreign" else base
+      if (timedOut || gaps > 0)
+        diag(s"wsconform: nats EXPECT ended want=$want $withForeign " +
+          s"reconnects=${natsReconnects.get()} recoveryMs=${natsRecoveryMs.get()}")
+      withForeign
+    }
+    ok(if (timedOut) s"$line timedOut=true" else line)
+  }
+
   private def expect(args: Map[String, String]): Unit =
+    if (transportMode == "nats") expectNats(args)
+    else
     conn match {
       case None => err("EXPECT before CONNECT")
       case Some(c) =>
@@ -265,7 +470,7 @@ object WsConformClientMain extends Logging {
       case ws.MessageToClient.Message.MessageEnvelope(env) =>
         try {
           val inner = ws.Message.parseFrom(env.messageBytes.toByteArray)
-          observe(inner.data.toStringUtf8)
+          observeLock.synchronized(observe(inner.data.toStringUtf8))
         } catch { case _: Throwable => () }
       case _ => () // pings, notifications, subscribe responses — not this stream's business
     }
@@ -292,6 +497,12 @@ object WsConformClientMain extends Logging {
     }
 
   private def report(): Unit =
+    if (transportMode == "nats") {
+      // reconnects/recoveryMs from the java client's own ConnectionListener; resends is -1
+      // because the outbound leg is the java client's reconnect buffer, which it does not
+      // count — claiming 0 would assert "nothing needed resending", which we cannot know.
+      ok(s"reconnects=${natsReconnects.get()} resends=-1 remints=-1 recoveryMs=${natsRecoveryMs.get()}")
+    } else
     conn match {
       case None =>
         ok("reconnects=-1 resends=-1 remints=-1 recoveryMs=-1")

@@ -56,7 +56,18 @@ class SimpleMailbox(
   private val readerConsumerName =
     "rdr" + java.util.UUID.randomUUID().toString.replace("-", "").take(16)
 
-  override def subscribe(channel: Channel)(using ctx: Ctx): XStream[MailboxMessage] = {
+  override def subscribe(channel: Channel)(using ctx: Ctx): XStream[MailboxMessage] =
+    subscribe(channel, MailboxTransport.DeliverPolicy.New)
+
+  /**
+   * deliverPolicy is the app's choice of START POSITION (invariant 2 of godev
+   * docs/mesh-client/client-invariants.md: the first subscription of a fresh process
+   * belongs to the app). New — from-now — is the daemon default; a caller that must not
+   * miss anything published while its consumer was still binding (the conformance client,
+   * on a freshly-minted mailbox) passes All. Measured before this existed: the first 48 of
+   * 20,000 messages landed in the bind window and were never delivered.
+   */
+  def subscribe(channel: Channel, deliverPolicy: MailboxTransport.DeliverPolicy)(using ctx: Ctx): XStream[MailboxMessage] = {
     // Subscribe to our channel — subjects are address-based. The JetStream consumer
     // resolves the capturing stream FROM the subject; no stream-name arithmetic here.
     val channelSubject = s"mesh.${metadata.address.value}.${channel.name}"
@@ -65,7 +76,7 @@ class SimpleMailbox(
       channelSubject,
       MailboxTransport.ConsumerConfig.Durable(
         consumerName = s"$readerConsumerName-${channel.name}",
-        deliverPolicy = MailboxTransport.DeliverPolicy.New,
+        deliverPolicy = deliverPolicy,
         ackPolicy = MailboxTransport.AckPolicy.Explicit,
         // Must outlast any outage worth surviving — reaping DURING an outage would
         // recreate the loss this consumer exists to prevent.
