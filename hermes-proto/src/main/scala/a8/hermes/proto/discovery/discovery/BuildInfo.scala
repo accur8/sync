@@ -30,6 +30,12 @@ package a8.hermes.proto.discovery.discovery
   *   target OS
   * @param goarch
   *   target arch
+  * @param codebaseName
+  *   The CODEBASE marker: which repo built this binary ("godev", "checkpoint", "sync").
+  *   Part of the BUILD IDENTITY contract so every client carries it wherever buildInfo
+  *   goes — DiscoveryResponse.codebaseName predates it and remains, but only travels on
+  *   full discovery responses; this rides with the build info itself.
+  *   BUG-20260802-checkpoint-does-not-self-report.
   */
 @SerialVersionUID(0L)
 final case class BuildInfo(
@@ -45,6 +51,7 @@ final case class BuildInfo(
     goVersion: _root_.scala.Predef.String = "",
     goos: _root_.scala.Predef.String = "",
     goarch: _root_.scala.Predef.String = "",
+    codebaseName: _root_.scala.Predef.String = "",
     unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
     ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[BuildInfo] {
     @transient
@@ -135,6 +142,13 @@ final case class BuildInfo(
           __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(12, __value)
         }
       };
+      
+      {
+        val __value = codebaseName
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(13, __value)
+        }
+      };
       __size += unknownFields.serializedSize
       __size
     }
@@ -220,6 +234,12 @@ final case class BuildInfo(
           _output__.writeString(12, __v)
         }
       };
+      {
+        val __v = codebaseName
+        if (!__v.isEmpty) {
+          _output__.writeString(13, __v)
+        }
+      };
       unknownFields.writeTo(_output__)
     }
     def withVersion(__v: _root_.scala.Predef.String): BuildInfo = copy(version = __v)
@@ -234,6 +254,7 @@ final case class BuildInfo(
     def withGoVersion(__v: _root_.scala.Predef.String): BuildInfo = copy(goVersion = __v)
     def withGoos(__v: _root_.scala.Predef.String): BuildInfo = copy(goos = __v)
     def withGoarch(__v: _root_.scala.Predef.String): BuildInfo = copy(goarch = __v)
+    def withCodebaseName(__v: _root_.scala.Predef.String): BuildInfo = copy(codebaseName = __v)
     def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
     def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
     def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
@@ -286,6 +307,10 @@ final case class BuildInfo(
           val __t = goarch
           if (__t != "") __t else null
         }
+        case 13 => {
+          val __t = codebaseName
+          if (__t != "") __t else null
+        }
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
@@ -303,6 +328,7 @@ final case class BuildInfo(
         case 10 => _root_.scalapb.descriptors.PString(goVersion)
         case 11 => _root_.scalapb.descriptors.PString(goos)
         case 12 => _root_.scalapb.descriptors.PString(goarch)
+        case 13 => _root_.scalapb.descriptors.PString(codebaseName)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -325,6 +351,7 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
     var __goVersion: _root_.scala.Predef.String = ""
     var __goos: _root_.scala.Predef.String = ""
     var __goarch: _root_.scala.Predef.String = ""
+    var __codebaseName: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
     while (!_done__) {
@@ -355,6 +382,8 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
           __goos = _input__.readStringRequireUtf8()
         case 98 =>
           __goarch = _input__.readStringRequireUtf8()
+        case 106 =>
+          __codebaseName = _input__.readStringRequireUtf8()
         case tag =>
           if (_unknownFields__ == null) {
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
@@ -375,6 +404,7 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
         goVersion = __goVersion,
         goos = __goos,
         goarch = __goarch,
+        codebaseName = __codebaseName,
         unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
@@ -393,7 +423,8 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
         buildIps = __fieldsMap.get(scalaDescriptor.findFieldByNumber(9).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         goVersion = __fieldsMap.get(scalaDescriptor.findFieldByNumber(10).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
         goos = __fieldsMap.get(scalaDescriptor.findFieldByNumber(11).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        goarch = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        goarch = __fieldsMap.get(scalaDescriptor.findFieldByNumber(12).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        codebaseName = __fieldsMap.get(scalaDescriptor.findFieldByNumber(13).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
@@ -414,7 +445,8 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
     buildIps = "",
     goVersion = "",
     goos = "",
-    goarch = ""
+    goarch = "",
+    codebaseName = ""
   )
   implicit class BuildInfoLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, a8.hermes.proto.discovery.discovery.BuildInfo]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, a8.hermes.proto.discovery.discovery.BuildInfo](_l) {
     def version: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.version)((c_, f_) => c_.copy(version = f_))
@@ -429,6 +461,7 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
     def goVersion: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.goVersion)((c_, f_) => c_.copy(goVersion = f_))
     def goos: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.goos)((c_, f_) => c_.copy(goos = f_))
     def goarch: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.goarch)((c_, f_) => c_.copy(goarch = f_))
+    def codebaseName: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.codebaseName)((c_, f_) => c_.copy(codebaseName = f_))
   }
   final val VERSION_FIELD_NUMBER = 1
   final val GIT_REPO_FIELD_NUMBER = 2
@@ -442,6 +475,7 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
   final val GO_VERSION_FIELD_NUMBER = 10
   final val GOOS_FIELD_NUMBER = 11
   final val GOARCH_FIELD_NUMBER = 12
+  final val CODEBASE_NAME_FIELD_NUMBER = 13
   def of(
     version: _root_.scala.Predef.String,
     gitRepo: _root_.scala.Predef.String,
@@ -454,7 +488,8 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
     buildIps: _root_.scala.Predef.String,
     goVersion: _root_.scala.Predef.String,
     goos: _root_.scala.Predef.String,
-    goarch: _root_.scala.Predef.String
+    goarch: _root_.scala.Predef.String,
+    codebaseName: _root_.scala.Predef.String
   ): _root_.a8.hermes.proto.discovery.discovery.BuildInfo = _root_.a8.hermes.proto.discovery.discovery.BuildInfo(
     version,
     gitRepo,
@@ -467,7 +502,8 @@ object BuildInfo extends scalapb.GeneratedMessageCompanion[a8.hermes.proto.disco
     buildIps,
     goVersion,
     goos,
-    goarch
+    goarch,
+    codebaseName
   )
   // @@protoc_insertion_point(GeneratedMessageCompanion[discovery.BuildInfo])
 }

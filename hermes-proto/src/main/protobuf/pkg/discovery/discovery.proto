@@ -87,7 +87,8 @@ message BuildInfo {
   string goarch          = 12; // target arch
   // The CODEBASE marker: which repo built this binary ("godev", "checkpoint", "sync").
   // Part of the BUILD IDENTITY contract so every client carries it wherever buildInfo
-  // goes. Mirrors godev pkg/discovery/discovery.proto field 13 — keep in lockstep.
+  // goes — DiscoveryResponse.codebaseName predates it and remains, but only travels on
+  // full discovery responses; this rides with the build info itself.
   // BUG-20260802-checkpoint-does-not-self-report.
   string codebase_name   = 13;
 }
