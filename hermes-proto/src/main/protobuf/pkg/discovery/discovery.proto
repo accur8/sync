@@ -85,6 +85,11 @@ message BuildInfo {
   string go_version      = 10; // language/runtime version (go version, or JVM/Scala on the sync side)
   string goos            = 11; // target OS
   string goarch          = 12; // target arch
+  // The CODEBASE marker: which repo built this binary ("godev", "checkpoint", "sync").
+  // Part of the BUILD IDENTITY contract so every client carries it wherever buildInfo
+  // goes. Mirrors godev pkg/discovery/discovery.proto field 13 — keep in lockstep.
+  // BUG-20260802-checkpoint-does-not-self-report.
+  string codebase_name   = 13;
 }
 
 // ProcessLocation describes where a process is running
