@@ -82,6 +82,11 @@ object HermesBootstrap extends Logging {
     bootstrapConfig: HermesBootstrapConfig,
     appConfig: HermesAppConfig,
     discoveryBuildInfo: Option[a8.hermes.proto.discovery.discovery.BuildInfo] = None,
+    // The CODEBASE marker, matching the Go convention (godev fills codebaseName="godev"
+    // on every announce): which repo built this binary, distinct from appName (a8-cli,
+    // mesh and worker are three apps of ONE codebase). Empty when the app does not say —
+    // never guessed from the classpath, which is how buildInfo lied (see above).
+    discoveryCodebaseName: Option[String] = None,
   )(using ctx: Ctx): Resource[Components] = {
     for {
       // Step 1: Connect to NATS
@@ -198,6 +203,7 @@ object HermesBootstrap extends Logging {
                 // classpath-order lottery — see resource()'s doc.
                 discovery = Some(DiscoveryResponse(
                   appName = appConfig.appName.getOrElse("hermes"),
+                  codebaseName = discoveryCodebaseName.getOrElse(""),
                   buildInfo = Some(discoveryBuildInfo.getOrElse(BuildInfoReader.buildInfo)),
                 )),
               )
