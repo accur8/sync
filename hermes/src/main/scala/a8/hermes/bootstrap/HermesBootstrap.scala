@@ -8,6 +8,7 @@ import a8.hermes.proto.continuum.continuum_rpc.{ProcessCompletedRequest, Process
 import a8.hermes.proto.discovery.discovery.DiscoveryResponse
 import a8.hermes.rpc.{RpcServer, RpcClient, StandardHandlers}
 import a8.hermes.proto.mailbox.mailbox.{BindIdentityRequest, BindIdentityResponse}
+import a8.hermes.proto.auth.auth.{GetUserInfoForSelfRequest, GetUserInfoForSelfResponse}
 import a8.hermes.discovery.ServiceDiscovery
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
@@ -87,6 +88,17 @@ object HermesBootstrap extends Logging {
     // mesh and worker are three apps of ONE codebase). Empty when the app does not say —
     // never guessed from the classpath, which is how buildInfo lied (see above).
     discoveryCodebaseName: Option[String] = None,
+    // jobName/jobKind declare that this process IS a long-lived service that should own a
+    // continuum JOB row, for a process no scheduler hands one to. Both or neither: the server's
+    // ResolveJobUid passes kind through VERBATIM into job.kind, so a name without a kind mints
+    // jobs of kind "bootstrap" — a process-axis label landing on the job axis.
+    //
+    // The name must be SPECIFIC and STABLE per worker. ResolveJobUid CREATES what it cannot
+    // resolve, and a generic announce name has already caused an outage once (godev's own doc
+    // records one minting a monitor-less supervisor job and freezing monitor checkers).
+    // BUG-20260802-checkpoint-job-row-still-shows-the-watcher-run.
+    jobName: Option[String] = None,
+    jobKind: Option[String] = None,
   )(using ctx: Ctx): Resource[Components] = {
     for {
       // Step 1: Connect to NATS
@@ -156,7 +168,46 @@ object HermesBootstrap extends Logging {
         pinger.close()
       }
 
-      // Step 3c: Worker-level continuum process lifecycle. A LONG-LIVED server
+      // Step 4: Start RPC Server
+      rpcServer <- Resource.acquireRelease {
+        logger.info("Starting RPC server...")
+        val server = new RpcServer(
+          RpcServer.Config(
+            mailbox = mailbox,
+            transport = natsTransport,
+            parallelism = 10,
+          )
+        )
+
+        // Register standard handlers (process.v1.Ping, discovery.v1.*)
+        StandardHandlers.registerAll(server, mailbox.address.value)
+        logger.info("✓ Standard RPC handlers registered (process.v1, discovery.v1)")
+
+        server.start()(using ctx)
+        logger.info(s"✓ RPC server started on mailbox: ${mailbox.address.value}")
+        server
+      } { server =>
+        logger.info("Stopping RPC server...")
+        server.stop()
+      }
+
+      // Step 5: Start RPC Client
+      rpcClient <- RpcClient.resource(
+        RpcClient.Config(
+          mailbox = mailbox,
+          transport = natsTransport,
+          defaultTimeout = scala.concurrent.duration.FiniteDuration(30, "seconds"),
+        )
+      )(using ctx)
+
+      // Step 5b: SSH-auth + BindIdentity so the mailbox carries an identity the mesh (and the SQL
+      // firewall) can ACL. This belongs in the bootstrapper, not each app: godev's bootstrap.Start
+      // binds identity for every worker, and the Scala side has all the pieces (SshAuth, AuthExtension,
+      // mailbox.v1.BindIdentity) — it just never wired them in. Gated on config so offline/test runs
+      // (no auth service, no ssh key) bootstrap unauthenticated as before. Mirrors WhoAmI.scala.
+      authExtension <- bindIdentityResource(bootstrapConfig, mailbox, rpcClient, staticServiceDiscovery)(using ctx)
+
+      // Step 5c: Worker-level continuum process lifecycle. A LONG-LIVED server
       // (named mailbox, or an anonymous mailbox declared long-lived-daemon)
       // announces a processrun (ProcessStarted) and keeps it live with the 30s
       // ping loop — mirroring godev's bootstrap — so an idle server is still
@@ -165,6 +216,18 @@ object HermesBootstrap extends Logging {
       // uid: reuse A8_PROCESS_UID when runner-spawned (that IS the processrun
       // uid, same as godev leaves); self-generate for e.g. a systemd-started
       // worker. Best-effort: a lifecycle failure must not stop the server.
+      //
+      // THIS RUNS AFTER AUTH (step 5b), AND THAT ORDER IS THE POINT. It used to be step 3c,
+      // before bindIdentity — so the process announced itself before it knew who it was, and
+      // could not name its worker. Every checkpoint processrun landed with an empty workerUid,
+      // which left ResolveJobUid unable to resolve a job (it keys on (worker, name), and
+      // job.workeruid is NOT NULL) and a8-checkpoint.service reading "does not self-report" in
+      // the build report while its own build-stamped announce sat in the table.
+      //
+      // The contract is AUTH FIRST, THEN ANNOUNCE. Do not move this back above step 5b.
+      // Note this is independent of how the mailbox was acquired: minting vs durable-attach is
+      // an ADDRESSABILITY choice and has nothing to do with identifying the run.
+      // BUG-20260802-checkpoint-job-row-still-shows-the-watcher-run.
       _ <- Resource.acquireRelease {
         if (!longLived) {
           logger.debug("short-lived CLI lifecycle: no processrun announced (mailbox pinger only)")
@@ -175,6 +238,37 @@ object HermesBootstrap extends Logging {
         } else {
           try {
             val runnerClient = new ContinuumRunnerClient(natsTransport)
+            // The worker this run belongs to, resolved from the identity we just
+            // authenticated as (step 5b). Empty when auth is disabled/unconfigured — the
+            // offline and unit-test bootstraps — which announces exactly as before.
+            //
+            // Asked rather than asserted: this is the SAME auth.v2.GetUserInfoForSelf the Go
+            // leaves use in workerUid(), so the value is the server's view of who we are, not a
+            // claim we invented. Best-effort by design — a lifecycle detail must never stop a
+            // server from starting, and a run with no worker is still better than no run.
+            val resolvedWorkerUid: String =
+              if (authExtension.isEmpty) ""
+              else
+                try {
+                  rpcClient
+                    .callTyped[GetUserInfoForSelfRequest, GetUserInfoForSelfResponse](
+                      targetMailbox = staticServiceDiscovery.getMailbox("auth"),
+                      endpoint = "auth.v2.GetUserInfoForSelf",
+                      request = GetUserInfoForSelfRequest(),
+                      timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
+                    )(using ctx, summon)
+                    .map(_.workerUid)
+                    .getOrElse("")
+                } catch {
+                  case e: Exception =>
+                    logger.warn(s"could not resolve workerUid for the processrun announce: ${e.getMessage}")
+                    ""
+                }
+            if (resolvedWorkerUid.nonEmpty)
+              logger.debug(s"processrun announce carries workerUid $resolvedWorkerUid")
+            else
+              logger.warn("processrun announce has NO workerUid — the run will not link to a job")
+
             // Self-detect the process manager (systemd unit / supervisord program)
             // so this processrun auto-correlates with its control handle. Empty when
             // unmanaged (bare CLI / macOS / non-systemd) — normal, not an error.
@@ -190,7 +284,16 @@ object HermesBootstrap extends Logging {
                 startedAt = Some(ContinuumRunnerClient.nowTimestamp()),
                 command = Seq(appConfig.appName.getOrElse("hermes")),
                 cwd = System.getProperty("user.dir", ""),
-                kind = "bootstrap",
+                // kind is the JOB-axis value when this process declares itself a service, and
+                // the process-axis "bootstrap" otherwise. ResolveJobUid passes it VERBATIM into
+                // job.kind, so declaring a jobName without a jobKind would mint jobs of kind
+                // "bootstrap" — which is why the two params travel together.
+                kind = jobKind.filter(_.nonEmpty).getOrElse("bootstrap"),
+                // jobName + workerUid are what let the server resolve-or-create the job and
+                // link this run to it. Both must be present: ResolveJobUid keys on
+                // (worker, name). Absent, the run is announced unlinked exactly as before.
+                jobName = jobName.getOrElse(""),
+                workerUid = resolvedWorkerUid,
                 processManager = pm.manager,
                 processManagerUnit = pm.unit,
                 processManagerScope = pm.scope,
@@ -234,45 +337,6 @@ object HermesBootstrap extends Logging {
           }
         case None => ()
       }
-
-      // Step 4: Start RPC Server
-      rpcServer <- Resource.acquireRelease {
-        logger.info("Starting RPC server...")
-        val server = new RpcServer(
-          RpcServer.Config(
-            mailbox = mailbox,
-            transport = natsTransport,
-            parallelism = 10,
-          )
-        )
-
-        // Register standard handlers (process.v1.Ping, discovery.v1.*)
-        StandardHandlers.registerAll(server, mailbox.address.value)
-        logger.info("✓ Standard RPC handlers registered (process.v1, discovery.v1)")
-
-        server.start()(using ctx)
-        logger.info(s"✓ RPC server started on mailbox: ${mailbox.address.value}")
-        server
-      } { server =>
-        logger.info("Stopping RPC server...")
-        server.stop()
-      }
-
-      // Step 5: Start RPC Client
-      rpcClient <- RpcClient.resource(
-        RpcClient.Config(
-          mailbox = mailbox,
-          transport = natsTransport,
-          defaultTimeout = scala.concurrent.duration.FiniteDuration(30, "seconds"),
-        )
-      )(using ctx)
-
-      // Step 5b: SSH-auth + BindIdentity so the mailbox carries an identity the mesh (and the SQL
-      // firewall) can ACL. This belongs in the bootstrapper, not each app: godev's bootstrap.Start
-      // binds identity for every worker, and the Scala side has all the pieces (SshAuth, AuthExtension,
-      // mailbox.v1.BindIdentity) — it just never wired them in. Gated on config so offline/test runs
-      // (no auth service, no ssh key) bootstrap unauthenticated as before. Mirrors WhoAmI.scala.
-      authExtension <- bindIdentityResource(bootstrapConfig, mailbox, rpcClient, staticServiceDiscovery)(using ctx)
 
       // Resolve stable processUid once at bootstrap time (before service discovery)
       processUid = sys.env.getOrElse("A8_PROCESS_UID",
