@@ -241,7 +241,7 @@ object WsConformClientMain extends Logging {
         // exactly the blind spot that cost a diagnostic pass on this suite.
         if (timedOut || gaps > 0)
           diag(s"wsconform: EXPECT ended want=$want $withForeign " +
-            s"reconnects=${c.reconnects} resends=${c.resends} recoveryMs=${c.recoveryMs}")
+            s"reconnects=${c.reconnects} resends=${c.resends} recoveryMs=${c.recoveryMs} staleDrops=${c.staleDrops}")
 
         ok(if (timedOut) s"$withForeign timedOut=true" else withForeign)
     }

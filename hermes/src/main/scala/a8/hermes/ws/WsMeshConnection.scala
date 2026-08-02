@@ -243,6 +243,16 @@ class WsMeshConnection(uri: URI) extends Logging {
   // no error to the caller — the specific gap this ticket was filed for.
   private val inFlight = new ConcurrentHashMap[String, MessageFromClient]()
 
+  // HIGH-WATER REPLAY POSITION — invariant 2 of godev docs/mesh-client/client-invariants.md:
+  // the max ServerEnvelope.sequence handed onward, per subscription id. A reconnect
+  // re-asserts each marked subscription at mark+1 (numeric startSeq is INCLUSIVE
+  // gateway-side) instead of the bootstrap "first" — which replayed the ENTIRE stream
+  // history on every blip. The mark advances by max(), never last-write-wins, and a frame
+  // at or below it is dropped before it reaches the inbound queue: delivery is
+  // at-least-once, so a stale replay is legal input the filter must make invisible.
+  private val highWater = new ConcurrentHashMap[String, java.lang.Long]()
+  private val staleDropCount = new AtomicLong(0)
+
   // Stamped on EVERY inbound frame. Inbound silence — not just a socket error — is how a
   // half-open connection is detected; TCP will not report one. Mirrors godev's
   // lastInboundAtNanos (mesh_rpcclient.go:310).
@@ -295,7 +305,17 @@ class WsMeshConnection(uri: URI) extends Logging {
               handshakeOutcome.offer(Right(()))
             case _ => ()
           }
-          inbound.put(m2c)
+          // Invariant 2's receive-side filter: an envelope at or below its subscription's
+          // high-water mark is a replay the caller already saw — counted and dropped here,
+          // AFTER liveness stamping and retirement (a stale frame still proves the socket),
+          // BEFORE the inbound queue.
+          val fresh =
+            m2c.message match {
+              case MessageToClient.Message.MessageEnvelope(env) =>
+                env.serverEnvelope.forall(se => observeDelivery(se.subscriptionId, se.sequence))
+              case _ => true
+            }
+          if (fresh) inbound.put(m2c)
         } catch {
           case e: Exception => logger.warn(s"ws: undecodable MessageToClient (${acc.length} bytes)", e)
         }
@@ -378,6 +398,52 @@ class WsMeshConnection(uri: URI) extends Logging {
   /** How many requests are awaiting a response. Exposed for tests and diagnostics. */
   def inFlightCount: Int = inFlight.size()
 
+  /**
+   * Advance the subscription's high-water mark; true means the frame is NEW, false means a
+   * stale replay at or below the mark (the caller drops it). Monotonic by construction —
+   * max(), never last-write-wins, so a redelivered lower sequence can neither reach the
+   * caller nor regress the mark (the reference client's defect,
+   * BUG-20260801-react-playground-resume-off-by-one). Frames without an attributable
+   * subscription or sequence pass through untracked.
+   */
+  private[ws] def observeDelivery(subscriptionId: String, seq: Long): Boolean = {
+    if (subscriptionId.isEmpty || seq <= 0) true
+    else {
+      var fresh = false
+      highWater.compute(
+        subscriptionId,
+        (_, prev) => {
+          if (prev == null || seq > prev) { fresh = true; seq } else prev
+        },
+      )
+      if (!fresh) staleDropCount.incrementAndGet()
+      fresh
+    }
+  }
+
+  /** Stale frames dropped by the high-water filter — replays the caller never saw. */
+  def staleDrops: Long = staleDropCount.get()
+
+  /**
+   * The subscriptions to re-assert on a fresh socket: each mailbox subscription whose
+   * high-water mark has moved resumes at mark+1; the rest keep their bootstrap start (a
+   * fresh process replaying from "first" is the caller's choice — the mark only governs
+   * reconnects within one process lifetime). ScalaPB messages are immutable, so the
+   * retained specs in subscriptionsRef are never touched.
+   */
+  private[ws] def resumeSubscriptions(subs: Seq[Subscription]): Seq[Subscription] =
+    subs.map { sub =>
+      sub.oneof match {
+        case Subscription.Oneof.Mailbox(m) =>
+          Option(highWater.get(m.id)) match {
+            case Some(hw) if hw > 0 =>
+              Subscription(Subscription.Oneof.Mailbox(m.copy(startSeq = (hw + 1L).toString)))
+            case _ => sub
+          }
+        case _ => sub
+      }
+    }
+
   /** How many times this connection has been rebuilt. */
   def reconnects: Long = reconnectCount.get()
 
@@ -438,7 +504,8 @@ class WsMeshConnection(uri: URI) extends Logging {
                       start = ClientHello.Start.ResumeSession(
                         ResumeSession(readerKey = readerKey, authToken = authTokenRef.get())
                       ),
-                      subscriptions = subscriptionsRef.get(),
+                      // At the high-water mark, not the bootstrap start — see resumeSubscriptions.
+                      subscriptions = resumeSubscriptions(subscriptionsRef.get()),
                     )
                   )
                 ),
