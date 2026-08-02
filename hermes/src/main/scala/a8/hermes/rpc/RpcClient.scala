@@ -105,6 +105,9 @@ class RpcClient(config: RpcClient.Config) extends Logging {
           if (running) {
             processResponse(envelope)
           }
+          // Ack AFTER processing (at-least-once): a throw above skips this, so the
+          // message redelivers at the consumer's ackWait instead of vanishing.
+          envelope.ack()
         }
       } catch {
         case th: Throwable =>

@@ -94,6 +94,9 @@ object Mailbox {
     contentType: String,  // "application/protobuf" or "application/json"
     payload: Array[Byte],
     metadata: Map[String, String] = Map.empty,
+    // Delivery acknowledgment — call AFTER processing; see MailboxTransport.Envelope.ack
+    // for why the transport must never ack on the consumer's behalf.
+    ack: () => Unit = () => (),
   )
 
   // Content type constants

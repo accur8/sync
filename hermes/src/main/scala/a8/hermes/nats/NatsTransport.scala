@@ -158,7 +158,20 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
   // Bounded outstanding window: backpressure, not memory. A sender that outruns the acks
   // blocks here until the window drains — which during an outage is exactly the brake that
   // keeps the unacked tail small.
-  private val ackedWindow = new java.util.concurrent.Semaphore(1024)
+  // Counters, not logs — the same doctrine godev's client earned on
+  // BUG-20260731-godev-no-recovery-from-half-open-socket: under outage load, log lines
+  // drop and their absence gets misread. These four numbers say exactly where an acked
+  // publish's story ended, and the conformance driver prints them with its verdict
+  // (BUG-20260802-sync-nats-kill-loses-inflight-publishes).
+  val ackedPublishOk = new java.util.concurrent.atomic.AtomicLong(0)
+  val ackedPublishRetries = new java.util.concurrent.atomic.AtomicLong(0)
+  val ackedPublishGaveUp = new java.util.concurrent.atomic.AtomicLong(0)
+
+  private val ackedWindowPermits = 1024
+  private val ackedWindow = new java.util.concurrent.Semaphore(ackedWindowPermits)
+
+  /** Publishes still in the retry pipeline (unacked, not yet given up). */
+  def ackedPublishOutstanding: Int = ackedWindowPermits - ackedWindow.availablePermits()
   private val ackedRetryExec = {
     java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r =>
       val t = new Thread(r, "nats-acked-publish-retry")
@@ -198,8 +211,10 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
     def retryOrGiveUp(reason: => String): Unit = {
       if (attempt >= maxAttempts) {
         ackedWindow.release()
+        ackedPublishGaveUp.incrementAndGet()
         logger.warn(s"acked publish GAVE UP after $attempt attempts msgId=$msgId: $reason")
       } else {
+        ackedPublishRetries.incrementAndGet()
         ackedRetryExec.schedule(
           new Runnable {
             override def run(): Unit =
@@ -229,8 +244,11 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
         // passed). orTimeout turns the hang into the failure the retry path handles.
         .orTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
         .whenComplete { (_, err) =>
-          if (err == null) ackedWindow.release()
-          else retryOrGiveUp(err.getMessage)
+          if (err == null) {
+            ackedWindow.release()
+            ackedPublishOk.incrementAndGet()
+            ()
+          } else retryOrGiveUp(err.getMessage)
         }
       ()
     } catch {
@@ -322,7 +340,7 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
   )(using Ctx): XStream[Envelope] = {
     val consumerConfig = toNatsConsumerConfig(config)
     val options = config match {
-      case ConsumerConfig.Durable(name, _, _, _) =>
+      case ConsumerConfig.Durable(name, _, _, _, _) =>
         io.nats.client.PushSubscribeOptions.builder()
           .durable(name)
           .configuration(consumerConfig)
@@ -350,8 +368,12 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
           while (lookahead == null && subscription.isActive) {
             val msg = subscription.nextMessage(java.time.Duration.ofMillis(500))
             if (msg != null) {
-              msg.ack()
-              lookahead = fromNatsMessage(msg)
+              // NO ack here. Acking at the pull (ack-before-deliver) let stream prefetch
+              // ack whole chunks the consumer had not processed; a connection death then
+              // dropped them acked-but-unseen, unredeliverable — the contiguous-hole loss.
+              // The envelope carries the ack; the CONSUMER fires it after processing.
+              val ackThunk: () => Unit = () => msg.ack()
+              lookahead = fromNatsMessage(msg).copy(ack = ackThunk)
             }
           }
           lookahead != null
@@ -464,7 +486,7 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
     val builder = ConsumerConfiguration.builder()
 
     val (deliverPolicy, ackPolicy) = config match {
-      case ConsumerConfig.Durable(_, dp, ap, _) => (dp, ap)
+      case ConsumerConfig.Durable(_, dp, ap, _, _) => (dp, ap)
       case ConsumerConfig.Ephemeral(dp, ap) => (dp, ap)
     }
 
@@ -474,8 +496,17 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
     // Self-reap an abandoned durable (each process run mints its own reader consumer);
     // see ConsumerConfig.Durable for why the threshold must outlast any survivable outage.
     config match {
-      case ConsumerConfig.Durable(_, _, _, Some(threshold)) =>
+      case ConsumerConfig.Durable(_, _, _, Some(threshold), _) =>
         builder.inactiveThreshold(java.time.Duration.ofMillis(threshold.toMillis))
+        ()
+      case _ => ()
+    }
+
+    // The redelivery clock for outstanding-unacked deliveries — the void-window fix;
+    // see ConsumerConfig.Durable.ackWait for the mechanism and the measurement.
+    config match {
+      case ConsumerConfig.Durable(_, _, _, _, Some(wait)) =>
+        builder.ackWait(java.time.Duration.ofMillis(wait.toMillis))
         ()
       case _ => ()
     }

@@ -87,6 +87,13 @@ class SimpleMailbox(
         // Must outlast any outage worth surviving — reaping DURING an outage would
         // recreate the loss this consumer exists to prevent.
         inactiveThreshold = Some(scala.concurrent.duration.DurationInt(1).hour),
+        // Prompt redelivery of deliveries voided by a dead connection: the jnats
+        // default (30s) parks them far beyond the ~10ms reconnect. 5s comfortably
+        // exceeds any honest per-message processing time in this reader (µs) while
+        // keeping the void window's recovery inside any reasonable wait
+        // (BUG-20260802-sync-nats-kill-loses-inflight-publishes: 22/20000 messages
+        // stuck behind the 30s clock while EXPECT's window closed at 45s).
+        ackWait = Some(scala.concurrent.duration.DurationInt(5).seconds),
       ),
     )(using ctx).map { envelope =>
       MailboxMessage(
@@ -98,6 +105,7 @@ class SimpleMailbox(
         contentType = envelope.headers.getOrElse("content-type", ContentType.Protobuf),
         payload = envelope.payload,
         metadata = envelope.headers - "correlation-id" - "sender-mailbox" - "endpoint" - "content-type",
+        ack = envelope.ack,
       )
     }
   }

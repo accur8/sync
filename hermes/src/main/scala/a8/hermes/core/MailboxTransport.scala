@@ -21,6 +21,16 @@ object MailboxTransport {
     headers: Map[String, String],
     payload: Array[Byte],
     replyTo: Option[String] = None,
+    /**
+     * Acknowledge THIS delivery — called by the consumer AFTER processing, never by the
+     * transport on the consumer's behalf. The transport used to ack eagerly at the pull
+     * (ack-before-deliver): stream prefetch then acked whole chunks the app had not seen,
+     * and a connection death dropped them with the server unwilling to redeliver —
+     * measured as contiguous 20–215-message holes with the consumer reporting
+     * ackPending=0 redelivered=0 (BUG-20260802-sync-nats-kill-loses-inflight-publishes).
+     * No-op by default so non-JetStream paths (core subscribe) stay ack-free.
+     */
+    ack: () => Unit = () => (),
   )
 
   /**
@@ -53,6 +63,18 @@ object MailboxTransport {
       deliverPolicy: DeliverPolicy,
       ackPolicy: AckPolicy,
       inactiveThreshold: Option[FiniteDuration] = scala.None,
+      /**
+       * ackWait bounds how long the server waits for an ack before REDELIVERING. It is
+       * the recovery clock for the push-consumer void window: messages pushed into a
+       * connection the outage killed are outstanding-unacked server-side, and nothing
+       * re-sends them until ackWait expires. The jnats default (30s) parks that
+       * redelivery far beyond any client reconnect (measured ~10ms) — a kill mid-stream
+       * left 22 of 20,000 messages undelivered for 30s+ while the reconnected consumer
+       * carried on with new deliveries around them
+       * (BUG-20260802-sync-nats-kill-loses-inflight-publishes). Set it a little above
+       * the worst honest per-message processing time, never to the default.
+       */
+      ackWait: Option[FiniteDuration] = scala.None,
     ) extends ConsumerConfig
 
     /**

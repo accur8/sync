@@ -275,23 +275,47 @@ object WsConformClientMain extends Logging {
           // 3. The reader: hermes's REAL subscribe path — the durable JetStream consumer
           // (sync@66613ef) whose server-side position is what survives the outage.
           val reader = new Thread(() => {
-            try
-              mbox
-                // DeliverPolicy.All, not New: this mailbox was minted moments ago, so All
-                // means exactly "everything this run sends" — and it closes the bind-window
-                // race where the first ~48 sends landed before the consumer existed and
-                // were never delivered (New only delivers what arrives after binding).
-                .subscribe(Channel.RpcInbox, a8.hermes.core.MailboxTransport.DeliverPolicy.All)(using conformCtx)
-                .runForeach { mm =>
-                  val nowNanos = System.nanoTime()
-                  val since = natsLastReconnectAtNanos.getAndSet(0)
-                  if (since > 0) natsRecoveryMs.set((nowNanos - since) / 1000000L)
-                  observeLock.synchronized {
-                    observe(new String(mm.payload, java.nio.charset.StandardCharsets.UTF_8))
-                  }
-                }(using conformCtx)
-            catch {
-              case e: Throwable => diag(s"wsconform: nats reader ended: ${e.getMessage}")
+            // RETRY LOOP, not one-shot. The bind (jetStream.subscribe under mbox.subscribe)
+            // races the outage: a kill landing inside the consumer-create request-reply
+            // throws, and a one-shot reader then died with NOTHING consumed — measured as
+            // received=0 gaps=20000 while all 20000 publishes sat acked in the stream. The
+            // stream ENDING (subscription dropped inactive across a reconnect) is the same
+            // event in return-value clothing. Both rebind the SAME durable, whose
+            // server-side position makes the retry lossless by construction
+            // (BUG-20260802-sync-nats-kill-loses-inflight-publishes).
+            var attempt = 0
+            var done = false
+            while (!done && !Thread.currentThread().isInterrupted) {
+              attempt += 1
+              try {
+                mbox
+                  // DeliverPolicy.All, not New: this mailbox was minted moments ago, so All
+                  // means exactly "everything this run sends" — and it closes the bind-window
+                  // race where the first ~48 sends landed before the consumer existed and
+                  // were never delivered (New only delivers what arrives after binding).
+                  // (On a REBIND the durable already exists and All is ignored in favor of
+                  // its server-side position.)
+                  .subscribe(Channel.RpcInbox, a8.hermes.core.MailboxTransport.DeliverPolicy.All)(using conformCtx)
+                  .runForeach { mm =>
+                    val nowNanos = System.nanoTime()
+                    val since = natsLastReconnectAtNanos.getAndSet(0)
+                    if (since > 0) natsRecoveryMs.set((nowNanos - since) / 1000000L)
+                    observeLock.synchronized {
+                      observe(new String(mm.payload, java.nio.charset.StandardCharsets.UTF_8))
+                    }
+                    // OBSERVED, now acked — the order the at-least-once contract demands.
+                    mm.ack()
+                  }(using conformCtx)
+                diag(s"wsconform: nats reader stream ended (attempt $attempt) — rebinding the durable")
+              } catch {
+                case _: InterruptedException => done = true
+                case e: Throwable =>
+                  diag(s"wsconform: nats reader error (attempt $attempt): ${e.getMessage} — rebinding the durable")
+              }
+              if (!done) {
+                try Thread.sleep(250)
+                catch { case _: InterruptedException => done = true }
+              }
             }
           })
           reader.setDaemon(true)
@@ -301,6 +325,7 @@ object WsConformClientMain extends Logging {
           natsConn = Some(connection)
           natsReader = Some(reader)
           natsMailboxRef = Some(mbox)
+          natsTransportRef = Some(transport)
           address = started.address
           transportMode = "nats"
           ok(s"address=${started.address} readerKey=${started.readerKey}")
@@ -314,6 +339,7 @@ object WsConformClientMain extends Logging {
   }
 
   private var natsMailboxRef: Option[SimpleMailbox] = None
+  private var natsTransportRef: Option[NatsTransport] = None
 
   // The direct-NATS send: hermes's REAL publish path (SimpleMailbox.send -> core publish to
   // mesh.<address>.rpc-inbox, captured by the channel stream). Failures are reported, not
@@ -421,9 +447,45 @@ object WsConformClientMain extends Logging {
       val gaps = (0 until want).count(i => !observed.contains(i))
       val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last"
       val withForeign = if (foreign > 0) s"$base foreign=$foreign" else base
-      if (timedOut || gaps > 0)
+      if (timedOut || gaps > 0) {
         diag(s"wsconform: nats EXPECT ended want=$want $withForeign " +
           s"reconnects=${natsReconnects.get()} recoveryMs=${natsRecoveryMs.get()}")
+        // WHERE the holes are decides the theory: kill-adjacent = the void window,
+        // scattered = something else entirely. Print the first 20.
+        if (gaps > 0) {
+          val missing = (0 until want).filterNot(observed.contains).take(20)
+          diag(s"wsconform: nats missing indices (first ${missing.size}): ${missing.mkString(",")}")
+        }
+        // The publish pipeline's own account — which stage lost the missing messages.
+        // acked+outstanding+gaveUp should sum to sent; a shortfall here means publishes
+        // died silently, a clean account with gaps means the loss is delivery-side.
+        // Counters, not logs: the stderr tail is 25 lines and jnats's SEVERE spam owns it
+        // (BUG-20260802-sync-nats-kill-loses-inflight-publishes).
+        natsTransportRef.foreach { t =>
+          diag(s"wsconform: nats publish acked=${t.ackedPublishOk.get()} retries=${t.ackedPublishRetries.get()} " +
+            s"gaveUp=${t.ackedPublishGaveUp.get()} outstanding=${t.ackedPublishOutstanding}")
+        }
+        natsConn.foreach { c =>
+          val st = c.getStatistics
+          diag(s"wsconform: jnats stats reconnects=${st.getReconnects} droppedInbound=${st.getDroppedCount} " +
+            s"msgsIn=${st.getInMsgs} msgsOut=${st.getOutMsgs}")
+          // The SERVER's account of the reader consumer: its actual ackWait (did the config
+          // apply?), what it still counts pending/unacked, and how much it redelivered.
+          // This is the number that decides between "redelivery clock never fired" and
+          // "redelivery fired into dead interest".
+          try {
+            val jsm = c.jetStreamManagement()
+            val subj = s"mesh.$address.rpc-inbox"
+            import scala.jdk.CollectionConverters.*
+            jsm.getStreamNames(subj).asScala.foreach { sn =>
+              jsm.getConsumers(sn).asScala.foreach { ci =>
+                diag(s"wsconform: consumer $sn/${ci.getName} ackWait=${ci.getConsumerConfiguration.getAckWait} " +
+                  s"numPending=${ci.getNumPending} ackPending=${ci.getNumAckPending} redelivered=${ci.getRedelivered}")
+              }
+            }
+          } catch { case e: Throwable => diag(s"wsconform: consumer info failed: ${e.getMessage}") }
+        }
+      }
       withForeign
     }
     ok(if (timedOut) s"$line timedOut=true" else line)
