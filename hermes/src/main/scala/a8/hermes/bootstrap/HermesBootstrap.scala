@@ -428,60 +428,99 @@ object HermesBootstrap extends Logging {
     staticServiceDiscovery: StaticServiceDiscovery,
   )(using ctx: Ctx): Resource[Option[auth.AuthExtension]] = {
 
-    val enabled = bootstrapConfig.autoRenewAuth &&
-      bootstrapConfig.sshKeyPath.isDefined &&
-      bootstrapConfig.authServiceMailbox.isDefined
+    // Convention over configuration: the config keys are OVERRIDES, not requirements.
+    // Unset, the key defaults to the user's standard identity (~/.ssh/id_ed25519, only
+    // when the file exists) and the auth mailbox to the "auth" discovery mapping this
+    // bootstrap already resolved — the same resolution every external login uses.
+    //
+    // Before these defaults, auth here was opt-in — and apps that authenticate OUTSIDE
+    // hermes (checkpoint's ContinuumClient logs in after this resource completes) ran
+    // the once-per-JVM processrun announce with authExtension empty: no workerUid, no
+    // job link, and a ProcessStart published unauthenticated, which the auth-first
+    // contract forbids. Auth-first is now the default, not an opt-in.
+    val keyPath: Option[String] = bootstrapConfig.sshKeyPath.orElse(defaultSshKeyPath)
+    val authMailboxOpt: Option[Mailbox.MailboxAddress] =
+      bootstrapConfig.authServiceMailbox
+        .orElse(staticServiceDiscovery.getAllMailboxes.get("auth"))
+        .map(Mailbox.MailboxAddress(_))
+    // Both keys explicitly configured = the operator ASKED for auth, so a failure is
+    // fatal exactly as before. Defaulted = best-effort: a missing enrollment or a dead
+    // auth service degrades to the old unauthenticated bootstrap with a warning,
+    // instead of bricking every hermes app that happens to have a key on disk.
+    val explicitlyConfigured =
+      bootstrapConfig.sshKeyPath.isDefined && bootstrapConfig.authServiceMailbox.isDefined
+
+    val enabled = bootstrapConfig.autoRenewAuth && keyPath.isDefined && authMailboxOpt.isDefined
 
     if (!enabled) {
       logger.info(
         s"Mailbox auth disabled (autoRenewAuth=${bootstrapConfig.autoRenewAuth}, " +
-          s"sshKeyPath=${bootstrapConfig.sshKeyPath.isDefined}, authServiceMailbox=${bootstrapConfig.authServiceMailbox.isDefined}) " +
-          "— mailbox will be unauthenticated"
+          s"sshKey=${keyPath.isDefined}, authServiceMailbox=${authMailboxOpt.isDefined}; " +
+          "no config and no defaultable key/mapping) — mailbox will be unauthenticated"
       )
       Resource.acquireRelease(Option.empty[auth.AuthExtension])(_ => ())
     } else {
+      if (!explicitlyConfigured)
+        logger.info(s"Mailbox auth enabled by convention (key ${keyPath.get}, auth mailbox ${authMailboxOpt.get.value})")
       Resource.acquireRelease[Option[auth.AuthExtension]] {
-        val authMailbox = Mailbox.MailboxAddress(bootstrapConfig.authServiceMailbox.get)
-        val sshAuthConfig =
-          auth.SshAuth.Config(
-            sshPrivateKeyPath = bootstrapConfig.sshKeyPath.get,
-            authServiceMailbox = authMailbox,
-          )
+        try {
+          val authMailbox = authMailboxOpt.get
+          val sshAuthConfig =
+            auth.SshAuth.Config(
+              sshPrivateKeyPath = keyPath.get,
+              authServiceMailbox = authMailbox,
+            )
 
-        // 1. SSH auth -> auth token
-        val authResult =
-          auth.SshAuth.authenticate(sshAuthConfig, rpcClient) match {
-            case scala.util.Success(r) =>
-              logger.info("✓ SSH authentication successful")
-              r
-            case scala.util.Failure(e) =>
-              throw new RuntimeException(s"SSH authentication failed: ${e.getMessage}", e)
-          }
+          // 1. SSH auth -> auth token
+          val authResult =
+            auth.SshAuth.authenticate(sshAuthConfig, rpcClient) match {
+              case scala.util.Success(r) =>
+                logger.info("✓ SSH authentication successful")
+                r
+              case scala.util.Failure(e) =>
+                throw new RuntimeException(s"SSH authentication failed: ${e.getMessage}", e)
+            }
 
-        // 2. Bind the token to this mailbox (mailbox.v1.BindIdentity)
-        val mailboxServiceMailbox = staticServiceDiscovery.getMailbox("mailbox")
-        val bindResp =
-          rpcClient.callTyped[BindIdentityRequest, BindIdentityResponse](
-            targetMailbox = mailboxServiceMailbox,
-            endpoint = "mailbox.v1.BindIdentity",
-            request = BindIdentityRequest(authToken = authResult.authToken),
-            timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
-          ).getOrElse {
-            throw new RuntimeException("BindIdentity RPC failed: no response from mailbox service")
+          // 2. Bind the token to this mailbox (mailbox.v1.BindIdentity)
+          val mailboxServiceMailbox = staticServiceDiscovery.getMailbox("mailbox")
+          val bindResp =
+            rpcClient.callTyped[BindIdentityRequest, BindIdentityResponse](
+              targetMailbox = mailboxServiceMailbox,
+              endpoint = "mailbox.v1.BindIdentity",
+              request = BindIdentityRequest(authToken = authResult.authToken),
+              timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
+            ).getOrElse {
+              throw new RuntimeException("BindIdentity RPC failed: no response from mailbox service")
+            }
+          if (!bindResp.success) {
+            throw new RuntimeException(s"BindIdentity failed: ${bindResp.message}")
           }
-        if (!bindResp.success) {
-          throw new RuntimeException(s"BindIdentity failed: ${bindResp.message}")
+          logger.info(s"✓ Auth token bound to mailbox ${mailbox.address.value} (user_uid: ${bindResp.userUid})")
+
+          // 3. Start background token renewal
+          val authExt = new auth.AuthExtension(mailbox, sshAuthConfig, rpcClient, auth.AuthExtension.Config())
+          authExt.start(authResult.expiresAt)
+          Some(authExt)
+        } catch {
+          case e: Exception if !explicitlyConfigured =>
+            logger.warn(
+              "convention-default mailbox auth failed — continuing UNAUTHENTICATED " +
+                s"(set sshKeyPath + authServiceMailbox in bootstrap.conf to make this fatal): ${e.getMessage}"
+            )
+            None
         }
-        logger.info(s"✓ Auth token bound to mailbox ${mailbox.address.value} (user_uid: ${bindResp.userUid})")
-
-        // 3. Start background token renewal
-        val authExt = new auth.AuthExtension(mailbox, sshAuthConfig, rpcClient, auth.AuthExtension.Config())
-        authExt.start(authResult.expiresAt)
-        Some(authExt)
       } { authExtOpt =>
         authExtOpt.foreach(_.stop())
       }
     }
+  }
+
+  /** The user's standard SSH identity, when present — the convention half of the
+    * bindIdentityResource defaults. Existence-checked so a keyless host (unit tests,
+    * containers) stays on the unauthenticated path instead of failing auth. */
+  private def defaultSshKeyPath: Option[String] = {
+    val p = java.nio.file.Paths.get(System.getProperty("user.home"), ".ssh", "id_ed25519")
+    Option.when(java.nio.file.Files.exists(p))(p.toString)
   }
 
   /**
