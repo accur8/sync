@@ -38,12 +38,21 @@ object MailboxTransport {
 
   object ConsumerConfig {
     /**
-     * Durable consumer that survives process restarts
+     * Durable consumer: its position lives SERVER-side, so delivery survives connection
+     * loss and resumes with the gap replayed — the property a mailbox reader needs
+     * (BUG-20260801-hermes-nats-mailbox-outage-loss).
+     *
+     * inactiveThreshold reaps a durable nobody is reading anymore: each process run
+     * mints its own reader consumer, so without it a long-lived named mailbox
+     * accumulates one abandoned durable per restart, forever. It must comfortably
+     * exceed any outage worth surviving — reaping DURING an outage recreates the loss
+     * this consumer exists to prevent.
      */
     case class Durable(
       consumerName: String,
       deliverPolicy: DeliverPolicy,
       ackPolicy: AckPolicy,
+      inactiveThreshold: Option[FiniteDuration] = scala.None,
     ) extends ConsumerConfig
 
     /**
@@ -126,28 +135,22 @@ trait MailboxTransport {
   )(using Ctx): XStream[Envelope]
 
   /**
-   * Create a durable or ephemeral consumer for a stream
+   * Consume `subject` through a JETSTREAM consumer on the stream that captures it. The
+   * stream is resolved FROM the subject — the client never does stream-name arithmetic
+   * (mesh-<kind>-<readerKey>-<channel> stays a server-side concern it cannot drift from).
+   *
+   * This — not subscribe() — is how a mailbox channel must be read: a core-NATS
+   * subscribe auto-reconnects but is fire-and-forget, so everything published while the
+   * connection was down is silently LOST even though it sits durably in the stream. A
+   * durable consumer's position lives server-side; delivery resumes after the outage
+   * with the gap replayed. Invariant 2 of godev docs/mesh-client/client-invariants.md;
+   * BUG-20260801-hermes-nats-mailbox-outage-loss.
+   *
+   * The stream blocks while the subject is quiet and ends only when the subscription
+   * is closed.
    */
   def createConsumer(
-    streamName: String,
-    config: ConsumerConfig,
-  )(using Ctx): XStream[Envelope]
-
-  /**
-   * Create a realtime consumer that blocks indefinitely waiting for messages.
-   *
-   * Unlike createConsumer which uses short timeouts and throws NoSuchElementException,
-   * this method blocks for extended periods waiting for new messages, making it
-   * suitable for true realtime streaming scenarios.
-   *
-   * The consumer will:
-   * - Block up to 30 seconds waiting for each message
-   * - Automatically retry on timeout (never throws NoSuchElementException from timeout)
-   * - Keep the stream alive continuously
-   * - Only terminate when the subscription becomes inactive
-   */
-  def createRealtimeConsumer(
-    streamName: String,
+    subject: String,
     config: ConsumerConfig,
   )(using Ctx): XStream[Envelope]
 

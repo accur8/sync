@@ -230,93 +230,57 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
   }
 
   override def createConsumer(
-    streamName: String,
+    subject: String,
     config: ConsumerConfig,
   )(using Ctx): XStream[Envelope] = {
     val consumerConfig = toNatsConsumerConfig(config)
-    val subscription = jetStream.subscribe(
-      streamName,
-      config match {
-        case ConsumerConfig.Durable(name, _, _) =>
-          io.nats.client.PushSubscribeOptions.builder()
-            .stream(streamName)
-            .durable(name)
-            .configuration(consumerConfig)
-            .build()
-        case ConsumerConfig.Ephemeral(_, _) =>
-          io.nats.client.PushSubscribeOptions.builder()
-            .stream(streamName)
-            .configuration(consumerConfig)
-            .build()
-      }
-    )
-
-    XStream.acquireRelease {
-      (subscription, new Iterator[Envelope] {
-        override def hasNext: Boolean = subscription.isActive
-
-        override def next(): Envelope = {
-          val msg = subscription.nextMessage(java.time.Duration.ofMillis(100))
-          if (msg != null) {
-            msg.ack()  // Acknowledge message
-            fromNatsMessage(msg)
-          } else {
-            throw new NoSuchElementException("No message available")
-          }
-        }
-      })
-    } { sub =>
-      sub.unsubscribe()
+    val options = config match {
+      case ConsumerConfig.Durable(name, _, _, _) =>
+        io.nats.client.PushSubscribeOptions.builder()
+          .durable(name)
+          .configuration(consumerConfig)
+          .build()
+      case ConsumerConfig.Ephemeral(_, _) =>
+        io.nats.client.PushSubscribeOptions.builder()
+          .configuration(consumerConfig)
+          .build()
     }
-  }
-
-  override def createRealtimeConsumer(
-    streamName: String,
-    config: ConsumerConfig,
-  )(using Ctx): XStream[Envelope] = {
-    val consumerConfig = toNatsConsumerConfig(config)
-    val subscription = jetStream.subscribe(
-      streamName,
-      config match {
-        case ConsumerConfig.Durable(name, _, _) =>
-          io.nats.client.PushSubscribeOptions.builder()
-            .stream(streamName)
-            .durable(name)
-            .configuration(consumerConfig)
-            .build()
-        case ConsumerConfig.Ephemeral(_, _) =>
-          io.nats.client.PushSubscribeOptions.builder()
-            .stream(streamName)
-            .configuration(consumerConfig)
-            .build()
-      }
-    )
+    // No .stream(): the js client resolves the stream FROM the subject, so this
+    // transport never re-derives mesh-<kind>-<readerKey>-<channel> and cannot drift
+    // from the server's naming. (The previous, never-called version of this method
+    // passed a stream NAME where the subject belongs — it could not have worked.)
+    val subscription = jetStream.subscribe(subject, options)
 
     XStream.acquireRelease {
       (subscription, new Iterator[Envelope] {
+        // Lookahead pull: BLOCK (in poll slices, so unsubscribe is noticed) until a
+        // message arrives or the subscription closes. The previous iterator threw
+        // NoSuchElementException on any 100ms lull, ending the stream the moment the
+        // mailbox went quiet.
+        private var lookahead: Envelope = null
+
         override def hasNext: Boolean = {
-          val active = subscription.isActive
-          println(s"DEBUG: hasNext called, subscription.isActive = $active")
-          active
+          while (lookahead == null && subscription.isActive) {
+            val msg = subscription.nextMessage(java.time.Duration.ofMillis(500))
+            if (msg != null) {
+              msg.ack()
+              lookahead = fromNatsMessage(msg)
+            }
+          }
+          lookahead != null
         }
 
         override def next(): Envelope = {
-          println("DEBUG: next() called, calling subscription.nextMessage(30s)")
-          // Block for up to 30 seconds waiting for a message
-          val msg = subscription.nextMessage(java.time.Duration.ofSeconds(30))
-          if (msg != null) {
-            println(s"DEBUG: Got message, subject=${msg.getSubject()}, seq=${msg.metaData().streamSequence()}")
-            msg.ack()  // Acknowledge message
-            fromNatsMessage(msg)
-          } else {
-            println("DEBUG: nextMessage returned null (timeout), retrying...")
-            // Timeout - no message in 30 seconds, retry
-            next()  // Recursive call to wait again
-          }
+          if (!hasNext) throw new NoSuchElementException("consumer subscription closed")
+          val v = lookahead
+          lookahead = null
+          v
         }
       })
     } { sub =>
-      println("DEBUG: Unsubscribing from stream")
+      // Stops THIS subscriber's interest. A DURABLE's server-side position survives
+      // (that is the point); the abandoned consumer itself is reaped by its
+      // inactiveThreshold rather than deleted here.
       sub.unsubscribe()
     }
   }
@@ -413,12 +377,21 @@ class NatsTransport(val connection: Connection) extends MailboxTransport {
     val builder = ConsumerConfiguration.builder()
 
     val (deliverPolicy, ackPolicy) = config match {
-      case ConsumerConfig.Durable(_, dp, ap) => (dp, ap)
+      case ConsumerConfig.Durable(_, dp, ap, _) => (dp, ap)
       case ConsumerConfig.Ephemeral(dp, ap) => (dp, ap)
     }
 
     builder.deliverPolicy(toNatsDeliverPolicy(deliverPolicy))
     builder.ackPolicy(toNatsAckPolicy(ackPolicy))
+
+    // Self-reap an abandoned durable (each process run mints its own reader consumer);
+    // see ConsumerConfig.Durable for why the threshold must outlast any survivable outage.
+    config match {
+      case ConsumerConfig.Durable(_, _, _, Some(threshold)) =>
+        builder.inactiveThreshold(java.time.Duration.ofMillis(threshold.toMillis))
+        ()
+      case _ => ()
+    }
 
     // Set start sequence if using ByStartSequence policy
     deliverPolicy match {

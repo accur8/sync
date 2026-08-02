@@ -89,7 +89,23 @@ class RpcServer(config: RpcServer.Config) extends Logging {
       Thread.currentThread().setName(threadName)
       logger.info(s"RPC Server inbox reader thread started: $threadName")
       try {
-        config.transport.subscribe(rpcInboxSubject)(using ctx).runForeach { envelope =>
+        // A DURABLE JetStream consumer, not a core-NATS subscribe: core reconnects fine
+        // but silently loses every request published while the connection was down,
+        // even though it sits durably in the channel stream. The durable's server-side
+        // position replays the gap. A stale request replayed after an outage is
+        // harmless — the caller's correlation either waits or has expired and the late
+        // reply is dropped. Fresh consumer per process (DeliverPolicy.New = the old
+        // from-now semantics); the previous run's self-reaps.
+        // BUG-20260801-hermes-nats-mailbox-outage-loss.
+        config.transport.createConsumer(
+          rpcInboxSubject,
+          MailboxTransport.ConsumerConfig.Durable(
+            consumerName = "rpcsrv" + java.util.UUID.randomUUID().toString.replace("-", "").take(16),
+            deliverPolicy = MailboxTransport.DeliverPolicy.New,
+            ackPolicy = MailboxTransport.AckPolicy.Explicit,
+            inactiveThreshold = Some(scala.concurrent.duration.DurationInt(1).hour),
+          ),
+        )(using ctx).runForeach { envelope =>
           if (running) {
             processMessage(envelope)(using ctx)
           }

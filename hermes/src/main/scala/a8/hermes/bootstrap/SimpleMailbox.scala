@@ -46,11 +46,32 @@ class SimpleMailbox(
     )(using ctx)
   }
 
+  // One durable reader per mailbox instance, minted at construction: its server-side
+  // position gives delivery continuity across NATS connection loss WITHIN this process
+  // (a core-NATS subscribe reconnects fine but silently loses everything published
+  // during the outage — BUG-20260801-hermes-nats-mailbox-outage-loss). A fresh process
+  // mints a fresh consumer with DeliverPolicy.New, which is exactly the old
+  // subscribe-from-now semantics; the previous run's consumer self-reaps via the
+  // inactive threshold.
+  private val readerConsumerName =
+    "rdr" + java.util.UUID.randomUUID().toString.replace("-", "").take(16)
+
   override def subscribe(channel: Channel)(using ctx: Ctx): XStream[MailboxMessage] = {
-    // Subscribe to our channel — subjects are address-based.
+    // Subscribe to our channel — subjects are address-based. The JetStream consumer
+    // resolves the capturing stream FROM the subject; no stream-name arithmetic here.
     val channelSubject = s"mesh.${metadata.address.value}.${channel.name}"
 
-    transport.subscribe(channelSubject)(using ctx).map { envelope =>
+    transport.createConsumer(
+      channelSubject,
+      MailboxTransport.ConsumerConfig.Durable(
+        consumerName = s"$readerConsumerName-${channel.name}",
+        deliverPolicy = MailboxTransport.DeliverPolicy.New,
+        ackPolicy = MailboxTransport.AckPolicy.Explicit,
+        // Must outlast any outage worth surviving — reaping DURING an outage would
+        // recreate the loss this consumer exists to prevent.
+        inactiveThreshold = Some(scala.concurrent.duration.DurationInt(1).hour),
+      ),
+    )(using ctx).map { envelope =>
       MailboxMessage(
         correlationId = envelope.headers.getOrElse("correlation-id", ""),
         fromMailbox = envelope.headers.get("sender-mailbox")

@@ -89,7 +89,19 @@ class RpcClient(config: RpcClient.Config) extends Logging {
       Thread.currentThread().setName(threadName)
       logger.info(s"RPC Client response reader thread started: $threadName")
       try {
-        config.transport.subscribe(rpcInboxSubject)(using ctx).runForeach { envelope =>
+        // Durable consumer for the same reason as RpcServer's inbox reader: a core-NATS
+        // subscribe silently loses replies published during a connection outage, so the
+        // caller waits out its timeout for an answer that sits durably in the stream.
+        // BUG-20260801-hermes-nats-mailbox-outage-loss.
+        config.transport.createConsumer(
+          rpcInboxSubject,
+          MailboxTransport.ConsumerConfig.Durable(
+            consumerName = "rpccli" + java.util.UUID.randomUUID().toString.replace("-", "").take(16),
+            deliverPolicy = MailboxTransport.DeliverPolicy.New,
+            ackPolicy = MailboxTransport.AckPolicy.Explicit,
+            inactiveThreshold = Some(scala.concurrent.duration.DurationInt(1).hour),
+          ),
+        )(using ctx).runForeach { envelope =>
           if (running) {
             processResponse(envelope)
           }
