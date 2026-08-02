@@ -68,9 +68,21 @@ object HermesBootstrap extends Logging {
   }
 
   /**
-   * Create a HermesBootstrap resource with explicit bootstrap config and app config
+   * Create a HermesBootstrap resource with explicit bootstrap config and app config.
+   *
+   * discoveryBuildInfo is the APP's own build identity for the processrun announce.
+   * Absent, the announce falls back to BuildInfoReader — a single classpath lookup of
+   * META-INF/version-details.properties, which with multiple stamped jars on the
+   * classpath is decided by CLASSPATH ORDER: checkpoint's live announce carried
+   * a8-hermes-proto's stamp (the library it links, built on a laptop) instead of its own
+   * build (BUG-20260802-checkpoint-does-not-self-report). An app that knows its identity
+   * should say so.
    */
-  def resource(bootstrapConfig: HermesBootstrapConfig, appConfig: HermesAppConfig)(using ctx: Ctx): Resource[Components] = {
+  def resource(
+    bootstrapConfig: HermesBootstrapConfig,
+    appConfig: HermesAppConfig,
+    discoveryBuildInfo: Option[a8.hermes.proto.discovery.discovery.BuildInfo] = None,
+  )(using ctx: Ctx): Resource[Components] = {
     for {
       // Step 1: Connect to NATS
       natsTransport <- NatsTransport.resource(
@@ -178,10 +190,16 @@ object HermesBootstrap extends Logging {
                 processManagerUnit = pm.unit,
                 processManagerScope = pm.scope,
                 // Structured build identity (FEATURE-20260709). The Go side rides it on
-                // the embedded discovery response; we do the same — a minimal
-                // DiscoveryResponse carrying just build_info, which is where the registry
-                // reads it. Empty fields when the binary was not build-stamped.
-                discovery = Some(DiscoveryResponse(buildInfo = Some(BuildInfoReader.buildInfo))),
+                // the embedded discovery response; we do the same. appName is FILLED —
+                // the census keys on discovery.appName, and leaving it empty put every
+                // Scala service's announce in the blank bucket where nothing could see
+                // it (checkpoint read as "does not self-report" while its live announce
+                // sat right there). buildInfo prefers the app's own identity over the
+                // classpath-order lottery — see resource()'s doc.
+                discovery = Some(DiscoveryResponse(
+                  appName = appConfig.appName.getOrElse("hermes"),
+                  buildInfo = Some(discoveryBuildInfo.getOrElse(BuildInfoReader.buildInfo)),
+                )),
               )
             )
             val pingLoop = runnerClient.startPingLoop(processUid, () => Map.empty)
