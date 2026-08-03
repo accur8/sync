@@ -354,6 +354,16 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
     // transport never re-derives mesh-<kind>-<readerKey>-<channel> and cannot drift
     // from the server's naming. (The previous, never-called version of this method
     // passed a stream NAME where the subject belongs — it could not have worked.)
+    //
+    // The subscribe is EAGER — it runs when createConsumer is CALLED, deliberately
+    // outside the XStream acquire. CONTRACT: when createConsumer returns, the
+    // consumer EXISTS and a DeliverPolicy.New reader misses nothing published after
+    // this point. Callers must therefore invoke createConsumer on the thread that
+    // needs that guarantee, BEFORE signalling readiness — calling it inside a
+    // background fork reopens the bind window in which anything published is skipped
+    // forever (BUG-20260802-hermes-first-rpc-on-fresh-client-times-out: the first
+    // LoginBegin's reply landed in exactly that window on 3/3 checkpoint boots; same
+    // physics as the 48-of-20000 bind-window loss in SimpleMailbox.subscribe's doc).
     val subscription = jetStream.subscribe(subject, options)
 
     XStream.acquireRelease {

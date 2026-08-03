@@ -82,6 +82,28 @@ class RpcClient(config: RpcClient.Config) extends Logging {
       case _ => throw new RuntimeException("Unable to get Ox instance from Ctx")
     }
 
+    // Durable consumer for the same reason as RpcServer's inbox reader: a core-NATS
+    // subscribe silently loses replies published during a connection outage, so the
+    // caller waits out its timeout for an answer that sits durably in the stream.
+    // BUG-20260801-hermes-nats-mailbox-outage-loss.
+    //
+    // Created HERE, synchronously, before start() returns — NOT inside the fork.
+    // createConsumer's contract is that the consumer exists when it returns; created
+    // in the fork, the first call raced the fork's classloading and its reply landed
+    // in the bind window a DeliverPolicy.New consumer never replays. Every fresh
+    // client's first RPC timed out that way, 3/3 checkpoint boots
+    // (BUG-20260802-hermes-first-rpc-on-fresh-client-times-out).
+    val responses =
+      config.transport.createConsumer(
+        rpcInboxSubject,
+        MailboxTransport.ConsumerConfig.Durable(
+          consumerName = "rpccli" + java.util.UUID.randomUUID().toString.replace("-", "").take(16),
+          deliverPolicy = MailboxTransport.DeliverPolicy.New,
+          ackPolicy = MailboxTransport.AckPolicy.Explicit,
+          inactiveThreshold = Some(scala.concurrent.duration.DurationInt(1).hour),
+        ),
+      )(using ctx)
+
     // Fork the response reader to run in background
     // Use forkUser so that failures in this fork will propagate and stop the app
     ox.forkUser {
@@ -89,19 +111,7 @@ class RpcClient(config: RpcClient.Config) extends Logging {
       Thread.currentThread().setName(threadName)
       logger.info(s"RPC Client response reader thread started: $threadName")
       try {
-        // Durable consumer for the same reason as RpcServer's inbox reader: a core-NATS
-        // subscribe silently loses replies published during a connection outage, so the
-        // caller waits out its timeout for an answer that sits durably in the stream.
-        // BUG-20260801-hermes-nats-mailbox-outage-loss.
-        config.transport.createConsumer(
-          rpcInboxSubject,
-          MailboxTransport.ConsumerConfig.Durable(
-            consumerName = "rpccli" + java.util.UUID.randomUUID().toString.replace("-", "").take(16),
-            deliverPolicy = MailboxTransport.DeliverPolicy.New,
-            ackPolicy = MailboxTransport.AckPolicy.Explicit,
-            inactiveThreshold = Some(scala.concurrent.duration.DurationInt(1).hour),
-          ),
-        )(using ctx).runForeach { envelope =>
+        responses.runForeach { envelope =>
           if (running) {
             processResponse(envelope)
           }
