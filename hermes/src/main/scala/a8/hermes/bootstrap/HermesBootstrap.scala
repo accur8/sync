@@ -471,15 +471,29 @@ object HermesBootstrap extends Logging {
               authServiceMailbox = authMailbox,
             )
 
-          // 1. SSH auth -> auth token
-          val authResult =
-            auth.SshAuth.authenticate(sshAuthConfig, rpcClient) match {
-              case scala.util.Success(r) =>
-                logger.info("✓ SSH authentication successful")
-                r
-              case scala.util.Failure(e) =>
-                throw new RuntimeException(s"SSH authentication failed: ${e.getMessage}", e)
-            }
+          // 1. SSH auth -> auth token. RETRIED: the first RPC on a freshly-started
+          // client can time out while a later attempt succeeds in milliseconds
+          // (measured on checkpoint 2026-08-02: LoginBegin at 30.283 timed out at
+          // 40.397, the retry at 40.674 completed at 40.924). The Go auth extension
+          // retries 5 times for the same reason; one 10s shot here made bootstrap
+          // auth flaky in exactly the place the processrun announce depends on it.
+          val authResult = {
+            val maxAttempts = 3
+            @scala.annotation.tailrec
+            def attempt(n: Int): auth.SshAuth.AuthResult =
+              auth.SshAuth.authenticate(sshAuthConfig, rpcClient) match {
+                case scala.util.Success(r) =>
+                  logger.info("✓ SSH authentication successful")
+                  r
+                case scala.util.Failure(e) if n < maxAttempts =>
+                  logger.warn(s"SSH authentication attempt $n/$maxAttempts failed, retrying: ${e.getMessage}")
+                  Thread.sleep(2000L * n)
+                  attempt(n + 1)
+                case scala.util.Failure(e) =>
+                  throw new RuntimeException(s"SSH authentication failed after $maxAttempts attempts: ${e.getMessage}", e)
+              }
+            attempt(1)
+          }
 
           // 2. Bind the token to this mailbox (mailbox.v1.BindIdentity)
           val mailboxServiceMailbox = staticServiceDiscovery.getMailbox("mailbox")
