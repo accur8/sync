@@ -85,6 +85,17 @@ object WsConformClientMain extends Logging {
   private var last = -1
   private var seed = 0
 
+  // sentAt(i) is when index i went on the wire; latencies collects the round trip for each
+  // index the FIRST time it comes back.
+  //
+  // Only the client can measure this — nothing else knows both ends — and the wsconform
+  // clients send to their own mailbox, so a message's whole path is inside one process.
+  //
+  // A DISTRIBUTION rather than a mean: an average hides the stall a p99 exposes, and every
+  // wedge this suite has found was a stall.
+  private val sentAt = mutable.Map[Int, Long]()
+  private val latencies = mutable.ArrayBuffer[Long]()
+
   def main(args: Array[String]): Unit = {
     LoggingBootstrapConfig.finalizeConfig(
       LoggingBootstrapConfig(
@@ -351,6 +362,7 @@ object WsConformClientMain extends Logging {
     val sent = new AtomicInteger(0)
     var i = 0
     while (i < n) {
+      markSent(i)
       try {
         mbox.send(
           to = MailboxAddress(address),
@@ -387,6 +399,7 @@ object WsConformClientMain extends Logging {
         val sent = new AtomicInteger(0)
         var i = 0
         while (i < n) {
+          markSent(i)
           val frame =
             ws.MessageFromClient(
               ws.MessageFromClient.Message.SendMessageRequest(
@@ -445,7 +458,7 @@ object WsConformClientMain extends Logging {
 
     val line = observeLock.synchronized {
       val gaps = (0 until want).count(i => !observed.contains(i))
-      val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last"
+      val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last ${latencySummary()}"
       val withForeign = if (foreign > 0) s"$base foreign=$foreign" else base
       if (timedOut || gaps > 0) {
         diag(s"wsconform: nats EXPECT ended want=$want $withForeign " +
@@ -513,7 +526,7 @@ object WsConformClientMain extends Logging {
         }
 
         val gaps = (0 until want).count(i => !observed.contains(i))
-        val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last"
+        val base = s"received=$received gaps=$gaps dups=$dups reorders=$reorders first=$first last=$last ${latencySummary()}"
         val withForeign = if (foreign > 0) s"$base foreign=$foreign" else base
 
         // The client's own account of what recovery did, on the stream the harness keeps for
@@ -537,6 +550,27 @@ object WsConformClientMain extends Logging {
       case _ => () // pings, notifications, subscribe responses — not this stream's business
     }
 
+  // markSent stamps index i as on-the-wire. Immediately BEFORE the send, not after, so the
+  // measurement includes any time the send itself blocks — which on a severed socket is the
+  // interesting part.
+  private def markSent(i: Int): Unit =
+    observeLock.synchronized { sentAt.update(i, System.nanoTime()) }
+
+  // latencySummary renders p50/p95/p99/max in milliseconds.
+  //
+  // All -1 when nothing was measured, never 0: an unmeasured distribution and an
+  // instantaneous one must not look alike. Same rule the REPORT counters already follow.
+  // Caller holds observeLock.
+  private def latencySummary(): String =
+    if (latencies.isEmpty) "p50Ms=-1 p95Ms=-1 p99Ms=-1 maxMs=-1"
+    else {
+      val sorted = latencies.sorted
+      // Nearest-rank, clamped: p99 of a 3-sample set is the last one, and an off-by-one
+      // here would throw on exactly the small cells used for debugging.
+      def pct(p: Double): Long = sorted(math.min((p * sorted.length).toInt, sorted.length - 1))
+      s"p50Ms=${pct(0.50)} p95Ms=${pct(0.95)} p99Ms=${pct(0.99)} maxMs=${sorted.last}"
+    }
+
   private def observe(data: String): Unit =
     parsePayload(data) match {
       case None => ()
@@ -550,6 +584,11 @@ object WsConformClientMain extends Logging {
           else {
             // A replayed OLD index is a dup, NOT also a reorder — double-counting would make
             // every startSeq="first" replay look like the transport was shuffling messages.
+            // FIRST sight only. A duplicate returns before this, so a replay cannot drag
+            // the distribution toward whatever the gateway happened to re-send.
+            sentAt.remove(index).foreach { t0 =>
+              latencies += (System.nanoTime() - t0) / 1000000L
+            }
             if (maxSeen >= 0 && index < maxSeen) reorders += 1
             if (index > maxSeen) maxSeen = index
           }
