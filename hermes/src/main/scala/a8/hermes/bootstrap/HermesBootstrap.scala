@@ -242,7 +242,7 @@ object HermesBootstrap extends Logging {
             // authenticated as (step 5b). Empty when auth is disabled/unconfigured — the
             // offline and unit-test bootstraps — which announces exactly as before.
             //
-            // Asked rather than asserted: this is the SAME auth.v2.GetUserInfoForSelf the Go
+            // Asked rather than asserted: this is the SAME auth.GetUserInfoForSelf the Go
             // leaves use in workerUid(), so the value is the server's view of who we are, not a
             // claim we invented. Best-effort by design — a lifecycle detail must never stop a
             // server from starting, and a run with no worker is still better than no run.
@@ -253,7 +253,12 @@ object HermesBootstrap extends Logging {
                   rpcClient
                     .callTyped[GetUserInfoForSelfRequest, GetUserInfoForSelfResponse](
                       targetMailbox = staticServiceDiscovery.getMailbox("auth"),
-                      endpoint = "auth.v2.GetUserInfoForSelf",
+                      // "auth.GetUserInfoForSelf" — the v-less canonical path from godev's
+                      // pkg/rpc/auth registry. This said "auth.v2..." until 2026-08-02, which
+                      // NO handler serves: every announce resolved no worker and the error was
+                      // invisible below the 10s timeout ("no handler" returns fast, the catch
+                      // swallowed it into the empty-workerUid path).
+                      endpoint = "auth.GetUserInfoForSelf",
                       request = GetUserInfoForSelfRequest(),
                       timeout = Some(scala.concurrent.duration.FiniteDuration(10, "seconds")),
                     )(using ctx, summon)
