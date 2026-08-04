@@ -163,6 +163,20 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
   // drop and their absence gets misread. These four numbers say exactly where an acked
   // publish's story ended, and the conformance driver prints them with its verdict
   // (BUG-20260802-sync-nats-kill-loses-inflight-publishes).
+  // Delivery-side instrumentation for
+  // BUG-20260803-hermes-nats-partition-heal-rare-message-loss.
+  //
+  // The iterator keeps a one-message LOOKAHEAD: pulled from the server, not yet handed to
+  // the app, deliberately unacked. When a stream ends mid-flight that envelope is
+  // discarded. Unacked SHOULD mean redelivery at ackWait, so this is not assumed to be a
+  // defect — it is the quantity that decides whether it is one, and nothing counted it.
+  //
+  // consumerBinds counts how many times a consumer was created for a subject; a durable
+  // being REBOUND and a durable being RECREATED look identical in a log line otherwise,
+  // and they have opposite consequences for in-flight unacked messages.
+  val lookaheadDropped = new java.util.concurrent.atomic.AtomicLong(0)
+  val consumerBinds = new java.util.concurrent.atomic.AtomicLong(0)
+
   val ackedPublishOk = new java.util.concurrent.atomic.AtomicLong(0)
   val ackedPublishRetries = new java.util.concurrent.atomic.AtomicLong(0)
   val ackedPublishGaveUp = new java.util.concurrent.atomic.AtomicLong(0)
@@ -366,6 +380,13 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
     // physics as the 48-of-20000 bind-window loss in SimpleMailbox.subscribe's doc).
     val subscription = jetStream.subscribe(subject, options)
 
+    consumerBinds.incrementAndGet()
+
+    // Set while the iterator holds a pulled-but-undelivered envelope. The release hook
+    // only receives the subscription, so this is how it learns the stream is ending with
+    // a message the app never saw.
+    val holdingLookahead = new java.util.concurrent.atomic.AtomicBoolean(false)
+
     XStream.acquireRelease {
       (subscription, new Iterator[Envelope] {
         // Lookahead pull: BLOCK (in poll slices, so unsubscribe is noticed) until a
@@ -384,6 +405,7 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
               // The envelope carries the ack; the CONSUMER fires it after processing.
               val ackThunk: () => Unit = () => msg.ack()
               lookahead = fromNatsMessage(msg).copy(ack = ackThunk)
+              holdingLookahead.set(true)
             }
           }
           lookahead != null
@@ -393,10 +415,19 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
           if (!hasNext) throw new NoSuchElementException("consumer subscription closed")
           val v = lookahead
           lookahead = null
+          holdingLookahead.set(false)
           v
         }
       })
     } { sub =>
+      // A stream ending while the iterator still holds a pulled envelope means the app
+      // never saw that message. It was deliberately NOT acked, so the durable should
+      // redeliver it at ackWait — this counts the event rather than assuming either way.
+      // BUG-20260803-hermes-nats-partition-heal-rare-message-loss.
+      if (holdingLookahead.getAndSet(false)) {
+        val n = lookaheadDropped.incrementAndGet()
+        logger.warn(s"consumer stream ended holding an undelivered message (total=$n) subject=$subject")
+      }
       // Stops THIS subscriber's interest. A DURABLE's server-side position survives
       // (that is the point); the abandoned consumer itself is reaped by its
       // inactiveThreshold rather than deleted here.

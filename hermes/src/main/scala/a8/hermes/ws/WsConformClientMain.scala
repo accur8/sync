@@ -477,6 +477,12 @@ object WsConformClientMain extends Logging {
         natsTransportRef.foreach { t =>
           diag(s"wsconform: nats publish acked=${t.ackedPublishOk.get()} retries=${t.ackedPublishRetries.get()} " +
             s"gaveUp=${t.ackedPublishGaveUp.get()} outstanding=${t.ackedPublishOutstanding}")
+          // DELIVERY side. The publish counters above proved the server had every message
+          // in the 2026-08-03 losses, so the next occurrence needs these to say whether the
+          // hole is the abandoned lookahead and whether the durable was rebound or
+          // recreated. BUG-20260803-hermes-nats-partition-heal-rare-message-loss.
+          diag(s"wsconform: nats delivery lookaheadDropped=${t.lookaheadDropped.get()} " +
+            s"consumerBinds=${t.consumerBinds.get()}")
         }
         natsConn.foreach { c =>
           val st = c.getStatistics
