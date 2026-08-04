@@ -11,10 +11,11 @@
 # On oak both problems disappear: the runner is inside the network and already
 # holds the nix-pins deploy key.
 #
-# GitHub stays the public face of the repo (it is Public, with forks), fed by a
-# push mirror. Nothing consumes sync FROM GitHub source — checkpoint and friends
-# take it as a published locus artifact — so a mirror lagging by a few minutes
-# breaks nobody.
+# GitHub stays the public face of the repo (it is Public, with forks), kept up to
+# date by a MANUAL `git push github master` — there is no push mirror, so assume
+# it is behind until someone pushes. That is tolerable because nothing consumes
+# sync FROM GitHub source; checkpoint and friends take it as a published locus
+# artifact.
 #
 # Structure follows checkpoint's, the other Scala repo on this runner: credentials
 # provisioned once into a stable per-job HOME, then Build and Test as separate
