@@ -99,9 +99,11 @@ addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.2")
 //
 // so it enters through sbt-ghpages, which THIS repo declares directly — NOT through sbt-a8,
 // whose published pom names no sbt-git at all. Worth stating plainly because the sbt-a8
-// guess costs a Maven Central release to act on and fixes nothing. Only sync and sync-verify
-// declare sbt-ghpages; the //-commented sbt-git line in the generated plugins.sbt of the
-// other repos is inert.
+// guess costs a Maven Central release to act on and fixes nothing. THIS IS THE ONLY REPO
+// that declares sbt-ghpages: the //-commented sbt-git line in every other generated
+// plugins.sbt is inert, and the one other working copy that scans as a match
+// (~/code/accur8/sync-verify) is a local clone of this repo with a dangling origin, not a
+// separate build.
 //
 // Upgrading the plugin does NOT help either — sbt-git 2.1.0, the newest release, still pins
 // the same 5.13 line (5.13.3). The JGit version is the only lever that moves.
