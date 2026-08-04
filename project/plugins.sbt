@@ -93,9 +93,18 @@ addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.2")
 // PROJECT LOADING — before any task runs and before any `set` override could apply. Nothing
 // in the build can catch it.
 //
-// This is a transitive pin, not a direct dependency: sbt-git arrives through sbt-a8. And
-// upgrading the plugin does NOT help — sbt-git 2.1.0, the newest release, still pins the
-// same 5.13 line (5.13.3). The JGit version is the only lever that moves.
+// This is a transitive pin, not a direct dependency. The chain is
+//
+//     project/documentation.sbt -> sbt-ghpages 0.8.0 -> sbt-git 2.0.1 -> jgit 5.13.1
+//
+// so it enters through sbt-ghpages, which THIS repo declares directly — NOT through sbt-a8,
+// whose published pom names no sbt-git at all. Worth stating plainly because the sbt-a8
+// guess costs a Maven Central release to act on and fixes nothing. Only sync and sync-verify
+// declare sbt-ghpages; the //-commented sbt-git line in the generated plugins.sbt of the
+// other repos is inert.
+//
+// Upgrading the plugin does NOT help either — sbt-git 2.1.0, the newest release, still pins
+// the same 5.13 line (5.13.3). The JGit version is the only lever that moves.
 //
 // VERIFIED rather than assumed, which is what the ticket asked for. On 7.7.1, from a linked
 // worktree: hermes/compile exits 0 and hermes/test passes 57/57, with a DIRTY tree and with
