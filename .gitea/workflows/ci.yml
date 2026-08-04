@@ -1,0 +1,106 @@
+# Gitea Actions CI — runs on the self-hosted nix runner on oak.
+#
+# sync moved here from GitHub Actions, which had NEVER run a build. Its workflow
+# pinned `runs-on: ubuntu-20.04`, an image GitHub retired, so every job queued
+# forever instead of failing — runs #241-#246 all sat in `Queued`, which reads as
+# "pending" and so went unnoticed for months. And it could not have passed anyway:
+# sync's flake input is git+ssh://git@git.accur8.net/a8/nix-pins, and git.accur8.net
+# resolves to an RFC1918 address on public DNS, so a GitHub-hosted runner cannot
+# reach it at all. BUG-20260804-sync-ci-queued-forever-retired-runner.
+#
+# On oak both problems disappear: the runner is inside the network and already
+# holds the nix-pins deploy key.
+#
+# GitHub stays the public face of the repo (it is Public, with forks), fed by a
+# push mirror. Nothing consumes sync FROM GitHub source — checkpoint and friends
+# take it as a published locus artifact — so a mirror lagging by a few minutes
+# breaks nobody.
+#
+# Structure follows checkpoint's, the other Scala repo on this runner: credentials
+# provisioned once into a stable per-job HOME, then Build and Test as separate
+# stages so a red suite cannot mask a broken build.
+
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Provision creds into a STABLE per-job CI HOME that survives across steps.
+      # Gitea gives each step a different temp $HOME (so creds written to $HOME in
+      # one step don't carry to the next), and a HOME inside the git tree lands
+      # tool caches there with perms that break workspace cleanup. Secrets come
+      # from /config/gitea-runner (group gitea-ci-secrets, no world bit).
+      #   - $CI_HOME/.ssh/nixpins_ed25519 : deploy key for the nix-pins flake fetch
+      #   - $CI_HOME/.a8/repo.properties  : locus maven creds (a8 reads user.home/.a8)
+      - name: Provision CI credentials
+        run: |
+          set -euo pipefail
+          CI_HOME="/var/tmp/ci-home-${GITHUB_RUN_ID:-$$}"
+          mkdir -p "$CI_HOME/.ssh" "$CI_HOME/.a8"
+          chmod 700 "$CI_HOME/.ssh"
+          install -m 600 /config/gitea-runner/ci-ssh-key.priv "$CI_HOME/.ssh/nixpins_ed25519"
+          install -m 600 /config/gitea-runner/repo.properties.priv "$CI_HOME/.a8/repo.properties"
+          ssh-keyscan -t ed25519 git.accur8.net > "$CI_HOME/.ssh/known_hosts" 2>/dev/null
+          echo "CI_HOME=$CI_HOME" >> "$GITHUB_ENV"
+
+          # Build caches on DISK, persistent across runs, NOT under /var/tmp.
+          #
+          # The runner sets DynamicUser=yes, which implies PrivateTmp=yes, so /tmp and
+          # /var/tmp inside a job are a RAM-backed tmpfs capped near 6.1G and SHARED by
+          # every repo's jobs. godev's Go module cache exhausted it and every godev run
+          # failed with "no space left on device" while the host had 2.3T free
+          # (BUG-20260804-gitea-runner-cannot-read-ci-secrets). Coursier and an sbt/ivy
+          # cache are the same order of magnitude, and sync is a large Scala build, so it
+          # goes to the StateDirectory on real disk rather than adding pressure there.
+          #
+          # CI_HOME above stays on tmpfs deliberately: it holds a key and a properties
+          # file, is per-job, and must not outlive the run.
+          CI_CACHE="${CI_CACHE_DIR:-/var/lib/gitea-runner/ci-cache}"
+          mkdir -p "$CI_CACHE/coursier" "$CI_CACHE/sbt" "$CI_CACHE/ivy2"
+          {
+            echo "COURSIER_CACHE=$CI_CACHE/coursier"
+            echo "SBT_GLOBAL_BASE=$CI_CACHE/sbt"
+            echo "IVY_HOME=$CI_CACHE/ivy2"
+          } >> "$GITHUB_ENV"
+
+      # BUILD gate — "does it compile?" (main + test sources). A failure here is a
+      # real build break, kept separate from Test so a red suite cannot mask it.
+      #
+      # NOTE this is a real gate for sync specifically: -Werror plus
+      # -Wunused:imports,privates,locals,patvars is enabled in build.sbt
+      # (TASK-20260719-sync-wunused-squash), so any unused import fails the build.
+      # That landed on local verification alone, because CI has never once run.
+      - name: Build
+        run: |
+          set -euo pipefail
+          export HOME="$CI_HOME"
+          export GIT_SSH_COMMAND="ssh -i $CI_HOME/.ssh/nixpins_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=$CI_HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes"
+          # --refresh so we always get nix-pins HEAD (nix run caches flake evals).
+          nix run --refresh git+ssh://git@git.accur8.net/a8/nix-pins#ci build
+
+      # TEST — runs the suite, reusing the Build step's compiled output (same
+      # workspace). Its own step so pass/fail is legible independently of the build.
+      - name: Test
+        run: |
+          set -euo pipefail
+          export HOME="$CI_HOME"
+          export GIT_SSH_COMMAND="ssh -i $CI_HOME/.ssh/nixpins_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=$CI_HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes"
+          nix run --refresh git+ssh://git@git.accur8.net/a8/nix-pins#ci test
+
+      # Clean the per-job CI HOME regardless of Build/Test outcome. The disk cache
+      # above is deliberately NOT cleaned — persisting it is the point.
+      - name: Cleanup CI home
+        if: always()
+        run: |
+          [ -n "''${CI_HOME:-}" ] && { chmod -R u+w "$CI_HOME" 2>/dev/null || true; rm -rf "$CI_HOME" 2>/dev/null || true; }
+          true
