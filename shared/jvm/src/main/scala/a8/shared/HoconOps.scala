@@ -147,7 +147,7 @@ trait HoconOps {
 
     def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       configValue match {
-        case co: ConfigObject =>
+        case _: ConfigObject =>
           HoconOps.impl.internalRead[A](configValue)
       }
     }

@@ -305,7 +305,7 @@ class RpcClient(config: RpcClient.Config) extends Logging {
       running = false
 
       // Cancel all pending calls
-      pendingCalls.foreach { case (correlationId, promise) =>
+      pendingCalls.foreach { case (_, promise) =>
         promise.trySuccess(RpcResult.Error("RPC client stopped"))
       }
       pendingCalls.clear()

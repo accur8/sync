@@ -35,7 +35,7 @@ object MySqlDialect extends Dialect {
           value.replace("\\", "\\\\") match {
             case s if noBackslashEscapes =>
               s
-            case s =>
+            case _ =>
               value.replace("\\", "\\\\")
           }
         "'" + content + "'"

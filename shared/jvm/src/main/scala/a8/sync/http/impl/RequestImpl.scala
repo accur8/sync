@@ -79,7 +79,7 @@ case class RequestImpl(
             Chain.one(s"  --data '${b}'")
           case Body.JsonBody(b) =>
             Chain.one(s"  --data '${b.compactJson}'")
-          case Body.BytesBody(b) =>
+          case Body.BytesBody(_) =>
             Chain.one(s"  # binary request body omitted")
         }
       )

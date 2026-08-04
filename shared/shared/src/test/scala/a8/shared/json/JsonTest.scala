@@ -75,7 +75,7 @@ class JsonTest extends AnyFunSuite {
         """).unsafeAs[Group]
       assert(true)
     } catch {
-      case ree: ReadErrorException =>
+      case _: ReadErrorException =>
         assert(true)
     }
 

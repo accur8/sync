@@ -30,7 +30,7 @@ def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], resp
           responseActionFn(response)
         case sc if retryableStatusCodes(sc.code) =>
           ResponseAction.Retryable[A](s"http response ${sc.code} status received -- ${response.responseMetadata.compactJson}")
-        case sc =>
+        case _ =>
           val responseInfo = ResponseInfo(response.responseMetadata, Some(response.responseBodyAsString))
           ResponseAction.Fail[A](s"unable to process response ${responseInfo.compactJson}", responseInfo.some)
       }

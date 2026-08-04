@@ -11,7 +11,7 @@ object LoggingBootstrapConfig {
 
   def finalizeConfig(bootstrapConfig: LoggingBootstrapConfig, applySystemPropertyOverrides: Boolean = true): Unit = {
     _globalBootstrapConfig match {
-      case Some(c) =>
+      case Some(_) =>
         sys.error("bootstrap config already initialized")
       case None =>
 

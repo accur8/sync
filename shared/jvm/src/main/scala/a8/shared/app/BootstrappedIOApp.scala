@@ -88,7 +88,7 @@ abstract class BootstrappedIOApp
           .newInstance()
         logger.debug(s"loaded jdbc driver ${className}")
       } catch {
-        case th: Throwable =>
+        case _: Throwable =>
       }
     }
 

@@ -114,7 +114,7 @@ trait Row { outer =>
     try {
       s"Row(${values.map(_.toString).iterator.mkString(",")})"
     } catch {
-      case e: Exception =>
+      case _: Exception =>
         ""
     }
   }

@@ -173,7 +173,7 @@ case class ConnInternalImpl(
   override def upsertRow[A, B](row: A)(implicit keyedMapper: KeyedTableMapper[A, B]): (A,UpsertResult) = {
     val mapper = implicitly[KeyedTableMapper[A,B]]
     fetchRowOpt(mapper.key(row)) match {
-      case Some(v) =>
+      case Some(_) =>
         updateRow(row) -> UpsertResult.Update
       case None =>
         insertRow(row) -> UpsertResult.Insert

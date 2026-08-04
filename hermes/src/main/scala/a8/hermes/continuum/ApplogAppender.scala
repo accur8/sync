@@ -192,7 +192,7 @@ class ApplogAppender(
     shipper.scheduleAtFixedRate(
       () =>
         try ship()
-        catch { case e: Throwable => () }, // never let the shipper thread die
+        catch { case _: Throwable => () }, // never let the shipper thread die
       DefaultFlushIntervalMillis,
       DefaultFlushIntervalMillis,
       TimeUnit.MILLISECONDS,

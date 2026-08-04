@@ -196,7 +196,7 @@ object QueryDsl {
 
   def fieldExprs(cond: Condition): IndexedSeq[FieldExpr[?]] =
     cond match {
-      case ic@ InClause(left, right) =>
+      case _@ InClause(left, right) =>
         left.flatMap(fieldExprs) ++ right.flatMap(_.flatMap(fieldExprs))
       case Parens(c) =>
         fieldExprs(c)

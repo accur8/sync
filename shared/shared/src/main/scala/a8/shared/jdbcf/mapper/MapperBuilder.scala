@@ -163,7 +163,7 @@ object MapperBuilder {
               alias(c.parent)
             case QueryDsl.RootJoin =>
               SqlString.Empty
-            case j: Join =>
+            case _: Join =>
               sys.error("not supported")
           }
         }
