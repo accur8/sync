@@ -316,11 +316,30 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
     val active = new java.util.concurrent.atomic.AtomicBoolean(true)
 
     val messageHandler: io.nats.client.MessageHandler = msg => {
-      messageQueue.offer(fromNatsMessage(msg))
-      // Auto-ack JetStream messages to prevent redelivery
-      if (msg.isJetStream) {
-        msg.ack()
-      }
+      // THE ACK RIDES THE ENVELOPE; IT IS NOT FIRED HERE.
+      //
+      // This used to `msg.ack()` inline, commented "auto-ack JetStream messages to prevent
+      // redelivery" — which is the ack-before-deliver anti-pattern createConsumer in this
+      // same file was fixed for, and preventing redelivery is precisely what breaks
+      // at-least-once. The message is acked the instant it lands in this in-memory queue,
+      // BEFORE any consumer has taken it, so a connection death drops the queued tail
+      // acked-but-unseen and the server will not redeliver: the contiguous-hole signature
+      // recorded on Envelope.ack (ackPending=0, redelivered=0).
+      //
+      // It is INERT today — both call sites are ServiceDiscovery, whose subjects are core
+      // NATS request/response (the Go side uses nc.Subscribe/nc.Publish, never JetStream),
+      // so isJetStream is false and the ack never fired. That is exactly why it had to be
+      // fixed now rather than when it started losing messages: the first JetStream-backed
+      // subject read through this method would have silently resurrected a bug that was
+      // found the hard way, with no test covering it.
+      //
+      // Attaching the thunk (rather than deleting the ack outright) keeps the method usable
+      // for JetStream: the consumer fires it after processing, the same contract
+      // createConsumer offers. Core NATS keeps Envelope.ack's no-op default and stays
+      // ack-free. BUG-20260804-nats-transport-subscribe-still-acks-before-deliver.
+      val envelope = fromNatsMessage(msg)
+      messageQueue.offer(if (msg.isJetStream) envelope.copy(ack = () => msg.ack()) else envelope)
+      ()
     }
 
     val dispatcher = connection.createDispatcher(messageHandler)
