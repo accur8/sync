@@ -145,10 +145,14 @@ trait HoconOps {
     def read[A : JsonCodec : ClassTag](implicit jsonReaderOptions: JsonReaderOptions): A =
       HoconOps.impl.internalRead[A](configValue)
 
+    // `path` used to be ignored here — this read the WHOLE configValue and handed it back
+    // as A, so readPath("db.credentials") silently decoded the entire object. ConfigOps
+    // .readPath a few lines up is the same method against a Config and has always
+    // navigated; this now matches it.
     def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       configValue match {
-        case _: ConfigObject =>
-          HoconOps.impl.internalRead[A](configValue)
+        case co: ConfigObject =>
+          HoconOps.impl.internalRead[A](co.toConfig.getValue(path))
       }
     }
 

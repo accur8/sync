@@ -9,7 +9,11 @@ object LoggingBootstrapConfig {
 
   def isConfigured: Boolean = _globalBootstrapConfig.isDefined
 
-  def finalizeConfig(bootstrapConfig: LoggingBootstrapConfig, applySystemPropertyOverrides: Boolean = true): Unit = {
+  // NOTE there used to be an applySystemPropertyOverrides: Boolean = true parameter here.
+  // It was never read — the overrides below are applied unconditionally — so a caller who
+  // asked to skip them got them anyway. No caller in the fleet ever passed it. Removed
+  // rather than implemented: nothing wants the behaviour, only the honest signature.
+  def finalizeConfig(bootstrapConfig: LoggingBootstrapConfig): Unit = {
     _globalBootstrapConfig match {
       case Some(_) =>
         sys.error("bootstrap config already initialized")

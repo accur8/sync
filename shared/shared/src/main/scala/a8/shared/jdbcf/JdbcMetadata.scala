@@ -119,7 +119,7 @@ object JdbcMetadata {
           column,
           keysByColumnName.get(column.columnName),
           i,
-        )(this)
+        )
       }
     }
 
@@ -134,7 +134,9 @@ object JdbcMetadata {
 
   }
 
-  case class ResolvedColumn(name: ColumnName, jdbcColumn: JdbcColumn, jdbcPrimaryKey: Option[JdbcPrimaryKey], ordinalPosition: Int /** from 0 */)(table: ResolvedJdbcTable) extends NamedToString {
+  // the trailing (table: ResolvedJdbcTable) parameter list is gone — nothing read it, and
+  // qualifiedName below reaches the table through jdbcColumn.resolvedTableName instead.
+  case class ResolvedColumn(name: ColumnName, jdbcColumn: JdbcColumn, jdbcPrimaryKey: Option[JdbcPrimaryKey], ordinalPosition: Int /** from 0 */) extends NamedToString {
     def isPrimaryKey = jdbcPrimaryKey.isDefined
     def isNullable: Boolean =
       jdbcColumn

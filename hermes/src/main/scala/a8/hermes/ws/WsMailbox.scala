@@ -9,6 +9,7 @@ import a8.shared.zreplace.XStream
 import com.google.protobuf.ByteString
 
 import java.time.Instant
+import scala.annotation.unused
 import scala.concurrent.duration.*
 
 /**
@@ -104,7 +105,13 @@ class WsMailbox(
       ((), iterator)
     }(_ => ())
 
-  private def pullNext(channel: Channel): Option[MailboxMessage] = {
+  // channel is UNREAD, and that is the bug, not the annotation: subscribe's doc says
+  // "envelopes for other channels are skipped", but nothing here or in decode() filters on
+  // it, so every subscription on this socket sees every channel's traffic. The envelope
+  // carries what is needed (ServerEnvelope.channel) — fixing it is
+  // BUG-20260804-wsmailbox-subscribe-does-not-filter-by-channel. Kept, rather than deleted
+  // to silence the linter, because the parameter IS the record of the intent.
+  private def pullNext(@unused channel: Channel): Option[MailboxMessage] = {
     var out: Option[MailboxMessage] = None
     while (out.isEmpty) {
       conn.receive(WsMailbox.ReceivePollTimeout) match {

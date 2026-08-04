@@ -144,13 +144,25 @@ Global / scalacOptions ++= Seq(
   "-language:postfixOps",
   "-language:strictEquality",
   "-Werror",
-  // Deliberately NOT -Wunused:all. `all` also turns on explicits and implicits, where an
-  // unused parameter usually means "the signature requires it" rather than "this is dead"
-  // -- interface conformance, evidence on a public case class, a context bound on
-  // CompositePrimaryKey2/3/4. Enforcing those would mean editing published signatures to
-  // satisfy a linter. The four categories below are the ones where unused really does mean
-  // dead. Revisiting explicits/implicits is TASK-20260804-sync-wunused-params.
-  "-Wunused:imports,privates,locals,patvars",
+  // Still deliberately NOT -Wunused:all -- `all` would add `implicits`, which we measured
+  // and rejected (TASK-20260804-sync-wunused-params). The two parameter categories are not
+  // alike:
+  //
+  // explicits IS on. All 13 sites were genuinely dead, and four were defects a reader would
+  // not have found: LoggingBootstrapConfig.finalizeConfig took an
+  // applySystemPropertyOverrides flag it never consulted; ServiceDiscovery.autoRegister
+  // dropped its capabilities argument; resultSetToStream took a chunkSize that StreamingQuery
+  // dutifully passed into a void; and HoconOps ConfigValueOps.readPath ignored its path and
+  // decoded the whole object. In this category "unused" really does mean dead.
+  //
+  // implicits is OFF and should stay off. 27 sites, and after discounting the ones that are
+  // simply vestigial the remainder is context propagation (`using Ctx`, `using Logger`) and
+  // type-class evidence required for CONSTRUCTION rather than for the body -- the
+  // JsonCodec bounds on QubesMapperBuilder's CompositePrimaryKey2/3/4 are unused in those
+  // case classes, but deleting them only relocates the warning onto the public trait methods
+  // that forward them. Enforcing buys permanent @unused noise on ~11 signatures and catches
+  // nothing, because in this category "unused" does not mean dead.
+  "-Wunused:imports,privates,locals,patvars,explicits",
   s"-Wconf:msg=unused import&src=.*/(${givenImportFalsePositives.mkString("|")})\\.scala:s",
 )
 
