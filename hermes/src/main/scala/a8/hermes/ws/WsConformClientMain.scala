@@ -524,6 +524,22 @@ object WsConformClientMain extends Logging {
             val subj = s"mesh.$address.rpc-inbox"
             import scala.jdk.CollectionConverters.*
             jsm.getStreamNames(subj).asScala.foreach { sn =>
+              // THE STREAM'S OWN COUNT — the question the consumer numbers cannot answer.
+              //
+              // handedToApp == acksFired == observed proved the transport delivered and
+              // acked exactly what it was given, so the missing messages were never handed
+              // to it. That leaves two very different stories, and only the stream can tell
+              // them apart: if msgs == what we sent, every message IS in the stream and
+              // delivery skipped some; if msgs is SHORT, the publish side lost them despite
+              // reporting acked=sent, and the consumer is innocent. The publish retry loop
+              // makes the second story plausible — a retry that republishes an already-
+              // landed message inflates the ack count without adding a message.
+              // BUG-20260803-hermes-nats-partition-heal-rare-message-loss.
+              try {
+                val si = jsm.getStreamInfo(sn).getStreamState
+                diag(s"wsconform: stream $sn msgs=${si.getMsgCount} firstSeq=${si.getFirstSequence} " +
+                  s"lastSeq=${si.getLastSequence} consumers=${si.getConsumerCount}")
+              } catch { case e: Throwable => diag(s"wsconform: stream info failed: ${e.getMessage}") }
               jsm.getConsumers(sn).asScala.foreach { ci =>
                 diag(s"wsconform: consumer $sn/${ci.getName} ackWait=${ci.getConsumerConfiguration.getAckWait} " +
                   s"numPending=${ci.getNumPending} ackPending=${ci.getNumAckPending} redelivered=${ci.getRedelivered}")
