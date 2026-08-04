@@ -177,6 +177,29 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
   val lookaheadDropped = new java.util.concurrent.atomic.AtomicLong(0)
   val consumerBinds = new java.util.concurrent.atomic.AtomicLong(0)
 
+  // THE TRIANGULATION PAIR, for the loss that is left after every ack path in this file was
+  // audited and corrected (BUG-20260803-hermes-nats-partition-heal-rare-message-loss).
+  //
+  // The measured shape is: the server took all 20000 (acked=20000 gaveUp=0), bound the
+  // durable once, dropped no lookahead, applied ackWait=5s — and still ended
+  // numPending=0 ackPending=0 redelivered=0 while the app never saw a contiguous run of
+  // 11-66. Something acknowledges messages the application does not receive, and reading
+  // the code has now eliminated every candidate: the pull does not ack, the handler does
+  // not ack, the policy is Explicit not All, and the app acks strictly after observing.
+  //
+  // These two say which side of the transport the message stops on, which no existing
+  // counter can:
+  //   envelopesHandedToApp  incremented when the iterator RELEASES an envelope to the app
+  //   envelopeAcksFired     incremented when the consumer actually fires that envelope's ack
+  //
+  // Read against the app's own tally, they localise the hole to one of three places.
+  // handedToApp < delivered-by-server => the transport swallowed it. acksFired >
+  // handedToApp => something acks deliveries the app never got, which is the hypothesis
+  // that survived. handedToApp == acksFired == observed => the loss is upstream of this
+  // transport entirely and the next look belongs on the server.
+  val envelopesHandedToApp = new java.util.concurrent.atomic.AtomicLong(0)
+  val envelopeAcksFired = new java.util.concurrent.atomic.AtomicLong(0)
+
   val ackedPublishOk = new java.util.concurrent.atomic.AtomicLong(0)
   val ackedPublishRetries = new java.util.concurrent.atomic.AtomicLong(0)
   val ackedPublishGaveUp = new java.util.concurrent.atomic.AtomicLong(0)
@@ -422,7 +445,10 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
               // ack whole chunks the consumer had not processed; a connection death then
               // dropped them acked-but-unseen, unredeliverable — the contiguous-hole loss.
               // The envelope carries the ack; the CONSUMER fires it after processing.
-              val ackThunk: () => Unit = () => msg.ack()
+              val ackThunk: () => Unit = () => {
+                envelopeAcksFired.incrementAndGet()
+                msg.ack()
+              }
               lookahead = fromNatsMessage(msg).copy(ack = ackThunk)
               holdingLookahead.set(true)
             }
@@ -435,6 +461,9 @@ class NatsTransport(val connection: Connection) extends MailboxTransport with a8
           val v = lookahead
           lookahead = null
           holdingLookahead.set(false)
+          // Counted HERE, at the release to the app — not at the pull above. The gap
+          // between the two is the void window this bug lives in.
+          envelopesHandedToApp.incrementAndGet()
           v
         }
       })

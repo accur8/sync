@@ -501,6 +501,15 @@ object WsConformClientMain extends Logging {
           // recreated. BUG-20260803-hermes-nats-partition-heal-rare-message-loss.
           diag(s"wsconform: nats delivery lookaheadDropped=${t.lookaheadDropped.get()} " +
             s"consumerBinds=${t.consumerBinds.get()}")
+          // THE TRIANGULATION. received above is what the APP observed; these two are what
+          // the transport handed it and what it acked. Every other account has already come
+          // back clean on this bug, so the discriminator is which of these three diverges:
+          //   handedToApp < received-by-server  -> the transport swallowed the run
+          //   acksFired  > handedToApp          -> something acks undelivered messages
+          //   all three equal, gaps > 0         -> the loss is upstream of this transport
+          // BUG-20260803-hermes-nats-partition-heal-rare-message-loss.
+          diag(s"wsconform: nats handoff handedToApp=${t.envelopesHandedToApp.get()} " +
+            s"acksFired=${t.envelopeAcksFired.get()} observed=$received")
         }
         natsConn.foreach { c =>
           val st = c.getStatistics
