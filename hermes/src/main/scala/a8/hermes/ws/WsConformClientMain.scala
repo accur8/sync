@@ -605,10 +605,29 @@ object WsConformClientMain extends Logging {
 
   private def report(): Unit =
     if (transportMode == "nats") {
-      // reconnects/recoveryMs from the java client's own ConnectionListener; resends is -1
-      // because the outbound leg is the java client's reconnect buffer, which it does not
-      // count — claiming 0 would assert "nothing needed resending", which we cannot know.
-      ok(s"reconnects=${natsReconnects.get()} resends=-1 remints=-1 recoveryMs=${natsRecoveryMs.get()}")
+      // reconnects/recoveryMs come from the java client's own ConnectionListener.
+      //
+      // resends WAS hardcoded -1, on the reasoning that the outbound leg is the java
+      // client's reconnect buffer, which does not count retries. That stopped being true
+      // when the at-least-once work (sync@0a355d1) put an explicit publish-ack retry loop
+      // in front of it: NatsTransport.ackedPublishRetries counts exactly the quantity
+      // godev's client reports as natsResends, with the same semantics. Reporting -1 while
+      // the counter existed made the two direct-NATS rows incomparable — the one thing
+      // having separate -nats and -ws rows is FOR — and left the cell permanently exempt
+      // from a baseline band, since a metric that is always -1 cannot have one.
+      //
+      // gaveUp is a publish that was never acked: a message this client believes it sent
+      // and the server never took. It is a drop WITH a client-side witness, which is
+      // strictly more information than the receiver-side gap count, so it belongs on the
+      // wire even though today's harness parses only the four keys above it.
+      // BUG-20260803-hermes-nats-publish-retries-unreported.
+      val t = natsTransportRef
+      val resends = t.map(_.ackedPublishRetries.get().toString).getOrElse("-1")
+      val gaveUp = t.map(_.ackedPublishGaveUp.get().toString).getOrElse("-1")
+      ok(
+        s"reconnects=${natsReconnects.get()} resends=$resends remints=-1 " +
+          s"recoveryMs=${natsRecoveryMs.get()} gaveUp=$gaveUp"
+      )
     } else
     conn match {
       case None =>
