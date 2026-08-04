@@ -1,7 +1,7 @@
 package a8.shared.json.impl
 
 
-import a8.shared.json.ast.{JsArr, JsBool, JsDoc, JsNum, JsObj, JsStr, JsVal}
+import a8.shared.json.ast.{JsArr, JsBool, JsNum, JsObj, JsStr, JsVal}
 
 import scala.reflect.{ClassTag, classTag}
 import a8.shared.SharedImports._

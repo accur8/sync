@@ -11,12 +11,10 @@ package a8.sync.qubes
 //====
 import a8.sync.qubes.QubesApiClient.Config
 import sttp.model.Uri
-import a8.sync.http.{RequestProcessorConfig, RetryConfig}
-import scala.concurrent.duration.FiniteDuration
+import a8.sync.http.RequestProcessorConfig
 import a8.sync.qubes.QubesApiClient._
 import UpdateRowRequest.Parm
-import a8.shared.json.ast.{JsDoc, JsObj}
-import scala.reflect.Selectable.reflectiveSelectable
+import a8.shared.json.ast.JsObj
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

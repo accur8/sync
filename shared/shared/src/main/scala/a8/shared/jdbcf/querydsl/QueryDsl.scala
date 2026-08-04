@@ -7,10 +7,7 @@ import a8.shared.jdbcf.mapper.{ComponentMapper, KeyedTableMapper, TableMapper}
 import scala.language.{existentials, implicitConversions}
 import a8.shared.jdbcf.SqlString.{DialectQuotedIdentifier, SqlStringer}
 import a8.shared.jdbcf.querydsl.QueryDsl.Condition
-import a8.shared.json.ast.JsVal
-import cats.data.Chain
 
-import a8.shared.zreplace._
 
 /*
 

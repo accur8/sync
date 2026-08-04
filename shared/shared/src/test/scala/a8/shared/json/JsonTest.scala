@@ -1,7 +1,7 @@
 package a8.shared.json
 
 
-import a8.shared.{AtomicBuffer, CompanionGen}
+import a8.shared.CompanionGen
 import a8.shared.json.JsonTest.{Group, Person}
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite

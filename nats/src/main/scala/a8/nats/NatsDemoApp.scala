@@ -1,11 +1,11 @@
 package a8.nats
 
-import io.nats.client.{Message, Nats, Options}
+import io.nats.client.{Nats, Options}
 
 
-import java.io.{ByteArrayOutputStream, FileOutputStream}
+import java.io.ByteArrayOutputStream
 import NatsConn.{HttpResponse, NatsConfig, ReplyTo}
-import io.nats.client.impl.{Headers, NatsMessage}
+import io.nats.client.impl.Headers
 
 object NatsDemoApp {
 

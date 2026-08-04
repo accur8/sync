@@ -2,7 +2,6 @@ package a8.shared.jdbcf
 
 import a8.shared.SharedImports.Logging
 import a8.shared.jdbcf.PostgresBatcher.RecordBatcher
-import a8.sync.qubes.QubesMapper
 
 import java.io.StringReader
 import java.util.UUID

@@ -11,7 +11,7 @@ import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.JsonReader.JsonReaderOptions
 import a8.shared.zreplace.Resource
 import a8.sync.http
-import a8.sync.http.{Backend, Method, RequestProcessor, RequestProcessorConfig, RetryConfig}
+import a8.sync.http.{Method, RequestProcessor, RequestProcessorConfig, RetryConfig}
 import a8.sync.qubes.MxQubesApiClient.*
 import a8.sync.qubes.QubesApiClient.UpdateRowRequest.Parm
 import sttp.client4.*

@@ -4,11 +4,8 @@ import a8.common.logging.Logging
 import a8.shared.app.Ctx
 import a8.shared.{CompanionGen, json}
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
-import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
 import scala.collection.mutable
-import java.sql.Connection
-import javax.sql.DataSource
 
 trait DatabaseConfigProvider:
   def fetchConfig(databaseId: DatabaseId): Option[DatabaseConfig]

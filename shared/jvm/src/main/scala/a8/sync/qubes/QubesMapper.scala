@@ -1,10 +1,9 @@
 package a8.sync.qubes
 
-import a8.shared.SharedImports.*
 import a8.shared.jdbcf.SqlString.*
 import a8.shared.jdbcf.{SqlString, TableName}
 import a8.shared.json.JsonReader.JsonReaderOptions
-import a8.shared.json.{JsonObjectCodec, JsonTypedCodec}
+import a8.shared.json.JsonTypedCodec
 import a8.shared.json.ast.JsObj
 import a8.sync.qubes.QubesApiClient.{QueryRequest, UpdateRowRequest}
 import a8.sync.qubes.QubesMapperBuilder.{Parm, PrimaryKey}
@@ -56,7 +55,6 @@ object QubesMapper {
 
     override def fetchOpt(key: B)(implicit sqlStringer: SqlStringer[B], qubesApiClient: QubesApiClient, jsonReaderOptions: JsonReaderOptions): Option[A] = {
       implicit def qm: QubesMapperImpl[A, B] = this
-      import SqlString._
       val rows =
         qubesApiClient
           .query[A](primaryKey.whereClause(key))

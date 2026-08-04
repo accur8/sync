@@ -1,14 +1,13 @@
 package a8.hermes.discovery
 
 import a8.hermes.core.{Mailbox, MailboxTransport}
-import a8.hermes.core.MailboxTransport.Envelope
 import a8.hermes.rpc.{RpcSchema, RpcServer}
 import a8.hermes.bootstrap.StaticServiceDiscovery
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
 import a8.shared.zreplace.Resource
 import a8.shared.json
-import a8.shared.json.ast.{JsObj, JsStr, JsArr, JsVal, JsNum, JsBool}
+import a8.shared.json.ast.JsObj
 import a8.shared.CompanionGen
 import a8.shared.SharedImports.jsonCodecOps
 

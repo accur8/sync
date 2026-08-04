@@ -1,7 +1,7 @@
 package a8.examples.hermes
 
 import a8.hermes.bootstrap.{HermesAppConfig, HermesBootstrap, HermesBootstrapConfig}
-import a8.shared.app.{AppCtx, BootstrappedIOApp, Bootstrapper}
+import a8.shared.app.{AppCtx, BootstrappedIOApp}
 import a8.shared.zreplace.Resource
 
 /**

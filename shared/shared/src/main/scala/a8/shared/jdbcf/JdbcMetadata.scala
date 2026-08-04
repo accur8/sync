@@ -162,7 +162,7 @@ object JdbcMetadata {
           .filter(_ => useCache)
           .getOrElse {
             val table = impl.resolveTableName(tableLocator, conn)
-            resolvedTableNameCache.put(tableLocator, table): @scala.annotation.nowarn
+            resolvedTableNameCache.put(tableLocator, table)
             table
           }
       }
@@ -185,7 +185,7 @@ object JdbcMetadata {
           .map(a => a)
           .getOrElse {
             val table = impl.tableMeta(tableLocator, conn)
-            tableMetadataCache.put(tableLocator, table): @scala.annotation.nowarn
+            tableMetadataCache.put(tableLocator, table)
             table
           }
       }

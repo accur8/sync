@@ -1,11 +1,11 @@
 package playground
 
-import a8.shared.{CascadingHocon, ConfigMojo, HoconOps}
+import a8.shared.CascadingHocon
 import a8.shared.ConfigMojoOps.impl.ConfigMojoRoot
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.json.JsonReader.JsonReaderOptions
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Files
 
 @scala.annotation.nowarn("cat=deprecation")
 object BootstrapDefaultsDemo extends App {

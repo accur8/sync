@@ -1,9 +1,8 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.jdbcf.{ResolvedTableName, SchemaName, TableLocator, TableName}
+import a8.shared.jdbcf.{ResolvedTableName, TableLocator}
 import SqlString._
-import a8.shared.SharedImports._
 
 object PostgresDialect extends Dialect {
 

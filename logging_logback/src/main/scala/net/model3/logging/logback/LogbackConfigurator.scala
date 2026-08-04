@@ -3,20 +3,15 @@ package net.model3.logging.logback
 import a8.common.logging.{LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.jul.LevelChangePropagator
-import ch.qos.logback.classic.{Level, Logger, LoggerContext}
-import ch.qos.logback.classic.layout.TTLLLayout
+import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.spi.Configurator.ExecutionStatus
-import ch.qos.logback.classic.spi.{Configurator, ILoggingEvent, LoggerContextListener}
-import ch.qos.logback.core.ConsoleAppender
-import ch.qos.logback.core.encoder.LayoutWrappingEncoder
+import ch.qos.logback.classic.spi.Configurator
 import ch.qos.logback.core.spi.ContextAwareBase
-import ch.qos.logback.core.status.{InfoStatus, Status, StatusBase, StatusListener, StatusUtil}
+import ch.qos.logback.core.status.{Status, StatusListener}
 import ch.qos.logback.core.util.StatusPrinter
 import org.slf4j.bridge.SLF4JBridgeHandler
 
 import java.io.{File, FileOutputStream}
-import java.nio.file.Paths
-import java.util
 import scala.jdk.CollectionConverters.*
 
 object LogbackConfigurator {
@@ -146,7 +141,7 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
     }
 
     if ( configDirectory.exists() ) {
-      configDirectory.mkdirs(): @scala.annotation.nowarn
+      configDirectory.mkdirs()
       val sampleFile = configDirectory.toPath.resolve("logback-sample.xml").toFile
       val input = getClass.getResourceAsStream("/logback-sample.xml")
       val output = new FileOutputStream(sampleFile)
@@ -179,7 +174,7 @@ class LogbackConfigurator extends ContextAwareBase with Configurator { outer =>
     val indentedStatusStr = statusStr.linesIterator.map("        " + _).mkString("\n")
     a8.common.logging.Logger.logger(getClass).log(level, s"logging config results\n${indentedStatusStr}")
 
-    LogbackLoggerFactory.loggingConfiguredPromise.success(()): @scala.annotation.nowarn
+    LogbackLoggerFactory.loggingConfiguredPromise.success(())
 
     loggerContext.getStatusManager.add(
       new StatusListener {

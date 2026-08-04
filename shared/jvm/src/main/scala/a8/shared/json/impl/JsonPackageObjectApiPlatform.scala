@@ -1,7 +1,7 @@
 package a8.shared.json.impl
 
 import a8.shared.{FileSystem, HoconOps}
-import a8.shared.json.{JsonCodec, JsonReader}
+import a8.shared.json.JsonCodec
 import a8.shared.json.JsonReader.JsonReaderOptions
 import com.typesafe.config.ConfigFactory
 

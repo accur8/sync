@@ -2,7 +2,6 @@ package a8.shared.json.impl
 
 import a8.shared.json.{JsonReadOptions, ReadError}
 import a8.shared.json.ReadError.SingleReadError
-import a8.shared.json.ast.JsDoc.JsDocRoot
 import a8.shared.json.ast._
 
 trait JsDocMixin { self: JsDoc =>

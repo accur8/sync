@@ -2,7 +2,6 @@ package a8.examples.hermes
 
 import a8.hermes.bootstrap.HermesBootstrap
 import a8.hermes.auth.SshAuth
-import a8.hermes.core.Mailbox
 import a8.hermes.proto.auth.auth.{GetUserInfoForSelfRequest, GetUserInfoForSelfResponse}
 import a8.shared.app.{BootstrappedIOApp, AppCtx}
 import a8.shared.zreplace.Resource

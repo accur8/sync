@@ -1,7 +1,6 @@
 package a8.common.logging
 
 
-import a8.common.logging.LoggingBootstrapConfig.fileFromProperty
 
 object LoggingBootstrapConfig {
 
@@ -39,7 +38,7 @@ object LoggingBootstrapConfig {
 
   lazy val insideOfIntellij =
     try {
-      getClass.getClassLoader().loadClass("com.intellij.rt.execution.application.AppMainV2"): @scala.annotation.nowarn
+      getClass.getClassLoader().loadClass("com.intellij.rt.execution.application.AppMainV2")
       true
     } catch {
       case _: Throwable =>

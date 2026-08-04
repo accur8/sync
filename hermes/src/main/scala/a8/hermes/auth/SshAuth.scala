@@ -5,12 +5,11 @@ import a8.hermes.rpc.RpcClient
 import a8.hermes.proto.auth.auth.{LoginBeginRequest, LoginBeginResponse, LoginCompleteRequest, LoginCompleteResponse}
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
-import a8.shared.FileSystem
 
-import java.nio.file.{Files, Paths, StandardOpenOption}
+import java.nio.file.{Files, Paths}
 import java.util.Base64
 import scala.sys.process.*
-import scala.util.{Try, Success, Failure}
+import scala.util.Try
 
 /**
  * SSH-based authentication for Hermes.

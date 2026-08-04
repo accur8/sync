@@ -2,7 +2,7 @@ package a8.shared.jdbcf.querydsl
 
 
 import a8.shared.jdbcf.{Conn, SqlString}
-import a8.shared.jdbcf.mapper.{Mapper, TableMapper}
+import a8.shared.jdbcf.mapper.TableMapper
 import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Condition, Join, JoinImpl, PathCompiler, Path, OrderBy}
 
 import scala.language.implicitConversions

@@ -1,7 +1,7 @@
 package a8.shared.jdbcf
 
 
-import java.sql.{Connection as JdbcConnection, DriverManager as JdbcDriverManager, PreparedStatement as JdbcPreparedStatement, SQLException as JdbcSQLException, Statement as JStatement}
+import java.sql.{Connection as JdbcConnection, PreparedStatement as JdbcPreparedStatement, Statement as JStatement}
 import a8.shared.jdbcf.JdbcMetadata.JdbcTable
 import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult

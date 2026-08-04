@@ -4,7 +4,6 @@ package a8.shared.jdbcf
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.json.ast.{JsDoc, JsNothing, JsNull}
-import zio._
 
 case class JsDocSqlStringer(nullable: Boolean, typeSuffix: Option[String]) extends SqlStringer[JsDoc] {
 

@@ -1,17 +1,15 @@
 package a8.shared
 
 
-import java.util.UUID
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import a8.shared.jdbcf.SqlString.SqlStringer
-import a8.shared.json.{JsonTypedCodec, ReadError, ast}
+import a8.shared.json.JsonTypedCodec
 import a8.shared.json.ast.JsStr
 
 import scala.util.Random
 import language.implicitConversions
 import SharedImports._
 
-import java.sql.PreparedStatement
 
 object Tid {
 

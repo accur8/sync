@@ -4,7 +4,6 @@ import a8.shared.SharedImports.CIString
 import sttp.model.Uri
 
 import java.util.regex.Pattern
-import a8.shared.SharedImports._
 
 
 object StringOps {

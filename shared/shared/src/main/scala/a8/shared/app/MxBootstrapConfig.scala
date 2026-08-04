@@ -9,9 +9,7 @@ package a8.shared.app
 */
 
 //====
-import a8.common.logging.LoggingBootstrapConfig.LoggingBootstrapConfigDto
 import a8.shared.app.BootstrapConfig.*
-import scala.concurrent.duration.FiniteDuration
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

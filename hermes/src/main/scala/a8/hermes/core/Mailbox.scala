@@ -1,7 +1,7 @@
 package a8.hermes.core
 
 import a8.shared.{CompanionGen, StringValue}
-import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
+import a8.shared.json.JsonCodec
 
 import java.time.Instant
 import scala.concurrent.duration.*

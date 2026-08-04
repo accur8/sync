@@ -4,20 +4,17 @@ package net.model3.logging.logback
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.OutputStreamAppender
-import ch.qos.logback.core.filter.Filter
-import ch.qos.logback.core.spi.FilterReply
 import ch.qos.logback.core.util.FileSize
 import net.model3.logging.logback.RollingFileAppender.Kind
 
 import java.io.FileOutputStream
-import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path, Paths}
-import java.time.{LocalDateTime, OffsetDateTime, ZoneOffset}
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
 import scala.concurrent.{Future, blocking}
 import scala.jdk.CollectionConverters.*
-import a8.common.logging.{Logger, LoggerFactory, LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
+import a8.common.logging.{Logger, LoggingBootstrapConfigServiceLoader}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.time.LocalDate

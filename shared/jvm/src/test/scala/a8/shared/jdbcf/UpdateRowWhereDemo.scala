@@ -1,6 +1,6 @@
 package a8.shared.jdbcf
 
-import a8.shared.SharedImports.{sharedImportsIntOps as _, *}
+import a8.shared.SharedImports.{*}
 import a8.shared.app.{AppCtx, BootstrappedIOApp, Ctx}
 import a8.shared.jdbcf.MaterializedMapperDemo.BigBoo
 import a8.shared.jdbcf.SqlString.*

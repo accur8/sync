@@ -1,11 +1,6 @@
 package net.model3.logging.logback
 
-import a8.common.logging.{LoggingBootstrapConfig, Level, LoggerFactory}
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.core.status.InfoStatus
-import org.fusesource.jansi.AnsiConsole
 
-import java.io.{FileDescriptor, FileOutputStream, PrintStream}
 
 object LogbackDemo {
 

@@ -1,24 +1,20 @@
 package a8.sync.http
 
-import a8.common.logging.{Level, Logging}
+import a8.common.logging.Level
 import a8.shared.SharedImports.{*, given}
 import a8.shared.ZString.ZStringer
-import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
+import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource}
 import a8.shared.json.ast.JsVal
-import a8.shared.json.{JsonCodec, JsonReader, ReadError}
+import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.zreplace.{Chunk, Resource, XStream}
 import a8.shared.{CompanionGen, SharedImports, StringValue, ZString}
 import Mxhttp.*
 import a8.sync.Semaphore
-import cats.data.Chain
 import ox.scheduling.Jitter.Equal
 import sttp.model.{StatusCode, Uri}
 
-import java.net.URLEncoder
 import java.nio.charset.Charset
-import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
-import scala.jdk.DurationConverters.*
 import a8.shared.zreplace.Chunk.toByteBuffer
 import a8.sync.http.impl.RequestProcessorImpl
 

@@ -3,7 +3,7 @@ package a8.shared.json.impl
 import a8.shared.FileSystem
 import a8.shared.json.ReadError.{ParseError, SingleReadError}
 import a8.shared.json.ast.{JsObj, JsVal}
-import a8.shared.json.{JsonCodec, JsonReader, ReadError}
+import a8.shared.json.{JsonCodec, ReadError}
 import org.typelevel.jawn.Parser
 import a8.shared.SharedImports.*
 import a8.shared.json.JsonReader.JsonReaderOptions

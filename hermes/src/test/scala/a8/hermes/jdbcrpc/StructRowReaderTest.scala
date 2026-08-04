@@ -3,7 +3,7 @@ package a8.hermes.jdbcrpc
 import a8.hermes.proto.db.db.{QueryColumnMetadata, QueryResponse}
 import a8.shared.jdbcf.Row
 import a8.shared.json.ast.JsDoc
-import com.google.protobuf.struct.{ListValue, Struct, Value}
+import com.google.protobuf.struct.{Struct, Value}
 import com.google.protobuf.struct.Value.Kind
 
 import java.time.LocalDateTime

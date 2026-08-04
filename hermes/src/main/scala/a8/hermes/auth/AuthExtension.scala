@@ -2,7 +2,6 @@ package a8.hermes.auth
 
 import a8.hermes.core.Mailbox
 import a8.hermes.rpc.RpcClient
-import a8.hermes.proto.auth.auth.{GetUserInfoForSelfRequest, GetUserInfoForSelfResponse, LoginBeginRequest, LoginBeginResponse, LoginCompleteRequest, LoginCompleteResponse}
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
 
@@ -41,7 +40,6 @@ class AuthExtension(
   config: AuthExtension.Config,
 ) extends Logging {
 
-  import AuthExtension.*
 
   @volatile private var running = false
 

@@ -1,19 +1,16 @@
 package a8.shared.jdbcf.mapper
 
 
-import a8.shared.SharedImports.*
 import a8.shared.jdbcf.{ColumnName, Conn, JdbcMetadata, ResolvedTableName, Row, RowReader, SqlString, TableLocator, TableName}
-import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
-import a8.shared.jdbcf.mapper.MapperBuilder.{AuditProvider, FromCaseClassParm, Parm, PrimaryKey}
+import a8.shared.jdbcf.mapper.MapperBuilder.{AuditProvider, Parm, PrimaryKey}
 import SqlString.*
 import a8.shared
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
-import a8.shared.{Chord, SharedImports, jdbcf}
+import a8.shared.jdbcf
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, PathCompiler, StructuralProperty}
+import a8.shared.jdbcf.querydsl.QueryDsl.PathCompiler
 
-import java.sql.PreparedStatement
 
 object CaseClassMapper {
 //  val QuestionMark = SqlString.keyword("?")

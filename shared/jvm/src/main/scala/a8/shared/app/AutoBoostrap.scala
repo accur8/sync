@@ -1,6 +1,6 @@
 package a8.shared.app
 
-import a8.common.logging.{Logger, LoggerFactory, LoggingBootstrapConfig}
+import a8.common.logging.{LoggerFactory, LoggingBootstrapConfig}
 import a8.shared.ConfigMojo
 import ch.qos.logback.classic.LoggerContext
 import net.model3.logging.logback.LogbackConfigurator

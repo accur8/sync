@@ -5,7 +5,6 @@ import a8.shared.{jdbcf, zreplace}
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.SqlString.CompiledSql
 
-import java.sql.ResultSet
 
 object StreamingQuery {
 

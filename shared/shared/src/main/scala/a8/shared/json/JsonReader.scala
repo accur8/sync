@@ -7,13 +7,10 @@ import a8.shared.SharedImports.*
 import a8.common.logging.{Logger, Logging, Trace, Level as LogLevel}
 import a8.shared.json.JsonReader.JsonSource.OverrideContextJsonSource
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
-import a8.shared.json.ReadError.ReadErrorException
-import a8.shared.json.ast.JsDoc.{JsDocRoot, empty}
+import a8.shared.json.ast.JsDoc.JsDocRoot
 import a8.shared.json.ast.{JsDoc, JsVal}
 
 import scala.collection.mutable
-import scala.io.Source
-import scala.util.Try
 import scala.language.implicitConversions
 
 object JsonReader extends Logging { outer =>
@@ -90,7 +87,7 @@ object JsonReader extends Logging { outer =>
       val unusedFieldAction =
         new UnusedFieldAction {
           override def apply[A](unusedFieldsInfo: JsonReadOptions.UnusedFieldsInfo[A])(implicit readOptions: JsonReadOptions): Either[ReadError, A] = {
-            warnings.append(unusedFieldsInfo.messageFn()): @scala.annotation.nowarn
+            warnings.append(unusedFieldsInfo.messageFn())
             unusedFieldsInfo.successFn()
           }
         }

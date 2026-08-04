@@ -1,7 +1,7 @@
 package a8.hermes.core
 
 import a8.shared.app.Ctx
-import a8.shared.zreplace.{Resource, XStream}
+import a8.shared.zreplace.XStream
 
 import scala.concurrent.duration.FiniteDuration
 

@@ -4,9 +4,8 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.{AppenderBase, OutputStreamAppender}
-import net.model3.logging.logback.ConsoleAppender.*
 import ConsoleAppender.*
-import a8.common.logging.{LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
+import a8.common.logging.LoggingBootstrapConfigServiceLoader
 
 import java.io.{FileDescriptor, FileOutputStream}
 import scala.compiletime.uninitialized

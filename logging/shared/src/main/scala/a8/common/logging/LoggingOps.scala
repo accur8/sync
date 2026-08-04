@@ -3,7 +3,7 @@ package a8.common.logging
 
 import java.io.{PrintWriter, StringWriter}
 import java.nio.charset.StandardCharsets.*
-import java.nio.file.attribute.{FileAttribute, FileTime}
+import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Paths}
 import java.time.{LocalDateTime, OffsetDateTime}
 import java.util.regex.Pattern

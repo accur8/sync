@@ -1,10 +1,8 @@
 package a8.shared.ops
 
 
-import a8.shared.SharedImports._
 import cats.data.Chain
 
-import scala.reflect.ClassTag
 
 object IteratorOps {
 

@@ -28,7 +28,7 @@ object MailApi extends Logging {
     def acquire: MailApi = {
       val props = new Properties()
       def put(name: String, value: String): Unit =
-        props.put(name,value): @scala.annotation.nowarn
+        props.put(name,value)
       put("mail.debug", config.debug.toString)
       put("mail.debug.auth", config.debug.toString)
       put("mail.smtp.host", config.host)

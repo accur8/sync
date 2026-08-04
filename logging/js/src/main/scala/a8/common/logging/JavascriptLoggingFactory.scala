@@ -26,10 +26,10 @@ object JavascriptLoggingFactory extends LoggerFactory {
 
   override def withContext[A](context: String)(fn: => A): A = {
     try {
-      contextStack.push(context): @scala.annotation.nowarn
+      contextStack.push(context)
       fn
     } finally {
-      contextStack.pop(): @scala.annotation.nowarn
+      contextStack.pop()
     }
   }
 

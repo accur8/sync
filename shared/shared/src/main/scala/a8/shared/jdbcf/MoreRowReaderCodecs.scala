@@ -4,7 +4,6 @@ import java.time.LocalDate
 import RowReader._
 import sttp.model.Uri
 
-import java.util.Calendar
 
 trait MoreRowReaderCodecs {
 

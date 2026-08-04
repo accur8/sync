@@ -3,9 +3,9 @@ package a8.hermes.nats
 import a8.hermes.core.MailboxTransport
 import a8.hermes.core.MailboxTransport.*
 import a8.shared.app.Ctx
-import a8.shared.{CompanionGen, FileSystem}
+import a8.shared.CompanionGen
 import a8.shared.zreplace.{Resource, XStream}
-import io.nats.client.{Connection, JetStream, JetStreamManagement, Message, Subscription as NatsSubscription}
+import io.nats.client.{Connection, JetStream, JetStreamManagement, Message}
 import io.nats.client.api.{ConsumerConfiguration, StreamConfiguration, RetentionPolicy, AckPolicy as NatsAckPolicy, DeliverPolicy as NatsDeliverPolicy, StorageType}
 import io.nats.client.impl.{Headers as NatsHeaders}
 

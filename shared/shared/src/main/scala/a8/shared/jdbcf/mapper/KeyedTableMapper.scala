@@ -1,10 +1,8 @@
 package a8.shared.jdbcf.mapper
 
 
-import a8.shared.SharedImports._
 import a8.shared.jdbcf.{Conn, SqlString}
-import a8.shared.jdbcf.mapper.KeyedTableMapper.{Materialized, UpsertResult}
-import zio._
+import a8.shared.jdbcf.mapper.KeyedTableMapper.Materialized
 
 /**
  * Companion object for [[KeyedTableMapper]] containing result types.

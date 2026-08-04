@@ -10,7 +10,7 @@ import com.google.protobuf.ByteString
 
 import java.util.UUID
 import scala.collection.concurrent.TrieMap
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 import scala.concurrent.duration.{FiniteDuration, *}
 import scala.util.{Failure, Success, Try}
 
@@ -242,7 +242,6 @@ class RpcClient(config: RpcClient.Config) extends Logging {
       // Wait for response with timeout
       val effectiveTimeout = timeout.getOrElse(config.defaultTimeout)
 
-      import scala.concurrent.ExecutionContext.Implicits.global
       import scala.concurrent.Await
 
       Try(Await.result(promise.future, effectiveTimeout)) match {

@@ -1,7 +1,6 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString._
 
 import java.sql.Connection

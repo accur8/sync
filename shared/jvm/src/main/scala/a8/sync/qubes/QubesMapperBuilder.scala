@@ -5,7 +5,7 @@ import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.jdbcf.{ColumnName, SqlString, TableName}
 import a8.shared.json.ast._
-import a8.shared.json.{JsonCodec, JsonObjectCodec, JsonTypedCodec}
+import a8.shared.json.{JsonCodec, JsonTypedCodec}
 
 import scala.reflect.ClassTag
 
