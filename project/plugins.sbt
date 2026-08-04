@@ -83,3 +83,27 @@ addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.2")
 
   
 
+
+// JGit, forced ahead of what sbt-git drags in, so sbt works in a LINKED GIT WORKTREE.
+//
+// sbt-git resolves the repo with JGit and then asks git.uncommittedSignifier for
+// hasUncommittedChanges (GitPlugin.scala:126 -> JGit.scala:94). In a linked worktree `.git`
+// is a POINTER FILE, not a directory; JGit 5.13 reads that as a BARE repo and getWorkTree()
+// throws NoWorkTreeException. That happens during buildSettings evaluation, so it kills
+// PROJECT LOADING — before any task runs and before any `set` override could apply. Nothing
+// in the build can catch it.
+//
+// This is a transitive pin, not a direct dependency: sbt-git arrives through sbt-a8. And
+// upgrading the plugin does NOT help — sbt-git 2.1.0, the newest release, still pins the
+// same 5.13 line (5.13.3). The JGit version is the only lever that moves.
+//
+// VERIFIED rather than assumed, which is what the ticket asked for. On 7.7.1, from a linked
+// worktree: hermes/compile exits 0 and hermes/test passes 57/57, with a DIRTY tree and with
+// a CLEAN one; the same commit also compiles from an ordinary clone; and the git-derived
+// version stamp still resolves (1.0.0-<ts>_master), which was the failure mode worth fearing
+// most — a broken stamp would have been silent.
+//
+// Java 21 here, so the 7.x line (Java 17+) is in range.
+//
+// TASK-20260724-jgit-upgrade-sbt-git-worktree-support
+dependencyOverrides += "org.eclipse.jgit" % "org.eclipse.jgit" % "7.7.1.202607240634-r"
