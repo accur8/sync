@@ -431,13 +431,31 @@ object WsConformClientMain extends Logging {
           // A send failure is REPORTED, not fatal: severing the socket mid-SEND is the whole
           // point of kill-mid-request, and a client that exited there would be measuring its
           // own exit rather than the transport's recovery.
-          try {
-            c.send(frame)
-            sent.incrementAndGet()
-            ()
-          } catch {
-            case e: Throwable => diag(s"wsconform: send $i failed: ${e.getMessage}")
+          //
+          // COUNT THE HANDOFF, NOT THE FIRST ATTEMPT. This used to increment only when
+          // c.send returned normally, which under-reported catastrophically during a
+          // partition: WsMeshConnection.send calls trackIfRequest BEFORE sendRaw, so a
+          // frame whose first attempt throws is ALREADY in the in-flight map and gets
+          // delivered by resendInFlight() on reconnect. It arrives — uncounted. Measured on
+          // oak (gauntlet 20260804-120419, partition-heal sample 2): the client reported
+          // sent=781 while the receiver saw index 10346, i.e. ~9.5k messages delivered by
+          // the resend path and omitted from the count.
+          //
+          // That is not a cosmetic miscount. The harness uses this number as the gap
+          // DENOMINATOR (wsconform/scenarios.go, "EXPECT ONLY WHAT WAS ACTUALLY SENT"), so
+          // under-reporting lets the client silently shrink what it will be held to — a
+          // client could drop half a run and still score PASS. Counting the handoff makes
+          // the denominator honest in BOTH directions: if the resend never lands, the
+          // message is now correctly counted as owed and shows up as a gap.
+          //
+          // Every frame here carries an idempotentId, so trackingKey always matches and the
+          // handoff-implies-tracked invariant holds for this loop.
+          // BUG-20260804-hermes-ws-under-reports-sent-count-after-partition.
+          try c.send(frame)
+          catch {
+            case e: Throwable => diag(s"wsconform: send $i failed (tracked for resend): ${e.getMessage}")
           }
+          sent.incrementAndGet()
           i += 1
         }
         ok(s"sent=${sent.get()}")
