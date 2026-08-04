@@ -1,17 +1,11 @@
 package a8.shared.json.impl
 
-import java.time.{LocalDate, LocalDateTime}
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 import a8.shared.SharedImports._
 import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.ast._
 import a8.shared.json.impl.JsonCodecs.IterableJsonCodec
 import a8.shared.json.{JsonCodec, JsonReadOptions, ReadError, ast}
-import sttp.model.Uri
 
-import scala.concurrent.duration.FiniteDuration
-import scala.reflect.{ClassTag, classTag}
 
 object JsonCodecs {
 

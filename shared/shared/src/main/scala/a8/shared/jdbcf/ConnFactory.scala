@@ -2,12 +2,9 @@ package a8.shared.jdbcf
 
 
 import a8.shared.SharedImports.*
-import a8.shared.jdbcf.Conn.impl
 import a8.shared.jdbcf.ConnFactory.ConnFactoryInternal
 import com.zaxxer.hikari.HikariDataSource
-import sttp.model.Uri
 
-import javax.sql.DataSource
 
 /**
  * Factory companion object for creating database connection factories.

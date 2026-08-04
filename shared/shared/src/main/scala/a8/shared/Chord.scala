@@ -80,7 +80,7 @@ object Chord {
 
       @inline
       def append(c: Char): Unit = {
-        sb.append(c): @scala.annotation.nowarn
+        sb.append(c)
         if ( c == '\n' ) {
           indent match {
             case Indent.Empty =>

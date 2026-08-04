@@ -3,7 +3,6 @@ package net.model3.logging.logback
 import a8.common.logging.{Level, Logger, Trace}
 import net.model3.logging.logback.LogbackLogger.TraceMarker
 import org.slf4j.Marker
-import a8.common.logging.LoggingOps.*
 
 import java.util
 import java.util.Collections

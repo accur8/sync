@@ -9,7 +9,6 @@ package playground
 */
 
 //====
-import _root_.scala
 import playground.HoconDemo.BigFoo // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 //====
 

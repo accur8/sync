@@ -4,7 +4,6 @@ import a8.shared.Meta.{CaseClassParm, Generator}
 import a8.shared.SharedImports._
 import a8.shared.json.ast._
 
-import java.util.regex.Pattern
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
 

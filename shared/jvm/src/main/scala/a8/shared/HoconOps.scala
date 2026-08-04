@@ -11,7 +11,7 @@ import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.JsonReader.{JsonReaderOptions, JsonSource, ReadResult}
 import a8.shared.json.ast.*
 import SharedImports.canEqual.given
-import a8.shared.json.ast.JsDoc.{JsDocRoot, jsDocRoot}
+import a8.shared.json.ast.JsDoc.jsDocRoot
 
 object HoconOps extends HoconOps
 
@@ -147,7 +147,7 @@ trait HoconOps {
 
     def readPath[A : JsonCodec : ClassTag](path: String)(implicit jsonReaderOptions: JsonReaderOptions): A = {
       configValue match {
-        case co: ConfigObject =>
+        case _: ConfigObject =>
           HoconOps.impl.internalRead[A](configValue)
       }
     }

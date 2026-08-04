@@ -1,15 +1,10 @@
 package a8.shared.json
 
 
-import a8.shared.{Chord, FileSystem, SingleArgConstructor}
 import a8.shared.json.ast._
 import a8.shared.json.impl.{JsValOps, JsonCodecs}
 
-import scala.reflect.{ClassTag, classTag}
-import a8.shared.SharedImports._
-import a8.shared.json.JsonReadOptions.UnusedFieldAction
 
-import scala.collection.mutable
 
 /**
  * Companion object for JsonCodec providing factory methods and implicit conversions.

@@ -1,7 +1,6 @@
 package a8.hermes.test
 
 import a8.hermes.bootstrap.HermesBootstrap
-import a8.hermes.core.Mailbox.MailboxAddress
 import a8.shared.app.{AppCtx, BootstrappedIOApp}
 
 object NamedMailboxTest extends BootstrappedIOApp {

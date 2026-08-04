@@ -1,17 +1,10 @@
 package a8.sync.http.impl
 
-import a8.common.logging.{Level, Logger}
+import a8.common.logging.Logger
 import a8.shared.SharedImports.{*, given}
-import a8.shared.ZString.ZStringer
-import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
-import a8.shared.json.{JsonCodec, JsonReader, ReadError}
-import a8.shared.json.ast.JsVal
-import a8.sync.Semaphore
+import a8.shared.json.JsonCodec
 import a8.sync.http.*
-import cats.data.Chain
-import sttp.model.Uri
 
-import java.net.URLEncoder
 
 object bld {
   def logger = Logger.logger(getClass)
@@ -37,7 +30,7 @@ def standardResponseProcessorImpl[A](responseE: Either[Throwable,Response], resp
           responseActionFn(response)
         case sc if retryableStatusCodes(sc.code) =>
           ResponseAction.Retryable[A](s"http response ${sc.code} status received -- ${response.responseMetadata.compactJson}")
-        case sc =>
+        case _ =>
           val responseInfo = ResponseInfo(response.responseMetadata, Some(response.responseBodyAsString))
           ResponseAction.Fail[A](s"unable to process response ${responseInfo.compactJson}", responseInfo.some)
       }

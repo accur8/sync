@@ -1,6 +1,6 @@
 package a8.shared.ops
 
-import java.io.{IOException, Reader, StringWriter}
+import java.io.{Reader, StringWriter}
 import scala.util.Try
 
 class ReaderOps(private val reader: Reader) extends AnyVal {
@@ -16,8 +16,8 @@ class ReaderOps(private val reader: Reader) extends AnyVal {
       }
       writer.toString
     } finally {
-      Try(writer.close()): @scala.annotation.nowarn
-      Try(reader.close()): @scala.annotation.nowarn
+      Try(writer.close())
+      Try(reader.close())
     }
   }
 

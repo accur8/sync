@@ -1,6 +1,5 @@
 package a8.shared
 
-import cats.syntax.OptionOps
 
 
 final class OptionIdOps[A](private val a: A) extends AnyVal {

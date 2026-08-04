@@ -2,17 +2,15 @@ package a8.shared.app
 
 import a8.common.logging.{Level, LoggingBootstrapConfig}
 import a8.shared.FileSystem.Directory
-import a8.shared.{CompanionGen, ConfigMojo, FileSystem, NamedToString, StringValue, zreplace}
+import a8.shared.{CompanionGen, ConfigMojo, FileSystem, NamedToString, StringValue}
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.app.MxBootstrapConfig.*
 
-import java.nio.file.{Path, Paths}
 import a8.shared.SharedImports.*
 
-import scala.concurrent.duration.FiniteDuration
 import a8.common.logging.LoggingBootstrapConfig.LoggingBootstrapConfigDto
 import a8.shared.json.JsonCodec
-import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
+import a8.shared.json.JsonReader.JsonReaderOptions
 
 /*
  *  + app will have a default AppName which will be it's default prefix

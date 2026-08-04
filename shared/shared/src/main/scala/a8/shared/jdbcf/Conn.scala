@@ -1,19 +1,17 @@
 package a8.shared.jdbcf
 
-import java.sql.{Connection as JdbcConnection, DriverManager as JdbcDriverManager, PreparedStatement as JdbcPreparedStatement, Statement as JStatement}
+import java.sql.{Connection as JdbcConnection, PreparedStatement as JdbcPreparedStatement, Statement as JStatement}
 import a8.shared.SharedImports.*
 import a8.common.logging.Logging
 import a8.shared.app.Ctx
 import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.ConnFactoryCompanion.MapperMaterializer
 import a8.shared.jdbcf.DatabaseConfig.{DatabaseId, Password}
-import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcTable, ResolvedJdbcTable}
-import a8.shared.jdbcf.PostgresDialect.self
+import a8.shared.jdbcf.JdbcMetadata.{JdbcTable, ResolvedJdbcTable}
 import a8.shared.jdbcf.SqlString.{CompiledSql, Escaper}
 import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
 import a8.shared.jdbcf.mapper.{KeyedTableMapper, TableMapper}
 import sttp.model.Uri
-import a8.shared.jdbcf.UnsafeResultSetOps.*
 import a8.shared.zreplace.Resource.AttributeKey
 import zio.*
 

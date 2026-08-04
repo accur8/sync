@@ -2,7 +2,7 @@ package a8.common.logging
 
 
 import scala.jdk.CollectionConverters._
-import a8.common.logging.{LoggerFactory, LoggingBootstrapConfig}
+import a8.common.logging.LoggingBootstrapConfig
 import java.util.ServiceLoader
 
 object LoggingBootstrapConfigServiceLoader {

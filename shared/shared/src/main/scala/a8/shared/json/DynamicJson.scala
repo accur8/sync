@@ -80,7 +80,7 @@ object DynamicJson {
             try {
               Some(BigDecimal(s))
             } catch {
-              case th: Throwable =>
+              case _: Throwable =>
                 None
             }
           case _ =>

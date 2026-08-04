@@ -3,7 +3,6 @@ package a8.shared.json
 import a8.shared.json.ast.*
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.util.UUID
 
 class JsonCodecsTest extends AnyFunSuite {
 

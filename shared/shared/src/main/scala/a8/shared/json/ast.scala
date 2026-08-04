@@ -7,8 +7,6 @@ import a8.shared.json.impl.{HasJsValOps, JawnFacade, JsDocMixin}
 import org.typelevel.jawn.Facade
 
 import language.implicitConversions
-import scala.util.Try
-import scala.annotation.targetName
 
 object ast {
 

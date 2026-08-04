@@ -2,31 +2,21 @@ package a8.shared
 
 import a8.shared.json.JsonCodec
 import a8.shared.ops.{AnyOps, BooleanOps, ClassOps, FiniteDurationOps, InputStreamOps, IntOps, IterableOps, IteratorOps, LocalDateTimeOps, OptionOps, PathOps, ReaderOps, ThrowableOps}
-import cats.data.Chain
 import sttp.model.{Uri, UriInterpolator}
 
-import java.io.{PrintWriter, StringWriter}
 import java.nio.file.Path
 import java.time.LocalDateTime
-import java.util.UUID
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 import a8.shared.json.JsonCodec.JsonCodecOps
 import a8.shared.json.impl.JsonImports
 
 import java.nio.charset.Charset
-import scala.collection.{StringOps, mutable}
 import language.implicitConversions
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
-import scala.concurrent.Future
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
-import scala.util.Try
-import cats.syntax
-import cats.instances
 import a8.common.logging.Logger
 
-import scala.quoted.{Expr, Quotes, Type}
 
 /**
  * Central import object providing common utilities and implicit conversions.

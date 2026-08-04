@@ -1,7 +1,6 @@
 package a8.examples.hermes
 
 import a8.hermes.bootstrap.HermesBootstrap
-import a8.hermes.rpc.RpcServer
 import a8.shared.app.{BootstrappedIOApp, AppCtx}
 import a8.shared.zreplace.Resource
 

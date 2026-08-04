@@ -1,11 +1,11 @@
 package a8.nats
 
-import io.nats.client.{Message, Nats, Options}
+import io.nats.client.{Nats, Options}
 
 
-import java.io.{ByteArrayOutputStream, FileOutputStream}
+import java.io.ByteArrayOutputStream
 import NatsConn.{HttpResponse, NatsConfig, ReplyTo}
-import io.nats.client.impl.{Headers, NatsMessage}
+import io.nats.client.impl.Headers
 
 object NatsDemoApp {
 
@@ -33,10 +33,10 @@ object NatsDemoApp {
 //        .userInfo("dev", "DELzF7NoDqkCXiJf4QHK")
 //        .build()
     val builder = new Options.Builder()
-    val b0 = builder.server(config.natsUrl)
+    builder.server(config.natsUrl)
 
     if (config.user.isDefined && config.password.isDefined) {
-      val b1 = builder.userInfo(config.user.get, config.password.get)
+      builder.userInfo(config.user.get, config.password.get)
     }
 
     val options = builder.build()
@@ -57,7 +57,7 @@ object NatsDemoApp {
         .foreach((k, v) => {
           headers.put(k, v)
         })
-      val h0 = headers.put("#status", response.status.toString)
+      headers.put("#status", response.status.toString)
 
       if (response.body.length < maxInitialResponseSize) {
         nc.publish(response.replyTo.value, headers, response.body)
@@ -72,12 +72,12 @@ object NatsDemoApp {
           val end = Math.min(start + chunkSize, response.body.length)
           val part = response.body.slice(start, end)
           val key = s"${bodyId}_${i}"
-          val h0 = keyValueStore.put(key, part)
+          keyValueStore.put(key, part)
           i += 1
         }
 
-        val h1 = headers.put("#of_id", bodyId)
-        val h2 = headers.put("#of_count", partCount.toString)
+        headers.put("#of_id", bodyId)
+        headers.put("#of_count", partCount.toString)
         nc.publish(response.replyTo.value, headers, Array.emptyByteArray)
 
       }
@@ -90,7 +90,7 @@ object NatsDemoApp {
         msg.getHeaders.forEach((k, v) => {
           println("  header " + k + " " + v)
         })
-        val h0 = msg.getHeaders.put("#status", dispatcherName)
+        msg.getHeaders.put("#status", dispatcherName)
         println("  subject " + msg.getSubject)
         println("  reply to " + msg.getReplyTo)
 

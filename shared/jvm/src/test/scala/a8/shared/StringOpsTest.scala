@@ -1,8 +1,6 @@
 package a8.shared
 
 
-import a8.shared.app.BootstrapConfig.TempDir
-import SharedImports._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

@@ -1,7 +1,6 @@
 package a8.hermes.jdbcrpc
 
 import a8.hermes.proto.db.db.{QueryColumnMetadata, QueryResponse}
-import a8.shared.SharedImports.*
 import a8.shared.jdbcf.{Bytes, Row}
 import a8.shared.zreplace.Chunk
 import com.google.protobuf.struct.{Struct, Value}

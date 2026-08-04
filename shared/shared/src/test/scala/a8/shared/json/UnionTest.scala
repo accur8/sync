@@ -3,9 +3,7 @@ package a8.shared.json
 
 import a8.shared.CompanionGen
 import a8.shared.SharedImports._
-import a8.shared.json.JsonTest.{Group, Person}
 import a8.shared.json.MxUnionTest.MxFoo1
-import a8.shared.json.ReadError.ReadErrorException
 import a8.shared.json.UnionTest.Foo
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -47,10 +45,10 @@ class UnionTest extends AnyFunSuite {
 
     def run(expectedJson: String, expectedFoo: Foo): Unit = {
       val actualFoo = json.unsafeRead[Foo](expectedJson)
-      actualFoo should be (expectedFoo): @scala.annotation.nowarn
+      actualFoo should be (expectedFoo)
       val expectedJsv = json.unsafeParse(expectedJson)
       val actualJsv = actualFoo.toJsVal
-      actualJsv should be (expectedJsv): @scala.annotation.nowarn
+      actualJsv should be (expectedJsv)
     }
 
     run("""{"kind":"foo2"}""", Foo2)

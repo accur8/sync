@@ -1,10 +1,9 @@
 package net.model3.logging.logback
 
-import a8.common.logging.{Level, Logger, LoggerFactory, LoggingBootstrapConfig}
+import a8.common.logging.{Level, Logger, LoggerFactory}
 import ch.qos.logback.classic.LoggerContext
 import org.slf4j.MDC
 import ch.qos.logback.classic.Level as LogbackLevel
-import ch.qos.logback.core.status.{Status, StatusListener}
 import org.slf4j.event.EventConstants
 
 import scala.collection.concurrent.TrieMap

@@ -1,15 +1,10 @@
 package a8.shared.jdbcf.mapper
 
 
-import a8.shared
-import a8.shared.{Chord, SharedImports}
 import a8.shared.jdbcf.{ColumnName, Conn, JdbcMetadata, RowReader, SqlString}
 import a8.shared.jdbcf.querydsl.QueryDsl
 import a8.shared.jdbcf.querydsl.QueryDsl.{Path, PathCompiler}
 
-import java.sql.PreparedStatement
-import SharedImports._
-import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 
 trait ComponentMapper[A] extends Mapper[A] {
 

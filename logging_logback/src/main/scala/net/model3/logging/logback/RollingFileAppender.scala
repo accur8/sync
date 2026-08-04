@@ -4,20 +4,17 @@ package net.model3.logging.logback
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.OutputStreamAppender
-import ch.qos.logback.core.filter.Filter
-import ch.qos.logback.core.spi.FilterReply
 import ch.qos.logback.core.util.FileSize
 import net.model3.logging.logback.RollingFileAppender.Kind
 
 import java.io.FileOutputStream
-import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path, Paths}
-import java.time.{LocalDateTime, OffsetDateTime, ZoneOffset}
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
 import scala.concurrent.{Future, blocking}
 import scala.jdk.CollectionConverters.*
-import a8.common.logging.{Logger, LoggerFactory, LoggingBootstrapConfig, LoggingBootstrapConfigServiceLoader}
+import a8.common.logging.{Logger, LoggingBootstrapConfigServiceLoader}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.time.LocalDate
@@ -224,6 +221,22 @@ class RollingFileAppender extends OutputStreamAppender[ILoggingEvent] {
         }
       }
 
+      // SUSPECTED BUG, deliberately left in place rather than deleted.
+      //
+      // This value is computed and never used: the purge below is handed the
+      // UNSORTED nonExpiredFiles. purge/2 recurses on candidates.tail and deletes
+      // from the head, so the order of this list decides WHICH archives are
+      // removed -- unsorted means effectively arbitrary.
+      //
+      // The obvious edit is to pass sortedNonExpiredFiles, but that is not obviously
+      // right either: sortBy(creationTime).reverse is newest-first, and purging
+      // newest-first is a strange retention policy. Both the current behaviour and
+      // the apparent intent look wrong, so this needs a decision about what the
+      // policy should be, not a silent one-word change to which log files get
+      // deleted.
+      //
+      // Surfaced by the -Wunused squash; see BUG-20260804-rolling-appender-purges-unsorted.
+      @scala.annotation.nowarn("msg=unused")
       val sortedNonExpiredFiles =
         nonExpiredFiles
           .sortBy(_.creationTime)

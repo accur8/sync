@@ -1,14 +1,13 @@
 package a8.hermes.discovery
 
 import a8.hermes.core.{Mailbox, MailboxTransport}
-import a8.hermes.core.MailboxTransport.Envelope
 import a8.hermes.rpc.{RpcSchema, RpcServer}
 import a8.hermes.bootstrap.StaticServiceDiscovery
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
 import a8.shared.zreplace.Resource
 import a8.shared.json
-import a8.shared.json.ast.{JsObj, JsStr, JsArr, JsVal, JsNum, JsBool}
+import a8.shared.json.ast.JsObj
 import a8.shared.CompanionGen
 import a8.shared.SharedImports.jsonCodecOps
 
@@ -325,7 +324,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
     // Subscribe to reply subject
     val responses = TrieMap.empty[String, DiscoveryResponse]
 
-    val subscription = config.transport.subscribe(replySubject)(using ctx).runForeach { envelope =>
+    config.transport.subscribe(replySubject)(using ctx).runForeach { envelope =>
       try {
         val payload = new String(envelope.payload, "UTF-8")
         val jsObj = json.parse(payload).toOption.get.asInstanceOf[JsObj]
@@ -490,7 +489,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   /**
    * Build capabilities from RPC server
    */
-  private def buildCapabilities(includeSchemaDetails: Boolean = false): ProcessCapabilities = {
+  private def buildCapabilities(includeSchemaDetails: Boolean): ProcessCapabilities = {
     // Group schemas by name.version to get list of methods
     // e.g. "ping.v1" -> ["Ping"], "process.v1" -> ["Shutdown", "Status"]
     val allSchemas = RpcSchema.all

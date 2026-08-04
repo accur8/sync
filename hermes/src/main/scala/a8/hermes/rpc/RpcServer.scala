@@ -5,7 +5,7 @@ import a8.hermes.core.MailboxTransport.Envelope
 import a8.hermes.proto.process.wsmessages._
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
-import a8.shared.zreplace.{Resource, XStream}
+import a8.shared.zreplace.Resource
 import com.google.protobuf.ByteString
 
 import scala.collection.concurrent.TrieMap
@@ -37,7 +37,6 @@ object RpcServer extends Logging {
 }
 
 class RpcServer(config: RpcServer.Config) extends Logging {
-  import RpcServer.*
 
   private val handlers = TrieMap.empty[RpcSchema.SchemaName, RpcHandler]
   @volatile private var running = false

@@ -10,7 +10,6 @@ package a8.shared.jdbcf
 
 //====
 // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
-import _root_.scala
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey, JdbcTable}
 //====
 

@@ -1,14 +1,11 @@
 package a8.shared.app
 
 
-import a8.common.logging.{Level, LoggerFactory, LoggingBootstrapConfig}
-import a8.shared.ConfigMojo
+import a8.common.logging.{Level, LoggerFactory}
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.json.JsonCodec
 import a8.shared.json.JsonReader.JsonReaderOptions
-import ch.qos.logback.classic.LoggerContext
-import net.model3.logging.logback.LogbackConfigurator
 import zio.*
 
 object BootstrappedIOApp
@@ -88,10 +85,10 @@ abstract class BootstrappedIOApp
       try {
         Class.forName(className)
           .getConstructor()
-          .newInstance(): @scala.annotation.nowarn
+          .newInstance()
         logger.debug(s"loaded jdbc driver ${className}")
       } catch {
-        case th: Throwable =>
+        case _: Throwable =>
       }
     }
 

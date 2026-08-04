@@ -2,8 +2,7 @@ package playground
 
 import a8.shared.json.JsonCodec
 import a8.shared.json.JsonReader.JsonWarningLogLevel
-import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, HoconOps}
-import com.typesafe.config.Config
+import a8.shared.{CascadingHocon, CompanionGen, HoconOps}
 import playground.MxHoconDemo.MxBigFoo
 
 import scala.reflect.ClassTag

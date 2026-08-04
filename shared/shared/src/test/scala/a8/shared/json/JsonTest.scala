@@ -1,7 +1,7 @@
 package a8.shared.json
 
 
-import a8.shared.{AtomicBuffer, CompanionGen}
+import a8.shared.CompanionGen
 import a8.shared.json.JsonTest.{Group, Person}
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -61,9 +61,8 @@ class JsonTest extends AnyFunSuite {
 
   test("unused field") {
     try {
-      val actual =
-        json.unsafeParse(
-          """
+      json.unsafeParse(
+        """
   {
     "boof": 1,
     "members": [
@@ -75,7 +74,7 @@ class JsonTest extends AnyFunSuite {
         """).unsafeAs[Group]
       assert(true)
     } catch {
-      case ree: ReadErrorException =>
+      case _: ReadErrorException =>
         assert(true)
     }
 

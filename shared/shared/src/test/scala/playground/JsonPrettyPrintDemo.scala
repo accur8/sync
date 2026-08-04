@@ -11,7 +11,6 @@ object JsonPrettyPrintDemo {
 
   def main(args: Array[String]): Unit = {
 
-    import a8.shared.json.ast.JsDoc
 
     val jv = json.unsafeParse("""[{"hello":1,"abc":[1,2,3,4,5]}]""")
 //    val jv = json.unsafeParse("""{"hello":1,"abc":1}""")

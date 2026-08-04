@@ -3,11 +3,9 @@ package a8.shared.jdbcf
 
 import a8.shared.CompanionGen
 
-import java.sql.ResultSet
 import a8.shared.StringValue.{CIStringValue, CIStringValueCompanion}
 import a8.shared.jdbcf.Mxmodel.MxResolvedTableName
 import a8.shared.jdbcf.SqlString.HasSqlString
-import a8.shared.jdbcf.UnsafeResultSetOps.asImplicit
 import org.typelevel.ci.CIString
 import scala.language.implicitConversions
 

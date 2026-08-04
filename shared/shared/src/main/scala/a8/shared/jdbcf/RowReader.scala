@@ -2,14 +2,12 @@ package a8.shared.jdbcf
 
 
 import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, ZoneId}
-import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
+import a8.shared.json.ast.{JsDoc, JsVal}
 
 import scala.reflect.ClassTag
 import a8.shared.SharedImports.*
-import a8.shared.jdbcf.JdbcMetadata.{ResolvedColumn, ResolvedJdbcTable}
-import a8.shared.jdbcf.mapper.MapperBuilder
+import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 
-import java.io.BufferedReader
 import a8.shared.jdbcf.RowReader.noneAnyRef
 import a8.shared.SharedImports.canEqual.given
 

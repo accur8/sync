@@ -16,7 +16,7 @@ case class RequestProcessorImpl(
   extends RequestProcessor
 {
 
-  import config.{maxConnections, retryConfig}
+  import config.{retryConfig}
 
   override def execWithStringResponseBody[A](request: Request, responseBodyFn: String => A)(using Logger): A = {
     val responseActionFn =

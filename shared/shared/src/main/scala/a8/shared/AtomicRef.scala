@@ -74,12 +74,8 @@ class AtomicRef[A] private (private val instance: AtomicReference[A]) {
       oldValue
   }
 
-  private final def getAndTransform0(cb: A => A): Unit = {
-    getAndTransform(cb): @scala.annotation.nowarn
-  }
-
   final def transform(cb: A => A): Unit =
-    getAndTransform(cb): @scala.annotation.nowarn
+    getAndTransform(cb)
 
 //  def incrementAndGet(implicit num : Numeric[A]) =
 //      transformAndGet(x => num.plus(x, num.one))

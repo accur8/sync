@@ -89,7 +89,7 @@ object FileSystem {
       import java.nio.file.StandardCopyOption.REPLACE_EXISTING
       import language.implicitConversions
       implicit def toNioPath(path: Path): NioPath = Paths.get(path.canonicalPath)
-      Files.copy(this, target, REPLACE_EXISTING): @scala.annotation.nowarn
+      Files.copy(this, target, REPLACE_EXISTING)
     }
   }
 
@@ -315,7 +315,7 @@ object FileSystem {
 
         }
       } finally {
-        Try(is.close()): @scala.annotation.nowarn
+        Try(is.close())
       }
     }
 
@@ -325,7 +325,7 @@ object FileSystem {
         val out = new PrintStream(new FileOutputStream(nioPath.toFile))
         fn(out)
       } finally {
-        Try(fos.close()): @scala.annotation.nowarn
+        Try(fos.close())
       }
     }
 
@@ -337,7 +337,7 @@ object FileSystem {
       try {
         fn(fos)
       } finally {
-        Try(fos.close()): @scala.annotation.nowarn
+        Try(fos.close())
       }
     }
 
@@ -345,10 +345,10 @@ object FileSystem {
       withOutputStreamImpl(fn, true)
 
     override def moveTo(d: Directory): Unit =
-      Files.move(asNioPath, d.file(name).asNioPath): @scala.annotation.nowarn
+      Files.move(asNioPath, d.file(name).asNioPath)
 
     override def copyTo(d: Directory): Unit =
-      Files.copy(asNioPath, d.file(name).asNioPath): @scala.annotation.nowarn
+      Files.copy(asNioPath, d.file(name).asNioPath)
 
   }
 
@@ -373,15 +373,15 @@ object FileSystem {
       new DirectoryImpl(nioPath.resolve(subdirName).toAbsolutePath)
 
     override def moveTo(d: Directory): Unit =
-      Files.move(asNioPath, d.subdir(name).asNioPath): @scala.annotation.nowarn
+      Files.move(asNioPath, d.subdir(name).asNioPath)
 
     override def makeDirectories(): Unit =
       if ( !nioPath.toFile.isDirectory )
-        Files.createDirectories(nioPath): @scala.annotation.nowarn
+        Files.createDirectories(nioPath)
 
     override def makeDirectory(): Unit =
       if ( !nioPath.toFile.isDirectory )
-        Files.createDirectory(nioPath): @scala.annotation.nowarn
+        Files.createDirectory(nioPath)
 
     override def subdirs(): Iterable[Directory] =
       entries()
@@ -417,7 +417,7 @@ object FileSystem {
     override def delete(): Unit = {
       if ( exists() ) {
         deleteChildren()
-        nioPath.toFile.delete(): @scala.annotation.nowarn
+        nioPath.toFile.delete()
       }
     }
 

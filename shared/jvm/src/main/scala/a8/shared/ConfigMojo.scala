@@ -10,9 +10,9 @@ import SharedImports._
 import a8.shared
 import a8.shared.ConfigMojoOps.impl.{ConfigMojoEmpty, ConfigMojoRoot, ConfigMojoValue}
 import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
-import a8.shared.json.{JsonCodec, JsonReader, ReadError}
-import a8.shared.json.ast.{JsDoc, JsNothing, JsVal}
-import com.typesafe.config.{ConfigMergeable, ConfigValue}
+import a8.shared.json.{JsonCodec, JsonReader}
+import a8.shared.json.ast.JsDoc
+import com.typesafe.config.ConfigValue
 
 import java.nio.file.Paths
 

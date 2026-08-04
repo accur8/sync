@@ -1,6 +1,6 @@
 package a8.common.logging.println
 
-import a8.common.logging.{Level, Logger, LoggerFactory}
+import a8.common.logging.{Logger, LoggerFactory}
 
 object PrintlnLoggerFactory extends LoggerFactory {
 

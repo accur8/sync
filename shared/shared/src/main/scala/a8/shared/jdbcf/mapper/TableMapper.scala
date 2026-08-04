@@ -1,8 +1,7 @@
 package a8.shared.jdbcf.mapper
 
-import a8.shared.SharedImports._
 import a8.shared.jdbcf.mapper.MapperBuilder.AuditProvider
-import a8.shared.jdbcf.{Conn, RowReader, RowWriter, SqlString, TableName}
+import a8.shared.jdbcf.{Conn, SqlString, TableName}
 
 /**
  * Companion object for [[TableMapper]] providing convenient access to implicit instances.

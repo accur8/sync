@@ -1,7 +1,6 @@
 package a8.shared.ops
 
 import java.nio.charset.StandardCharsets._
-import java.nio.file.attribute.FileAttribute
 import java.nio.file.{Files, Path, Paths}
 
 object PathOps {

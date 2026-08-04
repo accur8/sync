@@ -6,7 +6,6 @@ import com.ibm.as400.access.AS400JDBCSQLSyntaxErrorException
 import sttp.model.Uri
 import SqlString._
 import a8.shared.SharedImports._
-import cats.data.OptionT
 import a8.common.logging.Logger
 
 object ISeriesDialect extends Dialect {
@@ -150,13 +149,6 @@ object ISeriesDialect extends Dialect {
     } else {
 
       val row = rows.toList.minBy(r => libraryList.indexOf(r._2).getOrElse(Integer.MAX_VALUE))
-
-      val alternativeNames =
-        if ( row._3 != row._1 )
-          Iterable(row._3)
-        else
-          Iterable.empty
-
       ResolvedTableName(
         None,
         Some(row._2),

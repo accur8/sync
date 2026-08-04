@@ -1,11 +1,10 @@
 package a8.shared
 
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
-import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
+import a8.shared.json.{JsonCodec, JsonTypedCodec}
 import SqlString._
 import a8.shared.ZString.ZStringer
-import a8.shared.json.ast.{JsNum, JsVal}
-import SharedImports._
+import a8.shared.json.ast.JsVal
 
 import language.implicitConversions
 

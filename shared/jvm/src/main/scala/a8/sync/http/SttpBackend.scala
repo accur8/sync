@@ -1,9 +1,8 @@
 package a8.sync.http
 
 import a8.shared.SharedImports.*
-import a8.shared.app.Ctx
 import a8.shared.zreplace.Chunk
-import a8.sync.http.{Result, impl}
+import a8.sync.http.Result
 import a8.sync.http
 import a8.sync.http.impl.RequestImpl
 import sttp.client4.*
@@ -89,7 +88,6 @@ case class SttpBackend(
 
     val resolvedSttpRequest: SttpRequest = requestUpdaters.foldLeft(request0)((r0, fn) => fn(r0))
 
-    val startTime = java.lang.System.currentTimeMillis()
 
     try {
       val sttpResponse = resolvedSttpRequest.send(sttpBackend)

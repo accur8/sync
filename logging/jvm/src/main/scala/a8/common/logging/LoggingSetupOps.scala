@@ -2,13 +2,11 @@ package a8.common.logging
 
 
 import java.lang.Thread.UncaughtExceptionHandler
-import LoggingOps._
 
 object LoggingSetupOps {
 
   def doOneTimeSetup(loggerFactory: LoggerFactory): Unit = {
 
-    def logger = loggerFactory.logger(normalizeClassname(getClass))
 
     val bootstrapConfig = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig
 

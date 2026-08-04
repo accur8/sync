@@ -1,21 +1,15 @@
 package a8.shared.app
 
 import a8.shared.{FileSystem, HoconOps}
-import a8.shared.FileSystem.Directory
 import a8.shared.app.BootstrapConfig.*
 import a8.shared.json.{JsonCodec, ast}
 
-import java.nio.file.{Path, Paths}
-import a8.shared.SharedImports.*
-import a8.shared.json.JsonReader.{JsonReaderOptions, ReadResult}
-import a8.shared.json.ast.JsDoc
+import java.nio.file.Path
+import a8.shared.json.JsonReader.JsonReaderOptions
 
 import scala.collection.mutable
-import scala.reflect.ClassTag
-import a8.common.logging.Level as LogLevel
 import a8.shared.zreplace.CommandLineArgs
 
-@scala.annotation.nowarn
 trait JvmBootstrapperCompanionPlatform extends BootstrapperCompanionImpl {
 
   def constructBootstrapper(appName: AppName, args: CommandLineArgs, appDefaults: BootstrapConfigDto = BootstrapConfigDto.empty): Bootstrapper = {

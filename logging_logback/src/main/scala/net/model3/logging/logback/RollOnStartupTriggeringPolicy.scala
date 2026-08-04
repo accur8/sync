@@ -1,7 +1,7 @@
 package net.model3.logging.logback
 
 import ch.qos.logback.core.joran.spi.NoAutoStart
-import ch.qos.logback.core.rolling.{SizeAndTimeBasedFNATP, SizeAndTimeBasedRollingPolicy, TimeBasedFileNamingAndTriggeringPolicy, TimeBasedFileNamingAndTriggeringPolicyBase, TriggeringPolicy}
+import ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP
 
 import java.io.File
 
@@ -19,7 +19,7 @@ class RollOnStartupTriggeringPolicy[E] extends SizeAndTimeBasedFNATP[E] {
     if ( firstTime ) {
       firstTime = false
       atomicNextCheck.set(0)
-      super.isTriggeringEvent(activeFile, event): @scala.annotation.nowarn
+      super.isTriggeringEvent(activeFile, event)
       true
     } else {
       super.isTriggeringEvent(activeFile, event)

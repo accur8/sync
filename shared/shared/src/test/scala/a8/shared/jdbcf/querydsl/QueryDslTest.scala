@@ -2,11 +2,10 @@ package a8.shared.jdbcf.querydsl
 
 
 import a8.shared.CompanionGen
-import a8.shared.jdbcf.SqlString.{DefaultJdbcEscaper, Escaper, NoopEscaper}
-import a8.shared.jdbcf.mapper.{MapperBuilder, PK}
+import a8.shared.jdbcf.SqlString.{Escaper, NoopEscaper}
+import a8.shared.jdbcf.mapper.PK
 import a8.shared.jdbcf.{SqlString, querydsl}
 import a8.shared.jdbcf.querydsl.MxQueryDslTest.{MxAddress, MxContainer, MxWidget}
-import a8.shared.jdbcf.querydsl.QueryDsl.Join
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.language.implicitConversions

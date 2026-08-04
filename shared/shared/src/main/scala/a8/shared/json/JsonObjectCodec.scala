@@ -4,7 +4,7 @@ package a8.shared.json
 import a8.shared.Meta.Constructors
 import a8.shared.json.JsonObjectCodecBuilder.{IgnoredField, Parm}
 import a8.shared.json.ReadError.ReadErrorException
-import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, resolveAliases}
+import a8.shared.json.ast.{JsDoc, JsObj, resolveAliases}
 import a8.shared.SharedImports._
 import a8.common.logging.Logging
 import a8.shared.json.JsonReadOptions.UnusedFieldsInfo
@@ -98,7 +98,6 @@ class JsonObjectCodec[A](
           if ( unusedFields.isEmpty ) {
             success
           } else {
-            import JsonReadOptions.UnusedFieldAction._
             def message = {
               val prefix =
                 doc.parentOpt.map(_ => s"json object @ ${doc.path}").getOrElse("root json object")

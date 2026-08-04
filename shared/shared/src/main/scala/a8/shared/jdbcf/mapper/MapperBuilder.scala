@@ -1,20 +1,17 @@
 package a8.shared.jdbcf.mapper
 
 
-import a8.shared.{Chord, SharedImports}
+import a8.shared.SharedImports
 import a8.shared.Meta._
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
-import a8.shared.jdbcf.SqlString._
 import a8.shared.jdbcf._
-import a8.shared.jdbcf.mapper.CaseClassMapper.{And, ColumnNameResolver}
-import a8.shared.jdbcf.mapper.KeyedTableMapper.UpsertResult
+import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
 import a8.shared.jdbcf.mapper.Mapper.FieldHandler
 import a8.shared.jdbcf.mapper.MapperBuilder.AuditProvider
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{BooleanOperation, ComponentJoin, Join, Path, PathCompiler, field, fieldExprs}
+import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Join, Path, PathCompiler}
 
-import java.sql.PreparedStatement
 import scala.reflect.{ClassTag, classTag}
 import language.implicitConversions
 
@@ -166,7 +163,7 @@ object MapperBuilder {
               alias(c.parent)
             case QueryDsl.RootJoin =>
               SqlString.Empty
-            case j: Join =>
+            case _: Join =>
               sys.error("not supported")
           }
         }

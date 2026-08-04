@@ -5,9 +5,7 @@ import SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.jdbcf.{RowReader, RowWriter, SqlString}
 import a8.shared.json.{JsonCodec, JsonTypedCodec, ast}
-import sourcecode.Text.generate
 import scala.language.implicitConversions
-import scala.reflect.{ClassTag, classTag}
 
 abstract class AbstractStringValueCompanion[A] {
 

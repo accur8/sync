@@ -1,7 +1,7 @@
 package a8.hermes.nats
 
 import a8.shared.json.parse
-import a8.shared.json.ast.{JsObj, JsNum, JsStr}
+import a8.shared.json.ast.JsStr
 import a8.shared.SharedImports.jsonCodecOps
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

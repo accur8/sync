@@ -23,8 +23,6 @@ import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.{CompletionStage, ConcurrentHashMap, LinkedBlockingQueue, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong, AtomicReference}
-import scala.jdk.FutureConverters.*
-import scala.concurrent.Await
 import scala.concurrent.duration.*
 
 /**

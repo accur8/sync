@@ -1,13 +1,10 @@
 package a8.shared.jdbcf
 
 import a8.shared.Chord
-import a8.shared.jdbcf.Conn.ConnInternal
 import a8.shared.jdbcf.JdbcMetadata.{JdbcColumn, JdbcPrimaryKey}
-import a8.shared.jdbcf.SqlString.{DefaultEscaper, DefaultJdbcEscaper, Escaper, RawSqlString, keyword}
+import a8.shared.jdbcf.SqlString.{DefaultEscaper, Escaper, RawSqlString}
 import sttp.model.Uri
 import UnsafeResultSetOps.*
-import a8.shared.SharedImports.*
-import a8.shared.zreplace.Resource
 
 import java.sql.Connection
 

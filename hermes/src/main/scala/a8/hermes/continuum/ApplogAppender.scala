@@ -5,11 +5,10 @@ import a8.hermes.proto.continuum.continuum_rpc.{Buffer, BufferSource, LogError, 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.{ILoggingEvent, IThrowableProxy, ThrowableProxyUtil}
 import ch.qos.logback.core.AppenderBase
-import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
 
 import java.time.Instant
-import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -193,7 +192,7 @@ class ApplogAppender(
     shipper.scheduleAtFixedRate(
       () =>
         try ship()
-        catch { case e: Throwable => () }, // never let the shipper thread die
+        catch { case _: Throwable => () }, // never let the shipper thread die
       DefaultFlushIntervalMillis,
       DefaultFlushIntervalMillis,
       TimeUnit.MILLISECONDS,

@@ -57,9 +57,6 @@ class ApplogAppenderTest extends AnyFunSuite with Matchers {
   }
 
   test("a cyclic cause chain is bounded — a logger must not hang or explode on one") {
-    // A self-causing throwable is pathological but must not run away.
-    val a = new RuntimeException("a")
-    val b = new RuntimeException("b", a)
     // ThrowableProxy handles real cycles itself; assert our own walk is depth-bounded
     // by checking a long legitimate chain terminates.
     var deep: Throwable = new RuntimeException("root")

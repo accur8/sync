@@ -3,14 +3,11 @@ package a8.shared.jdbcf.mapper
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
 import a8.shared.jdbcf.SqlString.SqlStringer
 import a8.shared.jdbcf.mapper.CaseClassMapper.ColumnNameResolver
-import a8.shared.{Chord, jdbcf}
+import a8.shared.jdbcf
 import a8.shared.jdbcf.querydsl.QueryDsl
-import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Path, PathCompiler, StructuralProperty}
+import a8.shared.jdbcf.querydsl.QueryDsl.{ComponentJoin, Path, PathCompiler}
 import a8.shared.jdbcf.{ColumnName, Conn, Row, RowReader, RowWriter, SqlString}
-import a8.shared.SharedImports._
-import cats.data.Chain
 
-import java.sql.PreparedStatement
 
 object Mapper {
 

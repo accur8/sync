@@ -65,7 +65,6 @@ object LiveContinuumTest extends BootstrappedIOApp {
 
     // --- 2. ResolveJobUid RPC ---
     logger.info("\n--- ResolveJobUid ---")
-    val serviceUid =
       ServiceResolver.resolveServiceUid(
         serviceName = "live-continuum-test",
         workerUid = workerUid,

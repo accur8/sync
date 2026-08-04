@@ -1,16 +1,12 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.jdbcf.Conn.impl
 import com.zaxxer.hikari.HikariDataSource
 
-import javax.sql.DataSource
-import sttp.model.Uri
 import a8.shared.SharedImports.*
 import a8.shared.app.Ctx
 import a8.shared.jdbcf.ConnFactory.ConnFactoryInternal
 import a8.shared.jdbcf.ConnFactoryCompanion.{MapperMaterializer, MapperMaterializerImpl}
-import a8.shared.jdbcf.mapper.KeyedTableMapper
 import a8.shared.zreplace.Resource
 
 trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
@@ -43,10 +39,6 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
       temp.setAutoCommit(autoCommit)
       temp
     }
-
-    def connR(ds: HikariDataSource): Resource[java.sql.Connection] =
-      Resource
-        .acquireRelease(ds.getConnection)(_.close())
 
     val ds = createDs
     val dialect = Dialect(databaseConfig.url)

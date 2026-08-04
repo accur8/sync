@@ -1,13 +1,11 @@
 package net.model3.logging.logback
 
 import ch.qos.logback.classic.Level
-import ch.qos.logback.classic.pattern.{ExtendedThrowableProxyConverter, ThrowableProxyConverter}
-import ch.qos.logback.classic.spi.{ILoggingEvent, IThrowableProxy}
-import ch.qos.logback.core.encoder.{Encoder, EncoderBase}
+import ch.qos.logback.classic.pattern.ThrowableProxyConverter
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.encoder.EncoderBase
 import org.fusesource.jansi.Ansi
 
-import java.nio.ByteBuffer
-import java.time.temporal.TemporalField
 import java.time.{LocalDateTime, OffsetDateTime}
 
 class ColoredConsoleEncoder extends EncoderBase[ILoggingEvent] {

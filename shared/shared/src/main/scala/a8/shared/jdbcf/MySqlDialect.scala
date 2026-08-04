@@ -1,7 +1,6 @@
 package a8.shared.jdbcf
 
 
-import a8.shared.SharedImports._
 import a8.shared.jdbcf.SqlString._
 
 import java.sql.Connection
@@ -36,7 +35,7 @@ object MySqlDialect extends Dialect {
           value.replace("\\", "\\\\") match {
             case s if noBackslashEscapes =>
               s
-            case s =>
+            case _ =>
               value.replace("\\", "\\\\")
           }
         "'" + content + "'"

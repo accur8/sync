@@ -1,9 +1,7 @@
 package a8.shared.json
 
 
-import a8.shared.Chord
-import a8.shared.Meta.CaseClassParm
-import a8.shared.json.ast.{JsNothing, JsNull, JsObj, JsStr, JsVal}
+import a8.shared.json.ast.{JsNothing, JsNull, JsObj, JsStr}
 
 import scala.reflect.ClassTag
 import a8.shared.SharedImports._

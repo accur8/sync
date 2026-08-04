@@ -5,12 +5,11 @@ import a8.hermes.rpc.RpcClient
 import a8.hermes.proto.auth.auth.{LoginBeginRequest, LoginBeginResponse, LoginCompleteRequest, LoginCompleteResponse}
 import a8.shared.app.Ctx
 import a8.common.logging.Logging
-import a8.shared.FileSystem
 
-import java.nio.file.{Files, Paths, StandardOpenOption}
+import java.nio.file.{Files, Paths}
 import java.util.Base64
 import scala.sys.process.*
-import scala.util.{Try, Success, Failure}
+import scala.util.Try
 
 /**
  * SSH-based authentication for Hermes.
@@ -334,50 +333,6 @@ object SshAuth extends Logging {
     }
 
     sigBlob.slice(offset, offset + sigLength)
-  }
-
-  /**
-   * Parse SSH wire format signature to extract raw signature bytes
-   *
-   * SSH wire signature format:
-   *   string(algorithm): uint32 length + algorithm name bytes (e.g., "ssh-ed25519")
-   *   string(signature): uint32 length + raw signature bytes (64 bytes for Ed25519)
-   */
-  private def parseSSHWireSignature(sshWireSignature: Array[Byte]): Array[Byte] = {
-    var offset = 0
-
-    // Read algorithm name (and skip it)
-    if (sshWireSignature.length < offset + 4) {
-      throw new RuntimeException("Not enough data for algorithm length")
-    }
-    val algoLength = (sshWireSignature(offset).toInt & 0xFF) << 24 |
-                     (sshWireSignature(offset + 1).toInt & 0xFF) << 16 |
-                     (sshWireSignature(offset + 2).toInt & 0xFF) << 8 |
-                     (sshWireSignature(offset + 3).toInt & 0xFF)
-    offset += 4
-
-    if (sshWireSignature.length < offset + algoLength) {
-      throw new RuntimeException(s"Not enough data for algorithm name (length=$algoLength)")
-    }
-    val algoName = new String(sshWireSignature.slice(offset, offset + algoLength), "UTF-8")
-    logger.debug(s"SSH signature algorithm: $algoName")
-    offset += algoLength
-
-    // Read raw signature bytes
-    if (sshWireSignature.length < offset + 4) {
-      throw new RuntimeException("Not enough data for signature length")
-    }
-    val sigLength = (sshWireSignature(offset).toInt & 0xFF) << 24 |
-                    (sshWireSignature(offset + 1).toInt & 0xFF) << 16 |
-                    (sshWireSignature(offset + 2).toInt & 0xFF) << 8 |
-                    (sshWireSignature(offset + 3).toInt & 0xFF)
-    offset += 4
-
-    if (sshWireSignature.length < offset + sigLength) {
-      throw new RuntimeException(s"Not enough data for signature bytes (length=$sigLength)")
-    }
-
-    sshWireSignature.slice(offset, offset + sigLength)
   }
 
   /**

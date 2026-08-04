@@ -1,6 +1,6 @@
 package a8.hermes.bootstrap
 
-import a8.hermes.core.{Mailbox, MailboxTransport, Uid}
+import a8.hermes.core.{Mailbox, Uid}
 import a8.hermes.{nats, auth, ws}
 import a8.hermes.continuum.ContinuumRunnerClient
 import a8.hermes.nats.NatsTransport

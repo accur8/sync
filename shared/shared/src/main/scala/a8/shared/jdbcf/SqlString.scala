@@ -92,15 +92,15 @@ object SqlString extends SqlStringLowPrio {
           case h: HasSqlString =>
             run(h.asSqlFragment)
           case RawSqlString(v) =>
-            sb.append(v): @scala.annotation.nowarn
+            sb.append(v)
           case EscapedSqlString(s) =>
-            sb.append(escaper.escapeStringValue(s)): @scala.annotation.nowarn
+            sb.append(escaper.escapeStringValue(s))
           case CompositeString(parts) =>
             parts.foreach(sb.append)
           case CompositeSqlString(parts) =>
             parts.foreach(run)
           case DialectQuotedIdentifier(v) =>
-            sb.append(escaper.quoteSqlIdentifier(v)): @scala.annotation.nowarn
+            sb.append(escaper.quoteSqlIdentifier(v))
           case SeparatedSqlString(iter, sep) =>
             if ( iter.nonEmpty ) {
               var first = true

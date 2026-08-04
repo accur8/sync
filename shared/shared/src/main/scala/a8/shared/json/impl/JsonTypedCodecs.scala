@@ -23,7 +23,6 @@ trait JsonTypedCodecs {
     new JsonTypedCodec[A,B] {
 
       val typeInfo = implicitly[JsTypeInfo[B]]
-      val shortName = classTag[A].runtimeClass.shortName
 
       override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
         typeInfo
@@ -252,7 +251,6 @@ trait JsonTypedCodecs {
     )
 
   implicit lazy val finiteDurationCodec: JsonTypedCodec[FiniteDuration,JsStr] = {
-    val timeUnitsByName = java.util.concurrent.TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
     def stringToValue(str: String): FiniteDuration = {
       str.trim.splitList(" ") match {
         case List(ParseLong(length)) =>

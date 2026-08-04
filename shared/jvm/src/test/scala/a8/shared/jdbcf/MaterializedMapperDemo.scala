@@ -3,13 +3,11 @@ package a8.shared.jdbcf
 
 import a8.shared.CompanionGen
 import a8.shared.jdbcf.DatabaseConfig.DatabaseId
-import sttp.model.Uri
 import a8.shared.SharedImports.*
 import SqlString.*
 import a8.shared.app.{AppCtx, BootstrappedIOApp, Ctx}
 import a8.shared.jdbcf.MxMaterializedMapperDemo.*
 import a8.shared.jdbcf.mapper.{PK, SqlTable}
-import zio.*
 
 object MaterializedMapperDemo extends BootstrappedIOApp {
 
