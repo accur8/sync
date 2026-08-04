@@ -7,6 +7,7 @@ import sttp.model.Uri
 import UnsafeResultSetOps.*
 
 import java.sql.Connection
+import scala.annotation.unused
 
 object Dialect {
 
@@ -102,7 +103,9 @@ trait Dialect {
     resolveTableName
   }
 
-  def resolveTableNameImpl(tableLocator: TableLocator, conn: Conn, foundTables: Vector[ResolvedTableName]): ResolvedTableName =
+  // tableLocator and conn are unread by THIS implementation but are part of the hook's
+  // shape — MySqlDialect overrides it and needs both.
+  def resolveTableNameImpl(@unused tableLocator: TableLocator, @unused conn: Conn, foundTables: Vector[ResolvedTableName]): ResolvedTableName =
     foundTables.head
 
 

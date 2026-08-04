@@ -25,7 +25,7 @@ object StandardHandlers {
       method = "Ping",
       description = Some("Process ping endpoint - echoes payload with timestamp"),
       requiresAuth = false,
-    ) { (requestBytes, ctx) =>
+    ) { (requestBytes, _) =>
       val payload = if (requestBytes.isEmpty) "pong" else new String(requestBytes, "UTF-8")
 
       // Simple JSON response: payload + timestamp + process info
@@ -51,7 +51,7 @@ object StandardHandlers {
       method = "ListSchemas",
       description = Some("List all registered RPC schemas"),
       requiresAuth = false,
-    ) { (requestBytes, ctx) =>
+    ) { (_, _) =>
       // Get all registered schemas from the global registry
       val schemas = RpcSchema.all
 
@@ -82,7 +82,7 @@ object StandardHandlers {
       method = "GetSchema",
       description = Some("Get details for a specific RPC schema"),
       requiresAuth = false,
-    ) { (requestBytes, ctx) =>
+    ) { (requestBytes, _) =>
       // Parse request to get schema name
       val requestStr = new String(requestBytes, "UTF-8")
       val request = json.parse(requestStr).toOption.get.asInstanceOf[JsObj]

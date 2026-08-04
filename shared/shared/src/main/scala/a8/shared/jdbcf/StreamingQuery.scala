@@ -28,7 +28,7 @@ object StreamingQuery {
         st.getConnection.setAutoCommit(false)
         st.setFetchSize(batchSize)
         val rs = st.executeQuery(sql.value)
-        resultSetToStream(rs, ()=>st.close(), batchSize)
+        resultSetToStream(rs, ()=>st.close())
           .map(reader.read)
       }
     }

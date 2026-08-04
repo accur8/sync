@@ -429,8 +429,13 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
 
   /**
    * Auto-register from RPC schemas
+   *
+   * There used to be a `capabilities: Map[String, String] = Map.empty` parameter here that
+   * was dropped on the floor — register() derives capabilities from the RPC schemas, which
+   * is what "auto" means. Nothing ever called it with capabilities; the parameter was a
+   * leftover from a manual-capabilities design.
    */
-  def autoRegister(capabilities: Map[String, String] = Map.empty)(using ctx: Ctx): Unit = {
+  def autoRegister()(using ctx: Ctx): Unit = {
     register()(using ctx)
   }
 

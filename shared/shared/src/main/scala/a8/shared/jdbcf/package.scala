@@ -14,14 +14,18 @@ package object jdbcf extends Logging {
     resultSet.runAsIterator(_.toVector)
   }
 
-  def resultSetToStream(resultSet: =>ResultSet, releaseListener: ()=>Unit, chunkSize: Int = 1000): zio.XStream[Row] = {
+  // chunkSize is gone. It was a leftover from the zio-stream era — XStream.acquireRelease
+  // takes no chunk size, so nothing consumed it, and StreamingQuery was passing its
+  // batchSize into a void. Batching is still in effect there: it comes from the
+  // st.setFetchSize(batchSize) on the statement, which is where JDBC actually does it.
+  def resultSetToStream(resultSet: =>ResultSet, releaseListener: ()=>Unit): zio.XStream[Row] = {
 
     def acquire = (resultSet, unsafe.resultSetToIterator(resultSet))
 
     def release(rs: ResultSet): Unit = {
       tryLogDebug("") {
-        if ( !resultSet.isClosed )
-          resultSet.close()
+        if ( !rs.isClosed )
+          rs.close()
       }
       tryLogDebug("") {
         releaseListener()
