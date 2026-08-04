@@ -4,6 +4,7 @@ package a8.shared.jdbcf
 import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, ZoneId}
 import a8.shared.json.ast.{JsDoc, JsVal}
 
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 import a8.shared.SharedImports.*
 import a8.shared.jdbcf.JdbcMetadata.ResolvedJdbcTable
@@ -68,6 +69,17 @@ object RowReader extends MoreRowReaderCodecs with RowReaderTuples {
     singleColumnReader[LocalTime] {
       case ts: java.sql.Time =>
         ts.toLocalTime
+    }
+
+  // postgres `interval`. scrubResultSetValue has already flattened the driver's
+  // PGInterval to text by the time we get here; PgInterval.parse handles both
+  // that rendering and postgres's own. See PgInterval.
+  implicit lazy val finiteDurationReader: RowReader[FiniteDuration] =
+    singleColumnReader[FiniteDuration] {
+      case s: String =>
+        PgInterval.parse(s)
+      case pgo: org.postgresql.util.PGobject =>
+        PgInterval.parse(pgo.getValue)
     }
 
   implicit lazy val byteReader: RowReader[Byte] =
