@@ -5,6 +5,7 @@ import a8.shared
 import java.time.{LocalDate, LocalDateTime, LocalTime, OffsetDateTime, ZoneOffset}
 import a8.shared.jdbcf.TypeName
 
+import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.JdbcMetadata.ResolvedColumn
@@ -276,6 +277,11 @@ object SqlString extends SqlStringLowPrio {
 
   implicit def localTime(lt: LocalTime): SqlString =
     java.sql.Time.valueOf(lt).toString.escape
+
+  // postgres coerces an unadorned string literal to interval from context, so no
+  // cast is needed here. See PgInterval for why the literal is microseconds.
+  implicit def finiteDuration(d: FiniteDuration): SqlString =
+    PgInterval.format(d).escape
 
   implicit def optionSqlString(optionSqlString: Option[SqlString]): SqlString =
     optionSqlString

@@ -4,6 +4,7 @@ package a8.shared.jdbcf
 import a8.shared.jdbcf.SqlString.SqlStringer
 
 import java.sql.PreparedStatement
+import scala.concurrent.duration.FiniteDuration
 import a8.shared.SharedImports._
 
 object RowWriter {
@@ -44,6 +45,11 @@ object RowWriter {
   implicit val stringWriter: RowWriter[String] = create[String](ps => ps.setString(_, _))
 
   implicit val bytesWriter: RowWriter[Bytes] = createx[Bytes]((ps, i, b) => ps.setBytes(i, b.toArray), parameterCount0 = 1)
+
+  // postgres `interval`; see PgInterval for why this binds a PGInterval rather
+  // than the microseconds literal the SqlStringer emits.
+  implicit val finiteDurationWriter: RowWriter[FiniteDuration] =
+    create[FiniteDuration](ps => (i, d) => ps.setObject(i, PgInterval.toPgInterval(d)))
 
   def apply[A : RowWriter]: RowWriter[A] = implicitly[RowWriter[A]]
 
