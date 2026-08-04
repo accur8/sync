@@ -252,7 +252,6 @@ trait JsonTypedCodecs {
     )
 
   implicit lazy val finiteDurationCodec: JsonTypedCodec[FiniteDuration,JsStr] = {
-    val timeUnitsByName = java.util.concurrent.TimeUnit.values().map(v => v.name().toLowerCase -> v).toMap
     def stringToValue(str: String): FiniteDuration = {
       str.trim.splitList(" ") match {
         case List(ParseLong(length)) =>

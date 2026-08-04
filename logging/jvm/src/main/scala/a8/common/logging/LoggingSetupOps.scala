@@ -8,7 +8,6 @@ object LoggingSetupOps {
 
   def doOneTimeSetup(loggerFactory: LoggerFactory): Unit = {
 
-    def logger = loggerFactory.logger(normalizeClassname(getClass))
 
     val bootstrapConfig = LoggingBootstrapConfigServiceLoader.loggingBootstrapConfig
 

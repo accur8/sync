@@ -27,7 +27,6 @@ object StandardHandlers {
       requiresAuth = false,
     ) { (requestBytes, ctx) =>
       val payload = if (requestBytes.isEmpty) "pong" else new String(requestBytes, "UTF-8")
-      val sender = ctx.senderMailbox.map(_.value).getOrElse("unknown")
 
       // Simple JSON response: payload + timestamp + process info
       val response = JsObj.from(

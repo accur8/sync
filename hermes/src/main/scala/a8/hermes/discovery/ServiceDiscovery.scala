@@ -324,7 +324,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
     // Subscribe to reply subject
     val responses = TrieMap.empty[String, DiscoveryResponse]
 
-    val subscription = config.transport.subscribe(replySubject)(using ctx).runForeach { envelope =>
+    config.transport.subscribe(replySubject)(using ctx).runForeach { envelope =>
       try {
         val payload = new String(envelope.payload, "UTF-8")
         val jsObj = json.parse(payload).toOption.get.asInstanceOf[JsObj]

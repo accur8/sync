@@ -35,7 +35,6 @@ object Query {
       }
 
       override def fetchOpt: Option[A] = {
-        given Ctx = conn.ctx
         select.headOption
       }
 

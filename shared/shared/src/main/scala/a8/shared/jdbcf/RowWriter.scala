@@ -9,7 +9,6 @@ import a8.shared.SharedImports._
 object RowWriter {
 
   def create[A](fn: java.sql.PreparedStatement=>((Int, A)=>Unit))(implicit sqlStringer: SqlStringer[A]): RowWriter[A] = {
-    val sqlStringer0 = sqlStringer.toSome
     new RowWriter[A] {
       val parameterCount = 1
       override def columnNames(columnName: ColumnName): Iterable[ColumnName] = Iterable(columnName)

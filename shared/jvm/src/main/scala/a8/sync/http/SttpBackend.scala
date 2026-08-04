@@ -88,7 +88,6 @@ case class SttpBackend(
 
     val resolvedSttpRequest: SttpRequest = requestUpdaters.foldLeft(request0)((r0, fn) => fn(r0))
 
-    val startTime = java.lang.System.currentTimeMillis()
 
     try {
       val sttpResponse = resolvedSttpRequest.send(sttpBackend)

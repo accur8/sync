@@ -30,7 +30,6 @@ case class AutoBoostrap(
 
   def runBootstrap(): Unit = {
 
-    given Bootstrapper = bootstrapper
 
     loggingBootstrapConfig
     finalizeLoggingConfig

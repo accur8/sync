@@ -23,7 +23,6 @@ case class UpdateQueryImpl[T,U](
 
     val qr = delegate.queryResolver
 
-    val from = qr.joinSql
 
     val assignmentSql: SqlString =
       assignments
