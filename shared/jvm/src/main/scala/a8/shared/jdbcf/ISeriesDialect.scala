@@ -149,13 +149,6 @@ object ISeriesDialect extends Dialect {
     } else {
 
       val row = rows.toList.minBy(r => libraryList.indexOf(r._2).getOrElse(Integer.MAX_VALUE))
-
-      val alternativeNames =
-        if ( row._3 != row._1 )
-          Iterable(row._3)
-        else
-          Iterable.empty
-
       ResolvedTableName(
         None,
         Some(row._2),

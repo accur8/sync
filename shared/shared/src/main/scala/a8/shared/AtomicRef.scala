@@ -74,10 +74,6 @@ class AtomicRef[A] private (private val instance: AtomicReference[A]) {
       oldValue
   }
 
-  private final def getAndTransform0(cb: A => A): Unit = {
-    getAndTransform(cb)
-  }
-
   final def transform(cb: A => A): Unit =
     getAndTransform(cb)
 

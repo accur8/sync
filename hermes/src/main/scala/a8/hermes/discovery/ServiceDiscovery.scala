@@ -489,7 +489,7 @@ class ServiceDiscovery(config: ServiceDiscoveryConfig) extends Logging {
   /**
    * Build capabilities from RPC server
    */
-  private def buildCapabilities(includeSchemaDetails: Boolean = false): ProcessCapabilities = {
+  private def buildCapabilities(includeSchemaDetails: Boolean): ProcessCapabilities = {
     // Group schemas by name.version to get list of methods
     // e.g. "ping.v1" -> ["Ping"], "process.v1" -> ["Shutdown", "Status"]
     val allSchemas = RpcSchema.all

@@ -221,6 +221,22 @@ class RollingFileAppender extends OutputStreamAppender[ILoggingEvent] {
         }
       }
 
+      // SUSPECTED BUG, deliberately left in place rather than deleted.
+      //
+      // This value is computed and never used: the purge below is handed the
+      // UNSORTED nonExpiredFiles. purge/2 recurses on candidates.tail and deletes
+      // from the head, so the order of this list decides WHICH archives are
+      // removed -- unsorted means effectively arbitrary.
+      //
+      // The obvious edit is to pass sortedNonExpiredFiles, but that is not obviously
+      // right either: sortBy(creationTime).reverse is newest-first, and purging
+      // newest-first is a strange retention policy. Both the current behaviour and
+      // the apparent intent look wrong, so this needs a decision about what the
+      // policy should be, not a silent one-word change to which log files get
+      // deleted.
+      //
+      // Surfaced by the -Wunused squash; see BUG-20260804-rolling-appender-purges-unsorted.
+      @scala.annotation.nowarn("msg=unused")
       val sortedNonExpiredFiles =
         nonExpiredFiles
           .sortBy(_.creationTime)

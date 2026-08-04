@@ -40,10 +40,6 @@ trait JvmConnFactoryPlatform extends ConnFactoryCompanion {
       temp
     }
 
-    def connR(ds: HikariDataSource): Resource[java.sql.Connection] =
-      Resource
-        .acquireRelease(ds.getConnection)(_.close())
-
     val ds = createDs
     val dialect = Dialect(databaseConfig.url)
     val escaper = {

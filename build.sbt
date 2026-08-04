@@ -94,6 +94,45 @@ Global / serverConnectionType := ConnectionType.Local
 //  "-Xfuture",
 ////  "-Ywarn-unused-import"
 //)
+// Files where scalac reports a GIVEN import as unused when it is not.
+//
+// -language:strictEquality is on below, so the CanEqual givens brought in by
+// SharedImports.canEqual.given are what make every == typecheck. scalac's unused-import
+// analysis does not credit them, and deleting one does not warn -- it fails with
+//
+//     [E172] Values of types X and Y cannot be compared with == or !=
+//
+// at each comparison site. Measured during the squash: removing all 14 flagged given
+// imports produced 11 E172 errors across 5 files.
+//
+// The cost of this list is real: -Wconf cannot tell a given import from an ordinary one,
+// so these files lose genuine unused-import enforcement too. Keep it short, and delete
+// entries as the underlying scalac behaviour is fixed. The durable fix is to put those
+// CanEqual instances in implicit scope so no import is needed -- see
+// FEATURE-20260804-canequal-givens-into-implicit-scope.
+val givenImportFalsePositives = Seq(
+  "a8/hermes/nats/MxNatsMailboxClient",
+  "a8/shared/CascadingHocon",
+  "a8/shared/HoconOps",
+  "a8/shared/IntValue",
+  "a8/shared/LongValue",
+  "a8/shared/NumberValue",
+  "a8/shared/StringValue",
+  "a8/shared/jdbcf/JdbcErrorClassifier",
+  "a8/shared/jdbcf/RowReader",
+  "a8/shared/jdbcf/mapper/ComponentMapper",
+  "a8/shared/jdbcf/mapper/KeyedTableMapper",
+  "a8/shared/jdbcf/unsafe",
+  "a8/shared/json/impl/JsonTypedCodecs",
+  "a8/shared/json/JsonTest",
+  "a8/shared/json/JsonTypedCodecTest",
+  "a8/sync/http/http",
+  "a8/sync/http/impl/impl",
+  "a8/sync/http/impl/RequestImpl",
+  "a8/sync/http/impl/RequestProcessorImpl",
+  "playground/HoconDemo",
+)
+
 Global / scalacOptions ++= Seq(
   // "-encoding", "UTF-8",
   "-deprecation",
@@ -105,6 +144,14 @@ Global / scalacOptions ++= Seq(
   "-language:postfixOps",
   "-language:strictEquality",
   "-Werror",
+  // Deliberately NOT -Wunused:all. `all` also turns on explicits and implicits, where an
+  // unused parameter usually means "the signature requires it" rather than "this is dead"
+  // -- interface conformance, evidence on a public case class, a context bound on
+  // CompositePrimaryKey2/3/4. Enforcing those would mean editing published signatures to
+  // satisfy a linter. The four categories below are the ones where unused really does mean
+  // dead. Revisiting explicits/implicits is TASK-20260804-sync-wunused-params.
+  "-Wunused:imports,privates,locals,patvars",
+  s"-Wconf:msg=unused import&src=.*/(${givenImportFalsePositives.mkString("|")})\\.scala:s",
 )
 
 lazy val logging =

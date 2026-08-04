@@ -61,9 +61,8 @@ class JsonTest extends AnyFunSuite {
 
   test("unused field") {
     try {
-      val actual =
-        json.unsafeParse(
-          """
+      json.unsafeParse(
+        """
   {
     "boof": 1,
     "members": [

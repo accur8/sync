@@ -23,7 +23,6 @@ trait JsonTypedCodecs {
     new JsonTypedCodec[A,B] {
 
       val typeInfo = implicitly[JsTypeInfo[B]]
-      val shortName = classTag[A].runtimeClass.shortName
 
       override def read(doc: JsDoc)(implicit readOptions: JsonReadOptions): Either[ReadError, A] =
         typeInfo
